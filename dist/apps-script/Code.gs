@@ -80,8 +80,54 @@ function withLock_(fn) {
   try { return fn(); } finally { lock.releaseLock(); }
 }
 
+/* ---------- 사용 권한 ----------
+ * 관리자: 이 스프레드시트 소유자 + 설정 시트 'admins'에 적힌 이메일.
+ *   설정·직원 목록·AI 키·전체 교체는 관리자만 할 수 있다.
+ * 사용자 명단: 설정 시트 'members'에 이메일이 있으면 그 사람(과 관리자)만 사이트를 쓸 수 있다. 비어 있으면 제한 없음.
+ */
+var DATA_LOCKED = [SETTINGS_SHEET, '직원', PHOTO_SHEET]; // api_apply로 직접 쓸 수 없는 시트
+
+function me_() {
+  try { return String(Session.getActiveUser().getEmail() || '').toLowerCase(); } catch (e) { return ''; }
+}
+function owner_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('owner');
+  if (hit != null) return hit;
+  var email = '';
+  try { var o = book_().getOwner(); email = o ? String(o.getEmail() || '').toLowerCase() : ''; } catch (e) { email = ''; }
+  cache.put('owner', email, 21600);
+  return email;
+}
+function emails_(s) {
+  return String(s || '').toLowerCase().split(/[\s,;]+/).filter(function (x) { return x.indexOf('@') > 0; });
+}
+function access_() {
+  var st = readSettings_();
+  var me = me_();
+  var admins = emails_(st.admins);
+  var owner = owner_();
+  if (owner) admins.push(owner);
+  var members = emails_(st.members);
+  // 소유자도 관리자 명단도 알 수 없으면 잠기지 않도록 모두 관리자로 둔다
+  var admin = admins.length ? (!!me && admins.indexOf(me) >= 0) : true;
+  var allowed = admin || !members.length || (!!me && members.indexOf(me) >= 0);
+  return { me: me, owner: owner, admin: admin, allowed: allowed };
+}
+function requireMember_() {
+  var a = access_();
+  if (!a.allowed) throw new Error('이 사이트를 쓸 권한이 없습니다. 관리자에게 ' + (a.me || '내 구글 계정') + ' 을(를) 사용자 명단에 넣어 달라고 요청하세요.');
+  return a;
+}
+function requireAdmin_() {
+  var a = requireMember_();
+  if (!a.admin) throw new Error('설정은 관리자만 바꿀 수 있습니다.');
+  return a;
+}
+
 /** 전체 데이터 읽기. schema = { 시트이름: [열 제목...] } */
 function api_load(schema) {
+  var acc = requireMember_();
   return withLock_(function () {
     var sheets = {};
     Object.keys(schema || {}).forEach(function (name) {
@@ -89,12 +135,18 @@ function api_load(schema) {
       sheets[name] = readSheet_(name);
     });
     ensureSheet_(SETTINGS_SHEET, ['항목', '값']);
-    return { sheets: sheets, settings: readSettings_(), ai: !!aiKey_() };
+    var settings = readSettings_();
+    if (!acc.admin) { delete settings.admins; delete settings.members; }
+    return { sheets: sheets, settings: settings, ai: !!aiKey_(), access: { me: acc.me, owner: acc.owner, admin: acc.admin } };
   });
 }
 
 /** 여러 건 저장·삭제. ops = [{ sheet, op: 'put'|'del', id, row: { 열 제목: 값 } }] */
 function api_apply(ops) {
+  requireMember_();
+  (ops || []).forEach(function (o) {
+    if (DATA_LOCKED.indexOf(o.sheet) >= 0) throw new Error(o.sheet + ' 시트는 데이터 관리 화면에서만 바꿀 수 있습니다.');
+  });
   return withLock_(function () {
     var bySheet = {};
     (ops || []).forEach(function (o) { (bySheet[o.sheet] = bySheet[o.sheet] || []).push(o); });
@@ -136,6 +188,7 @@ function api_apply(ops) {
 
 /** 전체 교체 (엑셀 가져오기, 예시 데이터, 전체 삭제). payload = { sheets: { 이름: [행] }, settings: {} } */
 function api_replaceAll(payload) {
+  requireAdmin_();
   return withLock_(function () {
     Object.keys(payload.sheets || {}).forEach(function (name) {
       var rows = payload.sheets[name] || [];
@@ -170,6 +223,7 @@ function writeSettings_(settings) {
 
 /** 설정과 직원 목록 저장. staffRows = [{ 이름, 소속 사업 }] */
 function api_saveSettings(settings, staffRows) {
+  requireAdmin_();
   return withLock_(function () {
     writeSettings_(settings || {});
     if (staffRows) {
@@ -194,6 +248,7 @@ function photoRow_(sh, id) {
 }
 
 function api_putPhoto(id, dataUrl) {
+  requireMember_();
   return withLock_(function () {
     var sh = ensureSheet_(PHOTO_SHEET);
     var parts = [String(id)];
@@ -208,6 +263,7 @@ function api_putPhoto(id, dataUrl) {
 }
 
 function api_getPhoto(id) {
+  requireMember_();
   var sh = book_().getSheetByName(PHOTO_SHEET);
   if (!sh) return null;
   var row = photoRow_(sh, id);
@@ -217,6 +273,7 @@ function api_getPhoto(id) {
 }
 
 function api_delPhoto(id) {
+  requireMember_();
   return withLock_(function () {
     var sh = book_().getSheetByName(PHOTO_SHEET);
     if (!sh) return { ok: true };
@@ -236,6 +293,7 @@ function aiKey_() {
 }
 
 function api_setAiKey(key) {
+  requireAdmin_();
   var props = PropertiesService.getScriptProperties();
   key = String(key || '').trim();
   if (key) props.setProperty(AI_KEY_PROP, key); else props.deleteProperty(AI_KEY_PROP);
@@ -244,6 +302,7 @@ function api_setAiKey(key) {
 
 /** 사이트가 만든 Messages API 요청을 그대로 전달한다 */
 function api_claude(body) {
+  requireMember_();
   var key = aiKey_();
   if (!key) return { error: { message: 'AI 키가 설정되지 않았습니다. 데이터 관리 화면에서 키를 저장하세요.' } };
   var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {

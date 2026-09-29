@@ -619,9 +619,20 @@ window.V = (() => {
   /* ================= 데이터 관리 ================= */
   function dataPage() {
     const st = S.get();
+    const admin = S.isAdmin();
+    const acc = S.accessInfo();
     return `
       <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
+      ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.</div>` : ''}
       <div class="data-grid">
+        ${S.REMOTE && admin ? `<section class="panel panel-pad staff-editor">
+          <h2 class="section-title">사용 권한</h2>
+          <p>지금 로그인: <b>${e(acc.me || '(확인 안 됨)')}</b> · <span class="badge success">관리자</span></p>
+          <p>관리자는 설정·직원 목록·AI 키·엑셀 전체 교체를 할 수 있고, 다른 사람은 등록·수정만 합니다. 구글 시트 소유자${acc.owner ? `(${e(acc.owner)})` : ''}는 항상 관리자입니다.</p>
+          <label class="field"><span>관리자 추가 (이메일, 줄마다 하나)</span><textarea class="textarea" id="accAdmins" rows="2" placeholder="예: teamlead@ardim.or.kr">${e((st.settings.admins || '').split(/[\s,;]+/).filter(Boolean).join('\n'))}</textarea></label>
+          <label class="field"><span>사용할 수 있는 사람 (이메일, 줄마다 하나 · 비워 두면 들어올 수 있는 사람 모두)</span><textarea class="textarea" id="accMembers" rows="4" placeholder="예: staff1@ardim.or.kr">${e((st.settings.members || '').split(/[\s,;]+/).filter(Boolean).join('\n'))}</textarea></label>
+          <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="save-access">저장</button></div>
+        </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
           <div class="stat-line"><span>사업체 <b>${st.businesses.length}</b></span><span>네트워크 <b>${st.networks.length}</b></span><span>명함 <b>${st.cards.length}</b></span><span>활동 기록 <b>${st.activities.length}</b></span><span>일정 <b>${st.events.length}</b></span></div>
@@ -632,41 +643,50 @@ window.V = (() => {
           <p>사업체·네트워크·명함·활동기록·일정을 시트별로 담은 엑셀 파일을 받습니다. 팀원과 공유하거나 백업할 때 사용하세요. (명함 사진은 제외)</p>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="xlsx-export">엑셀 내보내기</button><button class="btn" type="button" data-act="xlsx-template">빈 엑셀 양식 받기</button></div>
         </section>
+        ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">엑셀에서 가져오기</h2>
           <p>내보내기 양식과 같은 시트·열 이름의 엑셀을 올리면 <b>현재 데이터 전체를 교체</b>합니다. 위도·경도가 비어 있으면 읍면동 중심 위치로 표시합니다.</p>
           <input type="file" id="xlsxFile" accept=".xlsx,.xls" hidden>
           <button class="btn" type="button" data-act="xlsx-import">엑셀 파일 선택</button>
         </section>
+        ` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">전체 백업 (사진 포함)</h2>
           <p>명함 사진까지 모두 담긴 백업 파일(JSON)을 받거나, 백업 파일로 복원합니다.</p>
           <input type="file" id="jsonFile" accept=".json,application/json" hidden>
-          <div class="inline"><button class="btn" type="button" data-act="json-export">백업 파일 받기</button><button class="btn" type="button" data-act="json-import">백업에서 복원</button></div>
+          <div class="inline"><button class="btn" type="button" data-act="json-export">백업 파일 받기</button>${admin ? '<button class="btn" type="button" data-act="json-import">백업에서 복원</button>' : ''}</div>
         </section>
+        ${admin ? `
         <section class="panel panel-pad staff-editor">
           <h2 class="section-title">담당 직원과 소속 사업</h2>
           <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
           <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
           <div class="inline"><button class="btn btn-sm" type="button" data-act="staff-add">+ 직원 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-staff">저장</button></div>
         </section>
+        ` : ''}
+        ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">소속별 실적 분류표</h2>
           <p>활동 기록을 어느 실적표(대분류·중분류·세부사업명)로 집계할지 정합니다.</p>
           ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600">${e(pr.key)}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
           <button class="btn btn-sm" type="button" data-act="save-perfmap">저장</button>
         </section>
+        ` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">이 PC를 쓰는 사람</h2>
           <p>활동 기록을 남길 때 기록한 사람으로 저장됩니다. PC마다 따로 기억합니다.</p>
           <div class="inline" style="width:100%"><select class="select" id="meSel" data-act-change="me-set">${st.settings.staff.map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
         </section>
+        ${admin ? `
         <section class="panel panel-pad staff-editor">
           <h2 class="section-title">대시보드 바로가기</h2>
           <p>취업알선 사이트, 복지관 홈페이지 등 자주 여는 사이트를 대시보드 위쪽 버튼으로 둡니다.</p>
           <div class="staff-rows" id="linkRows">${(st.settings.links || []).map(l => linkRow(l)).join('')}</div>
           <div class="inline"><button class="btn btn-sm" type="button" data-act="link-add">+ 바로가기 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-links">저장</button></div>
         </section>
+        ` : ''}
+        ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">AI 도우미 (명함 읽기 · 기초 조사 · 요약)</h2>
           <p>Claude API 키를 넣으면 명함 사진 자동 입력, 사업체 인터넷 기초 조사, 3줄 요약을 쓸 수 있습니다. 키는 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>에서 발급하고, 쓴 만큼 요금이 나옵니다.</p>
@@ -674,21 +694,28 @@ window.V = (() => {
           <div class="inline" style="width:100%"><input class="input" id="aiKeyInput" type="password" autocomplete="off" placeholder="${AI.available() ? '저장됨 · 바꾸려면 새 키 입력' : 'sk-ant-...'}"><button class="btn" type="button" data-act="save-aikey">저장</button>${AI.available() ? '<button class="btn btn-ghost" type="button" data-act="clear-aikey">키 삭제</button>' : ''}</div>
           <p>${AI.available() ? '<span class="badge success">사용 중</span>' : '<span class="badge">꺼짐</span>'}</p>
         </section>
+        ` : ''}
+        ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">지도 배경</h2>
           <p>지도 오른쪽 위 버튼에서 일반 지도·위성 사진·OpenStreetMap·배경 없음 중 고를 수 있고, 고른 것은 이 PC에서 기억합니다. 한글 지명이 잘 나오는 <b>브이월드</b>를 쓰려면 <a href="https://www.vworld.kr/dev/v4api.do" target="_blank" rel="noopener">브이월드 오픈API</a>에서 무료 인증키를 받아 넣으세요. 키를 받을 때 등록하는 사이트 주소가 실제 여는 주소와 달라도 되는지는 브이월드 발급 조건을 확인하세요.</p>
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
         </section>
+        ` : ''}
+        ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
           <p>지도 화면의 '화성시 대시보드' 탭에 보여줄 화성시 통합 대시보드 공유 링크입니다.</p>
           <div class="inline" style="width:100%"><input class="input" id="cityMapInput" type="url" value="${e(st.settings.cityMapUrl || '')}" placeholder="https://total.hscity.go.kr/..."><button class="btn" type="button" data-act="save-citymap">저장</button></div>
         </section>
+        ` : ''}
+        ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">처음부터 시작</h2>
           <p>예시 데이터를 지우고 빈 상태로 시작하거나, 예시 데이터를 다시 불러옵니다. 되돌릴 수 없으니 먼저 백업하세요.</p>
           <div class="inline"><button class="btn btn-danger" type="button" data-act="data-clear">모든 데이터 지우기</button><button class="btn" type="button" data-act="data-demo">예시 데이터 불러오기</button></div>
         </section>
+        ` : ''}
       </div>`;
   }
 

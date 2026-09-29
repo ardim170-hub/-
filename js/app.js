@@ -224,7 +224,7 @@ window.App = (() => {
     $('#calBox').innerHTML = V.calendar();
   }
   function bindData() {
-    $('#xlsxFile').onchange = async ev => {
+    if ($('#xlsxFile')) $('#xlsxFile').onchange = async ev => {
       const file = ev.target.files[0];
       ev.target.value = '';
       if (!file) return;
@@ -238,7 +238,7 @@ window.App = (() => {
         toast('엑셀 데이터를 불러왔습니다.');
       } catch (err) { console.error(err); toast('엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
     };
-    $('#jsonFile').onchange = async ev => {
+    if ($('#jsonFile')) $('#jsonFile').onchange = async ev => {
       const file = ev.target.files[0];
       ev.target.value = '';
       if (!file) return;
@@ -251,7 +251,7 @@ window.App = (() => {
         toast('백업에서 복원했습니다.');
       } catch { toast('백업 파일을 읽지 못했습니다. 이 프로그램에서 받은 JSON 파일인지 확인하세요.', 'error'); }
     };
-    $('#meSel').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다.`); };
+    if ($('#meSel')) $('#meSel').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다.`); };
   }
 
   /* ---------- Drawer ---------- */
@@ -698,6 +698,14 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
+    'save-access': async () => {
+      const clean = v => [...new Set(v.toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@')))];
+      const admins = clean($('#accAdmins').value), members = clean($('#accMembers').value);
+      const me = S.accessInfo().me;
+      if (members.length && me && !members.includes(me) && !admins.includes(me) && me !== S.accessInfo().owner) members.push(me);
+      await S.saveSettings({ admins: admins.join(','), members: members.join(',') });
+      toast(members.length ? `사용할 수 있는 사람 ${members.length}명을 저장했습니다.` : '사용 권한을 저장했습니다. 명단이 비어 있어 들어올 수 있는 사람 모두 씁니다.');
+    },
     'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();

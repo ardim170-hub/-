@@ -150,18 +150,24 @@ window.S = (() => {
     const st = res.settings || {};
     next.settings = {
       orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '', perfByProgram: st.perfByProgram || null,
+      admins: st.admins || '', members: st.members || '',
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
     };
     next.isDemo = st.isDemo === 'Y';
     aiServer = !!res.ai;
+    if (res.access) access = { me: res.access.me || '', owner: res.access.owner || '', admin: !!res.access.admin };
     return normalize(next);
   }
   function serverPayload(s) {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '' } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '' } : {}) } };
   }
+  /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
+  let access = { me: '', owner: '', admin: true };
+  const isAdmin = () => !REMOTE || access.admin;
+  const accessInfo = () => ({ ...access });
 
   let lastSig = '';
   let aiServer = false;
@@ -547,7 +553,7 @@ window.S = (() => {
   }
 
   return {
-    REMOTE, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, accessInfo, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

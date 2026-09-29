@@ -735,3 +735,8 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .order-sub { text-align: center; margin: -6px 0 12px; color: #444; }
 .order-doc .doc-tbl th { width: auto; text-align: center; }
 .order-doc .doc-tbl td { text-align: center; }
+
+/* 사용 권한 */
+.notice { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--accent-soft); color: var(--text); font-size: 14px; }
+label.field > span { font-size: 13px; font-weight: 600; color: var(--text); }
+label.field .textarea { width: 100%; }
