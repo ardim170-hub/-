@@ -285,7 +285,7 @@ window.V = (() => {
       <div class="table-wrap has-mobile"><table class="tbl">
         <thead><tr><th>사업체</th><th>단계</th><th>발굴일</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
-          <tr data-act="open" data-kind="biz" data-id="${b.id}" class="row-biz ${S.supportOf(b).types.length ? 'is-support' : ''}">
+          <tr data-act="open" data-kind="biz" data-id="${b.id}" class="row-biz is-${S.bizTone(b)}">
             <td><div class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
             <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
@@ -299,7 +299,7 @@ window.V = (() => {
           </tr>`).join('')}</tbody>
       </table></div>
       <div class="mlist">${rows.map(({ b, la, ne, pc }) => `
-        <div class="mrow row-biz ${S.supportOf(b).types.length ? 'is-support' : ''}" data-act="open" data-kind="biz" data-id="${b.id}">
+        <div class="mrow row-biz is-${S.bizTone(b)}" data-act="open" data-kind="biz" data-id="${b.id}">
           <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</span>${stageBadge(b.stage)}</div>
           ${b.jobs ? `<div class="meta">가능 직무: ${e(b.jobs)}</div>` : ''}
           <div class="meta">${e(b.industry)} · ${e(b.area || '')} · ${b.discoveredAt ? U.dateDot(b.discoveredAt) + ' 발굴' : ''}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
@@ -418,7 +418,7 @@ window.V = (() => {
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부, 전화번호 뒷자리, 초성(ㄱㅈㅂ)으로도 찾을 수 있어요.${f.idx ? '<div><button class="btn" type="button" data-act="card-idx" data-idx="">색인 해제</button></div>' : ''}</div></div>`;
     return ofChip + dupBar('card', dup.size, f.dup) + `<div class="card-grid">${rows.map(c => {
       const link = S.linkOf(c);
-      const tone = c.linkType === 'biz' ? (link && S.supportOf(link).types.length ? 'k-support' : 'k-biz') : c.linkType === 'net' ? (link && S.isHome(link) ? 'k-home' : 'k-net') : 'k-none';
+      const tone = c.linkType === 'biz' ? 'k-' + S.bizTone(link) : c.linkType === 'net' ? (link && S.isHome(link) ? 'k-home' : 'k-net') : 'k-none';
       return `<article class="bcard ${tone}" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
         <div class="org">${c.linkType === 'biz' ? `<span class="badge stage-badge" style="--c:${D.STAGE[link?.stage]?.color || 'var(--muted)'}"><span class="dot"></span>사업체</span>` : c.linkType === 'net' ? '<span class="badge navy">기관</span>' : ''}<span>${U.hl(c.org || '소속 미기재', f.q)}</span></div>
         <div class="pname">${U.hl(c.name, f.q)}${dupTag(dup, c.id)}<span class="ptitle">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
@@ -467,6 +467,7 @@ window.V = (() => {
             </div>
             <div class="map-legend map-key">
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.biz}"></i>사업체 개발</span>
+              <span><i class="dot-lg" style="--c:${D.MAP_COLORS.placed}"></i>취업 연계</span>
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.support}"></i>지원고용·현장훈련</span>
               <span><i class="sq" style="--c:${D.MAP_COLORS.net}"></i>기관</span>
               <span><i class="star" style="--c:${D.MAP_COLORS.home}"></i>아르딤복지관</span>
@@ -475,6 +476,7 @@ window.V = (() => {
             </div>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 화성시아르딤복지관 위치 등록</button>`}
             <div class="map-legend map-stages"><span class="sub">단계</span>${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label></span>`).join('')}</div>
+            <div id="routeBox">${routePanel()}</div>
             ${noPos ? `<div class="sub">위치가 없는 곳 ${noPos}곳은 지도에 표시되지 않습니다.</div>` : ''}
           </div>
           <div class="map-list" id="mapList"></div>
@@ -511,6 +513,26 @@ window.V = (() => {
     if (f.card) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
     return items.filter(({ x, home }) => home || ((!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
+  }
+  /** 길찾기 칸: 출발(기본 = 우리 복지관) → 도착, 대략 거리·시간과 네이버·카카오 길찾기 버튼 */
+  function routePanel() {
+    const r = ui.map.route;
+    const home = S.get().networks.find(n => S.isHome(n) && M.hasPos(n));
+    if (!r) return `<div class="route-box idle"><b>🧭 길찾기</b><span class="sub">지도에서 점을 누르고 <b>여기까지 길찾기</b>를 누르면 ${home ? '복지관에서' : '출발지에서'} 얼마나 걸리는지 보여 줘요.</span></div>`;
+    const from = r.from ? S.find(r.from.kind, r.from.id) : home;
+    const to = r.to ? S.find(r.to.kind, r.to.id) : null;
+    const head = `<div class="route-head"><b>🧭 길찾기</b><button class="icon-btn" type="button" data-act="route-clear" aria-label="길찾기 닫기" style="width:28px;height:28px">${I.close}</button></div>`;
+    if (!r.to) return `<div class="route-box">${head}<div class="route-ends"><span class="from">출발 <b>${e(from ? from.name : '')}</b></span></div><span class="sub">이제 지도에서 도착할 곳을 누르고 <b>여기까지 길찾기</b>를 누르세요.</span></div>`;
+    if (!to || !M.hasPos(to)) return `<div class="route-box">${head}<span class="sub">도착지 위치가 없습니다.</span></div>`;
+    if (!from || !M.hasPos(from)) return `<div class="route-box">${head}<div class="route-ends"><span class="to">도착 <b>${e(to.name)}</b></span></div><span class="sub">출발지가 없어요. 지도에서 다른 곳을 누르고 <b>여기서 출발</b>을 누르거나, 복지관 위치를 등록해 주세요.</span><button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 복지관 위치 등록</button></div>`;
+    const km = M.distKm(from, to), t = M.estimate(km);
+    const btn = (href, label, cls = '') => `<a class="btn btn-sm ${cls}" href="${e(href)}" target="_blank" rel="noopener">${label}</a>`;
+    return `<div class="route-box">${head}
+      <div class="route-ends"><span class="from">출발 <b>${e(from.name)}</b></span><button class="icon-btn" type="button" data-act="route-swap" aria-label="출발·도착 바꾸기" title="출발·도착 바꾸기" style="width:28px;height:28px">⇅</button><span class="to">도착 <b>${e(to.name)}</b></span></div>
+      <div class="route-est"><span>직선 <b class="num">${km.toFixed(1)}km</b></span><span>🚗 약 <b class="num">${t.car}분</b></span><span>🚌 약 <b class="num">${t.transit}분</b></span>${km < 3 ? `<span>🚶 약 <b class="num">${t.walk}분</b></span>` : ''}</div>
+      <p class="sub" style="margin:0">거리로 어림한 시간이에요. 정확한 경로와 시간은 아래에서 확인하세요.</p>
+      <div class="inline route-links">${btn(M.naverRoute(from, to, 'car'), '네이버 자동차', 'btn-naver')}${btn(M.naverRoute(from, to, 'transit'), '네이버 대중교통', 'btn-naver')}${km < 3 ? btn(M.naverRoute(from, to, 'walk'), '네이버 도보', 'btn-naver') : ''}${btn(M.kakaoRoute(from, to), '카카오맵 길찾기', 'btn-kakao')}</div>
+    </div>`;
   }
   /** 옆 목록: 기본은 고른 달에 발굴한 사업체만, 구별로 묶어서 */
   function mapList(items) {
@@ -803,7 +825,7 @@ window.V = (() => {
         <input type="hidden" name="staff" value="${e(S.me())}">
         ${perfSelect(kind, id)}
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 보기</a>` : ''}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 · ${e(R.siteName(a.jobUrl))}</a>` : ''}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
@@ -852,7 +874,7 @@ window.V = (() => {
               <span class="sub">검색:</span>${SEARCH_SITES.map(([l, fn]) => `<a class="btn btn-ghost btn-sm" href="${fn(b.name + (b.area ? ' ' + b.area : ''))}" target="_blank" rel="noopener">${l}</a>`).join('')}
             </div>
           </section>
-          <section class="dr-sec"><h3>채용 정보</h3>${kv([['최근 구인공고', (() => { const a = S.actsOf('biz', b.id).find(x => R.jobLink(x.jobUrl)); return a ? `<a class="btn btn-sm btn-job" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">공고 보기</a> <span class="sub">${U.dateDot(a.date)} 연락 기록</span>` : ''; })()], ['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
+          <section class="dr-sec"><h3>채용 정보</h3>${kv([['최근 구인공고', (() => { const a = S.actsOf('biz', b.id).find(x => R.jobLink(x.jobUrl)); return a ? `<a class="btn btn-sm btn-job" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">공고 보기 · ${e(R.siteName(a.jobUrl))}</a> <span class="sub">${U.dateDot(a.date)} 연락 기록</span>` : ''; })()], ['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
           <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['대표 전화', b.phone ? `<a href="tel:${e(b.phone.replace(/[^0-9+]/g, ''))}">${e(b.phone)}</a>` : ''], ['홈페이지', b.homepage ? `<a href="${e(/^https?:/.test(b.homepage) ? b.homepage : 'https://' + b.homepage)}" target="_blank" rel="noopener">${e(b.homepage)}</a>` : ''], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['실적 진행도', e(R.progressOf(b))], ['복리후생', e(b.welfare)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
@@ -924,5 +946,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

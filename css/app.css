@@ -861,3 +861,31 @@ label.field .textarea { width: 100%; }
 .url-in { min-width: 150px; }
 .linklike { border: 0; background: none; padding: 0; color: var(--k-card-ink); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .kpi, .kpi:hover { text-decoration: none; color: inherit; }
+
+/* 취업 연계(주황): 지도 핀에 ✓, 목록 띠, 상세 창 */
+:root { --k-placed: #FF7A00; --k-placed-soft: #FFF0E0; --k-placed-ink: #A94A00; }
+.bz-pin.placed { position: relative; }
+.bz-pin.placed::after { content: "✓"; position: absolute; inset: 0; display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 900; line-height: 1; }
+.tbl tr.row-biz.is-placed td:first-child { box-shadow: inset 4px 0 0 var(--k-placed); }
+.mrow.row-biz.is-placed { border-left-color: var(--k-placed); }
+.bcard.k-placed { --kc: var(--k-placed); }
+#drawerInner[data-tone="placed"] { --dc: var(--k-placed); --ds: var(--k-placed-soft); --di: var(--k-placed-ink); --dl: "취업 연계 사업체"; }
+.pop.tone-placed { --pc: var(--k-placed); --ps: var(--k-placed-soft); --pi: var(--k-placed-ink); }
+
+/* 길찾기 칸 */
+.route-box { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #C9D6EA; border-left: 4px solid #172033; border-radius: 10px; background: #F6F8FC; font-size: 13.5px; }
+.route-box.idle { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; border-left-color: #9AA3B2; background: var(--surface); }
+.route-head { display: flex; align-items: center; justify-content: space-between; }
+.route-ends { display: flex; flex-direction: column; gap: 2px; position: relative; padding-right: 34px; }
+.route-ends .icon-btn { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+.route-ends .from::before, .route-ends .to::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.route-ends .from::before { background: #172033; }
+.route-ends .to::before { background: var(--k-support); }
+.route-est { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 14px; }
+.route-links { gap: 6px; flex-wrap: wrap; }
+.btn-naver { background: #03C75A; border-color: #03C75A; color: #fff; font-weight: 700; }
+.btn-kakao { background: #FEE500; border-color: #F2D900; color: #191919; font-weight: 700; }
+.btn-naver:hover, .btn-kakao:hover { filter: brightness(.95); text-decoration: none; }
+.btn-route { background: #172033; border-color: #172033; color: #fff; }
+.leaflet-tooltip.route-tip { background: #172033; color: #fff; border: 0; font-weight: 700; font-size: 12.5px; padding: 3px 8px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.leaflet-tooltip.route-tip::before { display: none; }

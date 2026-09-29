@@ -81,9 +81,9 @@ window.D = (() => {
   /** 화성시 통합 대시보드 공유 링크 (지도 화면 '화성시 대시보드' 탭) */
   const CITY_DASHBOARD_URL = 'https://total.hscity.go.kr/web2/dashboard-main/shares/415bf387db01b77eb8d2f6ae700b8934';
 
-  /** 지도 표시 색: 사업체 개발(노랑) · 지원고용/현장훈련 진행(빨강) · 기관(검정) · 우리 복지관(금색 별) */
+  /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용/현장훈련 진행(빨강) · 기관(검정) · 우리 복지관(금색 별) */
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
-  const MAP_COLORS = { biz: '#F5B700', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
+  const MAP_COLORS = { biz: '#F5B700', placed: '#FF7A00', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
 
   const STAGES = [
     { key: '발굴', color: 'var(--st-discover)', hex: '#8A94A6', desc: '채용 가능성이 있는 사업체를 찾아 기록한 단계' },

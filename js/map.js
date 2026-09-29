@@ -99,13 +99,13 @@ window.M = (() => {
   }
 
   /** 사업체: 노랑(개발) / 빨강(지원고용·현장훈련 진행). hot = 이번 달 발굴이면 크게, 진한 테두리 */
-  const bizColor = b => (S.supportOf(b).types.length ? D.MAP_COLORS.support : D.MAP_COLORS.biz);
+  const bizColor = b => D.MAP_COLORS[S.bizTone(b)];
   function bizMarker(b, hot) {
     const size = hot ? 22 : 17;
     const dim = b.stage === '보류' ? 'opacity:.6;' : '';
     return L.marker([b.lat, b.lng], {
       riseOnHover: true, zIndexOffset: hot ? 300 : 100,
-      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
+      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''} ${S.bizTone(b) === 'placed' ? 'placed' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
     });
   }
   function cardMarker(c) {
@@ -136,14 +136,15 @@ window.M = (() => {
     // 연결된 명함: 이름을 누르면 명함 상세, 전화 아이콘은 바로 걸기
     const cards = S.cardsOf(kind, x.id);
     const telOf = c => String(c.mobile || c.phone || '').replace(/[^0-9+]/g, '');
-    const tone = kind === 'biz' ? (sup.length ? 'support' : 'biz') : S.isHome(x) ? 'home' : 'net';
+    const tone = kind === 'biz' ? S.bizTone(x) : S.isHome(x) ? 'home' : 'net';
     const cardList = cards.length
       ? `<ul class="pop-cards">${cards.slice(0, 4).map(c => `<li><button type="button" class="linklike" data-act="open" data-kind="card" data-id="${c.id}">${U.esc(c.name)}</button> <span class="pop-meta">${U.esc([c.dept, c.title].filter(Boolean).join(' · '))}</span>${telOf(c) ? ` <a class="pop-tel" href="tel:${telOf(c)}">${U.esc(c.mobile || c.phone)}</a>` : ''}</li>`).join('')}${cards.length > 4 ? `<li class="pop-meta">외 ${cards.length - 4}장</li>` : ''}</ul>`
       : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
-    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', support: '지원고용·현장훈련', net: '기관', home: '우리 복지관' }[tone]}</div>
+    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', support: '지원고용·현장훈련', net: '기관', home: '우리 복지관' }[tone]}</div>
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       ${cardList}
-      <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div></div>`;
+      <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
+      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button></div></div>`;
   }
 
   /** 위치 지정용 지도: 클릭하면 핀 이동 */
@@ -179,8 +180,25 @@ window.M = (() => {
     return null;
   }
 
+  /* ---------- 길찾기 ----------
+   * 두 곳 사이 직선거리로 대략 시간을 어림하고, 정확한 경로는 네이버·카카오 길찾기로 넘긴다 */
+  function distKm(a, b) {
+    const r = Math.PI / 180, dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+    return 12742 * Math.asin(Math.sqrt(h));
+  }
+  /** 도로는 직선보다 1.35배 길고, 차 평균 35km/h · 버스 평균 15km/h(+기다림 10분) · 걸음 4.5km/h로 어림 */
+  function estimate(km) {
+    const road = km * 1.35;
+    return { road, car: Math.max(3, Math.round(road / 35 * 60)), transit: Math.round(road / 15 * 60 + 10), walk: Math.round(road / 4.5 * 60) };
+  }
+  // 네이버 지도 길찾기 주소는 웹 메르카토르(EPSG:3857) 좌표를 쓴다
+  const merc = (lat, lng) => [lng * 20037508.34 / 180, Math.log(Math.tan((90 + lat) * Math.PI / 360)) / (Math.PI / 180) * 20037508.34 / 180].map(v => v.toFixed(2));
+  const naverRoute = (a, b, mode) => `https://map.naver.com/p/directions/${merc(a.lat, a.lng).join(',')},${encodeURIComponent(a.name)},,/${merc(b.lat, b.lng).join(',')},${encodeURIComponent(b.name)},,/-/${mode}`;
+  const kakaoRoute = (a, b) => `https://map.kakao.com/link/from/${encodeURIComponent(a.name)},${a.lat},${a.lng}/to/${encodeURIComponent(b.name)},${b.lat},${b.lng}`;
+
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { BASES, create, guBounds, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { BASES, create, guBounds, distKm, estimate, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();

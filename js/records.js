@@ -58,7 +58,7 @@ window.R = (() => {
           <label>연락결과<select class="select" name="result">${opts(D.CONTACT_RESULTS, '', '선택')}</select></label>
           <label>상태<select class="select" name="status">${opts(D.CONTACT_STATUS, '연락완료')}</select></label>
           <label class="grow">주소 <span class="sub">(새 사업체일 때)</span><input class="input" name="address"></label>
-          <label class="grow">구인공고 주소 <span class="sub">(고용24·워크투게더 등 공고 글 주소)</span><input class="input" name="jobUrl" inputmode="url" placeholder="https://www.work24.go.kr/..."></label>
+          <label class="grow">구인공고 주소 <span class="sub">(고용24·알바몬·알바천국·사람인·잡코리아 등, 사이트 주소만)</span><input class="input" name="jobUrl" inputmode="url" autocomplete="off" placeholder="https://www.albamon.com/..."></label>
           <button class="btn btn-primary" type="submit">추가</button>
           <datalist id="ctBizList">${names.map(n => `<option value="${e(n)}">`).join('')}</datalist>
         </form>
@@ -100,7 +100,7 @@ window.R = (() => {
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
           <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td>
-          <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
+          <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기 · ${e(siteName(a.jobUrl))}</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
             : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td></tr>`).join('')}
       </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
@@ -128,7 +128,17 @@ window.R = (() => {
     S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', jobUrl: (fd.jobUrl || '').trim(), perf: '', people: '' });
     return b;
   }
-  /** 구인공고 주소를 열 수 있는 링크로: http(s)만, www.로 시작하면 https를 붙인다 */
+  /** 공고 사이트 이름 (버튼에 표시) */
+  const SITES = [[/work24\.go\.kr|worknet/, '고용24'], [/worktogether/, '워크투게더'], [/albamon/, '알바몬'], [/alba\.co\.kr/, '알바천국'], [/saramin/, '사람인'], [/jobkorea/, '잡코리아'], [/incruit/, '인크루트'], [/kead\.or\.kr/, '장애인고용공단'], [/hscity|hwaseong/, '화성시'], [/danggeun|daangn/, '당근'], [/indeed/, '인디드']];
+  function siteName(u) {
+    const url = jobLink(u);
+    if (!url) return '';
+    let host = '';
+    try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; }
+    const hit = SITES.find(([re]) => re.test(host));
+    return hit ? hit[1] : host;
+  }
+  /** 구인공고 주소를 열 수 있는 링크로: http(s)만, www.로 시작하면 https를 붙인다. 사이트 주소가 아니면 빈 문자열 */
   function jobLink(u) {
     const s = String(u || '').trim();
     if (/^https?:\/\/\S+$/i.test(s)) return s;
@@ -365,5 +375,5 @@ window.R = (() => {
     }));
   }
 
-  return { ui, jobLink, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ui, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();

@@ -180,12 +180,30 @@ window.App = (() => {
       markerIndex[kind + x.id] = m;
     });
     markerGroup.addTo(bigMap);
+    drawRoute();
     if (fit) {
       const gu = V.ui.map.gu;
       const gb = M.guBounds(gu || '');
       if (gb) bigMap.fitBounds(gb, { padding: [12, 12] });
       else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     }
+  }
+  /** 길찾기: 옆 칸을 다시 그리고, 지도에 출발→도착 점선과 거리를 표시 */
+  let routeLayer = null;
+  function drawRoute(zoom) {
+    const box = $('#routeBox');
+    if (box) box.innerHTML = V.routePanel();
+    if (!bigMap) return;
+    if (routeLayer) { routeLayer.remove(); routeLayer = null; }
+    const r = V.ui.map.route;
+    if (!r) return;
+    const from = r.from ? S.find(r.from.kind, r.from.id) : S.get().networks.find(n => S.isHome(n) && M.hasPos(n));
+    const to = r.to ? S.find(r.to.kind, r.to.id) : null;
+    if (!from || !to || !M.hasPos(from) || !M.hasPos(to)) return;
+    const km = M.distKm(from, to);
+    routeLayer = L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#172033', weight: 3, dashArray: '8 7', opacity: .85, interactive: false })
+      .bindTooltip(`${km.toFixed(1)}km · 차로 약 ${M.estimate(km).car}분`, { permanent: true, direction: 'center', className: 'route-tip' }).addTo(bigMap);
+    if (zoom) bigMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 14 });
   }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
@@ -336,7 +354,7 @@ window.App = (() => {
     inner.innerHTML = v.html;
     // 무엇을 보고 있는지 색으로 구분: 사업체(노랑)·지원고용(빨강)·기관(검정)·복지관(금색)·명함(청록)·일정(파랑)
     const cur = top.id ? S.find(top.kind, top.id) : null;
-    inner.dataset.tone = top.kind === 'biz' ? (cur && S.supportOf(cur).types.length ? 'support' : 'biz') : top.kind === 'net' ? (cur && S.isHome(cur) ? 'home' : 'net') : top.kind === 'card' ? 'card' : 'ev';
+    inner.dataset.tone = top.kind === 'biz' ? S.bizTone(cur) : top.kind === 'net' ? (cur && S.isHome(cur) ? 'home' : 'net') : top.kind === 'card' ? 'card' : 'ev';
     showDrawer();
     const form = inner.querySelector('#entityForm');
     if (v.after) v.after(form);
@@ -670,6 +688,16 @@ window.App = (() => {
     'map-stage': el => { const s = V.ui.map.stages; const k = el.dataset.stage; if (el.checked) s.add(k); else s.delete(k); refreshMap(false); },
     'map-mode': el => { V.ui.map.mode = el.dataset.mode; render(); },
     'map-net-only': () => { Object.assign(V.ui.map, { biz: false, net: true, mode: 'ours' }); },
+    'route-to': el => { const r = V.ui.map.route; V.ui.map.route = { from: r && r.from ? r.from : null, to: { kind: el.dataset.kind, id: el.dataset.id } }; bigMap?.closePopup(); drawRoute(true); },
+    'route-from': el => { const r = V.ui.map.route; V.ui.map.route = { from: { kind: el.dataset.kind, id: el.dataset.id }, to: r ? r.to : null }; bigMap?.closePopup(); drawRoute(!!(r && r.to)); if (!r || !r.to) toast('출발지를 정했어요. 이제 도착할 곳을 누르고 여기까지 길찾기를 누르세요.'); },
+    'route-swap': () => {
+      const r = V.ui.map.route; if (!r || !r.to) return;
+      const home = S.get().networks.find(n => S.isHome(n) && M.hasPos(n));
+      const from = r.from || (home ? { kind: 'net', id: home.id } : null);
+      if (!from) return;
+      V.ui.map.route = { from: r.to, to: from }; drawRoute(false);
+    },
+    'route-clear': () => { V.ui.map.route = null; drawRoute(false); },
     'map-focus': el => {
       const { kind, id } = el.dataset;
       const m = markerIndex[kind + id];
@@ -736,7 +764,8 @@ window.App = (() => {
       if (!a) return;
       const v = window.prompt('구인공고 주소 (지우려면 비워 두세요)', a.jobUrl || '');
       if (v == null) return;
-      S.upsert('act', { id: a.id, jobUrl: v.trim() });
+      if (v.trim() && !R.jobLink(v)) return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error');
+      S.upsert('act', { id: a.id, jobUrl: R.jobLink(v) });
       toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
     },
     'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const n = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${n}줄을 가져왔습니다.`); },
@@ -835,7 +864,10 @@ window.App = (() => {
       if (!el) return;
       const { id, field } = el.dataset;
       inlineEdit = true;
-      if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
+      if (el.dataset.chg === 'act-field' && field === 'jobUrl') {
+        if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
+        S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
+      } else if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
       else if (el.dataset.chg === 'trip-field') S.upsert('trip', { id, [field]: el.value });
       else if (el.dataset.chg === 'trip-report') {
         const t = S.find('trip', id);
@@ -871,6 +903,8 @@ window.App = (() => {
       if (form.dataset.form === 'ct-add') {
         const fd = Object.fromEntries(new FormData(form).entries());
         if (!fd.name.trim() || !fd.content.trim()) return toast('사업체명과 결과를 입력하세요.', 'error');
+        if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); }
+        fd.jobUrl = R.jobLink(fd.jobUrl);
         const b = R.addContact(fd);
         toast(`${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
