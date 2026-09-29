@@ -86,6 +86,7 @@ window.D = (() => {
 
   /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
+  const SUPPORT_LABEL = { 지원고용: '지원고용', 현장훈련: '현장훈련 (현장중심)' };
   const MAP_COLORS = { biz: '#F5B700', placed: '#FF7A00', employ: '#E5383B', training: '#7C3AED', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
 
   const STAGES = [
@@ -93,7 +94,7 @@ window.D = (() => {
     { key: '접촉', color: 'var(--st-contact)', hex: '#6B9BEF', desc: '전화·이메일로 첫 연락을 한 단계' },
     { key: '방문상담', color: 'var(--st-visit)', hex: '#2563EB', desc: '사업체를 방문해 직무와 환경을 확인한 단계' },
     { key: '채용협의', color: 'var(--st-negotiate)', hex: '#C98A1B', desc: '직무·근무조건·채용 인원을 협의 중인 단계' },
-    { key: '채용연계', color: 'var(--st-placed)', hex: '#2F7D57', desc: '장애인 근로자 채용이 이루어진 단계' },
+    { key: '채용연계', color: 'var(--st-placed)', hex: '#FF7A00', desc: '장애인 근로자 채용이 이루어진 단계' },
     { key: '보류', color: 'var(--st-hold)', hex: '#B8BFCC', desc: '당장은 진행이 어려워 보류한 사업체' },
   ];
   const STAGE = Object.fromEntries(STAGES.map((s, i) => [s.key, { ...s, i }]));
@@ -334,5 +335,5 @@ window.D = (() => {
     };
   }
 
-  return { SUPPORT_TYPES, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

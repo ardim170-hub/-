@@ -48,12 +48,14 @@ window.App = (() => {
   /* ---------- Nav ---------- */
   function renderNav() {
     const r = route();
-    $('#sideNav').innerHTML = NAV.map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
+    // 데이터 관리는 관리자에게만 보인다 (팀원은 등록·수정·삭제만)
+    $('#sideNav').innerHTML = NAV.filter(([k]) => k !== 'data' || S.isAdmin()).map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
     const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
-    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
+    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
     $('#demoBanner').hidden = !S.get().isDemo;
+    $('#meQuick').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다. 활동 기록의 기록자로 남아요.`); render(); };
     renderScope();
   }
 
@@ -98,7 +100,7 @@ window.App = (() => {
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
-      data: [V.dataPage, bindData],
+      data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
     const [html, after] = pages[r] || pages.dashboard;
     try {
@@ -142,6 +144,8 @@ window.App = (() => {
     if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'), { showLayers: true });
     refreshMap(true);
+    const fx = V.ui.map.focus;
+    if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
   }
   /** 화성시 대시보드를 기준 화면 크기로 그린 뒤 칸 너비에 맞춰 축소 */
@@ -393,7 +397,7 @@ window.App = (() => {
   const openDetail = (kind, id, fromDrawer) => (kind === 'ev' ? push({ type: 'form', kind: 'ev', id }, fromDrawer) : push({ type: 'detail', kind, id }, fromDrawer));
 
   /** 명함으로 네트워크 기관·사업체를 새로 만들고 명함을 연결한다. 위치를 못 정하면 바로 위치 입력 창을 연다 */
-  function registerFromCard(c, to, name, category, fromDrawer) {
+  async function registerFromCard(c, to, name, category, fromDrawer) {
     name = name || c.org || c.name;
     const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
     const rec = to === 'biz'
@@ -403,13 +407,19 @@ window.App = (() => {
     S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
     bigMap?.closePopup();
     const where = to === 'biz' ? '사업체 개발' : `네트워크(${rec.category})`;
+    if (!M.hasPos(S.find(to, rec.id)) && rec.address) {
+      // 도로명 주소처럼 읍면동이 없으면 인터넷 지도에서 주소로 위치를 먼저 찾아 본다
+      push({ type: 'loading', title: '지도 위치를 찾는 중', body: `${rec.address} 의 위치를 찾고 있어요.` }, fromDrawer);
+      await Promise.race([S.refine(to, rec.id), new Promise(r => setTimeout(r, 12000))]);
+      stack.pop();
+    }
     if (!M.hasPos(S.find(to, rec.id))) {
       // 주소가 없거나 읍면동을 못 찾으면 지도에 못 나오므로 바로 위치를 정하게 한다
-      toast(`'${name}'을(를) ${where}에 등록했어요. 명함에 주소가 없어 지도 위치를 못 정했어요. 주소를 넣거나 지도를 눌러 위치를 정해 주세요.`, 'error');
+      toast(`'${name}'을(를) ${where}에 등록했어요. ${rec.address ? '주소로 지도 위치를 찾지 못했어요' : '명함에 주소가 없어 지도 위치를 못 정했어요'}. 주소를 고치거나 지도를 눌러 위치를 정해 주세요.`, 'error');
       push({ type: 'form', kind: to, id: rec.id, focus: 'address' }, fromDrawer);
       return rec;
     }
-    toast(`'${name}'을(를) ${where}에 등록하고 명함을 연결했습니다.`);
+    toast(`'${name}'을(를) ${where}에 등록하고 명함을 연결했습니다.${S.find(to, rec.id).approx ? ' (지도에는 대략적인 위치로 표시돼요)' : ''}`);
     openDetail(to, rec.id, fromDrawer);
     return rec;
   }
@@ -534,7 +544,7 @@ window.App = (() => {
     if (document.querySelector('.more-sheet')) return closeMore();
     const el = document.createElement('div');
     el.className = 'more-sheet';
-    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a><a href="#/data">데이터 관리</a>';
+    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a>' + (S.isAdmin() ? '<a href="#/data">데이터 관리</a>' : '');
     document.body.appendChild(el);
   }
 
@@ -584,6 +594,21 @@ window.App = (() => {
     edit: (el) => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id }, true),
     'edit-loc': el => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id, focus: 'address' }, !!el.closest('#drawer')),
     'map-nopos': () => { V.ui.map.noPos = !V.ui.map.noPos; render(); },
+    'nopos-refind': async el => {
+      // 주소가 있는데 위치가 없는 곳을 차례로 다시 찾는다 (무료 지도 검색은 1초에 한 번만)
+      const st = S.view();
+      const list = [...st.businesses.filter(b => !M.hasPos(b) && b.address).map(x => ['biz', x]), ...st.networks.filter(n => !M.hasPos(n) && n.address).map(x => ['net', x])];
+      if (!list.length) return toast('주소가 적힌 곳이 없어요. 위치 지정으로 하나씩 정해 주세요.', 'error');
+      el.disabled = true;
+      let found = 0;
+      for (const [i, [kind, x]] of list.entries()) {
+        el.textContent = `찾는 중… ${i + 1}/${list.length}`;
+        if (await S.refine(kind, x.id)) found++;
+        await new Promise(r => setTimeout(r, 1100));
+      }
+      toast(`${list.length}곳 중 ${found}곳의 위치를 찾았어요.${found < list.length ? ' 나머지는 위치 지정으로 정해 주세요.' : ''}`, found ? '' : 'error');
+      render();
+    },
     'edit-event': (el, fd) => push({ type: 'form', kind: 'ev', id: el.dataset.id }, fd),
     delete: async el => {
       const { kind, id } = el.dataset;
@@ -634,7 +659,23 @@ window.App = (() => {
     'dr-cancel': () => { stack.pop(); renderDrawer(); },
     'biz-stage': el => { V.ui.biz.stage = el.dataset.stage; if (route() === 'biz') render(); else location.hash = '#/biz'; },
     'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else f[k] = ''; render(); },
-    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all', dup: false }); render(); },
+    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all', dup: false, prog: '' }); render(); },
+    'biz-prog': el => { V.ui.biz.prog = el.dataset.prog; render(); },
+    'sup-toggle': el => {
+      const b = S.find('biz', el.dataset.id);
+      if (!b) return;
+      const t = el.dataset.type;
+      const cur = new Set(b.support || []);
+      if (cur.has(t)) cur.delete(t); else cur.add(t);
+      S.upsert('biz', { id: b.id, support: D.SUPPORT_TYPES.filter(x => cur.has(x)) });
+      toast(`${b.name}: ${D.SUPPORT_LABEL[t]} ${cur.has(t) ? '진행으로 표시했어요' : '표시를 뺐어요'}.`);
+    },
+    'map-show': el => {
+      // 지도로 가서 그곳을 바로 보여 준다 (필터는 풀어서 반드시 보이게)
+      Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', biz: true, net: true, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), focus: { kind: el.dataset.kind, id: el.dataset.id } });
+      closeDrawer();
+      if (location.hash === '#/map') render(); else location.hash = '#/map';
+    },
     'dup-toggle': el => { const f = V.ui[el.dataset.kind === 'card' ? 'cards' : el.dataset.kind]; f.dup = !f.dup; render(); },
     'cards-of': el => {
       const x = S.find(el.dataset.kind, el.dataset.id);

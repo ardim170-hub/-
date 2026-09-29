@@ -183,16 +183,21 @@ window.M = (() => {
     const q = String(address || '').trim();
     if (!q) return null;
     if (vworldKey()) for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
-    const tries = [q, q.replace(/\s*\d+(-\d+)?\s*$/, ''), q.includes('화성') ? null : '화성시 ' + q].filter(Boolean);
-    for (const t of tries) {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&accept-language=ko&q=${encodeURIComponent(t)}`;
+    // OpenStreetMap 검색: 전체 주소 → 번지 뺀 주소 → (화성시 안에서만) 도로 이름. 도로 이름으로 찾으면 그 도로의 대략 위치다
+    const road = q.match(/([가-힣A-Za-z0-9·]+(?:대로|로|길))\s*(\d+(?:-\d+)?)?/);
+    const tries = [[q], [q.replace(/\s*\d+(-\d+)?\s*$/, '')], [q.includes('화성') ? null : '화성시 ' + q],
+      [road && road[2] ? `${road[1]} ${road[2]}` : null, true], [road ? road[1] : null, true, true]];
+    for (const [t, bounded, approx] of tries) {
+      if (!t) continue;
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&accept-language=ko&q=${encodeURIComponent(t)}${bounded ? `&viewbox=${HS_BOX}&bounded=1` : ''}`;
       const res = await fetch(url, { headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error('geocode ' + res.status);
       const j = await res.json();
-      if (j[0]) return { lat: +(+j[0].lat).toFixed(6), lng: +(+j[0].lon).toFixed(6), label: j[0].display_name };
+      if (j[0]) return { lat: +(+j[0].lat).toFixed(6), lng: +(+j[0].lon).toFixed(6), label: j[0].display_name, approx: !!approx };
     }
     return null;
   }
+  const HS_BOX = '126.55,37.35,127.22,36.95'; // 화성시를 감싸는 네모 (서,북,동,남)
 
   /* ---------- 길찾기 ----------
    * 두 곳 사이 직선거리로 대략 시간을 어림하고, 정확한 경로는 네이버·카카오 길찾기로 넘긴다 */

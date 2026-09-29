@@ -257,16 +257,23 @@ window.S = (() => {
   }
 
   /** 주소로 정확한 좌표를 찾아 대략 위치를 바꾼다 (인터넷 필요, 실패하면 그대로 둔다) */
-  async function refine(kind, id) {
+  const refining = new Map(); // 같은 곳을 동시에 두 번 찾지 않게
+  function refine(kind, id) {
+    const k = kind + id;
+    if (!refining.has(k)) refining.set(k, refineOnce(kind, id).finally(() => refining.delete(k)));
+    return refining.get(k);
+  }
+  async function refineOnce(kind, id) {
     if (!window.M || !M.geocode) return;
     const x = find(kind, id);
     if (!x || !x.address) return;
     try {
       const r = await M.geocode(x.address);
-      if (!r || r.lat < 36.9 || r.lat > 37.4 || r.lng < 126.5 || r.lng > 127.25) return; // 화성시 밖이면 무시
+      if (!r || r.lat < 36.9 || r.lat > 37.4 || r.lng < 126.5 || r.lng > 127.25) return false; // 화성시 밖이면 무시
       const cur = find(kind, id);
-      if (cur && (cur.approx || cur.lat == null)) upsert(kind, { id, lat: r.lat, lng: r.lng, approx: false, area: D.areaAt(r.lat, r.lng) || cur.area || '' });
-    } catch { /* 오프라인 등 */ }
+      if (cur && (cur.approx || cur.lat == null)) upsert(kind, { id, lat: r.lat, lng: r.lng, approx: !!r.approx, area: D.areaAt(r.lat, r.lng) || cur.area || '' });
+      return true;
+    } catch { return false; /* 오프라인 등 */ }
   }
 
   /** 여러 건을 한 번에 추가 (파일로 일괄 등록) */

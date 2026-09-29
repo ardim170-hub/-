@@ -74,12 +74,12 @@ window.F = (() => {
         ${locationSection(x)}
         <div class="fsec"><h3>채용 정보</h3><div class="frow">
           ${field('진행 단계', sel('stage', D.STAGES.map(s => s.key), x.stage), { for: 'f_stage' })}
+          ${field('진행 사업', `<div class="sup-pick">${D.SUPPORT_TYPES.map(t => `<label class="sup-opt sup-${t === '지원고용' ? 'employ' : 'training'}"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}><span>${D.SUPPORT_LABEL[t]}</span></label>`).join('')}</div>`, { full: true, hint: '지도에 지원고용은 빨강, 현장훈련은 보라로 표시돼요. 채용연계가 되면 주황이에요.' })}
           ${field('채용 연계 인원', inp('placements', x.placements || 0, 'type="number" min="0" inputmode="numeric"'), { for: 'f_placements' })}
           ${field('가능 직무', inp('jobs', x.jobs, 'placeholder="예: 포장, 검수, 사무 보조"'), { full: true, for: 'f_jobs' })}
           ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
           ${field('복리후생(기타)', inp('welfare', x.welfare, 'placeholder="예: 중식 제공, 통근버스"'), { full: true, for: 'f_welfare' })}
           ${field('실적 진행도', sel('progress', D.PROCEDURES, x.progress, '자동 (방문·직무분석지 기록으로 판단)'), { full: true, for: 'f_progress' })}
-          ${field('진행 사업 (지도에 지원고용 빨강 · 현장훈련 보라)', `<div class="inline">${D.SUPPORT_TYPES.map(t => `<label class="check"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}>${t}</label>`).join('')}</div>`, { full: true })}
           ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
         </div></div>
         <div class="fsec"><h3>기초 조사</h3><div class="frow">

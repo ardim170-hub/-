@@ -22,7 +22,7 @@ window.V = (() => {
     camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
-    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
+    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, prog: '', sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
@@ -209,7 +209,8 @@ window.V = (() => {
         <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
 
-      <div class="chips" style="margin-bottom:12px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
+      <div class="chips" style="margin-bottom:8px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
+      <div class="chips prog-chips" style="margin-bottom:12px"><span class="sub" style="align-self:center">진행 사업</span>${[['', '전체'], ['placed', '취업 연계'], ['employ', '지원고용'], ['training', '현장훈련'], ['biz', '해당 없음']].map(([k, l]) => `<button type="button" class="chip tone-chip ${k ? 'tc-' + k : ''} ${f.prog === k ? 'on' : ''}" data-act="biz-prog" data-prog="${k}">${k && k !== 'biz' ? '<span class="dot"></span>' : ''}${l}<span class="n">${k ? all.filter(b => k === 'employ' || k === 'training' ? S.supportOf(b).types.includes(k === 'employ' ? '지원고용' : '현장훈련') : S.bizTone(b) === k).length : all.length}</span></button>`).join('')}</div>
       <div class="toolbar">
         <input class="input" id="bizQ" type="search" placeholder="사업체명, 직무, 담당자 이름·연락처" value="${e(f.q)}">
         <select class="select" id="bizPeriod" aria-label="발굴 기간">${PERIODS.map(([k, l]) => `<option value="${k}" ${f.period === k ? 'selected' : ''}>${k === 'all' ? l : '발굴 ' + l}</option>`).join('')}</select>
@@ -234,6 +235,8 @@ window.V = (() => {
     const dup = S.dupIndex('biz');
     let list = S.view().businesses.filter(b => {
       if (f.dup && !dup.has(b.id)) return false;
+      if (f.prog === 'employ' || f.prog === 'training') { if (!S.supportOf(b).types.includes(f.prog === 'employ' ? '지원고용' : '현장훈련')) return false; }
+      else if (f.prog && S.bizTone(b) !== f.prog) return false;
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
       if (!inArea(b, f.area)) return false;
       if (f.industry && b.industry !== f.industry) return false;
@@ -277,6 +280,7 @@ window.V = (() => {
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
     if (f.dup) applied.push(['dup', '중복 의심만']);
+    if (f.prog) applied.push(['prog', { placed: '취업 연계', employ: '지원고용', training: '현장훈련', biz: '진행 사업 없음' }[f.prog]]);
     const dup = S.dupIndex('biz');
     const chipsHtml = applied.length ? `<div class="chips" style="margin-bottom:10px">${applied.map(([k, l]) => `<button type="button" class="chip chip-applied" data-act="biz-unfilter" data-k="${k}">${e(l)} ✕</button>`).join('')}<button type="button" class="btn btn-ghost btn-sm" data-act="biz-reset">전체 초기화</button></div>` : '';
     if (!S.view().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
@@ -546,7 +550,8 @@ window.V = (() => {
       const st = S.view();
       const list = [...st.businesses.filter(b => !M.hasPos(b)).map(x => ({ kind: 'biz', x })), ...st.networks.filter(n => !M.hasPos(n)).map(x => ({ kind: 'net', x }))];
       if (!list.length) return '<div class="empty"><strong>모두 지도에 표시되고 있어요</strong></div>';
-      return `<div class="map-group"><h4>위치 없음 <span class="num">${list.length}</span></h4>${list.map(({ kind, x }) => `
+      const withAddr = list.filter(i => i.x.address).length;
+      return `${withAddr ? `<div class="panel-pad" style="padding:10px 12px"><button class="btn btn-sm btn-primary" type="button" data-act="nopos-refind">주소가 있는 ${withAddr}곳 한꺼번에 다시 찾기</button></div>` : ''}<div class="map-group"><h4>위치 없음 <span class="num">${list.length}</span></h4>${list.map(({ kind, x }) => `
         <div class="map-item nopos-item"><span class="mk ${kind === 'net' ? 'sq' : ''}" style="--c:${kind === 'biz' ? M.bizColor(x) : D.MAP_COLORS.net}"></span>
           <div style="min-width:0;flex:1"><div class="name" data-act="open" data-kind="${kind}" data-id="${x.id}">${e(x.name)}</div><div class="meta">${kind === 'biz' ? '사업체' : '기관'} · ${e(x.address || '주소 없음')}</div></div>
           <button class="btn btn-sm btn-primary" type="button" data-act="edit-loc" data-kind="${kind}" data-id="${x.id}">위치 지정</button></div>`).join('')}</div>`;
@@ -861,6 +866,8 @@ window.V = (() => {
   const linkify = t => e(t).replace(/https?:\/\/[^\s<)\]]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
   const kv = pairs => `<dl class="kv">${pairs.filter(([, v]) => v !== undefined).map(([k, v]) => `<dt>${e(k)}</dt><dd>${v === '' || v == null ? '<span class="sub">-</span>' : v}</dd>`).join('')}</dl>`;
 
+  /** 지도에서 보기 (위치가 없으면 위치 지정) */
+  const mapBtn = (kind, x) => (M.hasPos(x) ? `<button class="btn btn-sm btn-map" type="button" data-act="map-show" data-kind="${kind}" data-id="${x.id}">📍 지도에서 보기</button>` : `<button class="btn btn-sm nopos-btn" type="button" data-act="edit-loc" data-kind="${kind}" data-id="${x.id}">📍 위치 지정</button>`);
   function detailBiz(b, canBack) {
     const st = D.STAGE[b.stage];
     const mand = D.mandatoryCount(b.employees);
@@ -870,11 +877,15 @@ window.V = (() => {
     return {
       html: drHead(e(b.name),
         `${stageBadge(b.stage)}<span class="badge outline">${e(b.industry || '업종 미입력')}</span><span class="badge outline">${e(b.area || '지역 미지정')}</span>${mand ? '<span class="badge navy">의무고용 대상</span>' : ''}${b.staff ? `<span class="badge outline">담당 ${e(b.staff)}</span>${progBadge(S.programOf(b.staff))}` : ''}`,
-        `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="biz:${b.id}">일정 추가</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="biz" data-id="${b.id}">${I.edit}수정</button>`, canBack) +
+        `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="biz:${b.id}">일정 추가</button>${mapBtn('biz', b)}<button class="btn btn-sm" type="button" data-act="edit" data-kind="biz" data-id="${b.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           <section class="dr-sec"><h3>진행 단계 <button class="btn btn-ghost btn-sm" type="button" data-act="stage-set" data-id="${b.id}" data-stage="${b.stage === '보류' ? '접촉' : '보류'}">${b.stage === '보류' ? '보류 해제' : '보류로 변경'}</button></h3>
             <div class="stepper">${steps.map(s => `<button type="button" class="step ${s.key === b.stage ? 'cur' : st.i > s.i && b.stage !== '보류' ? 'past' : ''}" style="--c:${s.color}" data-act="stage-set" data-id="${b.id}" data-stage="${s.key}" title="${e(s.desc)}">${s.key}</button>`).join('')}</div>
             ${b.stage === '보류' ? '<p class="sub" style="margin:8px 0 0">현재 보류 상태입니다. 단계를 누르면 다시 진행합니다.</p>' : ''}
+          </section>
+          <section class="dr-sec"><h3>진행 사업 <span class="sub">누르면 바로 바뀌어요</span></h3>
+            <div class="sup-pick">${D.SUPPORT_TYPES.map(t => { const on = (b.support || []).includes(t); return `<button type="button" class="sup-opt sup-${t === '지원고용' ? 'employ' : 'training'} ${on ? 'on' : ''}" data-act="sup-toggle" data-id="${b.id}" data-type="${t}" aria-pressed="${on}"><span>${on ? '✓ ' : ''}${D.SUPPORT_LABEL[t]}</span></button>`; }).join('')}</div>
+            ${S.supportOf(b).auto ? `<p class="sub" style="margin:6px 0 0">출장 명령부·활동 기록에서 <b>${e(S.supportOf(b).types.filter(t => !(b.support || []).includes(t)).join('·'))}</b> 기록을 찾아 지도에 같이 표시하고 있어요.</p>` : ''}
           </section>
           <div class="summary">
             <div><div class="l">상시근로자</div><div class="v">${b.employees ? U.num(b.employees) : '-'}<small>명</small></div></div>
@@ -915,7 +926,7 @@ window.V = (() => {
     const pc = primaryContact('net', n.id);
     return {
       html: drHead(e(n.name), `<span class="badge navy">${e(n.category)}</span>${statusBadge(n.status)}<span class="badge outline">${e(n.area || '지역 미지정')}</span>${n.staff ? `<span class="badge outline">담당 ${e(n.staff)}</span>${progBadge(S.programOf(n.staff))}` : ''}`,
-        `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="net:${n.id}">일정 추가</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="net" data-id="${n.id}">${I.edit}수정</button>`, canBack) +
+        `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="net:${n.id}">일정 추가</button>${mapBtn('net', n)}<button class="btn btn-sm" type="button" data-act="edit" data-kind="net" data-id="${n.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           <div class="summary">
             <div><div class="l">협력 시작</div><div class="v" style="font-size:16px">${n.since ? U.dateDot(n.since) : '-'}</div></div>
@@ -942,7 +953,7 @@ window.V = (() => {
     return {
       html: drHead(`${e(c.name)} <span class="sub" style="font-size:14px;font-weight:500">${e(c.title || '')}</span>`,
         `${c.linkType === 'biz' && link ? stageBadge(link.stage) : ''}${c.linkType === 'net' ? '<span class="badge navy">네트워크 기관</span>' : ''}${(c.tags || []).map(t => `<span class="badge outline">${e(t)}</span>`).join('')}`,
-        `${tel(c) ? `<a class="btn btn-sm btn-primary" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}전화</a>` : ''}${c.mobile ? `<a class="btn btn-sm" href="sms:${e(c.mobile.replace(/[^0-9+]/g, ''))}">문자</a>` : ''}${c.email ? `<a class="btn btn-sm" href="mailto:${e(c.email)}">${I.mail}이메일</a>` : ''}<button class="btn btn-sm" type="button" data-act="vcard" data-id="${c.id}">연락처 파일(vcf)</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="card" data-id="${c.id}">${I.edit}수정</button>`, canBack) +
+        `${tel(c) ? `<a class="btn btn-sm btn-primary" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}전화</a>` : ''}${c.mobile ? `<a class="btn btn-sm" href="sms:${e(c.mobile.replace(/[^0-9+]/g, ''))}">문자</a>` : ''}${c.email ? `<a class="btn btn-sm" href="mailto:${e(c.email)}">${I.mail}이메일</a>` : ''}<button class="btn btn-sm" type="button" data-act="vcard" data-id="${c.id}">연락처 파일(vcf)</button>${link ? mapBtn(c.linkType, link) : ''}<button class="btn btn-sm" type="button" data-act="edit" data-kind="card" data-id="${c.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
           ${dupSec('card', c)}

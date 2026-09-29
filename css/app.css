@@ -26,7 +26,7 @@
   --st-contact: #6B9BEF;
   --st-visit: #2563EB;
   --st-negotiate: #C98A1B;
-  --st-placed: #2F7D57;
+  --st-placed: #FF7A00; /* 채용연계 = 지도의 취업 연계 주황 */
   --st-hold: #B8BFCC;
 
   /* 종류별 색 (지도·목록·상세·대시보드 공통): 사업체 노랑, 지원고용·현장훈련 빨강, 기관 검정, 복지관 금색, 명함 청록, 중복 주황 */
@@ -940,3 +940,21 @@ label.field .textarea { width: 100%; }
 .reg-opt.reg-net::before { transform: rotate(45deg) scale(.85); border-radius: 2px; }
 .reg-opt.reg-biz::before { border-radius: 50%; background: var(--k-biz); }
 @media (max-width: 520px) { .reg-choice { grid-template-columns: 1fr; } }
+
+/* 진행 사업 고르기 (등록 창·상세 창 공통) */
+.sup-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.sup-opt { --sc: var(--k-employ); --ss: var(--k-employ-soft); --si: var(--k-employ-ink); display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border: 2px solid color-mix(in srgb, var(--sc) 35%, var(--line)); border-radius: 999px; background: var(--surface); color: var(--si); font: inherit; font-weight: 700; cursor: pointer; }
+.sup-opt.sup-training { --sc: var(--k-training); --ss: var(--k-training-soft); --si: var(--k-training-ink); }
+.sup-opt::before { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--sc); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.35); flex: none; }
+.sup-opt input { accent-color: var(--sc); margin: 0; }
+.sup-opt.on, .sup-opt:has(input:checked) { background: var(--sc); border-color: var(--sc); color: #fff; }
+.sup-opt.on::before, .sup-opt:has(input:checked)::before { background: #fff; }
+/* 목록의 진행 사업 필터 */
+.tone-chip.tc-placed { --c: var(--k-placed); }
+.tone-chip.tc-employ { --c: var(--k-employ); }
+.tone-chip.tc-training { --c: var(--k-training); }
+#view .tone-chip.on.tc-placed, #view .tone-chip.on.tc-employ, #view .tone-chip.on.tc-training { background: var(--c); border-color: var(--c); }
+.btn-map { background: #E4F5EB; border-color: #A7DDBD; color: #1E6B42; font-weight: 700; }
+.nopos-btn { border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; }
+.me-quick { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0; }
+.me-quick select { font: inherit; font-size: 12px; font-weight: 700; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; background: var(--surface); }
