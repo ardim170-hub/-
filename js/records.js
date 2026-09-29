@@ -308,6 +308,12 @@ window.R = (() => {
         });
       });
     });
+    // 동행 줄은 출장시간·방법을 비워 두는 경우가 많아, 같은 날·같은 곳·같은 용무 줄에서 채운다
+    out.forEach(r => ['time', 'method'].forEach(k => {
+      if (r[k]) return;
+      const mate = out.find(o => o !== r && o[k] && o.kind === r.kind && o.date === r.date && U.norm(o.place) === U.norm(r.place) && U.norm(o.purpose) === U.norm(r.purpose));
+      if (mate) r[k] = mate[k];
+    }));
     return out;
   }
   const tripKey = t => [t.kind, t.date, t.staff, U.norm(t.place || ''), U.norm(t.purpose || ''), (t.time || '').replace(/\s/g, '')].join('|');
