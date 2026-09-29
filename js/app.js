@@ -49,7 +49,7 @@ window.App = (() => {
     const moreActive = ['network', 'schedule', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
-    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b>`;
+    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
     $('#demoBanner').hidden = !S.get().isDemo;
     renderScope();
   }

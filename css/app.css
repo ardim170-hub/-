@@ -623,3 +623,10 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
   .mlist { display: block; padding: 0; background: none; }
   .mlist .mrow { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
 }
+
+/* 대시보드 첫 줄: 오늘 확인할 일 + 달력 (좁은 화면에서는 위아래) */
+.dash-grid.dash-top { margin-bottom: 18px; align-items: stretch; }
+.dash-grid.dash-top > .panel { min-width: 0; }
+@media (max-width: 1180px) and (min-width: 900px) {
+  .dash-grid.dash-top { grid-template-columns: minmax(0, 1fr) 330px; }
+}

@@ -96,8 +96,7 @@ window.V = (() => {
         ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network')}
         ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards')}
       </section>
-      <div class="dash-grid">
-        <div class="stack">
+      <div class="dash-grid dash-top">
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">오늘 확인할 일</h2><a href="#/schedule" class="sub">일정 전체 보기</a></div>
             ${pr.length ? `<ul class="prio">${pr.map(p => `
@@ -107,6 +106,10 @@ window.V = (() => {
                 <span class="when">${p.kind === 'gap' ? '' : e(U.dateKo(p.date))}</span>
               </li>`).join('')}</ul>` : emptyState('오늘 확인할 일이 없습니다', '다가오는 일정이나 연락이 필요한 사업체가 생기면 여기에 표시됩니다.')}
           </section>
+          <section class="panel dash-cal" id="dashCal">${dashCal()}</section>
+      </div>
+      <div class="dash-grid">
+        <div class="stack">
           ${staffPanel()}
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">월별 발굴 · 채용연계</h2>
@@ -115,7 +118,6 @@ window.V = (() => {
           </section>
         </div>
         <div class="stack">
-          <section class="panel dash-cal" id="dashCal">${dashCal()}</section>
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">단계별 사업체</h2><span class="sub num">전체 ${st.total}곳</span></div>
             <div class="pipeline">${D.STAGES.map(s => {
@@ -550,7 +552,7 @@ window.V = (() => {
   function dataPage() {
     const st = S.get();
     return `
-      <div class="page-head"><div><h1 class="page-title">데이터 관리</h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
       <div class="data-grid">
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
