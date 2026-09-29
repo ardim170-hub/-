@@ -912,6 +912,29 @@ label.field .textarea { width: 100%; }
 .acc-add .input { flex: 1; min-width: 220px; }
 .acc-add .select { width: auto; }
 
+/* 지원고용(빨강) · 현장훈련(보라) 따로 */
+:root { --k-employ: #E5383B; --k-employ-soft: #FDE8E8; --k-employ-ink: #A61B1E; --k-training: #7C3AED; --k-training-soft: #F1EAFD; --k-training-ink: #5B21B6; }
+.kpi.tone-placed { --tc: var(--k-placed); }
+.tbl tr.row-biz.is-employ td:first-child { box-shadow: inset 4px 0 0 var(--k-employ); }
+.tbl tr.row-biz.is-training td:first-child { box-shadow: inset 4px 0 0 var(--k-training); }
+.mrow.row-biz.is-employ { border-left-color: var(--k-employ); }
+.mrow.row-biz.is-training { border-left-color: var(--k-training); }
+.bcard.k-employ { --kc: var(--k-employ); }
+.bcard.k-training { --kc: var(--k-training); }
+.badge.employ { background: var(--k-employ-soft); color: var(--k-employ-ink); font-weight: 700; }
+.badge.training { background: var(--k-training-soft); color: var(--k-training-ink); font-weight: 700; }
+#drawerInner[data-tone="employ"] { --dc: var(--k-employ); --ds: var(--k-employ-soft); --di: var(--k-employ-ink); --dl: "지원고용 사업체"; }
+#drawerInner[data-tone="training"] { --dc: var(--k-training); --ds: var(--k-training-soft); --di: var(--k-training-ink); --dl: "현장훈련 사업체"; }
+.pop.tone-employ { --pc: var(--k-employ); --ps: var(--k-employ-soft); --pi: var(--k-employ-ink); }
+.pop.tone-training { --pc: var(--k-training); --ps: var(--k-training-soft); --pi: var(--k-training-ink); }
+/* 둘 다 하면 반반 */
+.bz-pin.both { background: linear-gradient(90deg, var(--k-employ) 50%, var(--k-training) 50%) !important; }
+/* 위치 없는 곳 */
+.nopos-bar { display: block; width: 100%; text-align: left; font: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; cursor: pointer; }
+.nopos-bar.on { border-style: solid; }
+.badge.nopos { border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; cursor: pointer; font: inherit; font-size: 11.5px; }
+.nopos-item { align-items: center; }
+
 </style>
 </head>
 <body>
@@ -993,7 +1016,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.29 16:04";</script>
+<script>window.APP_VERSION = "2026.09.29 16:22";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1179,9 +1202,9 @@ window.D = (() => {
   /** 화성시 통합 대시보드 공유 링크 (지도 화면 '화성시 대시보드' 탭) */
   const CITY_DASHBOARD_URL = 'https:\/\/total.hscity.go.kr/web2/dashboard-main/shares/415bf387db01b77eb8d2f6ae700b8934';
 
-  /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용/현장훈련 진행(빨강) · 기관(검정) · 우리 복지관(금색 별) */
+  /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
-  const MAP_COLORS = { biz: '#F5B700', placed: '#FF7A00', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
+  const MAP_COLORS = { biz: '#F5B700', placed: '#FF7A00', employ: '#E5383B', training: '#7C3AED', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
 
   const STAGES = [
     { key: '발굴', color: 'var(--st-discover)', hex: '#8A94A6', desc: '채용 가능성이 있는 사업체를 찾아 기록한 단계' },
@@ -2081,8 +2104,13 @@ window.S = (() => {
     found.forEach(t => set.add(t));
     return { types: D.SUPPORT_TYPES.filter(t => set.has(t)), auto: [...found].some(t => !(b.support || []).includes(t)) };
   }
-  /** 사업체 종류 색: 취업 연계(채용연계 단계이거나 채용 인원이 있음) > 지원고용·현장훈련 진행 > 사업체 개발 */
-  const bizTone = b => (!b ? 'biz' : b.stage === '채용연계' || Number(b.placements) > 0 ? 'placed' : supportOf(b).types.length ? 'support' : 'biz');
+  /** 사업체 종류 색: 취업 연계(채용연계 단계이거나 채용 인원이 있음) > 지원고용 > 현장훈련 > 사업체 개발 */
+  const bizTone = b => {
+    if (!b) return 'biz';
+    if (b.stage === '채용연계' || Number(b.placements) > 0) return 'placed';
+    const t = supportOf(b).types;
+    return t.includes('지원고용') ? 'employ' : t.includes('현장훈련') ? 'training' : 'biz';
+  };
   /** 지도에 별로 표시할 우리 복지관 (네트워크에 '아르딤'이 들어간 기관) */
   const isHome = n => /아르딤/.test(n.name || '');
 
@@ -2205,7 +2233,7 @@ window.M = (() => {
     const dim = b.stage === '보류' ? 'opacity:.6;' : '';
     return L.marker([b.lat, b.lng], {
       riseOnHover: true, zIndexOffset: hot ? 300 : 100,
-      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''} ${S.bizTone(b) === 'placed' ? 'placed' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
+      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''} ${S.bizTone(b) === 'placed' ? 'placed' : ''} ${S.bizTone(b) !== 'placed' && S.supportOf(b).types.length === 2 ? 'both' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
     });
   }
   function cardMarker(c) {
@@ -2231,7 +2259,7 @@ window.M = (() => {
     }
     const sup = kind === 'biz' ? S.supportOf(x).types : [];
     const meta = kind === 'biz'
-      ? `${sup.length ? `<b style="color:${D.MAP_COLORS.support}">${sup.join('·')} 진행</b> · ` : ''}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
+      ? `${sup.map(t => `<b style="color:${t === '지원고용' ? D.MAP_COLORS.employ : D.MAP_COLORS.training}">${t}</b> · `).join('')}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
     // 연결된 명함: 이름을 누르면 명함 상세, 전화 아이콘은 바로 걸기
     const cards = S.cardsOf(kind, x.id);
@@ -2240,7 +2268,7 @@ window.M = (() => {
     const cardList = cards.length
       ? `<ul class="pop-cards">${cards.slice(0, 4).map(c => `<li><button type="button" class="linklike" data-act="open" data-kind="card" data-id="${c.id}">${U.esc(c.name)}</button> <span class="pop-meta">${U.esc([c.dept, c.title].filter(Boolean).join(' · '))}</span>${telOf(c) ? ` <a class="pop-tel" href="tel:${telOf(c)}">${U.esc(c.mobile || c.phone)}</a>` : ''}</li>`).join('')}${cards.length > 4 ? `<li class="pop-meta">외 ${cards.length - 4}장</li>` : ''}</ul>`
       : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
-    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', support: '지원고용·현장훈련', net: '기관', home: '우리 복지관' }[tone]}</div>
+    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', employ: '지원고용 진행', training: '현장훈련 진행', net: '기관', home: '우리 복지관' }[tone]}</div>
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
@@ -2266,9 +2294,23 @@ window.M = (() => {
   }
 
   /** 주소 → 좌표 (OpenStreetMap Nominatim, 인터넷 필요. 한국 도로명 주소는 못 찾을 수 있음) */
+  /** 브이월드 주소 검색 (도로명·지번 모두, 한국 주소에 가장 정확). 키가 있을 때만, JSONP로 부른다 */
+  function vworldGeocode(q, type) {
+    return new Promise(res => {
+      const cb = '__vw' + Math.random().toString(36).slice(2);
+      const s = document.createElement('script');
+      const done = v => { delete window[cb]; s.remove(); res(v); };
+      window[cb] = j => { const p = j && j.response && j.response.status === 'OK' && j.response.result && j.response.result.point; done(p ? { lat: +(+p.y).toFixed(6), lng: +(+p.x).toFixed(6), label: q } : null); };
+      s.src = `https:\/\/api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&refine=true&simple=true&format=json&type=${type}&key=${encodeURIComponent(vworldKey())}&address=${encodeURIComponent(q)}&callback=${cb}`;
+      s.onerror = () => done(null);
+      setTimeout(() => window[cb] && done(null), 8000);
+      document.head.appendChild(s);
+    });
+  }
   async function geocode(address) {
     const q = String(address || '').trim();
     if (!q) return null;
+    if (vworldKey()) for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
     const tries = [q, q.replace(/\s*\d+(-\d+)?\s*$/, ''), q.includes('화성') ? null : '화성시 ' + q].filter(Boolean);
     for (const t of tries) {
       const url = `https:\/\/nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&accept-language=ko&q=${encodeURIComponent(t)}`;
@@ -2297,10 +2339,28 @@ window.M = (() => {
   const naverRoute = (a, b, mode) => `https:\/\/map.naver.com/p/directions/${merc(a.lat, a.lng).join(',')},${encodeURIComponent(a.name)},,/${merc(b.lat, b.lng).join(',')},${encodeURIComponent(b.name)},,/-/${mode}`;
   const kakaoRoute = (a, b) => `https:\/\/map.kakao.com/link/from/${encodeURIComponent(a.name)},${a.lat},${a.lng}/to/${encodeURIComponent(b.name)},${b.lat},${b.lng}`;
 
+  /** 도로를 따라가는 자동차 경로 (OpenStreetMap 기반 무료 OSRM). 실패하면 null → 직선으로 대신 그린다. 교통 상황은 반영하지 않는다 */
+  const routeCache = new Map();
+  async function roadRoute(a, b) {
+    const key = [a.lat, a.lng, b.lat, b.lng].join(',');
+    if (routeCache.has(key)) return routeCache.get(key);
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 10000);
+      const res = await fetch(`https:\/\/router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`, { signal: ctl.signal });
+      clearTimeout(timer);
+      const j = await res.json();
+      const r = j && j.code === 'Ok' && j.routes && j.routes[0];
+      const out = r ? { km: r.distance / 1000, min: Math.round(r.duration / 60), path: r.geometry.coordinates.map(([x, y]) => [y, x]) } : null;
+      routeCache.set(key, out);
+      return out;
+    } catch { return null; }
+  }
+
   const kakaoLink = x => `https:\/\/map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https:\/\/map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { BASES, create, guBounds, distKm, estimate, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { BASES, create, guBounds, distKm, estimate, roadRoute, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();
 
 </script>
@@ -2544,7 +2604,7 @@ window.V = (() => {
       <section class="panel kpis" aria-label="주요 현황">
         ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz', 'biz')}
         ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz', 'biz')}
-        ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz', 'support')}
+        ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz', 'placed')}
         ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network', 'net')}
         ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards', 'card')}
       </section>
@@ -2701,7 +2761,7 @@ window.V = (() => {
 
   /** 중복 의심 표시 · 지원고용 표시 */
   const dupTag = (idx, id) => (idx.has(id) ? ` <span class="badge dup" title="${e(idx.get(id).map(d => d.x.name + ' (' + d.why.join(', ') + ')').join(' / '))}">중복?</span>` : '');
-  const supTag = b => { const t = S.supportOf(b).types; return t.length ? ` <span class="badge support">${t.join('·')}</span>` : ''; };
+  const supTag = b => S.supportOf(b).types.map(t => ` <span class="badge ${t === '지원고용' ? 'employ' : 'training'}">${t}</span>`).join('');
   const dupBar = (kind, n, on) => (n ? `<div class="dup-bar"><span>${{ biz: '사업체', net: '기관', card: '명함' }[kind]} <b>${n}</b>건이 다른 것과 겹쳐 보여요. 같은 곳이면 상세 화면에서 합칠 수 있어요.</span><button class="btn btn-sm" type="button" data-act="dup-toggle" data-kind="${kind}">${on ? '전체 보기' : '겹치는 것만 보기'}</button></div>` : '');
   function dupSec(kind, x) {
     const list = S.dupIndex(kind).get(x.id) || [];
@@ -2734,7 +2794,7 @@ window.V = (() => {
         <thead><tr><th>사업체</th><th>단계</th><th>발굴일</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
           <tr data-act="open" data-kind="biz" data-id="${b.id}" class="row-biz is-${S.bizTone(b)}">
-            <td><div class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
+            <td><div class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}${M.hasPos(b) ? '' : ` <button type="button" class="badge nopos" data-act="edit-loc" data-kind="biz" data-id="${b.id}" title="지도에 안 나와요. 눌러서 위치 지정">📍 위치 없음</button>`}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
             <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
@@ -2805,7 +2865,7 @@ window.V = (() => {
         <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>기관 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
         <tbody>${rows.map(({ n, la, ne, pc }) => `
           <tr data-act="open" data-kind="net" data-id="${n.id}" class="row-net ${S.isHome(n) ? 'is-home' : ''}">
-            <td><div class="name">${S.isHome(n) ? '<span class="home-star" aria-hidden="true">★</span>' : ''}${U.hl(n.name, f.q)}${dupTag(dup, n.id)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
+            <td><div class="name">${S.isHome(n) ? '<span class="home-star" aria-hidden="true">★</span>' : ''}${U.hl(n.name, f.q)}${dupTag(dup, n.id)}${M.hasPos(n) ? '' : ` <button type="button" class="badge nopos" data-act="edit-loc" data-kind="net" data-id="${n.id}" title="지도에 안 나와요. 눌러서 위치 지정">📍 위치 없음</button>`}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
@@ -2916,7 +2976,8 @@ window.V = (() => {
             <div class="map-legend map-key">
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.biz}"></i>사업체 개발</span>
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.placed}"></i>취업 연계</span>
-              <span><i class="dot-lg" style="--c:${D.MAP_COLORS.support}"></i>지원고용·현장훈련</span>
+              <span><i class="dot-lg" style="--c:${D.MAP_COLORS.employ}"></i>지원고용</span>
+              <span><i class="dot-lg" style="--c:${D.MAP_COLORS.training}"></i>현장훈련</span>
               <span><i class="sq" style="--c:${D.MAP_COLORS.net}"></i>기관</span>
               <span><i class="star" style="--c:${D.MAP_COLORS.home}"></i>아르딤복지관</span>
               <span><i class="sq" style="--c:${D.MAP_COLORS.card}"></i>명함</span>
@@ -2925,7 +2986,7 @@ window.V = (() => {
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 화성시아르딤복지관 위치 등록</button>`}
             <div class="map-legend map-stages"><span class="sub">단계</span>${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label></span>`).join('')}</div>
             <div id="routeBox">${routePanel()}</div>
-            ${noPos ? `<div class="sub">위치가 없는 곳 ${noPos}곳은 지도에 표시되지 않습니다.</div>` : ''}
+            ${noPos ? `<button type="button" class="nopos-bar ${f.noPos ? 'on' : ''}" data-act="map-nopos">📍 위치가 없어 지도에 안 나오는 곳 <b>${noPos}</b>곳 · ${f.noPos ? '지도 목록으로 돌아가기' : '보고 위치 정하기'}</button>` : ''}
           </div>
           <div class="map-list" id="mapList"></div>
         </div>
@@ -2974,17 +3035,30 @@ window.V = (() => {
     if (!to || !M.hasPos(to)) return `<div class="route-box">${head}<span class="sub">도착지 위치가 없습니다.</span></div>`;
     if (!from || !M.hasPos(from)) return `<div class="route-box">${head}<div class="route-ends"><span class="to">도착 <b>${e(to.name)}</b></span></div><span class="sub">출발지가 없어요. 지도에서 다른 곳을 누르고 <b>여기서 출발</b>을 누르거나, 복지관 위치를 등록해 주세요.</span><button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 복지관 위치 등록</button></div>`;
     const km = M.distKm(from, to), t = M.estimate(km);
+    const info = ui.map.routeInfo && ui.map.routeInfo.key === [from.id, to.id].join('>') ? ui.map.routeInfo : null;
+    const road = info && info.road;
     const btn = (href, label, cls = '') => `<a class="btn btn-sm ${cls}" href="${e(href)}" target="_blank" rel="noopener">${label}</a>`;
     return `<div class="route-box">${head}
       <div class="route-ends"><span class="from">출발 <b>${e(from.name)}</b></span><button class="icon-btn" type="button" data-act="route-swap" aria-label="출발·도착 바꾸기" title="출발·도착 바꾸기" style="width:28px;height:28px">⇅</button><span class="to">도착 <b>${e(to.name)}</b></span></div>
-      <div class="route-est"><span>직선 <b class="num">${km.toFixed(1)}km</b></span><span>🚗 약 <b class="num">${t.car}분</b></span><span>🚌 약 <b class="num">${t.transit}분</b></span>${km < 3 ? `<span>🚶 약 <b class="num">${t.walk}분</b></span>` : ''}</div>
-      <p class="sub" style="margin:0">거리로 어림한 시간이에요. 정확한 경로와 시간은 아래에서 확인하세요.</p>
+      ${road ? `<div class="route-est"><span>🚗 도로 <b class="num">${road.km.toFixed(1)}km</b></span><span>차로 약 <b class="num">${road.min}분</b></span><span>🚌 약 <b class="num">${Math.round(road.km / 15 * 60 + 10)}분</b></span></div>
+      <p class="sub" style="margin:0">지도의 파란 선이 자동차 도로 경로예요. 시간은 <b>교통 상황을 반영하지 않은</b> 값이라, 실시간 막힘은 아래 네이버·카카오에서 확인하세요.</p>`
+      : `<div class="route-est"><span>직선 <b class="num">${km.toFixed(1)}km</b></span><span>🚗 약 <b class="num">${t.car}분</b></span><span>🚌 약 <b class="num">${t.transit}분</b></span>${km < 3 ? `<span>🚶 약 <b class="num">${t.walk}분</b></span>` : ''}</div>
+      <p class="sub" style="margin:0">${info && info.loading ? '도로 경로를 찾는 중이에요…' : info ? '도로 경로를 받지 못해 직선거리로 어림했어요 (인터넷 연결 확인).' : '거리로 어림한 시간이에요.'} 정확한 경로와 시간은 아래에서 확인하세요.</p>`}
       <div class="inline route-links">${btn(M.naverRoute(from, to, 'car'), '네이버 자동차', 'btn-naver')}${btn(M.naverRoute(from, to, 'transit'), '네이버 대중교통', 'btn-naver')}${km < 3 ? btn(M.naverRoute(from, to, 'walk'), '네이버 도보', 'btn-naver') : ''}${btn(M.kakaoRoute(from, to), '카카오맵 길찾기', 'btn-kakao')}</div>
     </div>`;
   }
   /** 옆 목록: 기본은 고른 달에 발굴한 사업체만, 구별로 묶어서 */
   function mapList(items) {
     const f = ui.map;
+    if (f.noPos) {
+      const st = S.view();
+      const list = [...st.businesses.filter(b => !M.hasPos(b)).map(x => ({ kind: 'biz', x })), ...st.networks.filter(n => !M.hasPos(n)).map(x => ({ kind: 'net', x }))];
+      if (!list.length) return '<div class="empty"><strong>모두 지도에 표시되고 있어요</strong></div>';
+      return `<div class="map-group"><h4>위치 없음 <span class="num">${list.length}</span></h4>${list.map(({ kind, x }) => `
+        <div class="map-item nopos-item"><span class="mk ${kind === 'net' ? 'sq' : ''}" style="--c:${kind === 'biz' ? M.bizColor(x) : D.MAP_COLORS.net}"></span>
+          <div style="min-width:0;flex:1"><div class="name" data-act="open" data-kind="${kind}" data-id="${x.id}">${e(x.name)}</div><div class="meta">${kind === 'biz' ? '사업체' : '기관'} · ${e(x.address || '주소 없음')}</div></div>
+          <button class="btn btn-sm btn-primary" type="button" data-act="edit-loc" data-kind="${kind}" data-id="${x.id}">위치 지정</button></div>`).join('')}</div>`;
+    }
     const list = f.listAll ? items : items.filter(i => i.month);
     if (!list.length) return `<div class="empty"><strong>${f.listAll ? '표시할 곳이 없습니다' : `${monthLabel(f.month)}에 발굴한 사업체가 없습니다`}</strong>${f.listAll ? '레이어나 단계 선택을 확인하세요.' : '다른 달을 보거나 전체 목록을 눌러 보세요.'}</div>`;
     const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, list.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
@@ -3290,7 +3364,7 @@ window.V = (() => {
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
-    ${M.hasPos(x) ? '<div class="mini-map" id="miniMap"></div>' : '<p class="sub" style="margin:0">위치가 지정되지 않았습니다. 수정에서 지도를 클릭해 위치를 지정하세요.</p>'}</section>`;
+    ${M.hasPos(x) ? '<div class="mini-map" id="miniMap"></div>' : `<div class="nopos-bar on" style="cursor:default">📍 위치가 없어 지도에 안 나와요. <button class="btn btn-sm btn-primary" type="button" data-act="edit-loc" data-kind="${x.category !== undefined ? 'net' : 'biz'}" data-id="${x.id}">위치 지정</button></div>`}</section>`;
   /** 글 속 인터넷 주소를 누를 수 있는 링크로 */
   const linkify = t => e(t).replace(/https?:\/\/[^\s<)\]]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
   const kv = pairs => `<dl class="kv">${pairs.filter(([, v]) => v !== undefined).map(([k, v]) => `<dt>${e(k)}</dt><dd>${v === '' || v == null ? '<span class="sub">-</span>' : v}</dd>`).join('')}</dl>`;
@@ -3490,7 +3564,7 @@ window.F = (() => {
           ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
           ${field('복리후생(기타)', inp('welfare', x.welfare, 'placeholder="예: 중식 제공, 통근버스"'), { full: true, for: 'f_welfare' })}
           ${field('실적 진행도', sel('progress', D.PROCEDURES, x.progress, '자동 (방문·직무분석지 기록으로 판단)'), { full: true, for: 'f_progress' })}
-          ${field('진행 사업 (지도에 빨간색)', `<div class="inline">${D.SUPPORT_TYPES.map(t => `<label class="check"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}>${t}</label>`).join('')}</div>`, { full: true })}
+          ${field('진행 사업 (지도에 지원고용 빨강 · 현장훈련 보라)', `<div class="inline">${D.SUPPORT_TYPES.map(t => `<label class="check"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}>${t}</label>`).join('')}</div>`, { full: true })}
           ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
         </div></div>
         <div class="fsec"><h3>기초 조사</h3><div class="frow">
@@ -4862,9 +4936,22 @@ window.App = (() => {
     const to = r.to ? S.find(r.to.kind, r.to.id) : null;
     if (!from || !to || !M.hasPos(from) || !M.hasPos(to)) return;
     const km = M.distKm(from, to);
-    routeLayer = L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#172033', weight: 3, dashArray: '8 7', opacity: .85, interactive: false })
-      .bindTooltip(`${km.toFixed(1)}km · 차로 약 ${M.estimate(km).car}분`, { permanent: true, direction: 'center', className: 'route-tip' }).addTo(bigMap);
+    const key = [from.id, to.id].join('>');
+    const info = V.ui.map.routeInfo && V.ui.map.routeInfo.key === key ? V.ui.map.routeInfo : null;
+    const line = (path, road) => L.polyline(path, road ? { color: '#1D4ED8', weight: 6, opacity: .85, interactive: false, lineCap: 'round' } : { color: '#172033', weight: 3, dashArray: '8 7', opacity: .85, interactive: false });
+    const tip = info && info.road ? `도로 ${info.road.km.toFixed(1)}km · 차로 약 ${info.road.min}분` : `${km.toFixed(1)}km · 차로 약 ${M.estimate(km).car}분`;
+    routeLayer = line(info && info.road ? info.road.path : [[from.lat, from.lng], [to.lat, to.lng]], !!(info && info.road))
+      .bindTooltip(tip, { permanent: true, direction: 'center', className: 'route-tip' }).addTo(bigMap);
     if (zoom) bigMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 14 });
+    if (!info) {
+      // 도로 경로를 받아 오면 직선 대신 도로를 따라 다시 그린다 (받는 사이 다른 곳을 고르면 버림)
+      V.ui.map.routeInfo = { key, loading: true };
+      M.roadRoute(from, to).then(road => {
+        if (!V.ui.map.route || !V.ui.map.routeInfo || V.ui.map.routeInfo.key !== key) return;
+        V.ui.map.routeInfo = { key, road };
+        drawRoute(false);
+      });
+    }
   }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
@@ -5028,7 +5115,8 @@ window.App = (() => {
     if (v.after) v.after(form);
     const body = inner.querySelector('.dr-body');
     if (body && oldScroll) body.scrollTop = oldScroll;
-    const focusEl = form && form.dataset.focus ? form.querySelector(`[name="${form.dataset.focus}"]`) : null;
+    const fkey = form && (form.dataset.focus || top.focus);
+    const focusEl = fkey ? form.querySelector(`[name="${fkey}"]`) : null;
     if (focusEl) { focusEl.scrollIntoView({ block: 'center' }); focusEl.focus({ preventScroll: true }); }
     else if (!keepScroll) (form ? form.querySelector('input:not([type=hidden]):not([type=file]), select') : inner.querySelector('.dr-title'))?.focus?.({ preventScroll: true });
   }
@@ -5203,6 +5291,8 @@ window.App = (() => {
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}) } }, fd);
     },
     edit: (el) => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id }, true),
+    'edit-loc': el => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id, focus: 'address' }, !!el.closest('#drawer')),
+    'map-nopos': () => { V.ui.map.noPos = !V.ui.map.noPos; render(); },
     'edit-event': (el, fd) => push({ type: 'form', kind: 'ev', id: el.dataset.id }, fd),
     delete: async el => {
       const { kind, id } = el.dataset;
@@ -5300,6 +5390,12 @@ window.App = (() => {
       if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
       S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
       bigMap?.closePopup();
+      if (!M.hasPos(S.find(to, rec.id))) {
+        // 주소가 없거나 읍면동을 못 찾으면 지도에 못 나오므로 바로 위치를 정하게 한다
+        toast(`'${name}'을(를) 등록했어요. 명함에 주소가 없어 지도 위치를 못 정했어요. 주소를 넣거나 지도를 눌러 위치를 정해 주세요.`, 'error');
+        push({ type: 'form', kind: to, id: rec.id, focus: 'address' }, fd);
+        return;
+      }
       toast(`'${name}'을(를) ${to === 'biz' ? '사업체 개발' : '네트워크'}에 등록하고 명함을 연결했습니다.`);
       openDetail(to, rec.id, fd);
     },

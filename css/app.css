@@ -902,3 +902,26 @@ label.field .textarea { width: 100%; }
 .acc-add { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
 .acc-add .input { flex: 1; min-width: 220px; }
 .acc-add .select { width: auto; }
+
+/* 지원고용(빨강) · 현장훈련(보라) 따로 */
+:root { --k-employ: #E5383B; --k-employ-soft: #FDE8E8; --k-employ-ink: #A61B1E; --k-training: #7C3AED; --k-training-soft: #F1EAFD; --k-training-ink: #5B21B6; }
+.kpi.tone-placed { --tc: var(--k-placed); }
+.tbl tr.row-biz.is-employ td:first-child { box-shadow: inset 4px 0 0 var(--k-employ); }
+.tbl tr.row-biz.is-training td:first-child { box-shadow: inset 4px 0 0 var(--k-training); }
+.mrow.row-biz.is-employ { border-left-color: var(--k-employ); }
+.mrow.row-biz.is-training { border-left-color: var(--k-training); }
+.bcard.k-employ { --kc: var(--k-employ); }
+.bcard.k-training { --kc: var(--k-training); }
+.badge.employ { background: var(--k-employ-soft); color: var(--k-employ-ink); font-weight: 700; }
+.badge.training { background: var(--k-training-soft); color: var(--k-training-ink); font-weight: 700; }
+#drawerInner[data-tone="employ"] { --dc: var(--k-employ); --ds: var(--k-employ-soft); --di: var(--k-employ-ink); --dl: "지원고용 사업체"; }
+#drawerInner[data-tone="training"] { --dc: var(--k-training); --ds: var(--k-training-soft); --di: var(--k-training-ink); --dl: "현장훈련 사업체"; }
+.pop.tone-employ { --pc: var(--k-employ); --ps: var(--k-employ-soft); --pi: var(--k-employ-ink); }
+.pop.tone-training { --pc: var(--k-training); --ps: var(--k-training-soft); --pi: var(--k-training-ink); }
+/* 둘 다 하면 반반 */
+.bz-pin.both { background: linear-gradient(90deg, var(--k-employ) 50%, var(--k-training) 50%) !important; }
+/* 위치 없는 곳 */
+.nopos-bar { display: block; width: 100%; text-align: left; font: inherit; font-size: 13px; padding: 8px 10px; border-radius: 8px; border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; cursor: pointer; }
+.nopos-bar.on { border-style: solid; }
+.badge.nopos { border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; cursor: pointer; font: inherit; font-size: 11.5px; }
+.nopos-item { align-items: center; }

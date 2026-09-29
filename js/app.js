@@ -201,9 +201,22 @@ window.App = (() => {
     const to = r.to ? S.find(r.to.kind, r.to.id) : null;
     if (!from || !to || !M.hasPos(from) || !M.hasPos(to)) return;
     const km = M.distKm(from, to);
-    routeLayer = L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: '#172033', weight: 3, dashArray: '8 7', opacity: .85, interactive: false })
-      .bindTooltip(`${km.toFixed(1)}km · 차로 약 ${M.estimate(km).car}분`, { permanent: true, direction: 'center', className: 'route-tip' }).addTo(bigMap);
+    const key = [from.id, to.id].join('>');
+    const info = V.ui.map.routeInfo && V.ui.map.routeInfo.key === key ? V.ui.map.routeInfo : null;
+    const line = (path, road) => L.polyline(path, road ? { color: '#1D4ED8', weight: 6, opacity: .85, interactive: false, lineCap: 'round' } : { color: '#172033', weight: 3, dashArray: '8 7', opacity: .85, interactive: false });
+    const tip = info && info.road ? `도로 ${info.road.km.toFixed(1)}km · 차로 약 ${info.road.min}분` : `${km.toFixed(1)}km · 차로 약 ${M.estimate(km).car}분`;
+    routeLayer = line(info && info.road ? info.road.path : [[from.lat, from.lng], [to.lat, to.lng]], !!(info && info.road))
+      .bindTooltip(tip, { permanent: true, direction: 'center', className: 'route-tip' }).addTo(bigMap);
     if (zoom) bigMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 14 });
+    if (!info) {
+      // 도로 경로를 받아 오면 직선 대신 도로를 따라 다시 그린다 (받는 사이 다른 곳을 고르면 버림)
+      V.ui.map.routeInfo = { key, loading: true };
+      M.roadRoute(from, to).then(road => {
+        if (!V.ui.map.route || !V.ui.map.routeInfo || V.ui.map.routeInfo.key !== key) return;
+        V.ui.map.routeInfo = { key, road };
+        drawRoute(false);
+      });
+    }
   }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
@@ -367,7 +380,8 @@ window.App = (() => {
     if (v.after) v.after(form);
     const body = inner.querySelector('.dr-body');
     if (body && oldScroll) body.scrollTop = oldScroll;
-    const focusEl = form && form.dataset.focus ? form.querySelector(`[name="${form.dataset.focus}"]`) : null;
+    const fkey = form && (form.dataset.focus || top.focus);
+    const focusEl = fkey ? form.querySelector(`[name="${fkey}"]`) : null;
     if (focusEl) { focusEl.scrollIntoView({ block: 'center' }); focusEl.focus({ preventScroll: true }); }
     else if (!keepScroll) (form ? form.querySelector('input:not([type=hidden]):not([type=file]), select') : inner.querySelector('.dr-title'))?.focus?.({ preventScroll: true });
   }
@@ -542,6 +556,8 @@ window.App = (() => {
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}) } }, fd);
     },
     edit: (el) => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id }, true),
+    'edit-loc': el => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id, focus: 'address' }, !!el.closest('#drawer')),
+    'map-nopos': () => { V.ui.map.noPos = !V.ui.map.noPos; render(); },
     'edit-event': (el, fd) => push({ type: 'form', kind: 'ev', id: el.dataset.id }, fd),
     delete: async el => {
       const { kind, id } = el.dataset;
@@ -639,6 +655,12 @@ window.App = (() => {
       if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
       S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
       bigMap?.closePopup();
+      if (!M.hasPos(S.find(to, rec.id))) {
+        // 주소가 없거나 읍면동을 못 찾으면 지도에 못 나오므로 바로 위치를 정하게 한다
+        toast(`'${name}'을(를) 등록했어요. 명함에 주소가 없어 지도 위치를 못 정했어요. 주소를 넣거나 지도를 눌러 위치를 정해 주세요.`, 'error');
+        push({ type: 'form', kind: to, id: rec.id, focus: 'address' }, fd);
+        return;
+      }
       toast(`'${name}'을(를) ${to === 'biz' ? '사업체 개발' : '네트워크'}에 등록하고 명함을 연결했습니다.`);
       openDetail(to, rec.id, fd);
     },

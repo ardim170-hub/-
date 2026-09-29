@@ -645,8 +645,13 @@ window.S = (() => {
     found.forEach(t => set.add(t));
     return { types: D.SUPPORT_TYPES.filter(t => set.has(t)), auto: [...found].some(t => !(b.support || []).includes(t)) };
   }
-  /** 사업체 종류 색: 취업 연계(채용연계 단계이거나 채용 인원이 있음) > 지원고용·현장훈련 진행 > 사업체 개발 */
-  const bizTone = b => (!b ? 'biz' : b.stage === '채용연계' || Number(b.placements) > 0 ? 'placed' : supportOf(b).types.length ? 'support' : 'biz');
+  /** 사업체 종류 색: 취업 연계(채용연계 단계이거나 채용 인원이 있음) > 지원고용 > 현장훈련 > 사업체 개발 */
+  const bizTone = b => {
+    if (!b) return 'biz';
+    if (b.stage === '채용연계' || Number(b.placements) > 0) return 'placed';
+    const t = supportOf(b).types;
+    return t.includes('지원고용') ? 'employ' : t.includes('현장훈련') ? 'training' : 'biz';
+  };
   /** 지도에 별로 표시할 우리 복지관 (네트워크에 '아르딤'이 들어간 기관) */
   const isHome = n => /아르딤/.test(n.name || '');
 

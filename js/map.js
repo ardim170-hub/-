@@ -105,7 +105,7 @@ window.M = (() => {
     const dim = b.stage === '보류' ? 'opacity:.6;' : '';
     return L.marker([b.lat, b.lng], {
       riseOnHover: true, zIndexOffset: hot ? 300 : 100,
-      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''} ${S.bizTone(b) === 'placed' ? 'placed' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
+      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''} ${S.bizTone(b) === 'placed' ? 'placed' : ''} ${S.bizTone(b) !== 'placed' && S.supportOf(b).types.length === 2 ? 'both' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
     });
   }
   function cardMarker(c) {
@@ -131,7 +131,7 @@ window.M = (() => {
     }
     const sup = kind === 'biz' ? S.supportOf(x).types : [];
     const meta = kind === 'biz'
-      ? `${sup.length ? `<b style="color:${D.MAP_COLORS.support}">${sup.join('·')} 진행</b> · ` : ''}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
+      ? `${sup.map(t => `<b style="color:${t === '지원고용' ? D.MAP_COLORS.employ : D.MAP_COLORS.training}">${t}</b> · `).join('')}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
     // 연결된 명함: 이름을 누르면 명함 상세, 전화 아이콘은 바로 걸기
     const cards = S.cardsOf(kind, x.id);
@@ -140,7 +140,7 @@ window.M = (() => {
     const cardList = cards.length
       ? `<ul class="pop-cards">${cards.slice(0, 4).map(c => `<li><button type="button" class="linklike" data-act="open" data-kind="card" data-id="${c.id}">${U.esc(c.name)}</button> <span class="pop-meta">${U.esc([c.dept, c.title].filter(Boolean).join(' · '))}</span>${telOf(c) ? ` <a class="pop-tel" href="tel:${telOf(c)}">${U.esc(c.mobile || c.phone)}</a>` : ''}</li>`).join('')}${cards.length > 4 ? `<li class="pop-meta">외 ${cards.length - 4}장</li>` : ''}</ul>`
       : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
-    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', support: '지원고용·현장훈련', net: '기관', home: '우리 복지관' }[tone]}</div>
+    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', employ: '지원고용 진행', training: '현장훈련 진행', net: '기관', home: '우리 복지관' }[tone]}</div>
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
@@ -166,9 +166,23 @@ window.M = (() => {
   }
 
   /** 주소 → 좌표 (OpenStreetMap Nominatim, 인터넷 필요. 한국 도로명 주소는 못 찾을 수 있음) */
+  /** 브이월드 주소 검색 (도로명·지번 모두, 한국 주소에 가장 정확). 키가 있을 때만, JSONP로 부른다 */
+  function vworldGeocode(q, type) {
+    return new Promise(res => {
+      const cb = '__vw' + Math.random().toString(36).slice(2);
+      const s = document.createElement('script');
+      const done = v => { delete window[cb]; s.remove(); res(v); };
+      window[cb] = j => { const p = j && j.response && j.response.status === 'OK' && j.response.result && j.response.result.point; done(p ? { lat: +(+p.y).toFixed(6), lng: +(+p.x).toFixed(6), label: q } : null); };
+      s.src = `https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&refine=true&simple=true&format=json&type=${type}&key=${encodeURIComponent(vworldKey())}&address=${encodeURIComponent(q)}&callback=${cb}`;
+      s.onerror = () => done(null);
+      setTimeout(() => window[cb] && done(null), 8000);
+      document.head.appendChild(s);
+    });
+  }
   async function geocode(address) {
     const q = String(address || '').trim();
     if (!q) return null;
+    if (vworldKey()) for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
     const tries = [q, q.replace(/\s*\d+(-\d+)?\s*$/, ''), q.includes('화성') ? null : '화성시 ' + q].filter(Boolean);
     for (const t of tries) {
       const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&accept-language=ko&q=${encodeURIComponent(t)}`;
@@ -197,8 +211,26 @@ window.M = (() => {
   const naverRoute = (a, b, mode) => `https://map.naver.com/p/directions/${merc(a.lat, a.lng).join(',')},${encodeURIComponent(a.name)},,/${merc(b.lat, b.lng).join(',')},${encodeURIComponent(b.name)},,/-/${mode}`;
   const kakaoRoute = (a, b) => `https://map.kakao.com/link/from/${encodeURIComponent(a.name)},${a.lat},${a.lng}/to/${encodeURIComponent(b.name)},${b.lat},${b.lng}`;
 
+  /** 도로를 따라가는 자동차 경로 (OpenStreetMap 기반 무료 OSRM). 실패하면 null → 직선으로 대신 그린다. 교통 상황은 반영하지 않는다 */
+  const routeCache = new Map();
+  async function roadRoute(a, b) {
+    const key = [a.lat, a.lng, b.lat, b.lng].join(',');
+    if (routeCache.has(key)) return routeCache.get(key);
+    try {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 10000);
+      const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`, { signal: ctl.signal });
+      clearTimeout(timer);
+      const j = await res.json();
+      const r = j && j.code === 'Ok' && j.routes && j.routes[0];
+      const out = r ? { km: r.distance / 1000, min: Math.round(r.duration / 60), path: r.geometry.coordinates.map(([x, y]) => [y, x]) } : null;
+      routeCache.set(key, out);
+      return out;
+    } catch { return null; }
+  }
+
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { BASES, create, guBounds, distKm, estimate, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { BASES, create, guBounds, distKm, estimate, roadRoute, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();

@@ -76,7 +76,7 @@ window.F = (() => {
           ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
           ${field('복리후생(기타)', inp('welfare', x.welfare, 'placeholder="예: 중식 제공, 통근버스"'), { full: true, for: 'f_welfare' })}
           ${field('실적 진행도', sel('progress', D.PROCEDURES, x.progress, '자동 (방문·직무분석지 기록으로 판단)'), { full: true, for: 'f_progress' })}
-          ${field('진행 사업 (지도에 빨간색)', `<div class="inline">${D.SUPPORT_TYPES.map(t => `<label class="check"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}>${t}</label>`).join('')}</div>`, { full: true })}
+          ${field('진행 사업 (지도에 지원고용 빨강 · 현장훈련 보라)', `<div class="inline">${D.SUPPORT_TYPES.map(t => `<label class="check"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}>${t}</label>`).join('')}</div>`, { full: true })}
           ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
         </div></div>
         <div class="fsec"><h3>기초 조사</h3><div class="frow">
