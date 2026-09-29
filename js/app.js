@@ -595,7 +595,7 @@ window.App = (() => {
     'link-add': () => { $('#linkRows').insertAdjacentHTML('beforeend', V.linkRow()); $('#linkRows .staff-row:last-child input').focus(); },
     'save-links': async () => {
       const links = [...document.querySelectorAll('#linkRows .staff-row')].map(r => ({ label: r.querySelector('[name=linkLabel]').value.trim(), url: r.querySelector('[name=linkUrl]').value.trim() })).filter(l => l.label);
-      const bad = links.find(l => l.url && !/^https?:\/\//.test(l.url));
+      const bad = links.find(l => l.url && !/^https?:\/{2}/.test(l.url));
       if (bad) return toast(`'${bad.label}' 주소는 http:// 또는 https:// 로 시작해야 합니다.`, 'error');
       await S.saveSettings({ links });
       toast('바로가기를 저장했습니다.');
@@ -709,7 +709,7 @@ window.App = (() => {
     'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();
-      if (v && !/^https?:\/\//.test(v)) return toast('http:// 또는 https:// 로 시작하는 주소를 입력하세요.', 'error');
+      if (v && !/^https?:\/{2}/.test(v)) return toast('http:// 또는 https:// 로 시작하는 주소를 입력하세요.', 'error');
       S.saveSettings({ cityMapUrl: v }); toast('화성시 대시보드 주소를 저장했습니다.');
     },
     'data-clear': async () => {
@@ -846,8 +846,15 @@ window.App = (() => {
       view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>${S.REMOTE ? '구글 시트에 연결하지 못했습니다. 시트를 공유받았는지 확인하고 새로고침해 보세요. (' + U.esc(err.message || err) + ')' : '브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.'}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
       return;
     }
-    bindGlobal();
-    render();
+    try {
+      const missing = ['U', 'D', 'S', 'M', 'V', 'F', 'SV', 'R'].filter(k => !window[k]);
+      if (missing.length) throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다. index.html을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
+      bindGlobal();
+      render();
+    } catch (err) {
+      console.error(err);
+      view.innerHTML = `<div class="panel"><div class="empty"><strong>화면을 열지 못했습니다</strong>${window.U ? U.esc(err.message || String(err)) : String(err.message || err)}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
+    }
   }
 
   return { start, toast, confirm: confirmBox, render };

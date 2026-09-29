@@ -4,10 +4,36 @@
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => readFileSync(join(root, p), 'utf8');
-const inlineJs = p => `<script>\n${read(p).replace(/<\/script/gi, '<\\/script')}\n</script>`;
+const inlineJs = (p, forGas) => `<script>\n${(forGas ? gasSafe(read(p)) : read(p)).replace(/<\/script/gi, '<\\/script')}\n</script>`;
+
+/* Apps Script는 페이지를 내보낼 때 JS의 // 주석을 지우는데, '…' "…" 문자열만 알고 `…` 템플릿 문자열은 모른다.
+ * 그래서 `https://…` 같은 템플릿 안의 // 뒤를 주석으로 잘라 버려 코드가 깨진다.
+ * 그래서 모든 :// 를 문자열·정규식 안에서 같은 뜻인 :\/\/ 로 바꾸고, 바꾼 결과를 흉내 낸 주석 지우기로 다시 검사한다. */
+const gasSafe = js => js.replace(/:\/\//g, ':\\/\\/');
+function gasStrip(js) {
+  let out = '', q = null;
+  for (let i = 0; i < js.length; i++) {
+    const c = js[i];
+    if (c === '\\') { out += c + (js[++i] || ''); continue; }
+    if (q) { out += c; if (c === q || c === '\n') q = null; continue; }
+    if (c === "'" || c === '"') { q = c; out += c; continue; }
+    if (c === '/' && js[i + 1] === '*') { const end = js.indexOf('*/', i + 2); i = end < 0 ? js.length : end + 1; out += ' '; continue; }
+    if (c === '/' && js[i + 1] === '/') { while (i < js.length && js[i] !== '\n') i++; out += '\n'; continue; }
+    out += c;
+  }
+  return out;
+}
+function checkGas(html) {
+  const bad = [];
+  for (const [, code] of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
+    try { new vm.Script(gasStrip(code)); } catch (e) { bad.push(`${e.message}: ${code.trim().split('\n')[0].slice(0, 60)}`); }
+  }
+  if (bad.length) throw new Error('Apps Script에서 깨질 코드가 있습니다:\n' + bad.join('\n'));
+}
 // 화면에 보이는 버전: 만든 날짜·시각 (예전 파일을 열고 있는지 확인하는 용도)
 const stamp = (() => { const d = new Date(Date.now() + 9 * 3600e3).toISOString(); return `${d.slice(0, 10).replace(/-/g, '.')} ${d.slice(11, 16)}`; })();
 const src = read('index.html').replace('<script src="vendor/leaflet.js"></script>', `<script>window.APP_VERSION = ${JSON.stringify(stamp)};</script>\n<script src="vendor/leaflet.js"></script>`);
@@ -22,13 +48,15 @@ const CDN = {
 function build(useCdn) {
   return src
     .replace(/<link rel="stylesheet" href="((?:css|vendor)\/[^"]+)">/g, (_, p) => (useCdn && CDN[p]) || `<style>\n${read(p)}\n</style>`)
-    .replace(/<script src="((?:js|vendor)\/[^"]+)"><\/script>/g, (_, p) => (useCdn && CDN[p]) || inlineJs(p));
+    .replace(/<script src="((?:js|vendor)\/[^"]+)"><\/script>/g, (_, p) => (useCdn && CDN[p]) || inlineJs(p, useCdn));
 }
 
 mkdirSync(join(root, 'dist', 'apps-script'), { recursive: true });
 const single = join(root, 'dist', '아르딤_취업지원.html');
 writeFileSync(single, build(false));
-writeFileSync(join(root, 'dist', 'apps-script', 'index.html'), build(true));
+const gasHtml = build(true);
+checkGas(gasHtml);
+writeFileSync(join(root, 'dist', 'apps-script', 'index.html'), gasHtml);
 copyFileSync(join(root, 'apps-script', 'Code.gs'), join(root, 'dist', 'apps-script', 'Code.gs'));
 copyFileSync(join(root, 'apps-script', 'appsscript.json'), join(root, 'dist', 'apps-script', 'appsscript.json'));
 const kb = p => (readFileSync(p).length / 1024).toFixed(0) + ' KB';
