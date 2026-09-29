@@ -336,6 +336,31 @@ function api_setAiKey(key) {
   return { ok: true, ai: !!key };
 }
 
+/* ---------- 브이월드 주소 검색 (서버가 대신 묻는다) ----------
+ * 브이월드 키는 발급 때 등록한 사이트 주소에서만 쓸 수 있다. 공유 사이트는 구글이 정한 주소에서 돌아가므로
+ * 서버에서 domain(등록한 주소)을 직접 적어 보낸다. 키와 주소는 설정 시트(vworldKey, vworldDomain)에 있다. */
+function api_geocode(address) {
+  requireMember_();
+  var st = readSettings_();
+  var key = String(st.vworldKey || '').trim();
+  var q = String(address || '').trim();
+  if (!key || !q) return null;
+  var domain = String(st.vworldDomain || 'https://script.google.com').trim();
+  var types = ['road', 'parcel'];
+  for (var i = 0; i < types.length; i++) {
+    var url = 'https://api.vworld.kr/req/address?service=address&request=getcoord&version=2.0&crs=epsg:4326&refine=true&simple=true&format=json'
+      + '&type=' + types[i] + '&key=' + encodeURIComponent(key) + '&domain=' + encodeURIComponent(domain) + '&address=' + encodeURIComponent(q);
+    try {
+      var res = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
+      var j = JSON.parse(res.getContentText() || '{}');
+      var r = j.response || {};
+      if (r.status === 'OK' && r.result && r.result.point) return { lat: Number(r.result.point.y), lng: Number(r.result.point.x), label: q, by: 'vworld' };
+      if (r.status === 'ERROR') return { error: (r.error && (r.error.text || r.error.code)) || '브이월드 오류' };
+    } catch (e) { return { error: String(e.message || e) }; }
+  }
+  return null;
+}
+
 /** 사이트가 만든 Messages API 요청을 그대로 전달한다 */
 function api_claude(body) {
   requireMember_();

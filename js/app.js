@@ -943,7 +943,42 @@ window.App = (() => {
       await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
     },
-    'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
+    'save-vworld': async () => {
+      const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
+      if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();
+      await S.saveSettings(patch);
+      toast('브이월드 키를 저장했습니다. 아래 "주소 찾기 시험"으로 확인해 보세요. 지도 배경 목록에도 브이월드가 나타납니다.');
+    },
+    'vworld-test': async el => {
+      el.disabled = true; el.textContent = '찾는 중…';
+      const addr = '경기도 화성시 향남읍 발안로 12';
+      let r = null, err = '';
+      try {
+        if (S.REMOTE) { r = await S.call('api_geocode', addr); if (r && r.error) { err = r.error; r = null; } }
+        else r = await M.geocode(addr);
+      } catch (e) { err = e.message; }
+      el.disabled = false; el.textContent = '주소 찾기 시험';
+      if (r && r.lat) toast(`성공: "${addr}" → ${(+r.lat).toFixed(5)}, ${(+r.lng).toFixed(5)}`);
+      else toast(`브이월드에서 찾지 못했어요${err ? ` (${err})` : ''}. 키와 등록한 서비스 URL이 맞는지 확인해 주세요.`, 'error');
+    },
+    'vworld-refind': async el => {
+      // 위치가 없거나 대략 위치(읍면동 중심·도로 이름)인 곳을 브이월드로 다시 찾는다
+      const st = S.get();
+      const list = [...st.businesses.map(x => ['biz', x]), ...st.networks.map(x => ['net', x])].filter(([, x]) => x.address && (!M.hasPos(x) || x.approx));
+      if (!list.length) return toast('다시 찾을 곳이 없어요. 모두 정확한 위치예요.');
+      if (!(await confirmBox('브이월드로 위치를 다시 찾을까요?', `주소가 있고 위치가 없거나 대략적인 ${list.length}곳을 차례로 찾습니다. 몇 분 걸릴 수 있어요.`, '찾기'))) return;
+      el.disabled = true;
+      let found = 0;
+      for (const [i, [kind, x]] of list.entries()) {
+        el.textContent = `찾는 중… ${i + 1}/${list.length}`;
+        // 위치가 없거나 대략 위치면 새로 찾은 위치로 바뀐다 (못 찾으면 그대로)
+        await S.refine(kind, x.id);
+        const now = S.find(kind, x.id);
+        if (now && M.hasPos(now) && !now.approx) found++;
+      }
+      el.disabled = false; el.textContent = '등록된 곳 위치 브이월드로 다시 찾기';
+      toast(`${list.length}곳 중 ${found}곳을 정확한 위치로 바꿨어요.`);
+    },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();
       if (v && !/^https?:\/{2}/.test(v)) return toast('http:// 또는 https:// 로 시작하는 주소를 입력하세요.', 'error');

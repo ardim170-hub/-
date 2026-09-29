@@ -1077,7 +1077,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.29 17:00";</script>
+<script>window.APP_VERSION = "2026.09.29 17:38";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1677,7 +1677,7 @@ window.S = (() => {
     for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     const st = res.settings || {};
     next.settings = {
-      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '', perfByProgram: st.perfByProgram || null,
+      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '', vworldDomain: st.vworldDomain || '', perfByProgram: st.perfByProgram || null,
       admins: st.admins || '', members: st.members || '', perms: st.perms || '',
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
     };
@@ -1690,7 +1690,7 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
   }
   /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
   let access = { me: '', owner: '', admin: true, perms: {} };
@@ -2389,7 +2389,14 @@ window.M = (() => {
   async function geocode(address) {
     const q = String(address || '').trim();
     if (!q) return null;
-    if (vworldKey()) for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
+    if (vworldKey()) {
+      if (S.REMOTE) {
+        // 공유 사이트: 구글 서버가 등록한 사이트 주소로 대신 물어본다
+        const r = await S.call('api_geocode', q).catch(() => null);
+        if (r && r.error) console.warn('브이월드:', r.error);
+        if (r && r.lat) return { lat: +r.lat.toFixed(6), lng: +r.lng.toFixed(6), label: r.label };
+      } else for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
+    }
     // OpenStreetMap 검색: 전체 주소 → 번지 뺀 주소 → (화성시 안에서만) 도로 이름. 도로 이름으로 찾으면 그 도로의 대략 위치다
     const road = q.match(/([가-힣A-Za-z0-9·]+(?:대로|로|길))\s*(\d+(?:-\d+)?)?/);
     const tries = [[q], [q.replace(/\s*\d+(-\d+)?\s*$/, '')], [q.includes('화성') ? null : '화성시 ' + q],
@@ -3402,6 +3409,8 @@ window.V = (() => {
           <h2 class="section-title">지도 배경</h2>
           <p>지도 오른쪽 위 버튼에서 일반 지도·위성 사진·OpenStreetMap·배경 없음 중 고를 수 있고, 고른 것은 이 PC에서 기억합니다. 한글 지명이 잘 나오는 <b>브이월드</b>를 쓰려면 <a href="https:\/\/www.vworld.kr/dev/v4api.do" target="_blank" rel="noopener">브이월드 오픈API</a>에서 무료 인증키를 받아 넣으세요. 키를 받을 때 등록하는 사이트 주소가 실제 여는 주소와 달라도 되는지는 브이월드 발급 조건을 확인하세요.</p>
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
+          ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https:\/\/script.google.com')}" placeholder="https:\/\/script.google.com"></label>` : ''}
+          ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
         </section>
         ` : ''}
         ${admin ? `
@@ -5821,7 +5830,42 @@ window.App = (() => {
       await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
     },
-    'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
+    'save-vworld': async () => {
+      const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
+      if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();
+      await S.saveSettings(patch);
+      toast('브이월드 키를 저장했습니다. 아래 "주소 찾기 시험"으로 확인해 보세요. 지도 배경 목록에도 브이월드가 나타납니다.');
+    },
+    'vworld-test': async el => {
+      el.disabled = true; el.textContent = '찾는 중…';
+      const addr = '경기도 화성시 향남읍 발안로 12';
+      let r = null, err = '';
+      try {
+        if (S.REMOTE) { r = await S.call('api_geocode', addr); if (r && r.error) { err = r.error; r = null; } }
+        else r = await M.geocode(addr);
+      } catch (e) { err = e.message; }
+      el.disabled = false; el.textContent = '주소 찾기 시험';
+      if (r && r.lat) toast(`성공: "${addr}" → ${(+r.lat).toFixed(5)}, ${(+r.lng).toFixed(5)}`);
+      else toast(`브이월드에서 찾지 못했어요${err ? ` (${err})` : ''}. 키와 등록한 서비스 URL이 맞는지 확인해 주세요.`, 'error');
+    },
+    'vworld-refind': async el => {
+      // 위치가 없거나 대략 위치(읍면동 중심·도로 이름)인 곳을 브이월드로 다시 찾는다
+      const st = S.get();
+      const list = [...st.businesses.map(x => ['biz', x]), ...st.networks.map(x => ['net', x])].filter(([, x]) => x.address && (!M.hasPos(x) || x.approx));
+      if (!list.length) return toast('다시 찾을 곳이 없어요. 모두 정확한 위치예요.');
+      if (!(await confirmBox('브이월드로 위치를 다시 찾을까요?', `주소가 있고 위치가 없거나 대략적인 ${list.length}곳을 차례로 찾습니다. 몇 분 걸릴 수 있어요.`, '찾기'))) return;
+      el.disabled = true;
+      let found = 0;
+      for (const [i, [kind, x]] of list.entries()) {
+        el.textContent = `찾는 중… ${i + 1}/${list.length}`;
+        // 위치가 없거나 대략 위치면 새로 찾은 위치로 바뀐다 (못 찾으면 그대로)
+        await S.refine(kind, x.id);
+        const now = S.find(kind, x.id);
+        if (now && M.hasPos(now) && !now.approx) found++;
+      }
+      el.disabled = false; el.textContent = '등록된 곳 위치 브이월드로 다시 찾기';
+      toast(`${list.length}곳 중 ${found}곳을 정확한 위치로 바꿨어요.`);
+    },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();
       if (v && !/^https?:\/{2}/.test(v)) return toast('http:\/\/ 또는 https:\/\/ 로 시작하는 주소를 입력하세요.', 'error');

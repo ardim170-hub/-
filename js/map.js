@@ -182,7 +182,14 @@ window.M = (() => {
   async function geocode(address) {
     const q = String(address || '').trim();
     if (!q) return null;
-    if (vworldKey()) for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
+    if (vworldKey()) {
+      if (S.REMOTE) {
+        // 공유 사이트: 구글 서버가 등록한 사이트 주소로 대신 물어본다
+        const r = await S.call('api_geocode', q).catch(() => null);
+        if (r && r.error) console.warn('브이월드:', r.error);
+        if (r && r.lat) return { lat: +r.lat.toFixed(6), lng: +r.lng.toFixed(6), label: r.label };
+      } else for (const type of ['road', 'parcel']) { const r = await vworldGeocode(q, type); if (r) return r; }
+    }
     // OpenStreetMap 검색: 전체 주소 → 번지 뺀 주소 → (화성시 안에서만) 도로 이름. 도로 이름으로 찾으면 그 도로의 대략 위치다
     const road = q.match(/([가-힣A-Za-z0-9·]+(?:대로|로|길))\s*(\d+(?:-\d+)?)?/);
     const tries = [[q], [q.replace(/\s*\d+(-\d+)?\s*$/, '')], [q.includes('화성') ? null : '화성시 ' + q],
