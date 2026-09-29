@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아르딤 취업지원 CRM</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" aria-label="주 메뉴">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">A</div>
+      <div>
+        <div class="brand-name">아르딤 취업지원</div>
+        <div class="brand-sub">화성시아르딤복지관 직업지원팀</div>
+      </div>
+    </div>
+    <nav class="side-nav" id="sideNav"></nav>
+    <div class="side-foot" id="sideFoot"></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="search-trigger" id="searchTrigger" type="button">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg>
+        <span>사업체명, 담당자, 연락처, 기관명 검색</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+      <div class="topbar-actions">
+        <div class="menu-wrap">
+          <button class="btn btn-primary" type="button" data-act="toggle-quick" aria-haspopup="true">+ 새로 등록</button>
+          <div class="menu" id="quickMenu" hidden>
+            <button type="button" data-act="new-biz">사업체 발굴 등록</button>
+            <button type="button" data-act="new-card">명함 등록</button>
+            <button type="button" data-act="new-net">네트워크 기관 등록</button>
+            <button type="button" data-act="new-event">일정 등록</button>
+          </div>
+        </div>
+      </div>
+    </header>
+    <div class="demo-banner" id="demoBanner" hidden>
+      지금 보이는 사업체·명함·기관은 모두 <strong>예시 데이터</strong>입니다. 실제 업무를 시작할 때 <a href="#/data">데이터 관리</a>에서 비우거나 엑셀로 교체하세요.
+    </div>
+    <main id="view" class="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottomNav" aria-label="모바일 메뉴"></nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="drawer-inner" id="drawerInner"></div>
+</aside>
+
+<div class="modal-layer" id="searchLayer" hidden>
+  <div class="search-panel" role="dialog" aria-label="전체 검색">
+    <div class="search-input-row">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg>
+      <input id="searchInput" type="search" placeholder="사업체명, 담당자, 연락처, 기관명 검색" autocomplete="off">
+      <button class="btn btn-ghost btn-sm" type="button" data-act="close-search">닫기</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+</div>
+
+<div class="modal-layer" id="confirmLayer" hidden>
+  <div class="confirm-panel" role="alertdialog" aria-labelledby="confirmTitle">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmBody"></p>
+    <div class="confirm-actions">
+      <button class="btn" type="button" id="confirmCancel">취소</button>
+      <button class="btn btn-danger" type="button" id="confirmOk">확인</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toasts" aria-live="polite"></div>
+
+<script src="vendor/leaflet.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="js/util.js"></script>
+<script src="js/data.js"></script>
+<script src="js/store.js"></script>
+<script src="js/map.js"></script>
+<script src="js/views.js"></script>
+<script src="js/forms.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
