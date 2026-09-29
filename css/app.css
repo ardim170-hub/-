@@ -925,3 +925,18 @@ label.field .textarea { width: 100%; }
 .nopos-bar.on { border-style: solid; }
 .badge.nopos { border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; cursor: pointer; font: inherit; font-size: 11.5px; }
 .nopos-item { align-items: center; }
+
+/* 명함: 어디에 둘까요? */
+.reg-choice { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.reg-opt { position: relative; display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; background: var(--surface); }
+.reg-opt input { margin-top: 3px; accent-color: var(--rc-opt, var(--navy)); }
+.reg-opt span { display: flex; flex-direction: column; min-width: 0; }
+.reg-opt small { color: var(--text-2); font-size: 12px; }
+.reg-opt.reg-net { --rc-opt: var(--k-net); }
+.reg-opt.reg-biz { --rc-opt: #D99A00; }
+.reg-opt.reg-link { --rc-opt: var(--k-card); }
+.reg-opt:has(input:checked) { border-color: var(--rc-opt, var(--navy)); background: color-mix(in srgb, var(--rc-opt, var(--navy)) 8%, #fff); }
+.reg-opt.reg-net::before, .reg-opt.reg-biz::before { content: ""; position: absolute; right: 10px; top: 10px; width: 12px; height: 12px; background: var(--rc-opt); border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.4); }
+.reg-opt.reg-net::before { transform: rotate(45deg) scale(.85); border-radius: 2px; }
+.reg-opt.reg-biz::before { border-radius: 50%; background: var(--k-biz); }
+@media (max-width: 520px) { .reg-choice { grid-template-columns: 1fr; } }

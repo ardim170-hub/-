@@ -320,7 +320,7 @@ window.V = (() => {
         <div><h1 class="page-title">네트워크</h1><div class="page-desc">복지관 홍보와 협력을 위한 지역 기관을 관리합니다.${scopeNote()}</div></div>
         <div class="inline"><a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button></div>
       </div>
-      <div class="chips" style="margin-bottom:12px">${['전체', ...D.NET_CATEGORIES].map(k => `<button type="button" class="chip ${f.cat === k ? 'on' : ''}" data-act="net-cat" data-cat="${k}">${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
+      <div class="chips" style="margin-bottom:12px">${['전체', ...new Set([...D.NET_CATEGORIES, ...all.map(n => n.category).filter(Boolean)])].filter(k => k === '전체' || D.NET_CATEGORIES.slice(0, 3).includes(k) || count(k)).map(k => `<button type="button" class="chip ${f.cat === k ? 'on' : ''}" data-act="net-cat" data-cat="${k}">${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
         <input class="input" id="netQ" type="search" placeholder="기관명, 협력 내용, 담당자" value="${e(f.q)}">
         <select class="select" id="netStatus" aria-label="관계 상태">${opts(D.NET_STATUS, f.status, '전체 관계 상태')}</select>

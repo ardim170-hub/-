@@ -392,6 +392,27 @@ window.App = (() => {
   }
   const openDetail = (kind, id, fromDrawer) => (kind === 'ev' ? push({ type: 'form', kind: 'ev', id }, fromDrawer) : push({ type: 'detail', kind, id }, fromDrawer));
 
+  /** 명함으로 네트워크 기관·사업체를 새로 만들고 명함을 연결한다. 위치를 못 정하면 바로 위치 입력 창을 연다 */
+  function registerFromCard(c, to, name, category, fromDrawer) {
+    name = name || c.org || c.name;
+    const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
+    const rec = to === 'biz'
+      ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
+      : S.upsert('net', { ...base, category: category || D.guessCategory(name), status: '보통', since: c.metAt || U.today(), relation: '', promo: '' });
+    if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
+    S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
+    bigMap?.closePopup();
+    const where = to === 'biz' ? '사업체 개발' : `네트워크(${rec.category})`;
+    if (!M.hasPos(S.find(to, rec.id))) {
+      // 주소가 없거나 읍면동을 못 찾으면 지도에 못 나오므로 바로 위치를 정하게 한다
+      toast(`'${name}'을(를) ${where}에 등록했어요. 명함에 주소가 없어 지도 위치를 못 정했어요. 주소를 넣거나 지도를 눌러 위치를 정해 주세요.`, 'error');
+      push({ type: 'form', kind: to, id: rec.id, focus: 'address' }, fromDrawer);
+      return rec;
+    }
+    toast(`'${name}'을(를) ${where}에 등록하고 명함을 연결했습니다.`);
+    openDetail(to, rec.id, fromDrawer);
+    return rec;
+  }
   async function onSubmit(form) {
     const res = F.collect(form);
     if (!res) return;
@@ -404,6 +425,11 @@ window.App = (() => {
       if (d.length && !(await confirmBox('이미 비슷한 게 있어요', `${list}${d.length > 3 ? ` 외 ${d.length - 3}건` : ''}. 그래도 새로 등록할까요? 등록한 뒤에도 상세 화면에서 합칠 수 있어요.`, '그래도 등록'))) return;
     }
     const saved = S.upsert(kind, obj);
+    if (kind === 'card' && res.extra) {
+      stack.pop();
+      registerFromCard(saved, res.extra.to, res.extra.name, res.extra.cat, false);
+      return;
+    }
     if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
     toast(id ? '저장했습니다.' : '등록했습니다.');
     stack.pop();
@@ -647,22 +673,7 @@ window.App = (() => {
       if (!c) return;
       const to = el.dataset.to;
       if (to === 'personal') { S.upsert('card', { id: c.id, tags: [...new Set([...(c.tags || []), '개인'])] }); toast('개인 연락처로 두었습니다. 분류 대기 목록에서 빠집니다.'); return; }
-      const name = c.org || c.name;
-      const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
-      const rec = to === 'biz'
-        ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
-        : S.upsert('net', { ...base, category: D.guessCategory(name), status: '보통', since: c.metAt || U.today(), relation: '', promo: '' });
-      if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
-      S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
-      bigMap?.closePopup();
-      if (!M.hasPos(S.find(to, rec.id))) {
-        // 주소가 없거나 읍면동을 못 찾으면 지도에 못 나오므로 바로 위치를 정하게 한다
-        toast(`'${name}'을(를) 등록했어요. 명함에 주소가 없어 지도 위치를 못 정했어요. 주소를 넣거나 지도를 눌러 위치를 정해 주세요.`, 'error');
-        push({ type: 'form', kind: to, id: rec.id, focus: 'address' }, fd);
-        return;
-      }
-      toast(`'${name}'을(를) ${to === 'biz' ? '사업체 개발' : '네트워크'}에 등록하고 명함을 연결했습니다.`);
-      openDetail(to, rec.id, fd);
+      registerFromCard(c, to, c.org || c.name, D.guessCategory(c.org || c.name), fd);
     },
     'ai-summary': async el => {
       const b = S.find('biz', el.dataset.id);

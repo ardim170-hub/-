@@ -9,6 +9,9 @@ window.F = (() => {
   const foot = (label) => `<div class="dr-foot"><button class="btn" type="button" data-act="dr-cancel">취소</button><button class="btn btn-primary" type="submit" form="entityForm">${label}</button></div>`;
   const head = (title) => `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${title}</h2><button class="icon-btn" type="button" data-act="dr-cancel" aria-label="닫기">${V.I.close}</button></div></div>`;
 
+  /** 네트워크 분류 목록: 기본 분류 + 지금까지 쓴 분류 */
+  const netCats = () => [...new Set([...D.NET_CATEGORIES, ...S.get().networks.map(n => n.category).filter(Boolean)])];
+  const netCatList = () => `<datalist id="netCatList">${netCats().map(c => `<option value="${e(c)}">`).join('')}</datalist>`;
   function linkOptions(value) {
     const st = S.get();
     const byName = (a, b) => a.name.replace(/^\(주\)/, '').localeCompare(b.name.replace(/^\(주\)/, ''), 'ko');
@@ -101,7 +104,7 @@ window.F = (() => {
       html: head(n ? '기관 정보 수정' : '네트워크 기관 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="net" data-id="${n ? n.id : ''}" novalidate>
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
           ${field('기관명', inp('name', x.name, 'required autocomplete="off"'), { req: true, full: true, name: 'name', for: 'f_name' })}
-          ${field('분류', sel('category', D.NET_CATEGORIES, x.category), { for: 'f_category' })}
+          ${field('분류', `${inp('category', x.category, 'list="netCatList" autocomplete="off" placeholder="고르거나 직접 입력"')}${netCatList()}`, { for: 'f_category', hint: '예: 정신건강복지센터. 목록에 없으면 직접 쓰면 돼요.' })}
           ${field('관계 상태', sel('status', D.NET_STATUS, x.status), { for: 'f_status' })}
         </div></div>
         ${locationSection(x)}
@@ -121,6 +124,7 @@ window.F = (() => {
   function card(c, preset = {}) {
     const x = c || { metAt: U.today(), tags: [], linkType: '', linkId: '', ...preset };
     const linkVal = x.linkType && x.linkId ? `${x.linkType}:${x.linkId}` : '';
+    const regMode = linkVal ? 'link' : (preset.regMode || 'none');
     return {
       html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>${notice(preset._notice)}
         <div class="fsec"><h3>명함 사진</h3>
@@ -144,8 +148,19 @@ window.F = (() => {
           ${field('이메일', inp('email', x.email, 'type="email" inputmode="email"'), { full: true, for: 'f_email' })}
           ${field('주소', inp('address', x.address), { full: true, for: 'f_address' })}
         </div></div>
-        <div class="fsec"><h3>연결 · 메모</h3><div class="frow">
-          ${field('연결할 사업체·기관', `<select class="select" id="f_link" name="link">${linkOptions(linkVal)}</select>`, { full: true, for: 'f_link', hint: '연결하면 그 사업체·기관 상세 화면의 담당자로 표시됩니다.' })}
+        <div class="fsec"><h3>어디에 둘까요?</h3>
+          <div class="reg-choice" role="radiogroup" aria-label="명함을 둘 곳">
+            ${[['none', '나중에 정하기', '분류 대기 명함으로 둡니다'], ['net', '네트워크로 새로 등록', '기관 · 지도에 검정'], ['biz', '사업체 개발로 새로 등록', '사업체 · 지도에 노랑'], ['link', '이미 있는 곳에 연결', '등록된 사업체·기관']].map(([k, l, d]) => `<label class="reg-opt reg-${k}"><input type="radio" name="regMode" value="${k}" ${regMode === k ? 'checked' : ''}><span><b>${l}</b><small>${d}</small></span></label>`).join('')}
+          </div>
+          <div class="frow" data-show="net biz">
+            ${field('등록 이름', inp('regName', x.org || '', 'autocomplete="off" placeholder="예: 향남 정신건강복지센터"'), { full: true, for: 'f_regName', hint: '지도와 목록에 이 이름으로 나와요. 비우면 소속 이름을 씁니다.' })}
+            <div class="field" data-show="net"><label for="f_regCat">기관 분류</label><input class="input" id="f_regCat" name="regCat" list="netCatList" autocomplete="off" value="${e(D.guessCategory(x.org || ''))}" placeholder="고르거나 직접 입력 (예: 정신건강복지센터)">${netCatList()}</div>
+          </div>
+          <div class="frow" data-show="link">
+            ${field('연결할 사업체·기관', `<select class="select" id="f_link" name="link">${linkOptions(linkVal)}</select>`, { full: true, for: 'f_link', hint: '연결하면 그 사업체·기관 상세 화면의 담당자로 표시됩니다.' })}
+          </div>
+        </div>
+        <div class="fsec"><h3>메모</h3><div class="frow">
           ${field('받은 날', inp('metAt', x.metAt, 'type="date"'), { for: 'f_metAt' })}
           ${field('받은 곳', inp('metWhere', x.metWhere, 'placeholder="예: 사업체 방문, 채용박람회"'), { for: 'f_metWhere' })}
           ${field('태그', inp('tags', (x.tags || []).join(', '), 'placeholder="쉼표로 구분. 예: 인사 담당, 행사 명함"'), { full: true, for: 'f_tags' })}
@@ -153,6 +168,16 @@ window.F = (() => {
         </div></div>
       </form></div>` + foot(c ? '저장' : '등록'),
       after: form => {
+        // 고른 곳에 맞는 칸만 보이게. 소속을 쓰면 등록 이름·분류도 따라 채운다(직접 고치기 전까지)
+        const showFor = () => { const m = form.elements.regMode.value; form.querySelectorAll('[data-show]').forEach(el => { el.hidden = !el.dataset.show.split(' ').includes(m); }); };
+        form.querySelectorAll('[name=regMode]').forEach(r => r.addEventListener('change', showFor));
+        showFor();
+        let nameTouched = false, catTouched = false;
+        form.elements.regName.addEventListener('input', () => { nameTouched = true; });
+        form.elements.regCat.addEventListener('input', () => { catTouched = true; });
+        const follow = () => { const o = form.elements.org.value.trim(); if (!nameTouched) form.elements.regName.value = o; if (!catTouched) form.elements.regCat.value = D.guessCategory(form.elements.regName.value || o); };
+        form.elements.org.addEventListener('input', follow);
+        form.elements.regName.addEventListener('input', () => { if (!catTouched) form.elements.regCat.value = D.guessCategory(form.elements.regName.value); });
         form.elements.photo.value = !c && x.photo ? x.photo : 'keep';
         const file = form.querySelector('#f_photoFile');
         const prev = form.querySelector('#photoPreview');
@@ -221,7 +246,7 @@ window.F = (() => {
     const errs = [];
     form.querySelectorAll('.field.err').forEach(f => { f.classList.remove('err'); f.querySelector('.errmsg')?.remove(); });
     const need = (k, msg) => { if (!String(fd[k] || '').trim()) errs.push([k, msg]); };
-    let obj;
+    let obj, extra = null;
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
@@ -231,7 +256,8 @@ window.F = (() => {
       obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'card') {
       need('name', '이름을 입력하세요.');
-      const [lt, li] = (fd.link || '').split(':');
+      const [lt, li] = fd.regMode === 'link' ? (fd.link || '').split(':') : [];
+      if (fd.regMode === 'net' || fd.regMode === 'biz') extra = { to: fd.regMode, name: (fd.regName || '').trim(), cat: (fd.regCat || '').trim() };
       obj = { name: fd.name.trim(), title: fd.title.trim(), org: fd.org.trim(), dept: fd.dept.trim(), mobile: fd.mobile.trim(), phone: fd.phone.trim(), email: fd.email.trim(), address: fd.address.trim(), linkType: lt || '', linkId: li || '', metAt: fd.metAt, metWhere: fd.metWhere.trim(), tags: fd.tags.split(',').map(t => t.trim()).filter(Boolean), memo: fd.memo.trim(), photo: fd.photo === 'keep' ? undefined : (fd.photo || null) };
     } else if (kind === 'ev') {
       need('date', '날짜를 입력하세요.');
@@ -244,7 +270,7 @@ window.F = (() => {
       if (f) { f.classList.add('err'); f.insertAdjacentHTML('beforeend', `<span class="errmsg">${msg}</span>`); }
     });
     if (errs.length) form.querySelector(`[name="${errs[0][0]}"]`)?.focus();
-    return errs.length ? null : { kind, obj };
+    return errs.length ? null : { kind, obj, extra };
   }
 
   return { biz, net, card, event, collect, resizeImage };

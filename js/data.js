@@ -43,6 +43,9 @@ window.D = (() => {
   /** 기관 이름으로 네트워크 분류 짐작 */
   function guessCategory(name) {
     const n = String(name || '');
+    if (/정신건강/.test(n)) return '정신건강복지센터';
+    if (/행정복지|주민센터/.test(n)) return '행정복지센터';
+    if (/특수학급|특수학교|특수반/.test(n)) return '특수학교·학급';
     if (/학교|대학|학원|교육|학습관/.test(n)) return '교육기관';
     if (/병원|의원|보건|정신건강|치과|한의원/.test(n)) return '의료기관';
     if (/신문|방송|라디오|소식지|언론|미디어|매거진/.test(n)) return '언론·홍보';
@@ -141,7 +144,7 @@ window.D = (() => {
   const INDUSTRY_LIST = Object.keys(INDUSTRIES);
 
   const SOURCES = ['현장 발굴', '구인 공고', '네트워크 소개', '고용센터 의뢰', '기존 사업체 추천', '박람회·행사'];
-  const NET_CATEGORIES = ['공공기관', '복지기관', '교육기관', '기업·경제단체', '언론·홍보', '후원·자원봉사', '의료기관'];
+  const NET_CATEGORIES = ['공공기관', '행정복지센터', '정신건강복지센터', '복지기관', '교육기관', '특수학교·학급', '기업·경제단체', '언론·홍보', '후원·자원봉사', '의료기관'];
   const NET_STATUS = ['활발', '보통', '휴면'];
   const ACT_TYPES = ['발굴', '전화', '방문', '이메일', '미팅', '행사', '채용연계', '홍보', '기타'];
   const EVENT_TYPES = ['방문', '전화', '미팅', '면접 동행', '행사', '홍보', '기타'];
