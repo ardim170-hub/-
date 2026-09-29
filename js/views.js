@@ -24,6 +24,7 @@ window.V = (() => {
     cards: { q: '', link: 'all', sort: 'recent', idx: '' },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
+    dash: { month: U.today().slice(0, 7), sel: U.today() },
   };
 
   /** 기간 필터: 발굴일이 기간 안에 드는지 */
@@ -114,6 +115,7 @@ window.V = (() => {
           </section>
         </div>
         <div class="stack">
+          <section class="panel dash-cal" id="dashCal">${dashCal()}</section>
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">단계별 사업체</h2><span class="sub num">전체 ${st.total}곳</span></div>
             <div class="pipeline">${D.STAGES.map(s => {
@@ -131,6 +133,18 @@ window.V = (() => {
             }).join('')}</ul>` : emptyState('아직 활동 기록이 없습니다', '사업체나 기관 상세 화면에서 전화·방문 기록을 남겨 보세요.')}
           </section>
         </div>
+      </div>`;
+  }
+
+  /** 대시보드 달력: 날짜를 누르면 그날 일정을 바로 아래에 보여준다 */
+  function dashCal() {
+    const f = ui.dash;
+    const evs = S.view().events.filter(x => x.date === f.sel).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+    return `<div class="section-head" style="padding:16px 18px 0"><h2 class="section-title">달력</h2><a href="#/schedule" class="sub">일정 화면</a></div>
+      ${calendar(f, 'dash-pick', 'dash-move')}
+      <div class="dash-day">
+        <div class="dash-day-head"><b>${e(U.dateKo(f.sel))}${f.sel === U.today() ? ' · 오늘' : ''}</b><button class="btn btn-ghost btn-sm" type="button" data-act="new-event" data-date="${f.sel}">+ 일정</button></div>
+        ${evs.length ? evs.map(evRow).join('') : '<p class="sub" style="margin:0;padding:6px 16px 14px">이 날은 일정이 없습니다.</p>'}
       </div>`;
   }
 
@@ -512,8 +526,8 @@ window.V = (() => {
         <div class="inline">${f.sel ? '<button class="btn btn-sm" type="button" data-act="cal-clear">전체 일정 보기</button>' : ''}<label class="check"><input type="checkbox" data-act="ev-showdone" ${f.showDone ? 'checked' : ''}>완료 포함</label></div>
       </div>${body || `<div class="empty"><strong>${f.sel ? '이 날은 일정이 없습니다' : '예정된 일정이 없습니다'}</strong>사업체 방문이나 기관 행사를 등록해 보세요.<div><button class="btn btn-primary" type="button" data-act="new-event" data-date="${f.sel || ''}">+ 일정 등록</button></div></div>`}`;
   }
-  function calendar() {
-    const f = ui.sched;
+  /** 달력. f: {month, sel}, pick/move: 날짜 선택·달 이동 액션 이름 */
+  function calendar(f = ui.sched, pick = 'cal-pick', move = 'cal-move') {
     const [y, m] = f.month.split('-').map(Number);
     const first = new Date(y, m - 1, 1);
     const start = new Date(y, m - 1, 1 - first.getDay());
@@ -525,10 +539,10 @@ window.V = (() => {
       const d = new Date(start); d.setDate(start.getDate() + i);
       const s = U.fmt(d);
       const evs = (byDate[s] || []).filter(x => !x.done);
-      cells += `<button type="button" class="cal-day ${d.getMonth() !== m - 1 ? 'out' : ''} ${s === T ? 'today' : ''} ${s === f.sel ? 'sel' : ''}" data-act="cal-pick" data-date="${s}" aria-label="${U.dateKo(s)} 일정 ${evs.length}건">
+      cells += `<button type="button" class="cal-day ${d.getMonth() !== m - 1 ? 'out' : ''} ${s === T ? 'today' : ''} ${s === f.sel ? 'sel' : ''}" data-act="${pick}" data-date="${s}" aria-label="${U.dateKo(s)} 일정 ${evs.length}건">
         ${d.getDate()}<span class="dots">${evs.slice(0, 3).map(x => `<i class="${x.date < T ? 'late' : ''}"></i>`).join('')}</span></button>`;
     }
-    return `<div class="cal"><div class="cal-head"><button class="icon-btn" type="button" data-act="cal-move" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${y}년 ${m}월</b><button class="icon-btn" type="button" data-act="cal-move" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
+    return `<div class="cal"><div class="cal-head"><button class="icon-btn" type="button" data-act="${move}" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${y}년 ${m}월</b><button class="icon-btn" type="button" data-act="${move}" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
       <div class="cal-grid">${U.WD.map(w => `<div class="cal-dow">${w}</div>`).join('')}${cells}</div></div>`;
   }
 
@@ -583,6 +597,11 @@ window.V = (() => {
           <p>${S.REMOTE ? '키는 구글 서버(스크립트 속성)에만 저장되고 팀원 브라우저에는 전달되지 않습니다.' : '키는 이 PC 브라우저에만 저장됩니다. 공용 PC라면 쓰지 마세요.'} 명함 사진과 사업체 정보가 AI 서비스로 전송되니 기관 개인정보 지침을 확인하세요.</p>
           <div class="inline" style="width:100%"><input class="input" id="aiKeyInput" type="password" autocomplete="off" placeholder="${AI.available() ? '저장됨 · 바꾸려면 새 키 입력' : 'sk-ant-...'}"><button class="btn" type="button" data-act="save-aikey">저장</button>${AI.available() ? '<button class="btn btn-ghost" type="button" data-act="clear-aikey">키 삭제</button>' : ''}</div>
           <p>${AI.available() ? '<span class="badge success">사용 중</span>' : '<span class="badge">꺼짐</span>'}</p>
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">지도 배경</h2>
+          <p>지도 오른쪽 위 버튼에서 일반 지도·위성 사진·OpenStreetMap·배경 없음 중 고를 수 있고, 고른 것은 이 PC에서 기억합니다. 한글 지명이 잘 나오는 <b>브이월드</b>를 쓰려면 <a href="https://www.vworld.kr/dev/v4api.do" target="_blank" rel="noopener">브이월드 오픈API</a>에서 무료 인증키를 받아 넣으세요. 키를 받을 때 등록하는 사이트 주소가 실제 여는 주소와 달라도 되는지는 브이월드 발급 조건을 확인하세요.</p>
+          <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
         </section>
         <section class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
@@ -752,5 +771,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

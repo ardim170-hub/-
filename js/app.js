@@ -133,7 +133,7 @@ window.App = (() => {
   function bindMap() {
     bigMap = null;
     if (V.ui.map.mode === 'city') return fitCity();
-    bigMap = M.create($('#bigMap'));
+    bigMap = M.create($('#bigMap'), { showLayers: true });
     refreshMap(true);
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
   }
@@ -175,8 +175,8 @@ window.App = (() => {
     markerGroup.addTo(bigMap);
     if (fit) {
       const gu = V.ui.map.gu;
-      const gb = M.guBounds(gu);
-      if (gb) bigMap.fitBounds(gb, { padding: [20, 20] });
+      const gb = M.guBounds(gu || '');
+      if (gb) bigMap.fitBounds(gb, { padding: [12, 12] });
       else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     }
   }
@@ -553,6 +553,8 @@ window.App = (() => {
     },
     'cal-pick': el => { V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
     'cal-move': el => { const [y, m] = V.ui.sched.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.sched.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
+    'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
+    'dash-move': el => { const [y, m] = V.ui.dash.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.dash.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; $('#dashCal').innerHTML = V.dashCal(); },
     'cal-clear': () => { V.ui.sched.sel = ''; bindSched(); },
     'ev-showdone': el => { V.ui.sched.showDone = el.checked; bindSched(); },
     'xlsx-export': () => { S.exportXlsx(); toast('엑셀 파일을 내려받았습니다.'); },
@@ -570,6 +572,7 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
+    'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();
       if (v && !/^https?:\/\//.test(v)) return toast('http:// 또는 https:// 로 시작하는 주소를 입력하세요.', 'error');

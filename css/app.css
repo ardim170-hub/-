@@ -581,12 +581,24 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .bulk-tbl tr.dup td { opacity: .5; }
 .bulk-tbl tbody tr { cursor: default; }
 
-/* ---------- 행정동 경계 이름 · 배경 지도 없을 때 ---------- */
-.area-label { pointer-events: none; }
-.area-label span { display: none; transform: translate(-50%, -50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; color: #3B4556; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; font-family: var(--font); position: absolute; }
-.show-labels .area-label span { display: block; }
+/* ---------- 행정동·구 이름 · 배경 지도 없을 때 ---------- */
+.area-label, .gu-label { pointer-events: none; }
+.area-label span, .gu-label span { position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-family: var(--font); }
+.area-label span { display: none; font-size: 12px; font-weight: 700; color: #2B3444; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 4px #fff; }
+.gu-label span { display: block; font-size: 17px; font-weight: 800; color: var(--c); letter-spacing: .02em; text-shadow: 0 0 3px #fff, 0 0 4px #fff, 0 0 6px #fff; background: rgba(255,255,255,.55); padding: 1px 8px; border-radius: 6px; }
+.z-high .area-label span { display: block; }
+.z-high .gu-label span { display: none; }
 .leaflet-container.offline { background: #F3F5F8; }
-.map-note { background: rgba(255,255,255,.94); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-2); max-width: 280px; font-family: var(--font); line-height: 1.45; }
+.map-note { background: rgba(255,255,255,.95); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-2); max-width: 300px; font-family: var(--font); line-height: 1.45; }
+.leaflet-control-layers { font-family: var(--font); font-size: 13px; }
+.leaflet-control-layers-expanded { padding: 8px 12px; border-radius: 8px; }
+
+/* ---------- 대시보드 달력 ---------- */
+.dash-cal .cal { padding: 8px 14px 6px; }
+.dash-cal .cal-day { aspect-ratio: auto; height: 42px; }
+.dash-day { border-top: 1px solid var(--line); }
+.dash-day-head { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px 6px; }
+.dash-day .ev { grid-template-columns: 28px 56px minmax(0, 1fr) auto; padding: 8px 16px; }
 
 /* ---------- 중간 폭 화면(노트북·작은 모니터): 표 대신 카드 목록, 메뉴는 아이콘만 ---------- */
 .mrow .name { font-size: 15.5px; }

@@ -142,7 +142,7 @@ window.S = (() => {
     for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     const st = res.settings || {};
     next.settings = {
-      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null,
+      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '',
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
     };
     next.isDemo = st.isDemo === 'Y';
@@ -153,7 +153,7 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), isDemo: s.isDemo ? 'Y' : '' } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', isDemo: s.isDemo ? 'Y' : '' } };
   }
 
   let lastSig = '';

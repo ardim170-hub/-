@@ -1,30 +1,48 @@
-/* 지도: Leaflet + CARTO 기본지도 + 화성시 행정동 경계
-   배경 지도(도로·건물)는 인터넷에서 받아오고, 행정동 경계·이름은 앱 안에 들어 있어 인터넷이 막혀도 보인다. */
+/* 지도: Leaflet + 배경 지도(여러 종류 중 선택) + 화성시 행정동 경계
+   배경 지도는 인터넷에서 받아오고, 행정동·구 경계와 이름은 앱 안에 들어 있어 인터넷이 막혀도 보인다. */
 window.M = (() => {
-  const TILE = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-  const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · 행정동 경계: 통계청 SGIS, <a href="https://github.com/vuski/admdongkor" target="_blank" rel="noopener">admdongkor</a> (CC BY 4.0)';
+  const BOUNDARY_ATTR = '행정동 경계: 통계청 SGIS, <a href="https://github.com/vuski/admdongkor" target="_blank" rel="noopener">admdongkor</a> (CC BY 4.0)';
+  /** 배경 지도 종류. 키 없이 쓸 수 있는 것을 먼저 둔다 */
+  const BASES = [
+    { key: 'esri', label: '일반 지도', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr: 'Tiles &copy; Esri', maxNativeZoom: 18 },
+    { key: 'sat', label: '위성 사진', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Imagery &copy; Esri', maxNativeZoom: 18 },
+    { key: 'osm', label: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', maxNativeZoom: 19 },
+    { key: 'vworld', label: '브이월드', needsKey: true, url: key => `https://api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
+    { key: 'none', label: '배경 없음 (경계만)' },
+  ];
+  const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 */ } };
+  const vworldKey = () => (window.S && S.get() && S.get().settings.vworldKey) || '';
+  const available = () => BASES.filter(b => !b.needsKey || vworldKey());
+  const baseKey = () => { const k = lsGet('ardim.basemap'); return available().some(b => b.key === k) ? k : 'esri'; };
+
   const maps = new Map();
   let tilesOk = null; // null: 모름, true: 배경 지도 받아옴, false: 못 받아옴
   const pin = () => L.divIcon({ className: '', html: '<div class="pick-pin"></div>', iconSize: [22, 22], iconAnchor: [11, 26] });
+  const toLatLng = rings => rings.map(r => r.map(([x, y]) => [y, x]));
 
-  /** 행정동 경계와 이름 */
+  /** 행정동·구 경계와 이름 */
   function boundaryLayer(map) {
-    const polys = [], labels = [];
-    D.BOUNDS.forEach(b => {
+    const H = window.HWASEONG || { areas: [], gus: [] };
+    const areaPolys = H.areas.map(b => {
       const color = (D.GU[b.gu] || {}).color || '#667085';
-      polys.push(L.polygon(b.p.map(r => r.map(([x, y]) => [y, x])), { color, weight: 1, opacity: .7, fillColor: color, fillOpacity: .05, interactive: false }));
-      labels.push(L.marker(b.c, { interactive: false, keyboard: false, icon: L.divIcon({ className: 'area-label', html: `<span>${b.name}</span>`, iconSize: null }) }));
+      return L.polygon(toLatLng(b.p), { color, weight: .8, opacity: .55, fillColor: color, fillOpacity: .1, interactive: false });
     });
-    const group = L.layerGroup([...polys, ...labels]).addTo(map);
+    const guLines = (H.gus || []).map(g => L.polygon(toLatLng(g.p), { color: (D.GU[g.name] || {}).color || '#344054', weight: 2.6, opacity: .95, fill: false, interactive: false }));
+    const label = (c, html, cls) => L.marker(c, { interactive: false, keyboard: false, icon: L.divIcon({ className: cls, html, iconSize: null }) });
+    const areaLabels = H.areas.map(b => label(b.c, `<span>${b.name}</span>`, 'area-label'));
+    const guLabels = (H.gus || []).map(g => label(g.c, `<span style="--c:${(D.GU[g.name] || {}).color}">${g.name}</span>`, 'gu-label'));
+    L.layerGroup([...areaPolys, ...guLines, ...guLabels, ...areaLabels]).addTo(map);
     const style = () => {
-      const off = tilesOk === false;
-      polys.forEach(p => p.setStyle({ fillOpacity: off ? .16 : .05, weight: off ? 1.3 : 1 }));
-      map.getContainer().classList.toggle('offline', off);
-      map.getContainer().classList.toggle('show-labels', off || map.getZoom() >= 12);
+      const bare = tilesOk === false || map._arBase === 'none';
+      areaPolys.forEach(p => p.setStyle({ fillOpacity: bare ? .22 : .1 }));
+      const c = map.getContainer();
+      c.classList.toggle('offline', bare);
+      c.classList.toggle('z-high', map.getZoom() >= 12);
     };
     map.on('zoomend', style);
     style();
-    return { group, style };
+    return { style };
   }
 
   function create(el, opts = {}) {
@@ -33,22 +51,42 @@ window.M = (() => {
     if (old) old.remove();
     const map = L.map(el, { zoomControl: opts.zoomControl !== false, scrollWheelZoom: opts.scroll !== false, attributionControl: true })
       .setView(opts.center || D.CITY_CENTER, opts.zoom || 11);
-    const bl = boundaryLayer(map);
+    map.attributionControl.addAttribution(BOUNDARY_ATTR);
     const note = L.control({ position: 'bottomleft' });
-    note.onAdd = () => { const d = L.DomUtil.create('div', 'map-note'); d.textContent = '배경 지도(도로·건물)를 불러오지 못해 행정구역 경계만 표시합니다. 인터넷 연결이나 PC 보안 설정을 확인하세요.'; return d; };
+    note.onAdd = () => { const d = L.DomUtil.create('div', 'map-note'); d.textContent = '배경 지도를 불러오지 못해 행정구역 경계만 표시합니다. 오른쪽 위 버튼에서 다른 배경 지도를 골라 보세요.'; return d; };
+    map._arNote = note;
     const setOk = ok => {
       if (tilesOk === ok) return;
       tilesOk = ok;
-      maps.forEach(m => { m._arBoundary && m._arBoundary.style(); m._arNote && (ok ? m._arNote.remove() : m._arNote.addTo(m)); });
+      maps.forEach(m => { m._arBoundary && m._arBoundary.style(); if (m._arNote) { if (ok) m._arNote.remove(); else if (m._arBase !== 'none') m._arNote.addTo(m); } });
     };
-    let loaded = 0, failed = 0;
-    const layer = L.tileLayer(TILE, { attribution: ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
-    layer.on('tileload', () => { loaded++; setOk(true); });
-    layer.on('tileerror', () => { failed++; if (!loaded && failed >= 2) setOk(false); });
-    setTimeout(() => { if (!loaded) setOk(false); }, 6000);
+    // 배경 지도 선택
+    const layers = {};
+    available().forEach(b => {
+      if (b.key === 'none') { layers[b.label] = L.layerGroup(); layers[b.label]._arKey = 'none'; return; }
+      const t = L.tileLayer(typeof b.url === 'function' ? b.url(vworldKey()) : b.url, { attribution: b.attr, maxZoom: 19, maxNativeZoom: b.maxNativeZoom });
+      let loaded = 0, failed = 0;
+      t.on('tileload', () => { loaded++; setOk(true); });
+      t.on('tileerror', () => { failed++; if (!loaded && failed >= 3 && map._arBase === b.key) setOk(false); });
+      t._arKey = b.key;
+      layers[b.label] = t;
+    });
+    const cur = baseKey();
+    const first = Object.values(layers).find(l => l._arKey === cur);
+    map._arBase = cur;
+    first.addTo(map);
+    L.control.layers(layers, null, { position: 'topright', collapsed: !opts.showLayers }).addTo(map);
+    map.on('baselayerchange', e => {
+      map._arBase = e.layer._arKey;
+      lsSet('ardim.basemap', map._arBase);
+      tilesOk = null;
+      if (map._arBase === 'none') note.remove();
+      bl.style();
+    });
+    const bl = boundaryLayer(map);
     map._arBoundary = bl;
-    map._arNote = note;
-    if (tilesOk === false) note.addTo(map);
+    setTimeout(() => { if (tilesOk === null && map._arBase !== 'none') setOk(false); }, 7000);
+    if (tilesOk === false && cur !== 'none') note.addTo(map);
     maps.set(el, map);
     setTimeout(() => map.invalidateSize(), 60);
     return map;
@@ -123,5 +161,5 @@ window.M = (() => {
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { create, guBounds, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { BASES, create, guBounds, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();
