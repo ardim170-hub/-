@@ -54,16 +54,19 @@ window.F = (() => {
   }
 
   /* ---------- 사업체 ---------- */
-  function biz(b) {
-    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0 };
+  const notice = t => t ? `<div class="form-notice">${e(t)}</div>` : '';
+  function biz(b, preset = {}, focus) {
+    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0, ...preset };
     return {
-      html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" novalidate>
+      html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" data-focus="${e(focus || '')}" novalidate>${notice(preset._notice)}
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
           ${field('사업체명', inp('name', x.name, 'required autocomplete="off"'), { req: true, full: true, name: 'name', for: 'f_name' })}
           ${field('업종', `<input class="input" id="f_industry" name="industry" list="indList" value="${e(x.industry || '')}"><datalist id="indList">${D.INDUSTRY_LIST.map(i => `<option value="${e(i)}">`).join('')}</datalist>`, { for: 'f_industry' })}
           ${field('상시근로자 수', inp('employees', x.employees || '', 'type="number" min="0" inputmode="numeric"'), { for: 'f_employees', hint: '50명 이상이면 장애인 의무고용 대상(3.1%)으로 표시됩니다.' })}
           ${field('사업자등록번호', inp('bizNo', x.bizNo, 'placeholder="000-00-00000"'), { for: 'f_bizNo' })}
           ${field('대표자', inp('ceo', x.ceo), { for: 'f_ceo' })}
+          ${field('대표 전화', inp('phone', x.phone, 'type="tel" inputmode="tel" placeholder="031-000-0000"'), { for: 'f_phone' })}
+          ${field('홈페이지', inp('homepage', x.homepage, 'placeholder="www..."'), { for: 'f_homepage' })}
         </div></div>
         ${locationSection(x)}
         <div class="fsec"><h3>채용 정보</h3><div class="frow">
@@ -72,6 +75,10 @@ window.F = (() => {
           ${field('가능 직무', inp('jobs', x.jobs, 'placeholder="예: 포장, 검수, 사무 보조"'), { full: true, for: 'f_jobs' })}
           ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
           ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
+        </div></div>
+        <div class="fsec"><h3>기초 조사</h3><div class="frow">
+          ${field('조사 내용', ta('research', x.research, 'rows="7" placeholder="회사 개요, 규모, 주요 제품, 최근 채용 공고, 장애인 고용 관련 내용, 참고할 점, 출처 등"'), { full: true, for: 'f_research', hint: '사업체 상세 화면의 검색 버튼(네이버·구글·사람인 등)으로 찾은 내용을 정리해 두세요.' })}
+          ${field('조사일', inp('researchAt', x.researchAt, 'type="date"'), { for: 'f_researchAt' })}
         </div></div>
         <div class="fsec"><h3>운영 정보</h3><div class="frow">
           ${field('발굴 경로', sel('source', D.SOURCES, x.source, '선택'), { for: 'f_source' })}
@@ -112,7 +119,7 @@ window.F = (() => {
     const x = c || { metAt: U.today(), tags: [], linkType: '', linkId: '', ...preset };
     const linkVal = x.linkType && x.linkId ? `${x.linkType}:${x.linkId}` : '';
     return {
-      html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>
+      html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>${notice(preset._notice)}
         <div class="fsec"><h3>명함 사진</h3>
           <div class="photo-drop" id="photoDrop">
             <img id="photoPreview" ${S.photo(x) ? `src="${S.photo(x)}"` : 'hidden'} alt="명함 사진 미리보기">
@@ -143,7 +150,7 @@ window.F = (() => {
         </div></div>
       </form></div>` + foot(c ? '저장' : '등록'),
       after: form => {
-        form.elements.photo.value = 'keep';
+        form.elements.photo.value = !c && x.photo ? x.photo : 'keep';
         const file = form.querySelector('#f_photoFile');
         const prev = form.querySelector('#photoPreview');
         file.addEventListener('change', async () => {
@@ -215,7 +222,7 @@ window.F = (() => {
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
-      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');
       obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim() };
@@ -237,5 +244,5 @@ window.F = (() => {
     return errs.length ? null : { kind, obj };
   }
 
-  return { biz, net, card, event, collect };
+  return { biz, net, card, event, collect, resizeImage };
 })();

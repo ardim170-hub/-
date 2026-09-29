@@ -119,6 +119,8 @@ window.App = (() => {
     $('#bizInd').onchange = ev => { f.industry = ev.target.value; draw(); };
     $('#bizMand').onchange = ev => { f.mandatory = ev.target.checked; draw(); };
     $('#bizSort').onchange = ev => { f.sort = ev.target.value; draw(); };
+    $('#bizPeriod').onchange = ev => { f.period = ev.target.value; $('#bizMonth').hidden = f.period !== 'month'; draw(); };
+    $('#bizMonth').onchange = ev => { f.month = ev.target.value || U.today().slice(0, 7); draw(); };
   }
   function bindNet() {
     const draw = bindList('#netQ', '#netResults', V.netResults, v => { V.ui.net.q = v; });
@@ -130,10 +132,30 @@ window.App = (() => {
   }
   function bindMap() {
     bigMap = null;
-    if (V.ui.map.mode === 'city') return;
+    if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'));
     refreshMap(true);
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
+  }
+  /** 화성시 대시보드를 기준 화면 크기로 그린 뒤 칸 너비에 맞춰 축소 */
+  let cityRO = null;
+  function fitCity() {
+    const wrap = $('#cityWrap'), frame = $('#cityFrame'), sel = $('#cityFit');
+    if (!wrap || !frame) return;
+    const apply = () => {
+      const mode = V.ui.map.cityFit;
+      if (mode === 'full') { frame.style.cssText = ''; wrap.style.height = ''; wrap.classList.add('full'); return; }
+      wrap.classList.remove('full');
+      const baseW = 1920, baseH = mode === 'wide' ? 823 : 1080;
+      const k = wrap.clientWidth / baseW;
+      frame.style.cssText = `width:${baseW}px;height:${baseH}px;transform:scale(${k});transform-origin:0 0`;
+      wrap.style.height = Math.round(baseH * k) + 'px';
+    };
+    sel.onchange = () => { V.ui.map.cityFit = sel.value; apply(); };
+    cityRO?.disconnect();
+    cityRO = new ResizeObserver(apply);
+    cityRO.observe(wrap);
+    apply();
   }
   function refreshMap(fit) {
     const items = V.mapItems();
@@ -142,13 +164,20 @@ window.App = (() => {
     if (markerGroup) markerGroup.remove();
     markerIndex = {};
     markerGroup = L.featureGroup();
-    items.filter(i => M.hasPos(i.x)).forEach(({ kind, x }) => {
-      const m = (kind === 'biz' ? M.bizMarker(x) : M.netMarker(x)).bindPopup(M.popupHtml(kind, x)).bindTooltip(x.name, { direction: 'top', offset: [0, -6] });
+    const label = (kind, x) => kind === 'card' ? (x.org || x.name) : x.name;
+    // 이 달 발굴은 맨 위에 그린다
+    items.filter(i => M.hasPos(i.x)).sort((a, b) => (a.month ? 1 : 0) - (b.month ? 1 : 0)).forEach(({ kind, x, month }) => {
+      const m = (kind === 'biz' ? M.bizMarker(x, month) : kind === 'net' ? M.netMarker(x) : M.cardMarker(x))
+        .bindPopup(M.popupHtml(kind, x)).bindTooltip(label(kind, x), { direction: 'top', offset: [0, -6] });
       m.addTo(markerGroup);
       markerIndex[kind + x.id] = m;
     });
     markerGroup.addTo(bigMap);
-    if (fit && markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
+    if (fit) {
+      const gu = V.ui.map.gu;
+      if (gu) bigMap.fitBounds(L.latLngBounds(D.GU[gu].areas.map(a => [D.AREA_BY_NAME[a].lat, D.AREA_BY_NAME[a].lng])).pad(0.25), { maxZoom: 14 });
+      else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
+    }
   }
   function bindSched() {
     $('#evList').innerHTML = V.evList();
@@ -207,13 +236,26 @@ window.App = (() => {
     const inner = $('#drawerInner');
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
+    if (top.type === 'bulk') {
+      inner.innerHTML = IMP.html(top.state);
+      showDrawer();
+      IMP.bind(top.state, () => renderDrawer(true));
+      if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
+      return;
+    }
+    if (top.type === 'loading') {
+      inner.innerHTML = `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${U.esc(top.title)}</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
+        <div class="dr-body"><p class="sub">${U.esc(top.body || '')}</p><div class="skel" style="height:22px;width:60%"></div><div class="skel" style="height:22px;width:85%"></div><div class="skel" style="height:160px"></div></div>`;
+      showDrawer();
+      return;
+    }
     if (top.type === 'detail') {
       const x = S.find(top.kind, top.id);
       if (!x) { stack.pop(); return renderDrawer(); }
       v = { biz: V.detailBiz, net: V.detailNet, card: V.detailCard }[top.kind](x, stack.length > 1);
     } else {
       const x = top.id ? S.find(top.kind, top.id) : null;
-      v = { biz: () => F.biz(x), net: () => F.net(x), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
+      v = { biz: () => F.biz(x, top.preset, top.focus), net: () => F.net(x), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
     }
     inner.innerHTML = v.html;
     showDrawer();
@@ -221,7 +263,9 @@ window.App = (() => {
     if (v.after) v.after(form);
     const body = inner.querySelector('.dr-body');
     if (body && oldScroll) body.scrollTop = oldScroll;
-    if (!keepScroll) (form ? form.querySelector('input:not([type=hidden]):not([type=file]), select') : inner.querySelector('.dr-title'))?.focus?.({ preventScroll: true });
+    const focusEl = form && form.dataset.focus ? form.querySelector(`[name="${form.dataset.focus}"]`) : null;
+    if (focusEl) { focusEl.scrollIntoView({ block: 'center' }); focusEl.focus({ preventScroll: true }); }
+    else if (!keepScroll) (form ? form.querySelector('input:not([type=hidden]):not([type=file]), select') : inner.querySelector('.dr-title'))?.focus?.({ preventScroll: true });
   }
   function push(entry, fromDrawer) {
     if (!fromDrawer) stack = [];
@@ -265,6 +309,55 @@ window.App = (() => {
     if (r.card.length) html += `<div class="sr-group"><h4>명함</h4>${r.card.map(c => row('card', c, `${U.hl(c.name, q)} <span class="meta">${U.esc(c.title || '')}</span>`, U.hl(c.org || '', q), `<div class="phone">${U.hl(c.mobile || c.phone || '', q)}</div>`)).join('')}</div>`;
     if (r.net.length) html += `<div class="sr-group"><h4>네트워크</h4>${r.net.map(n => row('net', n, U.hl(n.name, q), `${U.esc(n.category)} · 관계 ${U.esc(n.status)}`, contactSide('net', n.id, S.lastAct('net', n.id)))).join('')}</div>`;
     box.innerHTML = html || `<div class="empty"><strong>'${U.esc(q)}' 검색 결과가 없습니다</strong>이름 일부나 전화번호 뒷자리 4자리로 다시 찾아보세요.</div>`;
+  }
+
+  /* ---------- 파일·사진으로 등록 ---------- */
+  const replaceTop = entry => { if (!stack.length) stack.push(entry); else stack[stack.length - 1] = entry; renderDrawer(); };
+  const readDataUrl = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+
+  async function handleBizFile(file) {
+    if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
+      try { push({ type: 'bulk', state: await IMP.start(file) }, false); }
+      catch (err) { console.error(err); toast('파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
+      return;
+    }
+    if (!AI.available()) return toast('사진·PDF에서 사업체 정보를 읽으려면 AI 키가 필요합니다 (데이터 관리 > AI 도우미). 엑셀·CSV 목록은 키 없이 등록할 수 있어요.', 'error');
+    if (file.size > 20 * 1024 * 1024) return toast('파일이 너무 큽니다. 20MB 이하로 올려 주세요.', 'error');
+    push({ type: 'loading', title: '문서를 읽는 중', body: 'AI가 사업자등록증·구인공고에서 사업체 정보를 찾고 있습니다. 10~20초 걸립니다.' }, false);
+    try {
+      const data = file.type === 'application/pdf' ? await readDataUrl(file) : await F.resizeImage(file, 1800, .85);
+      const r = await AI.readBizDoc(data);
+      replaceTop({ type: 'form', kind: 'biz', preset: { ...r, employees: Number(String(r.employees).replace(/[^0-9]/g, '')) || '', source: '현장 발굴', _notice: 'AI가 문서에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.' } });
+    } catch (err) { closeDrawer(); toast('문서를 읽지 못했습니다: ' + err.message, 'error'); }
+  }
+
+  function guessLink(org) {
+    const k = U.norm(org).replace(/^\(주\)|주식회사|\(주\)/g, '');
+    if (k.length < 2) return null;
+    const hit = (list, kind) => { const x = list.find(o => { const n = U.norm(o.name).replace(/^\(주\)|주식회사|\(주\)/g, ''); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
+    return hit(S.get().businesses, 'biz') || hit(S.get().networks, 'net');
+  }
+
+  async function handleCardPhoto(file) {
+    let photo;
+    try { photo = await F.resizeImage(file, 1000, .72); } catch { return toast('사진을 읽지 못했습니다. JPG나 PNG 파일인지 확인하세요.', 'error'); }
+    if (!AI.available()) {
+      push({ type: 'form', kind: 'card', preset: { photo, _notice: 'AI 키가 없어 내용을 직접 입력해야 합니다. 키를 넣으면 사진만 올려도 자동으로 채워집니다 (데이터 관리 > AI 도우미).' } }, false);
+      return;
+    }
+    push({ type: 'loading', title: '명함을 읽는 중', body: 'AI가 이름·연락처를 읽고 있습니다. 5~10초 걸립니다.' }, false);
+    try {
+      const r = await AI.readCard(await F.resizeImage(file, 1600, .85));
+      const link = guessLink(r.org);
+      const memo = [r.fax && `팩스 ${r.fax}`, r.homepage && `홈페이지 ${r.homepage}`].filter(Boolean).join('\n');
+      replaceTop({ type: 'form', kind: 'card', preset: {
+        name: r.name, title: r.title, dept: r.dept, org: r.org, mobile: r.mobile, phone: r.phone, email: r.email, address: r.address, memo, photo,
+        linkType: link ? link.kind : '', linkId: link ? link.x.id : '', metWhere: '',
+        _notice: `AI가 명함에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.${link ? ` 소속이 같은 '${link.x.name}'에 연결해 두었습니다.` : ' 연결할 곳이 없으면 등록 후 분류 대기 목록에서 사업체/네트워크로 나눌 수 있습니다.'}`,
+      } });
+    } catch (err) {
+      replaceTop({ type: 'form', kind: 'card', preset: { photo, _notice: 'AI가 명함을 읽지 못했습니다 (' + err.message + '). 직접 입력해 주세요.' } });
+    }
   }
 
   /* ---------- More sheet (mobile) ---------- */
@@ -365,8 +458,84 @@ window.App = (() => {
     'dr-back': () => { stack.pop(); renderDrawer(); },
     'dr-cancel': () => { stack.pop(); renderDrawer(); },
     'biz-stage': el => { V.ui.biz.stage = el.dataset.stage; if (route() === 'biz') render(); else location.hash = '#/biz'; },
-    'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else f[k] = ''; render(); },
-    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false }); render(); },
+    'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else f[k] = ''; render(); },
+    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all' }); render(); },
+    'biz-upload': () => $('#globalBizFile').click(),
+    'card-photo': () => $('#globalCardPhoto').click(),
+    'card-idx': el => { V.ui.cards.idx = el.dataset.idx; render(); },
+    'card-link-none': () => { V.ui.cards.link = 'none'; },
+    'bulk-commit': () => {
+      const top = stack[stack.length - 1];
+      if (!top || top.type !== 'bulk') return;
+      const r = IMP.commit(top.state);
+      closeDrawer();
+      V.ui.biz.period = 'all';
+      if (route() !== 'biz') location.hash = '#/biz';
+      toast(`사업체 ${r.biz}곳을 등록했습니다${r.cards ? ` (담당자 명함 ${r.cards}장 포함)` : ''}. 주소로 지도 위치를 찾는 중입니다.`);
+    },
+    triage: (el, fd) => {
+      const c = S.find('card', el.dataset.id);
+      if (!c) return;
+      const to = el.dataset.to;
+      if (to === 'personal') { S.upsert('card', { id: c.id, tags: [...new Set([...(c.tags || []), '개인'])] }); toast('개인 연락처로 두었습니다. 분류 대기 목록에서 빠집니다.'); return; }
+      const name = c.org || c.name;
+      const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
+      const rec = to === 'biz'
+        ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
+        : S.upsert('net', { ...base, category: D.guessCategory(name), status: '보통', since: c.metAt || U.today(), relation: '', promo: '' });
+      if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
+      S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
+      bigMap?.closePopup();
+      toast(`'${name}'을(를) ${to === 'biz' ? '사업체 개발' : '네트워크'}에 등록하고 명함을 연결했습니다.`);
+      openDetail(to, rec.id, fd);
+    },
+    'ai-summary': async el => {
+      const b = S.find('biz', el.dataset.id);
+      if (!b) return;
+      el.disabled = true; el.textContent = '요약하는 중…';
+      try { const t = await AI.summarize(b); S.upsert('biz', { id: b.id, aiSummary: t }); toast('AI 요약을 저장했습니다.'); }
+      catch (err) { toast('요약하지 못했습니다: ' + err.message, 'error'); el.disabled = false; el.textContent = 'AI로 3줄 요약'; }
+    },
+    'ai-research': async el => {
+      const b = S.find('biz', el.dataset.id);
+      if (!b) return;
+      el.disabled = true; el.textContent = '인터넷에서 찾는 중… (30초~1분)';
+      try {
+        const t = await AI.research(b);
+        const cur = S.find('biz', b.id);
+        const research = cur.research ? `[AI 조사 ${U.dateDot(U.today())}]\n${t}\n\n[이전 내용]\n${cur.research}` : t;
+        S.upsert('biz', { id: b.id, research, researchAt: U.today() });
+        toast('기초 조사 결과를 저장했습니다. 내용을 꼭 확인하세요.');
+      } catch (err) { toast('조사하지 못했습니다: ' + err.message, 'error'); el.disabled = false; el.textContent = 'AI로 인터넷 조사'; }
+    },
+    'edit-research': el => push({ type: 'form', kind: 'biz', id: el.dataset.id, focus: 'research' }, true),
+    'map-gu': el => { V.ui.map.gu = el.dataset.gu; render(); },
+    'map-month': el => {
+      const [y, m] = V.ui.map.month.split('-').map(Number);
+      const d = new Date(y, m - 1 + +el.dataset.d, 1);
+      V.ui.map.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`;
+      $('#mapMonthLabel').textContent = V.monthLabel(V.ui.map.month);
+      refreshMap(false);
+    },
+    'map-listmode': () => { V.ui.map.listAll = !V.ui.map.listAll; $('#mapListMode').textContent = V.ui.map.listAll ? '이 달만' : '전체 목록'; refreshMap(false); },
+    'link-add': () => { $('#linkRows').insertAdjacentHTML('beforeend', V.linkRow()); $('#linkRows .staff-row:last-child input').focus(); },
+    'save-links': async () => {
+      const links = [...document.querySelectorAll('#linkRows .staff-row')].map(r => ({ label: r.querySelector('[name=linkLabel]').value.trim(), url: r.querySelector('[name=linkUrl]').value.trim() })).filter(l => l.label);
+      const bad = links.find(l => l.url && !/^https?:\/\//.test(l.url));
+      if (bad) return toast(`'${bad.label}' 주소는 http:// 또는 https:// 로 시작해야 합니다.`, 'error');
+      await S.saveSettings({ links });
+      toast('바로가기를 저장했습니다.');
+    },
+    'save-aikey': async () => {
+      const k = $('#aiKeyInput').value.trim();
+      if (!/^sk-ant-/.test(k)) return toast('Claude API 키는 sk-ant- 로 시작합니다. 다시 확인해 주세요.', 'error');
+      try { await AI.setKey(k); if (S.REMOTE) await S.refresh(); render(); toast('AI 키를 저장했습니다. 이제 AI 도우미를 쓸 수 있습니다.'); }
+      catch (err) { toast('키를 저장하지 못했습니다: ' + err.message, 'error'); }
+    },
+    'clear-aikey': async () => {
+      if (!(await confirmBox('AI 키를 삭제할까요?', '명함 자동 입력, 기초 조사, 요약 기능이 꺼집니다.', '삭제'))) return;
+      await AI.setKey(''); if (S.REMOTE) await S.refresh(); render(); toast('AI 키를 삭제했습니다.');
+    },
     'net-cat': el => { V.ui.net.cat = el.dataset.cat; render(); },
     'card-link': el => { V.ui.cards.link = el.dataset.link; render(); },
     'map-layer': el => { const k = el.dataset.layer; V.ui.map[k] = !V.ui.map[k]; render(); },
@@ -441,6 +610,8 @@ window.App = (() => {
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
     });
     $('#searchTrigger').onclick = openSearch;
+    $('#globalBizFile').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleBizFile(f); };
+    $('#globalCardPhoto').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleCardPhoto(f); };
     $('#scopeSel').onchange = ev => S.setScope(ev.target.value);
     S.onSync(renderSync);
     renderSync(S.sync);
@@ -482,7 +653,7 @@ window.App = (() => {
       await S.init();
     } catch (err) {
       console.error(err);
-      view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
+      view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>${S.REMOTE ? '구글 시트에 연결하지 못했습니다. 시트를 공유받았는지 확인하고 새로고침해 보세요. (' + U.esc(err.message || err) + ')' : '브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.'}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
       return;
     }
     bindGlobal();

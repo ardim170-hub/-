@@ -19,11 +19,15 @@ window.M = (() => {
     return map;
   }
 
-  function bizMarker(b) {
+  /** hot: 이번 달 발굴처럼 강조할 곳이면 크게, 진한 테두리 */
+  function bizMarker(b, hot) {
     const st = D.STAGE[b.stage] || D.STAGE['발굴'];
     return L.circleMarker([b.lat, b.lng], {
-      radius: b.stage === '채용연계' ? 8 : 7, color: '#fff', weight: 2, fillColor: st.hex, fillOpacity: b.stage === '보류' ? .75 : .95,
+      radius: hot ? 10 : (b.stage === '채용연계' ? 8 : 7), color: hot ? '#172033' : '#fff', weight: hot ? 3 : 2, fillColor: st.hex, fillOpacity: b.stage === '보류' ? .75 : .95,
     });
+  }
+  function cardMarker(c) {
+    return L.marker([c.lat, c.lng], { icon: L.divIcon({ className: '', html: '<div class="card-pin"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }) });
   }
   function netMarker(n) {
     return L.marker([n.lat, n.lng], { icon: L.divIcon({ className: '', html: `<div class="net-pin" style="${n.status === '휴면' ? 'opacity:.55' : ''}"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] }) });
@@ -31,6 +35,10 @@ window.M = (() => {
   const hasPos = x => x && x.lat != null && x.lng != null && !isNaN(x.lat) && !isNaN(x.lng) && x.lat !== '' && x.lng !== '';
 
   function popupHtml(kind, x) {
+    if (kind === 'card') {
+      return `<div class="pop-name">${U.esc(x.org || x.name)}</div><div class="pop-meta">분류 대기 명함 · ${U.esc(x.name)} ${U.esc(x.title || '')}<br>${U.esc(x.address || '')}</div>
+        <div class="inline">${V.triageButtons(x)}</div>`;
+    }
     const meta = kind === 'biz'
       ? `${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
@@ -74,5 +82,5 @@ window.M = (() => {
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { create, bizMarker, netMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { create, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();

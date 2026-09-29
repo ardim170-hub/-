@@ -363,9 +363,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .cal-day .dots i.late { background: var(--danger); }
 
 /* ---------- Drawer ---------- */
-.scrim { position: fixed; inset: 0; background: rgba(16, 24, 40, .28); z-index: 40; }
+.scrim { position: fixed; inset: 0; background: rgba(16, 24, 40, .28); z-index: 1150; }
 .drawer {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(620px, 100%); z-index: 50;
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(620px, 100%); z-index: 1200;
   background: var(--surface); box-shadow: var(--shadow-lg); transform: translateX(102%);
   transition: transform .22s ease; display: flex; flex-direction: column;
 }
@@ -432,7 +432,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .inline .input { flex: 1; min-width: 160px; }
 
 /* ---------- Search ---------- */
-.modal-layer { position: fixed; inset: 0; z-index: 70; background: rgba(16, 24, 40, .32); display: flex; justify-content: center; align-items: flex-start; padding: 10vh 16px 16px; }
+.modal-layer { position: fixed; inset: 0; z-index: 1300; background: rgba(16, 24, 40, .32); display: flex; justify-content: center; align-items: flex-start; padding: 10vh 16px 16px; }
 .search-panel { width: min(680px, 100%); background: var(--surface); border-radius: 10px; box-shadow: var(--shadow-lg); overflow: hidden; display: flex; flex-direction: column; max-height: 76vh; }
 .search-input-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--text-2); }
 .search-input-row input { flex: 1; border: 0; outline: none; font-size: 16px; min-width: 0; color: var(--text); background: none; }
@@ -453,7 +453,7 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ---------- Toast ---------- */
-.toast-stack { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
+.toast-stack { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 1400; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; }
 .toast { background: var(--navy); color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow-lg); pointer-events: auto; display: flex; gap: 10px; align-items: center; }
 .toast.error { background: var(--danger); }
 .toast button { background: none; border: 0; color: #fff; text-decoration: underline; cursor: pointer; padding: 0; }
@@ -537,6 +537,61 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
   .more-sheet a { padding: 14px 12px; color: var(--text); font-weight: 600; border-radius: 6px; }
 }
 
+/* ---------- 지도가 상세 창 위로 올라오지 않게: 지도 안의 z-index를 지도 상자 안에 가둔다 ---------- */
+.map-box, .mini-map, .pick-map { position: relative; isolation: isolate; z-index: 0; }
+.topbar { z-index: 1000; }
+.more-sheet, .bottom-nav { z-index: 1100 !important; }
+
+/* ---------- 대시보드 바로가기 ---------- */
+.quick-links { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 16px; }
+.qlink { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line-strong); color: var(--navy); font-weight: 600; font-size: 13.5px; text-decoration: none; }
+.qlink:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.qlink svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; }
+.qlink.empty { color: var(--text-2); border-style: dashed; }
+.qlink.empty span { font-size: 12px; color: var(--accent); }
+.qlink.edit { border-color: transparent; background: none; color: var(--text-2); font-weight: 500; }
+
+/* ---------- 요약 · 기초 조사 ---------- */
+.one-line { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); }
+.ai-box { margin-top: 10px; padding: 12px 14px; border-radius: var(--radius); background: var(--accent-soft); white-space: pre-wrap; font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+.ai-tag { font-size: 11.5px; font-weight: 700; color: var(--accent); }
+.memo-box.research { max-height: 320px; overflow-y: auto; font-size: 13.5px; line-height: 1.6; margin-bottom: 8px; overflow-wrap: anywhere; }
+.research-actions { gap: 4px; }
+.form-notice { padding: 10px 14px; border-radius: var(--radius); background: var(--accent-soft); color: var(--navy); font-size: 13.5px; }
+.month-input { width: auto; }
+
+/* ---------- 명함 색인 · 분류 대기 ---------- */
+.index-bar { display: flex; flex-wrap: wrap; gap: 2px; margin: -2px 0 14px; }
+.index-bar button { min-width: 34px; height: 30px; border: 0; background: none; border-radius: 6px; color: var(--text-2); font-weight: 600; cursor: pointer; font-size: 13px; }
+.index-bar button:hover { background: var(--surface-2); color: var(--text); }
+.index-bar button.on { background: var(--navy); color: #fff; }
+.triage { margin-bottom: 16px; border-color: #D8E3F8; }
+.triage-list { list-style: none; margin: 0; padding: 0; }
+.triage-list li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.triage-list b { cursor: pointer; }
+.triage-list b:hover { color: var(--accent); }
+
+/* ---------- 지도: 구 · 월별 목록 ---------- */
+.gu-chips .chip.on { background: var(--c, var(--navy)); border-color: var(--c, var(--navy)); }
+.month-nav { display: flex; align-items: center; gap: 4px; }
+.month-nav b { font-size: 15px; flex: 1; text-align: center; white-space: nowrap; }
+.month-nav b::after { content: ' 발굴'; font-weight: 500; color: var(--text-2); font-size: 13px; }
+.map-group h4 { margin: 0; padding: 8px 14px 6px; font-size: 12.5px; color: var(--text-2); background: var(--surface-2); position: sticky; top: 0; z-index: 1; }
+.card-pin { width: 12px; height: 12px; background: #9AA3B2; border: 2px solid #fff; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.map-legend i.ring { background: transparent; border: 2.5px solid #172033; width: 11px; height: 11px; }
+.city-wrap { position: relative; overflow: hidden; border-top: 1px solid var(--line); background: var(--surface-2); }
+.city-wrap .city-frame { border: 0; display: block; }
+.city-wrap.full { overflow: auto; }
+.city-wrap.full .city-frame { width: 100%; height: calc(100vh - 250px); min-height: 520px; }
+
+/* ---------- 파일 일괄 등록 ---------- */
+.map-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px 12px; }
+.map-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; font-weight: 600; color: #344054; }
+.map-grid .req { color: var(--danger); }
+.bulk-tbl td { font-size: 13px; padding: 8px 10px; }
+.bulk-tbl tr.dup td { opacity: .5; }
+.bulk-tbl tbody tr { cursor: default; }
+
 </style>
 </head>
 <body>
@@ -567,7 +622,9 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
           <button class="btn btn-primary" type="button" data-act="toggle-quick" aria-haspopup="true">+ 새로 등록</button>
           <div class="menu" id="quickMenu" hidden>
             <button type="button" data-act="new-biz">사업체 발굴 등록</button>
-            <button type="button" data-act="new-card">명함 등록</button>
+            <button type="button" data-act="biz-upload">사업체 파일로 등록</button>
+            <button type="button" data-act="card-photo">명함 사진으로 등록</button>
+            <button type="button" data-act="new-card">명함 직접 입력</button>
             <button type="button" data-act="new-net">네트워크 기관 등록</button>
             <button type="button" data-act="new-event">일정 등록</button>
           </div>
@@ -611,6 +668,8 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 </div>
 
 <div class="toast-stack" id="toasts" aria-live="polite"></div>
+<input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
+<input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -683,7 +742,24 @@ window.U = (() => {
     return m ? `${m[1]}-${pad(m[2])}-${pad(m[3])}` : '';
   }
 
-  return { pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
+  /* 초성 검색: 'ㄱㅈㅂ' → '김정배' */
+  const CHO = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+  const cho = s => String(s ?? '').replace(/[가-힣]/g, ch => CHO[Math.floor((ch.charCodeAt(0) - 0xAC00) / 588)]).replace(/\s/g, '');
+  const isCho = q => /^[ㄱ-ㅎ]+$/.test(q);
+  /** 여러 값 중 하나라도 검색어를 포함하는지 (띄어쓰기·하이픈 무시, 초성 검색 지원) */
+  function match(q, ...vals) {
+    const nq = norm(q);
+    if (!nq) return true;
+    if (isCho(nq)) return vals.some(v => cho(v).includes(nq));
+    return vals.some(v => norm(v).includes(nq));
+  }
+  /** 가나다 색인용 첫 자음 (ㄲ→ㄱ 등으로 묶음) */
+  const indexOf = s => {
+    const c = cho(String(s ?? '').replace(/^\(주\)|^주식회사\s*/, '').trim()).charAt(0);
+    return ({ 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' })[c] || (/[ㄱ-ㅎ]/.test(c) ? c : (c ? 'A-Z' : ''));
+  };
+
+  return { cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
 })();
 
 </script>
@@ -701,8 +777,54 @@ window.D = (() => {
     ['기배동', 37.2250, 127.0150], ['화산동', 37.2080, 127.0080], ['동탄1동', 37.2020, 127.0740],
     ['동탄2동', 37.2100, 127.0620], ['동탄3동', 37.1950, 127.0620], ['동탄4동', 37.1780, 127.0760],
     ['동탄5동', 37.1880, 127.1000], ['동탄6동', 37.1650, 127.1030], ['동탄7동', 37.1760, 127.1150],
-    ['동탄8동', 37.1500, 127.0900],
+    ['동탄8동', 37.1500, 127.0900], ['동탄9동', 37.1630, 127.1180],
   ].map(([name, lat, lng]) => ({ name, lat, lng }));
+
+  /** 화성특례시 4개 일반구 (2026년 2월 출범). 읍·면·동 → 구 */
+  const GUS = [
+    { name: '만세구', color: '#3A7D6B', areas: ['남양읍', '우정읍', '향남읍', '마도면', '송산면', '서신면', '팔탄면', '장안면', '양감면', '새솔동'] },
+    { name: '효행구', color: '#8A6A2E', areas: ['봉담읍', '매송면', '비봉면', '정남면', '기배동'] },
+    { name: '병점구', color: '#7A4E8C', areas: ['진안동', '병점1동', '병점2동', '반월동', '화산동'] },
+    { name: '동탄구', color: '#2F5E9E', areas: ['동탄1동', '동탄2동', '동탄3동', '동탄4동', '동탄5동', '동탄6동', '동탄7동', '동탄8동', '동탄9동'] },
+  ];
+  const GU_OF_AREA = Object.fromEntries(GUS.flatMap(g => g.areas.map(a => [a, g.name])));
+  const GU = Object.fromEntries(GUS.map(g => [g.name, g]));
+  /** 도로명 주소에 행정동 대신 나오는 법정동 이름 → 가까운 행정동 */
+  const LEGAL_DONG = {
+    반송동: '동탄1동', 석우동: '동탄1동', 능동: '동탄3동', 솔빛: '동탄2동', 청계동: '동탄4동', 영천동: '동탄6동', 오산동: '동탄5동', 목동: '동탄7동', 산척동: '동탄8동', 장지동: '동탄9동', 송동: '동탄7동', 방교동: '동탄3동', 금곡동: '동탄8동', 신동: '동탄9동', 중동: '동탄1동',
+    병점동: '병점1동', 진안동: '진안동', 기산동: '진안동', 반월동: '반월동', 황계동: '화산동', 안녕동: '화산동', 송산동: '화산동', 기안동: '기배동', 배양동: '기배동',
+  };
+  const guOf = area => GU_OF_AREA[area] || '';
+  /** 주소 글자에서 읍·면·동을 찾아낸다. 못 찾으면 '' */
+  function detectArea(address) {
+    const a = String(address || '').replace(/\s+/g, ' ');
+    if (!a) return '';
+    const hit = AREAS.find(x => a.includes(x.name));
+    if (hit) return hit.name;
+    const legal = Object.keys(LEGAL_DONG).find(k => new RegExp(k + '(\\s|\\d|$|,|\\))').test(a));
+    if (legal) return LEGAL_DONG[legal];
+    const gu = GUS.find(g => a.includes(g.name));
+    return gu ? gu.areas[0] : '';
+  }
+  /** 기관 이름으로 네트워크 분류 짐작 */
+  function guessCategory(name) {
+    const n = String(name || '');
+    if (/학교|대학|학원|교육|학습관/.test(n)) return '교육기관';
+    if (/병원|의원|보건|정신건강|치과|한의원/.test(n)) return '의료기관';
+    if (/신문|방송|라디오|소식지|언론|미디어|매거진/.test(n)) return '언론·홍보';
+    if (/봉사|후원|로타리|라이온스|재단/.test(n)) return '후원·자원봉사';
+    if (/시청|구청|행정복지|주민센터|공단|고용|센터$|청$|사무소|경찰|소방/.test(n) && !/복지관|자립|주간|보호/.test(n)) return '공공기관';
+    if (/협회|연합|조합|상공|협의회|단지/.test(n)) return '기업·경제단체';
+    return '복지기관';
+  }
+  /** 대시보드 바로가기 기본값 */
+  const DEFAULT_LINKS = [
+    { label: '고용24', url: 'https://www.work24.go.kr' },
+    { label: '워크투게더 (장애인 구인구직)', url: 'https://www.worktogether.or.kr' },
+    { label: '한국장애인고용공단', url: 'https://www.kead.or.kr' },
+    { label: '한국장애인개발원', url: 'https://www.koddi.or.kr' },
+    { label: '화성시아르딤복지관', url: '' },
+  ];
   const AREA_BY_NAME = Object.fromEntries(AREAS.map(a => [a.name, a]));
   const CITY_CENTER = [37.175, 126.905];
   /** 화성시 통합 대시보드 공유 링크 (지도 화면 '화성시 대시보드' 탭) */
@@ -802,7 +924,7 @@ window.D = (() => {
         const jobs = [...new Set([pick(info.jobs), pick(info.jobs)])].join(', ');
         const b = {
           id, name: coName(industry), industry, bizNo: `${int(120, 699)}-${int(10, 99)}-${int(10000, 99999)}`,
-          ceo: person(), employees: emp, ...p, stage, jobs,
+          ceo: person(), phone: `031-${int(350, 379)}-${d4()}`, employees: emp, ...p, stage, jobs,
           workConditions: pick(['주 5일, 09:00~16:00', '주 5일, 09:00~18:00', '주 3일, 10:00~15:00 (시간제)', '주 5일, 08:30~15:30', '평일 오전 4시간']),
           accessibility: info.acc, placements: stage === '채용연계' ? int(1, 3) : 0,
           source: pick(SOURCES), discoveredAt, staff,
@@ -927,7 +1049,7 @@ window.D = (() => {
     };
   }
 
-  return { AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();
 
 </script>
@@ -944,14 +1066,14 @@ window.S = (() => {
 
   /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
   const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
   };
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
-  const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt']);
+  const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng']);
   const COLS = Object.keys(SHEETS);
 
@@ -988,15 +1110,20 @@ window.S = (() => {
     if (next.settings.cityMapUrl == null) next.settings.cityMapUrl = D.CITY_DASHBOARD_URL;
     next.settings.staff = (next.settings.staff || []).map(s => (typeof s === 'string' ? { name: s, program: '' } : { name: String(s.name || '').trim(), program: s.program || '' })).filter(s => s.name);
     if (!next.settings.staff.length) next.settings.staff = [{ name: '김정배', program: '' }];
-    next.businesses.forEach(b => {
-      if (!D.STAGE[b.stage]) b.stage = '발굴';
-      if ((b.lat == null || isNaN(b.lat)) && D.AREA_BY_NAME[b.area]) { b.lat = D.AREA_BY_NAME[b.area].lat; b.lng = D.AREA_BY_NAME[b.area].lng; b.approx = true; }
-    });
-    next.networks.forEach(n => {
-      if (!D.NET_STATUS.includes(n.status)) n.status = '보통';
-      if ((n.lat == null || isNaN(n.lat)) && D.AREA_BY_NAME[n.area]) { n.lat = D.AREA_BY_NAME[n.area].lat; n.lng = D.AREA_BY_NAME[n.area].lng; n.approx = true; }
-    });
+    if (typeof next.settings.links === 'string') { try { next.settings.links = JSON.parse(next.settings.links); } catch { next.settings.links = null; } }
+    if (!Array.isArray(next.settings.links)) next.settings.links = D.DEFAULT_LINKS.map(l => ({ ...l }));
+    next.cards.forEach(c => place(c));
+    next.businesses.forEach(b => { if (!D.STAGE[b.stage]) b.stage = '발굴'; place(b); });
+    next.networks.forEach(n => { if (!D.NET_STATUS.includes(n.status)) n.status = '보통'; place(n); });
     return next;
+  }
+
+  /** 좌표가 없으면 주소에서 읍·면·동을 찾아 그 중심에 대략 표시 */
+  function place(x) {
+    const has = x.lat != null && x.lng != null && x.lat !== '' && !isNaN(x.lat) && !isNaN(x.lng);
+    if (!x.area && x.address) x.area = D.detectArea(x.address);
+    if (!has && D.AREA_BY_NAME[x.area]) { x.lat = D.AREA_BY_NAME[x.area].lat; x.lng = D.AREA_BY_NAME[x.area].lng; x.approx = true; }
+    return x;
   }
 
   /* ---------- 로컬 저장 (IndexedDB) ---------- */
@@ -1070,20 +1197,22 @@ window.S = (() => {
     for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     const st = res.settings || {};
     next.settings = {
-      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null,
+      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null,
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
     };
     next.isDemo = st.isDemo === 'Y';
+    aiServer = !!res.ai;
     return normalize(next);
   }
   function serverPayload(s) {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', isDemo: s.isDemo ? 'Y' : '' } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), isDemo: s.isDemo ? 'Y' : '' } };
   }
 
   let lastSig = '';
+  let aiServer = false;
   async function refresh() {
     if (!REMOTE || pending) return;
     try {
@@ -1156,13 +1285,43 @@ window.S = (() => {
       else if (!obj.photo && before && before.photo) { photoCache.delete(obj.id); photoOp = ['api_delPhoto', obj.id]; obj.photo = null; }
     }
     const rec = before ? { ...before, ...obj } : obj;
+    if (kind === 'biz' || kind === 'net' || kind === 'card') place(rec);
     if (i >= 0) list[i] = rec; else list.push(rec);
     commit();
+    if ((kind === 'biz' || kind === 'net' || kind === 'card') && rec.address && (rec.approx || rec.lat == null) && (!before || before.address !== rec.address || before.lat == null)) refine(kind, rec.id);
     if (REMOTE) {
       send('api_apply', [opPut(col, rec)]).catch(() => {});
       if (photoOp) send(...photoOp).catch(() => {});
     }
     return rec;
+  }
+
+  /** 주소로 정확한 좌표를 찾아 대략 위치를 바꾼다 (인터넷 필요, 실패하면 그대로 둔다) */
+  async function refine(kind, id) {
+    if (!window.M || !M.geocode) return;
+    const x = find(kind, id);
+    if (!x || !x.address) return;
+    try {
+      const r = await M.geocode(x.address);
+      if (!r || r.lat < 36.9 || r.lat > 37.4 || r.lng < 126.5 || r.lng > 127.25) return; // 화성시 밖이면 무시
+      const cur = find(kind, id);
+      if (cur && (cur.approx || cur.lat == null)) upsert(kind, { id, lat: r.lat, lng: r.lng, approx: false, area: cur.area || '' });
+    } catch { /* 오프라인 등 */ }
+  }
+
+  /** 여러 건을 한 번에 추가 (파일로 일괄 등록) */
+  function upsertMany(kind, objs) {
+    const col = COL[kind];
+    const recs = objs.map(o => {
+      const rec = { ...o, id: o.id || U.uid(PREFIX[kind]) };
+      if (kind !== 'act' && kind !== 'ev') { rec.createdAt = rec.createdAt || U.today(); rec.updatedAt = U.today(); }
+      if (kind === 'biz' || kind === 'net' || kind === 'card') place(rec);
+      state[col].push(rec);
+      return rec;
+    });
+    commit();
+    if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
+    return recs;
   }
 
   function remove(kind, id) {
@@ -1332,8 +1491,8 @@ window.S = (() => {
   function search(q) {
     const nq = U.norm(q);
     if (!nq) return { biz: [], net: [], card: [] };
-    const hit = (...vals) => vals.some(v => U.norm(v).includes(nq));
-    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const hit = (...vals) => U.match(q, ...vals);
+    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff, b.phone) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
     const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
     const card = state.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
     return { biz: biz.slice(0, 8), net: net.slice(0, 6), card: card.slice(0, 8) };
@@ -1393,7 +1552,8 @@ window.S = (() => {
   }
 
   return {
-    REMOTE, init, get, commit, subscribe, replace, saveSettings, find, upsert, remove, photo,
+    REMOTE, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
@@ -1424,11 +1584,15 @@ window.M = (() => {
     return map;
   }
 
-  function bizMarker(b) {
+  /** hot: 이번 달 발굴처럼 강조할 곳이면 크게, 진한 테두리 */
+  function bizMarker(b, hot) {
     const st = D.STAGE[b.stage] || D.STAGE['발굴'];
     return L.circleMarker([b.lat, b.lng], {
-      radius: b.stage === '채용연계' ? 8 : 7, color: '#fff', weight: 2, fillColor: st.hex, fillOpacity: b.stage === '보류' ? .75 : .95,
+      radius: hot ? 10 : (b.stage === '채용연계' ? 8 : 7), color: hot ? '#172033' : '#fff', weight: hot ? 3 : 2, fillColor: st.hex, fillOpacity: b.stage === '보류' ? .75 : .95,
     });
+  }
+  function cardMarker(c) {
+    return L.marker([c.lat, c.lng], { icon: L.divIcon({ className: '', html: '<div class="card-pin"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }) });
   }
   function netMarker(n) {
     return L.marker([n.lat, n.lng], { icon: L.divIcon({ className: '', html: `<div class="net-pin" style="${n.status === '휴면' ? 'opacity:.55' : ''}"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] }) });
@@ -1436,6 +1600,10 @@ window.M = (() => {
   const hasPos = x => x && x.lat != null && x.lng != null && !isNaN(x.lat) && !isNaN(x.lng) && x.lat !== '' && x.lng !== '';
 
   function popupHtml(kind, x) {
+    if (kind === 'card') {
+      return `<div class="pop-name">${U.esc(x.org || x.name)}</div><div class="pop-meta">분류 대기 명함 · ${U.esc(x.name)} ${U.esc(x.title || '')}<br>${U.esc(x.address || '')}</div>
+        <div class="inline">${V.triageButtons(x)}</div>`;
+    }
     const meta = kind === 'biz'
       ? `${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
@@ -1479,7 +1647,148 @@ window.M = (() => {
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { create, bizMarker, netMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { create, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+})();
+
+</script>
+<script>
+/* AI 도우미 (Claude API)
+   - 공유 모드: 구글 Apps Script 서버가 대신 호출한다 (API 키는 스크립트 속성에 보관, 브라우저에 노출되지 않음)
+   - 파일 모드: 이 PC 브라우저에 저장한 API 키로 직접 호출한다
+   API 키가 없으면 모든 AI 기능은 숨고, 직접 입력으로 대신한다. */
+window.AI = (() => {
+  const MODEL = 'claude-opus-5-5';
+  const KEY_LS = 'ardim.anthropicKey';
+  const localKey = () => { try { return localStorage.getItem(KEY_LS) || ''; } catch { return ''; } };
+  const available = () => (S.REMOTE ? S.aiServer : !!localKey());
+
+  async function setKey(key) {
+    if (S.REMOTE) { await S.call('api_setAiKey', key); return; }
+    try { if (key) localStorage.setItem(KEY_LS, key); else localStorage.removeItem(KEY_LS); } catch { /* 저장 불가 */ }
+  }
+
+  /** Messages API 한 번 호출. 공유 모드는 서버 프록시, 파일 모드는 직접 */
+  async function post(body) {
+    if (S.REMOTE) {
+      const r = await S.call('api_claude', body);
+      if (r && r.error) throw new Error(r.error.message || JSON.stringify(r.error));
+      return r;
+    }
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': localKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'server-side-fallback-2026-07-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify(body),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error((j.error && j.error.message) || `HTTP ${res.status}`);
+    return j;
+  }
+
+  /** 서버 도구(웹 검색)가 pause_turn으로 멈추면 이어서 요청한다 */
+  async function run(body) {
+    body = { model: MODEL, fallbacks: 'default', ...body };
+    let msg;
+    for (let i = 0; i < 4; i++) {
+      msg = await post(body);
+      if (msg.stop_reason !== 'pause_turn') break;
+      body = { ...body, messages: [...body.messages, { role: 'assistant', content: msg.content }] };
+    }
+    if (msg.stop_reason === 'refusal') throw new Error('AI가 이 요청을 처리하지 않았습니다.');
+    return msg;
+  }
+  const textOf = msg => (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n').trim();
+  const imageBlock = dataUrl => {
+    const [, type, data] = dataUrl.match(/^data:([^;]+);base64,(.*)$/) || [];
+    if (!data) throw new Error('이미지 형식을 읽지 못했습니다.');
+    return type === 'application/pdf'
+      ? { type: 'document', source: { type: 'base64', media_type: type, data } }
+      : { type: 'image', source: { type: 'base64', media_type: type, data } };
+  };
+  const obj = props => ({ type: 'object', additionalProperties: false, required: Object.keys(props), properties: props });
+  const str = description => ({ type: 'string', description });
+
+  /* ---------- 명함 사진 → 연락처 ---------- */
+  const CARD_SCHEMA = obj({
+    name: str('사람 이름'), title: str('직함/직위'), dept: str('부서'), org: str('회사·기관 이름'),
+    mobile: str('휴대전화 010-0000-0000 형식'), phone: str('사무실 전화 (대표번호 포함)'), fax: str('팩스'),
+    email: str('이메일'), address: str('주소 전체'), homepage: str('홈페이지 주소'),
+  });
+  async function readCard(dataUrl) {
+    const msg = await run({
+      max_tokens: 4000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: CARD_SCHEMA } },
+      messages: [{ role: 'user', content: [imageBlock(dataUrl), { type: 'text', text: '이 명함 사진에서 연락처 정보를 읽어 주세요. 사진에 없는 항목은 빈 문자열로 두고, 짐작해서 채우지 마세요. 전화번호는 하이픈을 넣어 주세요.' }] }],
+    });
+    return JSON.parse(textOf(msg));
+  }
+
+  /* ---------- 사업자등록증·구인공고 등 사진/PDF → 사업체 정보 ---------- */
+  const BIZ_SCHEMA = obj({
+    name: str('상호(사업체명)'), ceo: str('대표자'), bizNo: str('사업자등록번호 000-00-00000'), address: str('사업장 소재지'),
+    industry: str('업태/종목을 짧게'), phone: str('대표 전화'), employees: str('근로자 수(숫자만, 모르면 빈 문자열)'),
+    jobs: str('모집 직무가 있으면 쉼표로'), workConditions: str('근무 조건이 있으면 한 줄로'), memo: str('그 밖에 참고할 내용 한두 줄'),
+  });
+  async function readBizDoc(dataUrl) {
+    const msg = await run({
+      max_tokens: 4000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: BIZ_SCHEMA } },
+      messages: [{ role: 'user', content: [imageBlock(dataUrl), { type: 'text', text: '이 문서(사업자등록증, 구인공고, 회사 소개서 등)에서 사업체 정보를 읽어 주세요. 문서에 없는 항목은 빈 문자열로 두고 짐작하지 마세요.' }] }],
+    });
+    return JSON.parse(textOf(msg));
+  }
+
+  /* ---------- 인터넷 기초 조사 ---------- */
+  async function research(b) {
+    const msg = await run({
+      max_tokens: 8000,
+      output_config: { effort: 'low' },
+      tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 5, user_location: { type: 'approximate', country: 'KR', city: 'Hwaseong' } }],
+      system: '당신은 장애인 취업지원 기관(화성시아르딤복지관 직업지원팀)의 사업체 개발 담당자를 돕습니다. 장애인 채용 가능성을 판단하는 데 필요한 공개 정보를 찾아 한국어로 짧게 정리합니다. 확인되지 않은 내용은 쓰지 말고 "확인 안 됨"이라고 적습니다.',
+      messages: [{ role: 'user', content: `다음 사업체를 인터넷에서 조사해 아래 형식 그대로 정리해 주세요.
+
+사업체: ${b.name}
+주소: ${b.address || '모름'}
+업종: ${b.industry || '모름'}
+
+형식:
+- 회사 개요: (무엇을 하는 회사인지 1~2줄)
+- 규모: (직원 수, 매출 등 확인된 것)
+- 홈페이지: (주소)
+- 주요 제품·서비스:
+- 최근 채용 공고: (직무, 조건, 게시처)
+- 장애인 고용 관련: (장애인 고용 사례, 인증, 기사 등)
+- 참고할 점: (방문·연락 전에 알아둘 것)
+- 출처: (참고한 웹페이지 주소 목록)` }],
+    });
+    return textOf(msg);
+  }
+
+  /* ---------- 요약 ---------- */
+  async function summarize(b) {
+    const acts = S.actsOf('biz', b.id).slice(0, 15).map(a => `${a.date} ${a.type}: ${a.content}`).join('\n');
+    const msg = await run({
+      max_tokens: 2000,
+      output_config: { effort: 'low' },
+      messages: [{ role: 'user', content: `아래 사업체 기록을 직업지원팀 동료가 10초 안에 파악하도록 한국어 3줄로 요약해 주세요. 각 줄은 "• "로 시작하고, 1줄: 어떤 곳인지, 2줄: 지금까지 진행 상황, 3줄: 다음에 할 일. 기록에 없는 내용은 만들지 마세요.
+
+사업체: ${b.name} (${b.industry || '업종 미입력'}, ${b.area || ''}, 상시근로자 ${b.employees || '미입력'}명)
+진행 단계: ${b.stage}
+가능 직무: ${b.jobs || '-'} / 근무 조건: ${b.workConditions || '-'} / 고려사항: ${b.accessibility || '-'}
+메모: ${b.memo || '-'}
+기초 조사: ${b.research || '-'}
+활동 기록:
+${acts || '-'}` }],
+    });
+    return textOf(msg);
+  }
+
+  return { MODEL, available, setKey, localKey, readCard, readBizDoc, research, summarize };
 })();
 
 </script>
@@ -1502,14 +1811,56 @@ window.V = (() => {
     mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
     edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
+    camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
-    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, sort: 'recent' },
+    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '' },
-    cards: { q: '', link: 'all', sort: 'recent' },
-    map: { biz: true, net: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours' },
+    cards: { q: '', link: 'all', sort: 'recent', idx: '' },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
   };
+
+  /** 기간 필터: 발굴일이 기간 안에 드는지 */
+  const PERIODS = [['all', '전체 기간'], ['this', '이번 달'], ['last', '지난 달'], ['3m', '최근 3개월'], ['year', '올해'], ['month', '월 선택']];
+  function inPeriod(date, period, month) {
+    if (period === 'all') return true;
+    if (!date) return false;
+    const T = U.today();
+    const ym = T.slice(0, 7);
+    const prev = (() => { const d = U.parse(T); d.setDate(1); d.setMonth(d.getMonth() - 1); return U.fmt(d).slice(0, 7); })();
+    if (period === 'this') return date.startsWith(ym);
+    if (period === 'last') return date.startsWith(prev);
+    if (period === '3m') return U.diffDays(date, T) <= 92 && date <= T;
+    if (period === 'year') return date.startsWith(T.slice(0, 4));
+    if (period === 'month') return date.startsWith(month);
+    return true;
+  }
+  const periodLabel = (p, m) => p === 'month' ? `${m.replace('-', '년 ')}월` : (PERIODS.find(x => x[0] === p) || [])[1];
+  /** 지역 선택: 구 → 읍면동 */
+  const areaOptions = sel => `<option value="">전체 지역</option>${D.GUS.map(g => `<optgroup label="${g.name}"><option value="gu:${g.name}" ${sel === 'gu:' + g.name ? 'selected' : ''}>${g.name} 전체</option>${g.areas.map(a => `<option ${sel === a ? 'selected' : ''}>${a}</option>`).join('')}</optgroup>`).join('')}`;
+  const inArea = (x, sel) => !sel || (sel.startsWith('gu:') ? D.guOf(x.area) === sel.slice(3) : x.area === sel);
+  /** 사업체 한 줄 요약 (기록에서 자동으로 만든다) */
+  function bizLine(b) {
+    const la = S.lastAct('biz', b.id);
+    const ne = S.nextEvent('biz', b.id);
+    const mand = D.mandatoryCount(b.employees);
+    return [
+      [b.industry, D.guOf(b.area) && `${D.guOf(b.area)} ${b.area}`].filter(Boolean).join(' · '),
+      b.employees ? `상시 ${U.num(b.employees)}명${mand ? `(의무고용 ${mand}명)` : ''}` : '',
+      `${b.stage} 단계${b.discoveredAt ? ` · ${U.dateDot(b.discoveredAt)} 발굴` : ''}`,
+      la ? `최근 ${la.type} ${U.ago(la.date)}` : '연락 기록 없음',
+      ne ? `다음 ${ne.type} ${U.dday(ne.date).label}` : '',
+      b.placements ? `채용 ${b.placements}명` : '',
+    ].filter(Boolean).join(' · ');
+  }
+  const SEARCH_SITES = [
+    ['네이버', q => `https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`],
+    ['구글', q => `https://www.google.com/search?q=${encodeURIComponent(q)}`],
+    ['카카오맵', q => `https://map.kakao.com/?q=${encodeURIComponent(q)}`],
+    ['사람인', q => `https://www.saramin.co.kr/zf_user/search?searchword=${encodeURIComponent(q)}`],
+    ['잡코리아', q => `https://www.jobkorea.co.kr/Search/?stext=${encodeURIComponent(q)}`],
+  ];
 
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
@@ -1531,6 +1882,7 @@ window.V = (() => {
     const kpi = (label, value, unit, foot, href) => `<a class="kpi" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
       <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
+      ${quickLinks()}
       <section class="panel kpis" aria-label="주요 현황">
         ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz')}
         ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz')}
@@ -1577,6 +1929,15 @@ window.V = (() => {
       </div>`;
   }
 
+  function quickLinks() {
+    const links = S.get().settings.links || [];
+    if (!links.length) return '';
+    return `<nav class="quick-links" aria-label="바로가기">${links.map(l => l.url
+      ? `<a class="qlink" href="${e(l.url)}" target="_blank" rel="noopener">${e(l.label)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`
+      : `<a class="qlink empty" href="#/data" title="데이터 관리에서 주소를 입력하세요">${e(l.label)} <span>주소 입력</span></a>`).join('')}
+      <a class="qlink edit" href="#/data" title="바로가기 편집">편집</a></nav>`;
+  }
+
   function staffPanel() {
     const ss = S.staffStats();
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
@@ -1617,16 +1978,18 @@ window.V = (() => {
     const f = ui.biz;
     const all = S.view().businesses;
     const count = k => k === '전체' ? all.length : all.filter(b => b.stage === k).length;
-    const areas = [...new Set(all.map(b => b.area).filter(Boolean))].sort();
     return `
       <div class="page-head">
         <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.${scopeNote()}</div></div>
-        <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
+        <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
+
       <div class="chips" style="margin-bottom:12px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
         <input class="input" id="bizQ" type="search" placeholder="사업체명, 직무, 담당자 이름·연락처" value="${e(f.q)}">
-        <select class="select" id="bizArea" aria-label="지역">${opts(areas, f.area, '전체 지역')}</select>
+        <select class="select" id="bizPeriod" aria-label="발굴 기간">${PERIODS.map(([k, l]) => `<option value="${k}" ${f.period === k ? 'selected' : ''}>${k === 'all' ? l : '발굴 ' + l}</option>`).join('')}</select>
+        <input class="input month-input" id="bizMonth" type="month" value="${e(f.month)}" aria-label="발굴 월" ${f.period === 'month' ? '' : 'hidden'}>
+        <select class="select" id="bizArea" aria-label="지역">${areaOptions(f.area)}</select>
         <select class="select" id="bizInd" aria-label="업종">${opts(D.INDUSTRY_LIST, f.industry, '전체 업종')}</select>
         <label class="check"><input type="checkbox" id="bizMand" ${f.mandatory ? 'checked' : ''}>의무고용 대상만</label>
         <span class="spacer"></span>
@@ -1645,13 +2008,11 @@ window.V = (() => {
     const nq = U.norm(f.q);
     let list = S.view().businesses.filter(b => {
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
-      if (f.area && b.area !== f.area) return false;
+      if (!inArea(b, f.area)) return false;
       if (f.industry && b.industry !== f.industry) return false;
       if (f.mandatory && !D.mandatoryCount(b.employees)) return false;
-      if (nq) {
-        const hay = [b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|');
-        if (!hay.includes(nq)) return false;
-      }
+      if (!inPeriod(b.discoveredAt, f.period, f.month)) return false;
+      if (nq && !U.match(f.q, b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, b.phone, b.research, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone]))) return false;
       return true;
     }).map(b => ({ b, la: S.lastAct('biz', b.id), ne: S.nextEvent('biz', b.id), pc: primaryContact('biz', b.id) }));
     const sorters = {
@@ -1668,7 +2029,8 @@ window.V = (() => {
     const rows = bizFiltered();
     const applied = [];
     if (f.q) applied.push(['q', `검색: ${f.q}`]);
-    if (f.area) applied.push(['area', f.area]);
+    if (f.area) applied.push(['area', f.area.replace('gu:', '')]);
+    if (f.period !== 'all') applied.push(['period', `발굴 ${periodLabel(f.period, f.month)}`]);
     if (f.industry) applied.push(['industry', f.industry]);
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
@@ -1677,11 +2039,12 @@ window.V = (() => {
     if (!rows.length) return chipsHtml + `<div class="panel"><div class="empty"><strong>조건에 맞는 사업체가 없습니다</strong>검색어나 필터를 바꿔 보세요.<div><button class="btn" type="button" data-act="biz-reset">필터 초기화</button></div></div></div>`;
     return chipsHtml + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
-        <thead><tr><th>사업체</th><th>단계</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
+        <thead><tr><th>사업체</th><th>단계</th><th>발굴일</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
           <tr data-act="open" data-kind="biz" data-id="${b.id}">
-            <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${e(b.area || '지역 미지정')}</div></td>
+            <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
+            <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
             <td class="nowrap">${staffTag(b.staff)}</td>
@@ -1694,7 +2057,7 @@ window.V = (() => {
       <div class="mlist">${rows.map(({ b, la, ne, pc }) => `
         <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
           <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
-          <div class="meta">${e(b.industry)} · ${e(b.area || '')}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
+          <div class="meta">${e(b.industry)} · ${e(b.area || '')} · ${b.discoveredAt ? U.dateDot(b.discoveredAt) + ' 발굴' : ''}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
           <div class="meta">${staffTag(b.staff)}</div>
           <div class="meta">${la ? `최근 ${e(la.type)} ${U.ago(la.date)}` : ''}${ne ? ` · 다음 ${e(ne.type)} ${U.dday(ne.date).label}` : ''}</div>
         </div>`).join('')}</div>
@@ -1717,15 +2080,29 @@ window.V = (() => {
         <input class="input" id="netQ" type="search" placeholder="기관명, 협력 내용, 담당자" value="${e(f.q)}">
         <select class="select" id="netStatus" aria-label="관계 상태">${opts(D.NET_STATUS, f.status, '전체 관계 상태')}</select>
       </div>
+      ${triagePanel()}
       <div id="netResults"></div>`;
   }
+  /** 연결 안 된 명함을 사업체/네트워크로 나누는 목록 */
+  function triagePanel(limit = 8) {
+    const list = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).sort((a, b) => (b.metAt || '').localeCompare(a.metAt || ''));
+    if (!list.length) return '';
+    return `<section class="panel panel-pad triage">
+      <div class="section-head"><h2 class="section-title">분류 대기 명함 <span class="num sub">${list.length}장</span></h2><span class="sub">버튼 하나로 사업체 개발이나 네트워크에 등록되고 지도에 표시됩니다</span></div>
+      <ul class="triage-list">${list.slice(0, limit).map(c => `<li>
+        <div style="min-width:0"><b data-act="open" data-kind="card" data-id="${c.id}">${e(c.org || c.name)}</b> <span class="sub">${e(c.name)} ${e(c.title || '')}${c.area ? ' · ' + e(D.guOf(c.area) + ' ' + c.area) : ''}</span></div>
+        <div class="inline">${triageButtons(c)}</div></li>`).join('')}</ul>
+      ${list.length > limit ? `<a class="sub" href="#/cards" data-act="card-link-none">나머지 ${list.length - limit}장 보기</a>` : ''}
+    </section>`;
+  }
+  const triageButtons = c => `<button class="btn btn-sm" type="button" data-act="triage" data-to="biz" data-id="${c.id}">사업체로</button><button class="btn btn-sm" type="button" data-act="triage" data-to="net" data-id="${c.id}">네트워크로</button><button class="btn btn-ghost btn-sm" type="button" data-act="triage" data-to="personal" data-id="${c.id}" title="개인 연락처로 두고 이 목록에서 뺍니다">개인</button>`;
   function netResults() {
     const f = ui.net;
     const nq = U.norm(f.q);
     const all = S.view().networks;
     if (!all.length) return `<div class="panel">${emptyState('등록된 기관이 없습니다', '협력·홍보 기관을 등록하면 지도에 함께 표시됩니다.', 'new-net', '+ 기관 등록')}</div>`;
     const rows = all.filter(n => (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
-      (!nq || [n.name, n.relation, n.promo, n.memo, n.address, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|').includes(nq)))
+      (!nq || U.match(f.q, n.name, n.relation, n.promo, n.memo, n.address, n.staff, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone]))))
       .map(n => ({ n, la: S.lastAct('net', n.id), ne: S.nextEvent('net', n.id), pc: primaryContact('net', n.id) }))
       .sort((x, y) => (y.la?.date || '').localeCompare(x.la?.date || ''));
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>조건에 맞는 기관이 없습니다</strong>검색어나 분류를 바꿔 보세요.</div></div>`;
@@ -1759,12 +2136,13 @@ window.V = (() => {
     const cnt = k => all.filter(c => k === 'all' ? true : k === 'none' ? !c.linkType : c.linkType === k).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">명함 관리</h1><div class="page-desc">받은 명함을 사업체·기관과 연결해 두면 상세 화면에서 바로 연락할 수 있습니다.</div></div>
-        <button class="btn btn-primary" type="button" data-act="new-card">+ 명함 등록</button>
+        <div><h1 class="page-title">명함 관리</h1><div class="page-desc">휴대폰으로 명함을 찍어 올리면 ${AI.available() ? 'AI가 이름·연락처를 읽어 채워 줍니다' : '사진과 함께 보관됩니다'}. 사업체·기관과 연결하면 지도와 상세 화면에 함께 나옵니다.</div></div>
+        <div class="inline"><button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button></div>
       </div>
+
       <div class="chips" style="margin-bottom:12px">${[['all', '전체'], ['biz', '사업체 담당자'], ['net', '네트워크 기관'], ['none', '연결 안 됨']].map(([k, l]) => `<button type="button" class="chip ${f.link === k ? 'on' : ''}" data-act="card-link" data-link="${k}">${l}<span class="n">${cnt(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
-        <input class="input" id="cardQ" type="search" placeholder="이름, 소속, 전화번호, 이메일, 태그" value="${e(f.q)}">
+        <input class="input" id="cardQ" type="search" placeholder="이름·소속·전화 뒷자리·초성(ㄱㅈㅂ)" value="${e(f.q)}">
         <span class="spacer"></span>
         <select class="select" id="cardSort" aria-label="정렬">
           <option value="recent" ${f.sort === 'recent' ? 'selected' : ''}>최근 받은 순</option>
@@ -1772,6 +2150,7 @@ window.V = (() => {
           <option value="org" ${f.sort === 'org' ? 'selected' : ''}>소속순</option>
         </select>
       </div>
+      <div class="index-bar" role="toolbar" aria-label="가나다 색인">${['', ...'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ'.split(''), 'A-Z'].map(k => `<button type="button" class="${f.idx === k ? 'on' : ''}" data-act="card-idx" data-idx="${k}">${k || '전체'}</button>`).join('')}</div>
       <div id="cardResults"></div>`;
   }
   function cardResults() {
@@ -1780,13 +2159,14 @@ window.V = (() => {
     const all = S.view().cards;
     if (!all.length) return `<div class="panel">${emptyState('등록된 명함이 없습니다', '명함 사진과 연락처를 등록해 보세요.', 'new-card', '+ 명함 등록')}</div>`;
     const rows = all.filter(c => (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
-      (!nq || [c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo].map(U.norm).join('|').includes(nq)))
+      (!f.idx || U.indexOf(f.sort === 'org' ? c.org : c.name) === f.idx) &&
+      (!nq || U.match(f.q, c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo, c.address)))
       .sort({
         recent: (a, b) => (b.metAt || '').localeCompare(a.metAt || ''),
         name: (a, b) => a.name.localeCompare(b.name, 'ko'),
         org: (a, b) => (a.org || '').replace(/^\(주\)/, '').localeCompare((b.org || '').replace(/^\(주\)/, ''), 'ko'),
       }[f.sort]);
-    if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부나 전화번호 뒷자리로도 찾을 수 있어요.</div></div>`;
+    if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부, 전화번호 뒷자리, 초성(ㄱㅈㅂ)으로도 찾을 수 있어요.${f.idx ? '<div><button class="btn" type="button" data-act="card-idx" data-idx="">색인 해제</button></div>' : ''}</div></div>`;
     return `<div class="card-grid">${rows.map(c => {
       const link = S.linkOf(c);
       return `<article class="bcard" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
@@ -1807,24 +2187,35 @@ window.V = (() => {
     const f = ui.map;
     const st = S.view();
     const noPos = st.businesses.filter(b => !M.hasPos(b)).length + st.networks.filter(n => !M.hasPos(n)).length;
+    const pending = st.cards.filter(c => !c.linkType && M.hasPos(c) && !(c.tags || []).includes('개인')).length;
+    const guCount = g => st.businesses.filter(b => D.guOf(b.area) === g).length + st.networks.filter(n => D.guOf(n.area) === g).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">발굴 사업체는 진행 단계별 색상 원, 네트워크 기관은 남색 마름모로 표시합니다.${scopeNote()}</div></div>
+        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.${scopeNote()}</div></div>
         <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px" role="tablist">
         <button type="button" role="tab" class="chip ${f.mode === 'ours' ? 'on' : ''}" data-act="map-mode" data-mode="ours" aria-selected="${f.mode === 'ours'}">사업체·네트워크 지도</button>
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
-      ${f.mode === 'city' ? cityMap() : `<section class="panel map-layout">
+      ${f.mode === 'city' ? cityMap() : `
+      <div class="chips gu-chips" style="margin-bottom:12px">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>
+      <section class="panel map-layout">
         <div class="map-side">
           <div class="map-side-head">
-            <input class="input" id="mapQ" type="search" placeholder="지도에서 이름 찾기" value="${e(f.q)}">
+            <div class="month-nav">
+              <button class="icon-btn" type="button" data-act="map-month" data-d="-1" aria-label="이전 달">${I.back}</button>
+              <b class="num" id="mapMonthLabel">${monthLabel(f.month)}</b>
+              <button class="icon-btn" type="button" data-act="map-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button>
+              <button class="btn btn-ghost btn-sm" type="button" data-act="map-listmode" id="mapListMode">${f.listAll ? '이 달만' : '전체 목록'}</button>
+            </div>
+            <input class="input" id="mapQ" type="search" placeholder="지도에서 이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
               <button type="button" class="chip ${f.biz ? 'on' : ''}" data-act="map-layer" data-layer="biz">사업체 개발</button>
               <button type="button" class="chip ${f.net ? 'on' : ''}" data-act="map-layer" data-layer="net">네트워크</button>
+              <button type="button" class="chip ${f.card ? 'on' : ''}" data-act="map-layer" data-layer="card">분류 대기 명함${pending ? ` <span class="n">${pending}</span>` : ''}</button>
             </div>
-            <div class="map-legend">${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}><i style="--c:${s.color}"></i>${s.key}</label></span>`).join('')}<span><i class="sq" style="--c:var(--navy)"></i>네트워크 기관</span></div>
+            <div class="map-legend">${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}><i style="--c:${s.color}"></i>${s.key}</label></span>`).join('')}<span><i class="sq" style="--c:var(--navy)"></i>기관</span><span><i class="sq" style="--c:#9AA3B2"></i>명함</span><span><i class="ring"></i>이 달 발굴</span></div>
             ${noPos ? `<div class="sub">위치가 없는 곳 ${noPos}곳은 지도에 표시되지 않습니다.</div>` : ''}
           </div>
           <div class="map-list" id="mapList"></div>
@@ -1832,34 +2223,46 @@ window.V = (() => {
         <div class="map-canvas"><div class="map-box" id="bigMap"></div></div>
       </section>`}`;
   }
-  /** 화성시 통합 대시보드(공유 링크)를 그대로 보여준다. 사이트가 다른 곳 안에 표시되는 것을 막으면 새 창 링크를 쓴다. */
+  /** 화성시 통합 대시보드(공유 링크). 1920×1080 화면으로 그린 뒤 칸 너비에 맞춰 줄여 비율을 유지한다 */
   function cityMap() {
     const url = S.get().settings.cityMapUrl || '';
+    const f = ui.map;
     if (!url) return `<div class="panel">${emptyState('화성시 대시보드 주소가 없습니다', '데이터 관리 > 화성시 대시보드 주소에 공유 링크를 넣어 주세요.')}</div>`;
     return `<section class="panel" style="overflow:hidden">
       <div class="panel-pad" style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding-block:12px">
         <span class="sub">화성시 통합 대시보드 공유 화면입니다. 화면이 비어 보이면 새 창에서 여세요.</span>
-        <a class="btn btn-sm" href="${e(url)}" target="_blank" rel="noopener">새 창에서 열기</a>
+        <div class="inline">
+          <select class="select" id="cityFit" aria-label="화면 크기">${[['fit', '화면 맞춤 (16:9)'], ['wide', '넓은 화면 (21:9)'], ['full', '원래 크기']].map(([k, l]) => `<option value="${k}" ${f.cityFit === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          <a class="btn btn-sm" href="${e(url)}" target="_blank" rel="noopener">새 창에서 열기</a>
+        </div>
       </div>
-      <iframe class="city-frame" src="${e(url)}" title="화성시 통합 대시보드" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allow="fullscreen; geolocation"></iframe>
+      <div class="city-wrap" id="cityWrap"><iframe class="city-frame" id="cityFrame" src="${e(url)}" title="화성시 통합 대시보드" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allow="fullscreen; geolocation"></iframe></div>
     </section>`;
   }
+  const monthLabel = m => `${m.slice(0, 4)}년 ${+m.slice(5, 7)}월`;
+  const inMonth = (x, m) => (x.discoveredAt || x.since || x.metAt || x.createdAt || '').startsWith(m);
+  /** 지도에 찍을 전체 목록 (구·레이어·단계·검색 반영) */
   function mapItems() {
     const f = ui.map;
-    const nq = U.norm(f.q);
     const st = S.view();
     const items = [];
     if (f.biz) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     if (f.net) st.networks.forEach(n => items.push({ kind: 'net', x: n }));
-    return items.filter(({ x }) => !nq || U.norm(x.name + x.area + (x.industry || x.category)).includes(nq));
+    if (f.card) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
+    return items.filter(({ x, kind }) => (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category))
+      .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
+  /** 옆 목록: 기본은 고른 달에 발굴한 사업체만, 구별로 묶어서 */
   function mapList(items) {
-    if (!items.length) return '<div class="empty"><strong>표시할 곳이 없습니다</strong>레이어나 단계 선택을 확인하세요.</div>';
-    return items.map(({ kind, x }) => `
+    const f = ui.map;
+    const list = f.listAll ? items : items.filter(i => i.month);
+    if (!list.length) return `<div class="empty"><strong>${f.listAll ? '표시할 곳이 없습니다' : `${monthLabel(f.month)}에 발굴한 사업체가 없습니다`}</strong>${f.listAll ? '레이어나 단계 선택을 확인하세요.' : '다른 달을 보거나 전체 목록을 눌러 보세요.'}</div>`;
+    const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, list.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
+    return groups.map(([g, l]) => `<div class="map-group"><h4>${g ? `<span class="prog-dot" style="--c:${D.GU[g].color}"></span>${g}` : '구 미지정'} <span class="num">${l.length}</span></h4>${l.map(({ kind, x }) => `
       <div class="map-item" data-act="map-focus" data-kind="${kind}" data-id="${x.id}">
-        <span class="mk ${kind === 'net' ? 'sq' : ''}" style="--c:${kind === 'biz' ? D.STAGE[x.stage].color : 'var(--navy)'}"></span>
-        <div style="min-width:0"><div class="name">${e(x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)}` : `${e(x.category)} · ${e(x.status)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
-      </div>`).join('');
+        <span class="mk ${kind !== 'biz' ? 'sq' : ''}" style="--c:${kind === 'biz' ? D.STAGE[x.stage].color : kind === 'net' ? 'var(--navy)' : '#9AA3B2'}"></span>
+        <div style="min-width:0"><div class="name">${e(kind === 'card' ? (x.org || x.name) : x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)} · ${U.md(x.discoveredAt)} 발굴` : kind === 'net' ? `${e(x.category)} · ${e(x.status)}` : `명함 · ${e(x.name)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
+      </div>`).join('')}</div>`).join('');
   }
 
   /* ================= 일정 ================= */
@@ -1962,6 +2365,19 @@ window.V = (() => {
           <p>활동 기록을 남길 때 기록한 사람으로 저장됩니다. PC마다 따로 기억합니다.</p>
           <div class="inline" style="width:100%"><select class="select" id="meSel" data-act-change="me-set">${st.settings.staff.map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
         </section>
+        <section class="panel panel-pad staff-editor">
+          <h2 class="section-title">대시보드 바로가기</h2>
+          <p>취업알선 사이트, 복지관 홈페이지 등 자주 여는 사이트를 대시보드 위쪽 버튼으로 둡니다.</p>
+          <div class="staff-rows" id="linkRows">${(st.settings.links || []).map(l => linkRow(l)).join('')}</div>
+          <div class="inline"><button class="btn btn-sm" type="button" data-act="link-add">+ 바로가기 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-links">저장</button></div>
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">AI 도우미 (명함 읽기 · 기초 조사 · 요약)</h2>
+          <p>Claude API 키를 넣으면 명함 사진 자동 입력, 사업체 인터넷 기초 조사, 3줄 요약을 쓸 수 있습니다. 키는 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>에서 발급하고, 쓴 만큼 요금이 나옵니다.</p>
+          <p>${S.REMOTE ? '키는 구글 서버(스크립트 속성)에만 저장되고 팀원 브라우저에는 전달되지 않습니다.' : '키는 이 PC 브라우저에만 저장됩니다. 공용 PC라면 쓰지 마세요.'} 명함 사진과 사업체 정보가 AI 서비스로 전송되니 기관 개인정보 지침을 확인하세요.</p>
+          <div class="inline" style="width:100%"><input class="input" id="aiKeyInput" type="password" autocomplete="off" placeholder="${AI.available() ? '저장됨 · 바꾸려면 새 키 입력' : 'sk-ant-...'}"><button class="btn" type="button" data-act="save-aikey">저장</button>${AI.available() ? '<button class="btn btn-ghost" type="button" data-act="clear-aikey">키 삭제</button>' : ''}</div>
+          <p>${AI.available() ? '<span class="badge success">사용 중</span>' : '<span class="badge">꺼짐</span>'}</p>
+        </section>
         <section class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
           <p>지도 화면의 '화성시 대시보드' 탭에 보여줄 화성시 통합 대시보드 공유 링크입니다.</p>
@@ -1975,6 +2391,7 @@ window.V = (() => {
       </div>`;
   }
 
+  const linkRow = (l = { label: '', url: '' }) => `<div class="staff-row"><input class="input" name="linkLabel" value="${e(l.label)}" placeholder="이름 (예: 고용24)" aria-label="바로가기 이름"><input class="input" name="linkUrl" value="${e(l.url)}" placeholder="https://..." aria-label="주소"><button class="icon-btn" type="button" data-act="staff-del" aria-label="바로가기 삭제">${I.close}</button></div>`;
   const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option ${p.key === s.program ? 'selected' : ''}>${e(p.key)}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
 
   /* ================= 상세 Drawer ================= */
@@ -2018,6 +2435,8 @@ window.V = (() => {
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
     ${M.hasPos(x) ? '<div class="mini-map" id="miniMap"></div>' : '<p class="sub" style="margin:0">위치가 지정되지 않았습니다. 수정에서 지도를 클릭해 위치를 지정하세요.</p>'}</section>`;
+  /** 글 속 인터넷 주소를 누를 수 있는 링크로 */
+  const linkify = t => e(t).replace(/https?:\/\/[^\s<)\]]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
   const kv = pairs => `<dl class="kv">${pairs.filter(([, v]) => v !== undefined).map(([k, v]) => `<dt>${e(k)}</dt><dd>${v === '' || v == null ? '<span class="sub">-</span>' : v}</dd>`).join('')}</dl>`;
 
   function detailBiz(b, canBack) {
@@ -2041,13 +2460,25 @@ window.V = (() => {
             <div><div class="l">채용 연계</div><div class="v">${Number(b.placements) || 0}<small>명</small></div></div>
             <div><div class="l">최근 연락</div><div class="v" style="font-size:16px">${la ? U.ago(la.date) : '-'}</div></div>
           </div>
+          <section class="dr-sec summary-sec"><h3>요약 ${AI.available() ? `<button class="btn btn-ghost btn-sm" type="button" data-act="ai-summary" data-id="${b.id}">${b.aiSummary ? 'AI 요약 다시 하기' : 'AI로 3줄 요약'}</button>` : ''}</h3>
+            <p class="one-line">${e(bizLine(b))}</p>
+            ${b.aiSummary ? `<div class="ai-box"><span class="ai-tag">AI 요약</span><div>${e(b.aiSummary)}</div></div>` : ''}
+          </section>
           ${b.memo ? `<div class="memo-box">${e(b.memo)}</div>` : ''}
           ${people('biz', b.id)}
           ${eventsSec('biz', b.id)}
           ${actsSec('biz', b.id)}
+          <section class="dr-sec"><h3>기초 조사 ${b.researchAt ? `<span class="sub">${U.dateDot(b.researchAt)} 조사</span>` : ''}</h3>
+            ${b.research ? `<div class="memo-box research">${linkify(b.research)}</div>` : '<p class="sub" style="margin:0 0 8px">아직 조사 내용이 없습니다. 아래 버튼으로 인터넷 검색 결과를 확인하고 정리해 두세요.</p>'}
+            <div class="inline research-actions">
+              ${AI.available() ? `<button class="btn btn-sm btn-primary" type="button" data-act="ai-research" data-id="${b.id}">AI로 인터넷 조사</button>` : ''}
+              <button class="btn btn-sm" type="button" data-act="edit-research" data-id="${b.id}">${b.research ? '조사 내용 고치기' : '직접 작성'}</button>
+              <span class="sub">검색:</span>${SEARCH_SITES.map(([l, fn]) => `<a class="btn btn-ghost btn-sm" href="${fn(b.name + (b.area ? ' ' + b.area : ''))}" target="_blank" rel="noopener">${l}</a>`).join('')}
+            </div>
+          </section>
           <section class="dr-sec"><h3>채용 정보</h3>${kv([['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
-          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', staffTag(b.staff)]])}</section>
+          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['대표 전화', b.phone ? `<a href="tel:${e(b.phone.replace(/[^0-9+]/g, ''))}">${e(b.phone)}</a>` : ''], ['홈페이지', b.homepage ? `<a href="${e(/^https?:/.test(b.homepage) ? b.homepage : 'https://' + b.homepage)}" target="_blank" rel="noopener">${e(b.homepage)}</a>` : ''], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
         </div>`,
       after: () => miniMap(b, 'biz'),
@@ -2089,7 +2520,7 @@ window.V = (() => {
         `<div class="dr-body">
           ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
-          <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : '<p class="sub" style="margin:0">연결된 사업체나 기관이 없습니다. 수정에서 연결할 수 있어요.</p>'}</section>
+          <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : `<p class="sub" style="margin:0 0 8px">연결된 사업체나 기관이 없습니다. 아래 버튼을 누르면 소속(${e(c.org || c.name)})으로 새로 등록하고 연결합니다.</p><div class="inline">${triageButtons(c)}</div>`}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>
           ${c.memo ? `<section class="dr-sec"><h3>메모</h3><div class="memo-box">${e(c.memo)}</div></section>` : ''}
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="card" data-id="${c.id}" style="color:var(--danger)">이 명함 삭제</button></div>
@@ -2115,7 +2546,7 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
 
 </script>
@@ -2176,16 +2607,19 @@ window.F = (() => {
   }
 
   /* ---------- 사업체 ---------- */
-  function biz(b) {
-    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0 };
+  const notice = t => t ? `<div class="form-notice">${e(t)}</div>` : '';
+  function biz(b, preset = {}, focus) {
+    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0, ...preset };
     return {
-      html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" novalidate>
+      html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" data-focus="${e(focus || '')}" novalidate>${notice(preset._notice)}
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
           ${field('사업체명', inp('name', x.name, 'required autocomplete="off"'), { req: true, full: true, name: 'name', for: 'f_name' })}
           ${field('업종', `<input class="input" id="f_industry" name="industry" list="indList" value="${e(x.industry || '')}"><datalist id="indList">${D.INDUSTRY_LIST.map(i => `<option value="${e(i)}">`).join('')}</datalist>`, { for: 'f_industry' })}
           ${field('상시근로자 수', inp('employees', x.employees || '', 'type="number" min="0" inputmode="numeric"'), { for: 'f_employees', hint: '50명 이상이면 장애인 의무고용 대상(3.1%)으로 표시됩니다.' })}
           ${field('사업자등록번호', inp('bizNo', x.bizNo, 'placeholder="000-00-00000"'), { for: 'f_bizNo' })}
           ${field('대표자', inp('ceo', x.ceo), { for: 'f_ceo' })}
+          ${field('대표 전화', inp('phone', x.phone, 'type="tel" inputmode="tel" placeholder="031-000-0000"'), { for: 'f_phone' })}
+          ${field('홈페이지', inp('homepage', x.homepage, 'placeholder="www..."'), { for: 'f_homepage' })}
         </div></div>
         ${locationSection(x)}
         <div class="fsec"><h3>채용 정보</h3><div class="frow">
@@ -2194,6 +2628,10 @@ window.F = (() => {
           ${field('가능 직무', inp('jobs', x.jobs, 'placeholder="예: 포장, 검수, 사무 보조"'), { full: true, for: 'f_jobs' })}
           ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
           ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
+        </div></div>
+        <div class="fsec"><h3>기초 조사</h3><div class="frow">
+          ${field('조사 내용', ta('research', x.research, 'rows="7" placeholder="회사 개요, 규모, 주요 제품, 최근 채용 공고, 장애인 고용 관련 내용, 참고할 점, 출처 등"'), { full: true, for: 'f_research', hint: '사업체 상세 화면의 검색 버튼(네이버·구글·사람인 등)으로 찾은 내용을 정리해 두세요.' })}
+          ${field('조사일', inp('researchAt', x.researchAt, 'type="date"'), { for: 'f_researchAt' })}
         </div></div>
         <div class="fsec"><h3>운영 정보</h3><div class="frow">
           ${field('발굴 경로', sel('source', D.SOURCES, x.source, '선택'), { for: 'f_source' })}
@@ -2234,7 +2672,7 @@ window.F = (() => {
     const x = c || { metAt: U.today(), tags: [], linkType: '', linkId: '', ...preset };
     const linkVal = x.linkType && x.linkId ? `${x.linkType}:${x.linkId}` : '';
     return {
-      html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>
+      html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>${notice(preset._notice)}
         <div class="fsec"><h3>명함 사진</h3>
           <div class="photo-drop" id="photoDrop">
             <img id="photoPreview" ${S.photo(x) ? `src="${S.photo(x)}"` : 'hidden'} alt="명함 사진 미리보기">
@@ -2265,7 +2703,7 @@ window.F = (() => {
         </div></div>
       </form></div>` + foot(c ? '저장' : '등록'),
       after: form => {
-        form.elements.photo.value = 'keep';
+        form.elements.photo.value = !c && x.photo ? x.photo : 'keep';
         const file = form.querySelector('#f_photoFile');
         const prev = form.querySelector('#photoPreview');
         file.addEventListener('change', async () => {
@@ -2337,7 +2775,7 @@ window.F = (() => {
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
-      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');
       obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim() };
@@ -2359,7 +2797,148 @@ window.F = (() => {
     return errs.length ? null : { kind, obj };
   }
 
-  return { biz, net, card, event, collect };
+  return { biz, net, card, event, collect, resizeImage };
+})();
+
+</script>
+<script>
+/* 파일로 사업체 여러 곳 등록: 엑셀·CSV의 열 이름을 알아서 맞춘 뒤 미리보기에서 확인하고 등록한다 */
+window.IMP = (() => {
+  const e = U.esc;
+  // 앞쪽일수록 먼저 짝을 찾는다 ('담당자 연락처'가 '담당자'나 '연락처'보다 먼저)
+  const FIELDS = [
+    ['contactPhone', '담당자 연락처', ['담당자연락처', '담당자전화', '담당자휴대폰', '휴대폰', '핸드폰', '휴대전화']],
+    ['contact', '담당자', ['담당자', '담당자명', '인사담당자']],
+    ['name', '사업체명', ['사업체명', '업체명', '회사명', '상호', '기업명', '사업장명', '사업체', '업체', '회사', '상호명']],
+    ['address', '주소', ['주소', '소재지', '사업장주소', '도로명주소', '지번주소', '사업장소재지']],
+    ['industry', '업종', ['업종', '업태', '종목', '산업', '업종명']],
+    ['phone', '대표 전화', ['대표전화', '전화번호', '전화', '연락처', '대표번호']],
+    ['ceo', '대표자', ['대표자', '대표자명', '대표']],
+    ['bizNo', '사업자등록번호', ['사업자등록번호', '사업자번호', '등록번호']],
+    ['employees', '상시근로자 수', ['상시근로자수', '상시근로자', '근로자수', '직원수', '종업원수', '인원', '근로자']],
+    ['jobs', '가능 직무', ['모집직종', '모집분야', '직무', '직종', '업무']],
+    ['homepage', '홈페이지', ['홈페이지', '웹사이트', 'url']],
+    ['discoveredAt', '발굴일', ['발굴일', '등록일', '날짜', '일자', '조사일']],
+    ['memo', '메모', ['비고', '메모', '특이사항', '참고']],
+  ];
+  const SHOW = ['name', 'address', 'industry', 'phone', 'ceo', 'bizNo', 'employees', 'jobs', 'homepage', 'discoveredAt', 'memo', 'contact', 'contactPhone'];
+  const nh = h => String(h ?? '').toLowerCase().replace(/[\s()\[\]·._-]/g, '');
+
+  function guessMap(headers) {
+    const map = {};
+    const used = new Set();
+    const norm = headers.map(nh);
+    for (const pass of ['exact', 'part']) {
+      for (const [key, , syn] of FIELDS) {
+        if (map[key] != null) continue;
+        const i = norm.findIndex((h, j) => !used.has(j) && h && syn.some(s => (pass === 'exact' ? h === s : h.includes(s))));
+        if (i >= 0) { map[key] = i; used.add(i); }
+      }
+    }
+    return map;
+  }
+
+  async function readTable(file) {
+    const buf = await file.arrayBuffer();
+    let wb;
+    if (/\.csv$/i.test(file.name)) {
+      let text;
+      try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { text = new TextDecoder('euc-kr').decode(buf); }
+      wb = XLSX.read(text, { type: 'string', raw: true });
+    } else {
+      wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    }
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const grid = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+    // 제목 줄이 위에 있는 공문서 양식도 있으므로, 알아볼 수 있는 열 이름이 2개 이상인 첫 줄을 머리글로 본다
+    let hi = 0;
+    for (let i = 0; i < Math.min(grid.length, 15); i++) {
+      if (Object.keys(guessMap(grid[i])).length >= 2) { hi = i; break; }
+    }
+    const headers = (grid[hi] || []).map(h => String(h).trim());
+    const rows = grid.slice(hi + 1).filter(r => r.some(v => String(v).trim() !== ''));
+    return { headers, rows, sheet: wb.SheetNames[0] };
+  }
+
+  /** 미리보기 상태 */
+  async function start(file) {
+    const t = await readTable(file);
+    if (!t.headers.length || !t.rows.length) throw new Error('표를 찾지 못했습니다');
+    return { fileName: file.name, ...t, map: guessMap(t.headers), staff: S.me(), stage: '발굴', date: U.today(), includeDup: false };
+  }
+
+  function records(st) {
+    const existing = new Set(S.get().businesses.map(b => U.norm(b.name).replace(/^\(주\)|주식회사/g, '')));
+    const seen = new Set();
+    const cell = (r, k) => (st.map[k] != null ? String(r[st.map[k]] ?? '').trim() : '');
+    return st.rows.map(r => {
+      const name = cell(r, 'name');
+      const key = U.norm(name).replace(/^\(주\)|주식회사/g, '');
+      const dup = !name ? false : existing.has(key) || seen.has(key);
+      if (name) seen.add(key);
+      return {
+        name, dup,
+        address: cell(r, 'address'), industry: cell(r, 'industry'), phone: cell(r, 'phone'), ceo: cell(r, 'ceo'), bizNo: cell(r, 'bizNo'),
+        employees: Number(String(cell(r, 'employees')).replace(/[^0-9]/g, '')) || 0, jobs: cell(r, 'jobs'), homepage: cell(r, 'homepage'),
+        memo: cell(r, 'memo'), discoveredAt: U.toDateStr(cell(r, 'discoveredAt')), contact: cell(r, 'contact'), contactPhone: cell(r, 'contactPhone'),
+      };
+    }).filter(x => x.name);
+  }
+
+  function html(st) {
+    const recs = records(st);
+    const add = recs.filter(r => st.includeDup || !r.dup);
+    const dupN = recs.filter(r => r.dup).length;
+    const colOpts = sel => `<option value="">(없음)</option>${st.headers.map((h, i) => `<option value="${i}" ${sel === i ? 'selected' : ''}>${e(h || `${i + 1}번째 열`)}</option>`).join('')}`;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">파일로 사업체 등록</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+        <div class="sub">${e(st.fileName)} · ${e(st.sheet)} 시트 · ${st.rows.length}줄</div></div>
+      <div class="dr-body" id="bulkBody">
+        <section class="dr-sec"><h3>열 맞추기</h3>
+          <p class="sub" style="margin:0 0 8px">파일의 열 이름을 보고 자동으로 맞췄습니다. 틀린 곳만 고치세요. 사업체명은 꼭 필요합니다.</p>
+          <div class="map-grid">${SHOW.map(k => FIELDS.find(f => f[0] === k)).map(([k, label]) => `<label>${label}${k === 'name' ? ' <span class="req">*</span>' : ''}<select class="select" data-bulk-map="${k}">${colOpts(st.map[k])}</select></label>`).join('')}</div>
+        </section>
+        <section class="dr-sec"><h3>등록 설정</h3>
+          <div class="frow three">
+            <div class="field"><label for="bulkStaff">담당 직원</label><select class="select" id="bulkStaff">${S.staff().map(s => `<option ${s.name === st.staff ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
+            <div class="field"><label for="bulkStage">진행 단계</label><select class="select" id="bulkStage">${D.STAGES.map(s => `<option ${s.key === st.stage ? 'selected' : ''}>${s.key}</option>`).join('')}</select></div>
+            <div class="field"><label for="bulkDate">발굴일 (파일에 없을 때)</label><input class="input" type="date" id="bulkDate" value="${e(st.date)}"></div>
+          </div>
+          ${dupN ? `<label class="check" style="margin-top:8px"><input type="checkbox" id="bulkDup" ${st.includeDup ? 'checked' : ''}>이미 있는 이름 ${dupN}곳도 새로 등록</label>` : ''}
+        </section>
+        <section class="dr-sec"><h3>미리보기 <span class="sub num">${add.length}곳 등록 예정${dupN && !st.includeDup ? ` · 중복 ${dupN}곳 제외` : ''}</span></h3>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>사업체명</th><th>주소</th><th>업종</th><th>전화</th><th>담당자</th></tr></thead>
+          <tbody>${recs.slice(0, 40).map(r => `<tr class="${r.dup && !st.includeDup ? 'dup' : ''}"><td><b>${e(r.name)}</b>${r.dup ? ' <span class="badge warn">이미 있음</span>' : ''}</td><td>${e(r.address)}${r.address && D.detectArea(r.address) ? ` <span class="sub">(${e(D.detectArea(r.address))})</span>` : ''}</td><td>${e(r.industry)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contact)} <span class="num sub">${e(r.contactPhone)}</span></td></tr>`).join('')}</tbody></table></div>
+          ${recs.length > 40 ? `<p class="sub">처음 40줄만 보여줍니다. 나머지 ${recs.length - 40}줄도 함께 등록됩니다.</p>` : ''}
+        </section>
+      </div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="bulk-commit" ${add.length ? '' : 'disabled'}>${add.length}곳 등록</button></div>`;
+  }
+
+  function bind(st, rerender) {
+    document.querySelectorAll('[data-bulk-map]').forEach(sel => sel.onchange = () => { const k = sel.dataset.bulkMap; if (sel.value === '') delete st.map[k]; else st.map[k] = +sel.value; rerender(); });
+    const dup = document.getElementById('bulkDup');
+    if (dup) dup.onchange = () => { st.includeDup = dup.checked; rerender(); };
+    document.getElementById('bulkStaff').onchange = ev => { st.staff = ev.target.value; };
+    document.getElementById('bulkStage').onchange = ev => { st.stage = ev.target.value; };
+    document.getElementById('bulkDate').onchange = ev => { st.date = ev.target.value || U.today(); };
+  }
+
+  /** 등록하고, 대략 위치인 곳은 인터넷 주소 검색으로 조금씩 정확하게 바꾼다 */
+  function commit(st) {
+    const recs = records(st).filter(r => st.includeDup || !r.dup);
+    const bizs = S.upsertMany('biz', recs.map(r => ({
+      name: r.name, address: r.address, industry: r.industry, phone: r.phone, ceo: r.ceo, bizNo: r.bizNo, employees: r.employees, jobs: r.jobs, homepage: r.homepage,
+      memo: r.memo, discoveredAt: r.discoveredAt || st.date, stage: st.stage, staff: st.staff, source: '파일 등록', placements: 0,
+    })));
+    S.upsertMany('act', bizs.map(b => ({ targetType: 'biz', targetId: b.id, date: b.discoveredAt, type: '발굴', content: `파일(${st.fileName})로 일괄 등록`, staff: st.staff })));
+    const cards = recs.map((r, i) => (r.contact ? { name: r.contact, org: r.name, mobile: /^01/.test(r.contactPhone) ? r.contactPhone : '', phone: /^01/.test(r.contactPhone) ? '' : r.contactPhone, address: r.address, linkType: 'biz', linkId: bizs[i].id, tags: ['사업체 담당자'], metAt: bizs[i].discoveredAt, metWhere: '파일 등록', memo: '' } : null)).filter(Boolean);
+    if (cards.length) S.upsertMany('card', cards);
+    const queue = bizs.filter(b => b.address).slice(0, 60).map(b => b.id);
+    (async () => { for (const id of queue) { await S.refine('biz', id); await new Promise(r => setTimeout(r, 1100)); } })();
+    return { biz: bizs.length, cards: cards.length };
+  }
+
+  return { start, html, bind, commit };
 })();
 
 </script>
@@ -2485,6 +3064,8 @@ window.App = (() => {
     $('#bizInd').onchange = ev => { f.industry = ev.target.value; draw(); };
     $('#bizMand').onchange = ev => { f.mandatory = ev.target.checked; draw(); };
     $('#bizSort').onchange = ev => { f.sort = ev.target.value; draw(); };
+    $('#bizPeriod').onchange = ev => { f.period = ev.target.value; $('#bizMonth').hidden = f.period !== 'month'; draw(); };
+    $('#bizMonth').onchange = ev => { f.month = ev.target.value || U.today().slice(0, 7); draw(); };
   }
   function bindNet() {
     const draw = bindList('#netQ', '#netResults', V.netResults, v => { V.ui.net.q = v; });
@@ -2496,10 +3077,30 @@ window.App = (() => {
   }
   function bindMap() {
     bigMap = null;
-    if (V.ui.map.mode === 'city') return;
+    if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'));
     refreshMap(true);
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
+  }
+  /** 화성시 대시보드를 기준 화면 크기로 그린 뒤 칸 너비에 맞춰 축소 */
+  let cityRO = null;
+  function fitCity() {
+    const wrap = $('#cityWrap'), frame = $('#cityFrame'), sel = $('#cityFit');
+    if (!wrap || !frame) return;
+    const apply = () => {
+      const mode = V.ui.map.cityFit;
+      if (mode === 'full') { frame.style.cssText = ''; wrap.style.height = ''; wrap.classList.add('full'); return; }
+      wrap.classList.remove('full');
+      const baseW = 1920, baseH = mode === 'wide' ? 823 : 1080;
+      const k = wrap.clientWidth / baseW;
+      frame.style.cssText = `width:${baseW}px;height:${baseH}px;transform:scale(${k});transform-origin:0 0`;
+      wrap.style.height = Math.round(baseH * k) + 'px';
+    };
+    sel.onchange = () => { V.ui.map.cityFit = sel.value; apply(); };
+    cityRO?.disconnect();
+    cityRO = new ResizeObserver(apply);
+    cityRO.observe(wrap);
+    apply();
   }
   function refreshMap(fit) {
     const items = V.mapItems();
@@ -2508,13 +3109,20 @@ window.App = (() => {
     if (markerGroup) markerGroup.remove();
     markerIndex = {};
     markerGroup = L.featureGroup();
-    items.filter(i => M.hasPos(i.x)).forEach(({ kind, x }) => {
-      const m = (kind === 'biz' ? M.bizMarker(x) : M.netMarker(x)).bindPopup(M.popupHtml(kind, x)).bindTooltip(x.name, { direction: 'top', offset: [0, -6] });
+    const label = (kind, x) => kind === 'card' ? (x.org || x.name) : x.name;
+    // 이 달 발굴은 맨 위에 그린다
+    items.filter(i => M.hasPos(i.x)).sort((a, b) => (a.month ? 1 : 0) - (b.month ? 1 : 0)).forEach(({ kind, x, month }) => {
+      const m = (kind === 'biz' ? M.bizMarker(x, month) : kind === 'net' ? M.netMarker(x) : M.cardMarker(x))
+        .bindPopup(M.popupHtml(kind, x)).bindTooltip(label(kind, x), { direction: 'top', offset: [0, -6] });
       m.addTo(markerGroup);
       markerIndex[kind + x.id] = m;
     });
     markerGroup.addTo(bigMap);
-    if (fit && markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
+    if (fit) {
+      const gu = V.ui.map.gu;
+      if (gu) bigMap.fitBounds(L.latLngBounds(D.GU[gu].areas.map(a => [D.AREA_BY_NAME[a].lat, D.AREA_BY_NAME[a].lng])).pad(0.25), { maxZoom: 14 });
+      else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
+    }
   }
   function bindSched() {
     $('#evList').innerHTML = V.evList();
@@ -2573,13 +3181,26 @@ window.App = (() => {
     const inner = $('#drawerInner');
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
+    if (top.type === 'bulk') {
+      inner.innerHTML = IMP.html(top.state);
+      showDrawer();
+      IMP.bind(top.state, () => renderDrawer(true));
+      if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
+      return;
+    }
+    if (top.type === 'loading') {
+      inner.innerHTML = `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${U.esc(top.title)}</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
+        <div class="dr-body"><p class="sub">${U.esc(top.body || '')}</p><div class="skel" style="height:22px;width:60%"></div><div class="skel" style="height:22px;width:85%"></div><div class="skel" style="height:160px"></div></div>`;
+      showDrawer();
+      return;
+    }
     if (top.type === 'detail') {
       const x = S.find(top.kind, top.id);
       if (!x) { stack.pop(); return renderDrawer(); }
       v = { biz: V.detailBiz, net: V.detailNet, card: V.detailCard }[top.kind](x, stack.length > 1);
     } else {
       const x = top.id ? S.find(top.kind, top.id) : null;
-      v = { biz: () => F.biz(x), net: () => F.net(x), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
+      v = { biz: () => F.biz(x, top.preset, top.focus), net: () => F.net(x), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
     }
     inner.innerHTML = v.html;
     showDrawer();
@@ -2587,7 +3208,9 @@ window.App = (() => {
     if (v.after) v.after(form);
     const body = inner.querySelector('.dr-body');
     if (body && oldScroll) body.scrollTop = oldScroll;
-    if (!keepScroll) (form ? form.querySelector('input:not([type=hidden]):not([type=file]), select') : inner.querySelector('.dr-title'))?.focus?.({ preventScroll: true });
+    const focusEl = form && form.dataset.focus ? form.querySelector(`[name="${form.dataset.focus}"]`) : null;
+    if (focusEl) { focusEl.scrollIntoView({ block: 'center' }); focusEl.focus({ preventScroll: true }); }
+    else if (!keepScroll) (form ? form.querySelector('input:not([type=hidden]):not([type=file]), select') : inner.querySelector('.dr-title'))?.focus?.({ preventScroll: true });
   }
   function push(entry, fromDrawer) {
     if (!fromDrawer) stack = [];
@@ -2631,6 +3254,55 @@ window.App = (() => {
     if (r.card.length) html += `<div class="sr-group"><h4>명함</h4>${r.card.map(c => row('card', c, `${U.hl(c.name, q)} <span class="meta">${U.esc(c.title || '')}</span>`, U.hl(c.org || '', q), `<div class="phone">${U.hl(c.mobile || c.phone || '', q)}</div>`)).join('')}</div>`;
     if (r.net.length) html += `<div class="sr-group"><h4>네트워크</h4>${r.net.map(n => row('net', n, U.hl(n.name, q), `${U.esc(n.category)} · 관계 ${U.esc(n.status)}`, contactSide('net', n.id, S.lastAct('net', n.id)))).join('')}</div>`;
     box.innerHTML = html || `<div class="empty"><strong>'${U.esc(q)}' 검색 결과가 없습니다</strong>이름 일부나 전화번호 뒷자리 4자리로 다시 찾아보세요.</div>`;
+  }
+
+  /* ---------- 파일·사진으로 등록 ---------- */
+  const replaceTop = entry => { if (!stack.length) stack.push(entry); else stack[stack.length - 1] = entry; renderDrawer(); };
+  const readDataUrl = f => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(f); });
+
+  async function handleBizFile(file) {
+    if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
+      try { push({ type: 'bulk', state: await IMP.start(file) }, false); }
+      catch (err) { console.error(err); toast('파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
+      return;
+    }
+    if (!AI.available()) return toast('사진·PDF에서 사업체 정보를 읽으려면 AI 키가 필요합니다 (데이터 관리 > AI 도우미). 엑셀·CSV 목록은 키 없이 등록할 수 있어요.', 'error');
+    if (file.size > 20 * 1024 * 1024) return toast('파일이 너무 큽니다. 20MB 이하로 올려 주세요.', 'error');
+    push({ type: 'loading', title: '문서를 읽는 중', body: 'AI가 사업자등록증·구인공고에서 사업체 정보를 찾고 있습니다. 10~20초 걸립니다.' }, false);
+    try {
+      const data = file.type === 'application/pdf' ? await readDataUrl(file) : await F.resizeImage(file, 1800, .85);
+      const r = await AI.readBizDoc(data);
+      replaceTop({ type: 'form', kind: 'biz', preset: { ...r, employees: Number(String(r.employees).replace(/[^0-9]/g, '')) || '', source: '현장 발굴', _notice: 'AI가 문서에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.' } });
+    } catch (err) { closeDrawer(); toast('문서를 읽지 못했습니다: ' + err.message, 'error'); }
+  }
+
+  function guessLink(org) {
+    const k = U.norm(org).replace(/^\(주\)|주식회사|\(주\)/g, '');
+    if (k.length < 2) return null;
+    const hit = (list, kind) => { const x = list.find(o => { const n = U.norm(o.name).replace(/^\(주\)|주식회사|\(주\)/g, ''); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
+    return hit(S.get().businesses, 'biz') || hit(S.get().networks, 'net');
+  }
+
+  async function handleCardPhoto(file) {
+    let photo;
+    try { photo = await F.resizeImage(file, 1000, .72); } catch { return toast('사진을 읽지 못했습니다. JPG나 PNG 파일인지 확인하세요.', 'error'); }
+    if (!AI.available()) {
+      push({ type: 'form', kind: 'card', preset: { photo, _notice: 'AI 키가 없어 내용을 직접 입력해야 합니다. 키를 넣으면 사진만 올려도 자동으로 채워집니다 (데이터 관리 > AI 도우미).' } }, false);
+      return;
+    }
+    push({ type: 'loading', title: '명함을 읽는 중', body: 'AI가 이름·연락처를 읽고 있습니다. 5~10초 걸립니다.' }, false);
+    try {
+      const r = await AI.readCard(await F.resizeImage(file, 1600, .85));
+      const link = guessLink(r.org);
+      const memo = [r.fax && `팩스 ${r.fax}`, r.homepage && `홈페이지 ${r.homepage}`].filter(Boolean).join('\n');
+      replaceTop({ type: 'form', kind: 'card', preset: {
+        name: r.name, title: r.title, dept: r.dept, org: r.org, mobile: r.mobile, phone: r.phone, email: r.email, address: r.address, memo, photo,
+        linkType: link ? link.kind : '', linkId: link ? link.x.id : '', metWhere: '',
+        _notice: `AI가 명함에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.${link ? ` 소속이 같은 '${link.x.name}'에 연결해 두었습니다.` : ' 연결할 곳이 없으면 등록 후 분류 대기 목록에서 사업체/네트워크로 나눌 수 있습니다.'}`,
+      } });
+    } catch (err) {
+      replaceTop({ type: 'form', kind: 'card', preset: { photo, _notice: 'AI가 명함을 읽지 못했습니다 (' + err.message + '). 직접 입력해 주세요.' } });
+    }
   }
 
   /* ---------- More sheet (mobile) ---------- */
@@ -2731,8 +3403,84 @@ window.App = (() => {
     'dr-back': () => { stack.pop(); renderDrawer(); },
     'dr-cancel': () => { stack.pop(); renderDrawer(); },
     'biz-stage': el => { V.ui.biz.stage = el.dataset.stage; if (route() === 'biz') render(); else location.hash = '#/biz'; },
-    'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else f[k] = ''; render(); },
-    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false }); render(); },
+    'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else f[k] = ''; render(); },
+    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all' }); render(); },
+    'biz-upload': () => $('#globalBizFile').click(),
+    'card-photo': () => $('#globalCardPhoto').click(),
+    'card-idx': el => { V.ui.cards.idx = el.dataset.idx; render(); },
+    'card-link-none': () => { V.ui.cards.link = 'none'; },
+    'bulk-commit': () => {
+      const top = stack[stack.length - 1];
+      if (!top || top.type !== 'bulk') return;
+      const r = IMP.commit(top.state);
+      closeDrawer();
+      V.ui.biz.period = 'all';
+      if (route() !== 'biz') location.hash = '#/biz';
+      toast(`사업체 ${r.biz}곳을 등록했습니다${r.cards ? ` (담당자 명함 ${r.cards}장 포함)` : ''}. 주소로 지도 위치를 찾는 중입니다.`);
+    },
+    triage: (el, fd) => {
+      const c = S.find('card', el.dataset.id);
+      if (!c) return;
+      const to = el.dataset.to;
+      if (to === 'personal') { S.upsert('card', { id: c.id, tags: [...new Set([...(c.tags || []), '개인'])] }); toast('개인 연락처로 두었습니다. 분류 대기 목록에서 빠집니다.'); return; }
+      const name = c.org || c.name;
+      const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
+      const rec = to === 'biz'
+        ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
+        : S.upsert('net', { ...base, category: D.guessCategory(name), status: '보통', since: c.metAt || U.today(), relation: '', promo: '' });
+      if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
+      S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
+      bigMap?.closePopup();
+      toast(`'${name}'을(를) ${to === 'biz' ? '사업체 개발' : '네트워크'}에 등록하고 명함을 연결했습니다.`);
+      openDetail(to, rec.id, fd);
+    },
+    'ai-summary': async el => {
+      const b = S.find('biz', el.dataset.id);
+      if (!b) return;
+      el.disabled = true; el.textContent = '요약하는 중…';
+      try { const t = await AI.summarize(b); S.upsert('biz', { id: b.id, aiSummary: t }); toast('AI 요약을 저장했습니다.'); }
+      catch (err) { toast('요약하지 못했습니다: ' + err.message, 'error'); el.disabled = false; el.textContent = 'AI로 3줄 요약'; }
+    },
+    'ai-research': async el => {
+      const b = S.find('biz', el.dataset.id);
+      if (!b) return;
+      el.disabled = true; el.textContent = '인터넷에서 찾는 중… (30초~1분)';
+      try {
+        const t = await AI.research(b);
+        const cur = S.find('biz', b.id);
+        const research = cur.research ? `[AI 조사 ${U.dateDot(U.today())}]\n${t}\n\n[이전 내용]\n${cur.research}` : t;
+        S.upsert('biz', { id: b.id, research, researchAt: U.today() });
+        toast('기초 조사 결과를 저장했습니다. 내용을 꼭 확인하세요.');
+      } catch (err) { toast('조사하지 못했습니다: ' + err.message, 'error'); el.disabled = false; el.textContent = 'AI로 인터넷 조사'; }
+    },
+    'edit-research': el => push({ type: 'form', kind: 'biz', id: el.dataset.id, focus: 'research' }, true),
+    'map-gu': el => { V.ui.map.gu = el.dataset.gu; render(); },
+    'map-month': el => {
+      const [y, m] = V.ui.map.month.split('-').map(Number);
+      const d = new Date(y, m - 1 + +el.dataset.d, 1);
+      V.ui.map.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`;
+      $('#mapMonthLabel').textContent = V.monthLabel(V.ui.map.month);
+      refreshMap(false);
+    },
+    'map-listmode': () => { V.ui.map.listAll = !V.ui.map.listAll; $('#mapListMode').textContent = V.ui.map.listAll ? '이 달만' : '전체 목록'; refreshMap(false); },
+    'link-add': () => { $('#linkRows').insertAdjacentHTML('beforeend', V.linkRow()); $('#linkRows .staff-row:last-child input').focus(); },
+    'save-links': async () => {
+      const links = [...document.querySelectorAll('#linkRows .staff-row')].map(r => ({ label: r.querySelector('[name=linkLabel]').value.trim(), url: r.querySelector('[name=linkUrl]').value.trim() })).filter(l => l.label);
+      const bad = links.find(l => l.url && !/^https?:\/\//.test(l.url));
+      if (bad) return toast(`'${bad.label}' 주소는 http:// 또는 https:// 로 시작해야 합니다.`, 'error');
+      await S.saveSettings({ links });
+      toast('바로가기를 저장했습니다.');
+    },
+    'save-aikey': async () => {
+      const k = $('#aiKeyInput').value.trim();
+      if (!/^sk-ant-/.test(k)) return toast('Claude API 키는 sk-ant- 로 시작합니다. 다시 확인해 주세요.', 'error');
+      try { await AI.setKey(k); if (S.REMOTE) await S.refresh(); render(); toast('AI 키를 저장했습니다. 이제 AI 도우미를 쓸 수 있습니다.'); }
+      catch (err) { toast('키를 저장하지 못했습니다: ' + err.message, 'error'); }
+    },
+    'clear-aikey': async () => {
+      if (!(await confirmBox('AI 키를 삭제할까요?', '명함 자동 입력, 기초 조사, 요약 기능이 꺼집니다.', '삭제'))) return;
+      await AI.setKey(''); if (S.REMOTE) await S.refresh(); render(); toast('AI 키를 삭제했습니다.');
+    },
     'net-cat': el => { V.ui.net.cat = el.dataset.cat; render(); },
     'card-link': el => { V.ui.cards.link = el.dataset.link; render(); },
     'map-layer': el => { const k = el.dataset.layer; V.ui.map[k] = !V.ui.map[k]; render(); },
@@ -2807,6 +3555,8 @@ window.App = (() => {
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
     });
     $('#searchTrigger').onclick = openSearch;
+    $('#globalBizFile').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleBizFile(f); };
+    $('#globalCardPhoto').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleCardPhoto(f); };
     $('#scopeSel').onchange = ev => S.setScope(ev.target.value);
     S.onSync(renderSync);
     renderSync(S.sync);
@@ -2848,7 +3598,7 @@ window.App = (() => {
       await S.init();
     } catch (err) {
       console.error(err);
-      view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
+      view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>${S.REMOTE ? '구글 시트에 연결하지 못했습니다. 시트를 공유받았는지 확인하고 새로고침해 보세요. (' + U.esc(err.message || err) + ')' : '브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.'}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
       return;
     }
     bindGlobal();

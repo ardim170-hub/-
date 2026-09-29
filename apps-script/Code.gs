@@ -30,7 +30,9 @@ function ensureSheet_(name, headers) {
   var sh = ss.getSheetByName(name);
   if (!sh) {
     sh = ss.insertSheet(name);
-    sh.getRange(1, 1, sh.getMaxRows(), Math.max(sh.getMaxColumns(), headers ? headers.length : 1)).setNumberFormat('@');
+    var need = headers ? headers.length : 1;
+    if (sh.getMaxColumns() < need) sh.insertColumnsAfter(sh.getMaxColumns(), need - sh.getMaxColumns());
+    sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).setNumberFormat('@');
   }
   if (headers && headers.length) {
     var lastCol = sh.getLastColumn();
@@ -87,7 +89,7 @@ function api_load(schema) {
       sheets[name] = readSheet_(name);
     });
     ensureSheet_(SETTINGS_SHEET, ['항목', '값']);
-    return { sheets: sheets, settings: readSettings_() };
+    return { sheets: sheets, settings: readSettings_(), ai: !!aiKey_() };
   });
 }
 
@@ -222,4 +224,38 @@ function api_delPhoto(id) {
     if (row > 0) sh.deleteRow(row);
     return { ok: true };
   });
+}
+
+/* ---------- AI (Claude API) ----------
+   API 키는 '프로젝트 설정 > 스크립트 속성'의 ANTHROPIC_API_KEY 에 보관합니다 (사이트의 데이터 관리 화면에서도 저장 가능).
+   브라우저로는 키가 전달되지 않고, 이 서버가 대신 호출합니다. */
+var AI_KEY_PROP = 'ANTHROPIC_API_KEY';
+
+function aiKey_() {
+  return PropertiesService.getScriptProperties().getProperty(AI_KEY_PROP) || '';
+}
+
+function api_setAiKey(key) {
+  var props = PropertiesService.getScriptProperties();
+  key = String(key || '').trim();
+  if (key) props.setProperty(AI_KEY_PROP, key); else props.deleteProperty(AI_KEY_PROP);
+  return { ok: true, ai: !!key };
+}
+
+/** 사이트가 만든 Messages API 요청을 그대로 전달한다 */
+function api_claude(body) {
+  var key = aiKey_();
+  if (!key) return { error: { message: 'AI 키가 설정되지 않았습니다. 데이터 관리 화면에서 키를 저장하세요.' } };
+  var res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    contentType: 'application/json',
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'server-side-fallback-2026-07-01' },
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true,
+  });
+  var text = res.getContentText();
+  var json;
+  try { json = JSON.parse(text); } catch (e) { return { error: { message: 'AI 응답을 읽지 못했습니다 (HTTP ' + res.getResponseCode() + ')' } }; }
+  if (res.getResponseCode() >= 300) return { error: json.error || { message: 'HTTP ' + res.getResponseCode() } };
+  return json;
 }

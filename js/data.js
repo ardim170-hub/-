@@ -11,8 +11,54 @@ window.D = (() => {
     ['기배동', 37.2250, 127.0150], ['화산동', 37.2080, 127.0080], ['동탄1동', 37.2020, 127.0740],
     ['동탄2동', 37.2100, 127.0620], ['동탄3동', 37.1950, 127.0620], ['동탄4동', 37.1780, 127.0760],
     ['동탄5동', 37.1880, 127.1000], ['동탄6동', 37.1650, 127.1030], ['동탄7동', 37.1760, 127.1150],
-    ['동탄8동', 37.1500, 127.0900],
+    ['동탄8동', 37.1500, 127.0900], ['동탄9동', 37.1630, 127.1180],
   ].map(([name, lat, lng]) => ({ name, lat, lng }));
+
+  /** 화성특례시 4개 일반구 (2026년 2월 출범). 읍·면·동 → 구 */
+  const GUS = [
+    { name: '만세구', color: '#3A7D6B', areas: ['남양읍', '우정읍', '향남읍', '마도면', '송산면', '서신면', '팔탄면', '장안면', '양감면', '새솔동'] },
+    { name: '효행구', color: '#8A6A2E', areas: ['봉담읍', '매송면', '비봉면', '정남면', '기배동'] },
+    { name: '병점구', color: '#7A4E8C', areas: ['진안동', '병점1동', '병점2동', '반월동', '화산동'] },
+    { name: '동탄구', color: '#2F5E9E', areas: ['동탄1동', '동탄2동', '동탄3동', '동탄4동', '동탄5동', '동탄6동', '동탄7동', '동탄8동', '동탄9동'] },
+  ];
+  const GU_OF_AREA = Object.fromEntries(GUS.flatMap(g => g.areas.map(a => [a, g.name])));
+  const GU = Object.fromEntries(GUS.map(g => [g.name, g]));
+  /** 도로명 주소에 행정동 대신 나오는 법정동 이름 → 가까운 행정동 */
+  const LEGAL_DONG = {
+    반송동: '동탄1동', 석우동: '동탄1동', 능동: '동탄3동', 솔빛: '동탄2동', 청계동: '동탄4동', 영천동: '동탄6동', 오산동: '동탄5동', 목동: '동탄7동', 산척동: '동탄8동', 장지동: '동탄9동', 송동: '동탄7동', 방교동: '동탄3동', 금곡동: '동탄8동', 신동: '동탄9동', 중동: '동탄1동',
+    병점동: '병점1동', 진안동: '진안동', 기산동: '진안동', 반월동: '반월동', 황계동: '화산동', 안녕동: '화산동', 송산동: '화산동', 기안동: '기배동', 배양동: '기배동',
+  };
+  const guOf = area => GU_OF_AREA[area] || '';
+  /** 주소 글자에서 읍·면·동을 찾아낸다. 못 찾으면 '' */
+  function detectArea(address) {
+    const a = String(address || '').replace(/\s+/g, ' ');
+    if (!a) return '';
+    const hit = AREAS.find(x => a.includes(x.name));
+    if (hit) return hit.name;
+    const legal = Object.keys(LEGAL_DONG).find(k => new RegExp(k + '(\\s|\\d|$|,|\\))').test(a));
+    if (legal) return LEGAL_DONG[legal];
+    const gu = GUS.find(g => a.includes(g.name));
+    return gu ? gu.areas[0] : '';
+  }
+  /** 기관 이름으로 네트워크 분류 짐작 */
+  function guessCategory(name) {
+    const n = String(name || '');
+    if (/학교|대학|학원|교육|학습관/.test(n)) return '교육기관';
+    if (/병원|의원|보건|정신건강|치과|한의원/.test(n)) return '의료기관';
+    if (/신문|방송|라디오|소식지|언론|미디어|매거진/.test(n)) return '언론·홍보';
+    if (/봉사|후원|로타리|라이온스|재단/.test(n)) return '후원·자원봉사';
+    if (/시청|구청|행정복지|주민센터|공단|고용|센터$|청$|사무소|경찰|소방/.test(n) && !/복지관|자립|주간|보호/.test(n)) return '공공기관';
+    if (/협회|연합|조합|상공|협의회|단지/.test(n)) return '기업·경제단체';
+    return '복지기관';
+  }
+  /** 대시보드 바로가기 기본값 */
+  const DEFAULT_LINKS = [
+    { label: '고용24', url: 'https://www.work24.go.kr' },
+    { label: '워크투게더 (장애인 구인구직)', url: 'https://www.worktogether.or.kr' },
+    { label: '한국장애인고용공단', url: 'https://www.kead.or.kr' },
+    { label: '한국장애인개발원', url: 'https://www.koddi.or.kr' },
+    { label: '화성시아르딤복지관', url: '' },
+  ];
   const AREA_BY_NAME = Object.fromEntries(AREAS.map(a => [a.name, a]));
   const CITY_CENTER = [37.175, 126.905];
   /** 화성시 통합 대시보드 공유 링크 (지도 화면 '화성시 대시보드' 탭) */
@@ -112,7 +158,7 @@ window.D = (() => {
         const jobs = [...new Set([pick(info.jobs), pick(info.jobs)])].join(', ');
         const b = {
           id, name: coName(industry), industry, bizNo: `${int(120, 699)}-${int(10, 99)}-${int(10000, 99999)}`,
-          ceo: person(), employees: emp, ...p, stage, jobs,
+          ceo: person(), phone: `031-${int(350, 379)}-${d4()}`, employees: emp, ...p, stage, jobs,
           workConditions: pick(['주 5일, 09:00~16:00', '주 5일, 09:00~18:00', '주 3일, 10:00~15:00 (시간제)', '주 5일, 08:30~15:30', '평일 오전 4시간']),
           accessibility: info.acc, placements: stage === '채용연계' ? int(1, 3) : 0,
           source: pick(SOURCES), discoveredAt, staff,
@@ -237,5 +283,5 @@ window.D = (() => {
     };
   }
 
-  return { AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

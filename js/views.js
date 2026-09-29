@@ -16,14 +16,56 @@ window.V = (() => {
     mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
     edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
+    camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
-    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, sort: 'recent' },
+    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '' },
-    cards: { q: '', link: 'all', sort: 'recent' },
-    map: { biz: true, net: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours' },
+    cards: { q: '', link: 'all', sort: 'recent', idx: '' },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
   };
+
+  /** 기간 필터: 발굴일이 기간 안에 드는지 */
+  const PERIODS = [['all', '전체 기간'], ['this', '이번 달'], ['last', '지난 달'], ['3m', '최근 3개월'], ['year', '올해'], ['month', '월 선택']];
+  function inPeriod(date, period, month) {
+    if (period === 'all') return true;
+    if (!date) return false;
+    const T = U.today();
+    const ym = T.slice(0, 7);
+    const prev = (() => { const d = U.parse(T); d.setDate(1); d.setMonth(d.getMonth() - 1); return U.fmt(d).slice(0, 7); })();
+    if (period === 'this') return date.startsWith(ym);
+    if (period === 'last') return date.startsWith(prev);
+    if (period === '3m') return U.diffDays(date, T) <= 92 && date <= T;
+    if (period === 'year') return date.startsWith(T.slice(0, 4));
+    if (period === 'month') return date.startsWith(month);
+    return true;
+  }
+  const periodLabel = (p, m) => p === 'month' ? `${m.replace('-', '년 ')}월` : (PERIODS.find(x => x[0] === p) || [])[1];
+  /** 지역 선택: 구 → 읍면동 */
+  const areaOptions = sel => `<option value="">전체 지역</option>${D.GUS.map(g => `<optgroup label="${g.name}"><option value="gu:${g.name}" ${sel === 'gu:' + g.name ? 'selected' : ''}>${g.name} 전체</option>${g.areas.map(a => `<option ${sel === a ? 'selected' : ''}>${a}</option>`).join('')}</optgroup>`).join('')}`;
+  const inArea = (x, sel) => !sel || (sel.startsWith('gu:') ? D.guOf(x.area) === sel.slice(3) : x.area === sel);
+  /** 사업체 한 줄 요약 (기록에서 자동으로 만든다) */
+  function bizLine(b) {
+    const la = S.lastAct('biz', b.id);
+    const ne = S.nextEvent('biz', b.id);
+    const mand = D.mandatoryCount(b.employees);
+    return [
+      [b.industry, D.guOf(b.area) && `${D.guOf(b.area)} ${b.area}`].filter(Boolean).join(' · '),
+      b.employees ? `상시 ${U.num(b.employees)}명${mand ? `(의무고용 ${mand}명)` : ''}` : '',
+      `${b.stage} 단계${b.discoveredAt ? ` · ${U.dateDot(b.discoveredAt)} 발굴` : ''}`,
+      la ? `최근 ${la.type} ${U.ago(la.date)}` : '연락 기록 없음',
+      ne ? `다음 ${ne.type} ${U.dday(ne.date).label}` : '',
+      b.placements ? `채용 ${b.placements}명` : '',
+    ].filter(Boolean).join(' · ');
+  }
+  const SEARCH_SITES = [
+    ['네이버', q => `https://search.naver.com/search.naver?query=${encodeURIComponent(q)}`],
+    ['구글', q => `https://www.google.com/search?q=${encodeURIComponent(q)}`],
+    ['카카오맵', q => `https://map.kakao.com/?q=${encodeURIComponent(q)}`],
+    ['사람인', q => `https://www.saramin.co.kr/zf_user/search?searchword=${encodeURIComponent(q)}`],
+    ['잡코리아', q => `https://www.jobkorea.co.kr/Search/?stext=${encodeURIComponent(q)}`],
+  ];
 
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
@@ -45,6 +87,7 @@ window.V = (() => {
     const kpi = (label, value, unit, foot, href) => `<a class="kpi" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
       <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
+      ${quickLinks()}
       <section class="panel kpis" aria-label="주요 현황">
         ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz')}
         ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz')}
@@ -91,6 +134,15 @@ window.V = (() => {
       </div>`;
   }
 
+  function quickLinks() {
+    const links = S.get().settings.links || [];
+    if (!links.length) return '';
+    return `<nav class="quick-links" aria-label="바로가기">${links.map(l => l.url
+      ? `<a class="qlink" href="${e(l.url)}" target="_blank" rel="noopener">${e(l.label)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`
+      : `<a class="qlink empty" href="#/data" title="데이터 관리에서 주소를 입력하세요">${e(l.label)} <span>주소 입력</span></a>`).join('')}
+      <a class="qlink edit" href="#/data" title="바로가기 편집">편집</a></nav>`;
+  }
+
   function staffPanel() {
     const ss = S.staffStats();
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
@@ -131,16 +183,18 @@ window.V = (() => {
     const f = ui.biz;
     const all = S.view().businesses;
     const count = k => k === '전체' ? all.length : all.filter(b => b.stage === k).length;
-    const areas = [...new Set(all.map(b => b.area).filter(Boolean))].sort();
     return `
       <div class="page-head">
         <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.${scopeNote()}</div></div>
-        <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
+        <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
+
       <div class="chips" style="margin-bottom:12px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
         <input class="input" id="bizQ" type="search" placeholder="사업체명, 직무, 담당자 이름·연락처" value="${e(f.q)}">
-        <select class="select" id="bizArea" aria-label="지역">${opts(areas, f.area, '전체 지역')}</select>
+        <select class="select" id="bizPeriod" aria-label="발굴 기간">${PERIODS.map(([k, l]) => `<option value="${k}" ${f.period === k ? 'selected' : ''}>${k === 'all' ? l : '발굴 ' + l}</option>`).join('')}</select>
+        <input class="input month-input" id="bizMonth" type="month" value="${e(f.month)}" aria-label="발굴 월" ${f.period === 'month' ? '' : 'hidden'}>
+        <select class="select" id="bizArea" aria-label="지역">${areaOptions(f.area)}</select>
         <select class="select" id="bizInd" aria-label="업종">${opts(D.INDUSTRY_LIST, f.industry, '전체 업종')}</select>
         <label class="check"><input type="checkbox" id="bizMand" ${f.mandatory ? 'checked' : ''}>의무고용 대상만</label>
         <span class="spacer"></span>
@@ -159,13 +213,11 @@ window.V = (() => {
     const nq = U.norm(f.q);
     let list = S.view().businesses.filter(b => {
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
-      if (f.area && b.area !== f.area) return false;
+      if (!inArea(b, f.area)) return false;
       if (f.industry && b.industry !== f.industry) return false;
       if (f.mandatory && !D.mandatoryCount(b.employees)) return false;
-      if (nq) {
-        const hay = [b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|');
-        if (!hay.includes(nq)) return false;
-      }
+      if (!inPeriod(b.discoveredAt, f.period, f.month)) return false;
+      if (nq && !U.match(f.q, b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, b.phone, b.research, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone]))) return false;
       return true;
     }).map(b => ({ b, la: S.lastAct('biz', b.id), ne: S.nextEvent('biz', b.id), pc: primaryContact('biz', b.id) }));
     const sorters = {
@@ -182,7 +234,8 @@ window.V = (() => {
     const rows = bizFiltered();
     const applied = [];
     if (f.q) applied.push(['q', `검색: ${f.q}`]);
-    if (f.area) applied.push(['area', f.area]);
+    if (f.area) applied.push(['area', f.area.replace('gu:', '')]);
+    if (f.period !== 'all') applied.push(['period', `발굴 ${periodLabel(f.period, f.month)}`]);
     if (f.industry) applied.push(['industry', f.industry]);
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
@@ -191,11 +244,12 @@ window.V = (() => {
     if (!rows.length) return chipsHtml + `<div class="panel"><div class="empty"><strong>조건에 맞는 사업체가 없습니다</strong>검색어나 필터를 바꿔 보세요.<div><button class="btn" type="button" data-act="biz-reset">필터 초기화</button></div></div></div>`;
     return chipsHtml + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
-        <thead><tr><th>사업체</th><th>단계</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
+        <thead><tr><th>사업체</th><th>단계</th><th>발굴일</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
           <tr data-act="open" data-kind="biz" data-id="${b.id}">
-            <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${e(b.area || '지역 미지정')}</div></td>
+            <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
+            <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
             <td class="nowrap">${staffTag(b.staff)}</td>
@@ -208,7 +262,7 @@ window.V = (() => {
       <div class="mlist">${rows.map(({ b, la, ne, pc }) => `
         <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
           <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
-          <div class="meta">${e(b.industry)} · ${e(b.area || '')}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
+          <div class="meta">${e(b.industry)} · ${e(b.area || '')} · ${b.discoveredAt ? U.dateDot(b.discoveredAt) + ' 발굴' : ''}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
           <div class="meta">${staffTag(b.staff)}</div>
           <div class="meta">${la ? `최근 ${e(la.type)} ${U.ago(la.date)}` : ''}${ne ? ` · 다음 ${e(ne.type)} ${U.dday(ne.date).label}` : ''}</div>
         </div>`).join('')}</div>
@@ -231,15 +285,29 @@ window.V = (() => {
         <input class="input" id="netQ" type="search" placeholder="기관명, 협력 내용, 담당자" value="${e(f.q)}">
         <select class="select" id="netStatus" aria-label="관계 상태">${opts(D.NET_STATUS, f.status, '전체 관계 상태')}</select>
       </div>
+      ${triagePanel()}
       <div id="netResults"></div>`;
   }
+  /** 연결 안 된 명함을 사업체/네트워크로 나누는 목록 */
+  function triagePanel(limit = 8) {
+    const list = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).sort((a, b) => (b.metAt || '').localeCompare(a.metAt || ''));
+    if (!list.length) return '';
+    return `<section class="panel panel-pad triage">
+      <div class="section-head"><h2 class="section-title">분류 대기 명함 <span class="num sub">${list.length}장</span></h2><span class="sub">버튼 하나로 사업체 개발이나 네트워크에 등록되고 지도에 표시됩니다</span></div>
+      <ul class="triage-list">${list.slice(0, limit).map(c => `<li>
+        <div style="min-width:0"><b data-act="open" data-kind="card" data-id="${c.id}">${e(c.org || c.name)}</b> <span class="sub">${e(c.name)} ${e(c.title || '')}${c.area ? ' · ' + e(D.guOf(c.area) + ' ' + c.area) : ''}</span></div>
+        <div class="inline">${triageButtons(c)}</div></li>`).join('')}</ul>
+      ${list.length > limit ? `<a class="sub" href="#/cards" data-act="card-link-none">나머지 ${list.length - limit}장 보기</a>` : ''}
+    </section>`;
+  }
+  const triageButtons = c => `<button class="btn btn-sm" type="button" data-act="triage" data-to="biz" data-id="${c.id}">사업체로</button><button class="btn btn-sm" type="button" data-act="triage" data-to="net" data-id="${c.id}">네트워크로</button><button class="btn btn-ghost btn-sm" type="button" data-act="triage" data-to="personal" data-id="${c.id}" title="개인 연락처로 두고 이 목록에서 뺍니다">개인</button>`;
   function netResults() {
     const f = ui.net;
     const nq = U.norm(f.q);
     const all = S.view().networks;
     if (!all.length) return `<div class="panel">${emptyState('등록된 기관이 없습니다', '협력·홍보 기관을 등록하면 지도에 함께 표시됩니다.', 'new-net', '+ 기관 등록')}</div>`;
     const rows = all.filter(n => (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
-      (!nq || [n.name, n.relation, n.promo, n.memo, n.address, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|').includes(nq)))
+      (!nq || U.match(f.q, n.name, n.relation, n.promo, n.memo, n.address, n.staff, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone]))))
       .map(n => ({ n, la: S.lastAct('net', n.id), ne: S.nextEvent('net', n.id), pc: primaryContact('net', n.id) }))
       .sort((x, y) => (y.la?.date || '').localeCompare(x.la?.date || ''));
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>조건에 맞는 기관이 없습니다</strong>검색어나 분류를 바꿔 보세요.</div></div>`;
@@ -273,12 +341,13 @@ window.V = (() => {
     const cnt = k => all.filter(c => k === 'all' ? true : k === 'none' ? !c.linkType : c.linkType === k).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">명함 관리</h1><div class="page-desc">받은 명함을 사업체·기관과 연결해 두면 상세 화면에서 바로 연락할 수 있습니다.</div></div>
-        <button class="btn btn-primary" type="button" data-act="new-card">+ 명함 등록</button>
+        <div><h1 class="page-title">명함 관리</h1><div class="page-desc">휴대폰으로 명함을 찍어 올리면 ${AI.available() ? 'AI가 이름·연락처를 읽어 채워 줍니다' : '사진과 함께 보관됩니다'}. 사업체·기관과 연결하면 지도와 상세 화면에 함께 나옵니다.</div></div>
+        <div class="inline"><button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button></div>
       </div>
+
       <div class="chips" style="margin-bottom:12px">${[['all', '전체'], ['biz', '사업체 담당자'], ['net', '네트워크 기관'], ['none', '연결 안 됨']].map(([k, l]) => `<button type="button" class="chip ${f.link === k ? 'on' : ''}" data-act="card-link" data-link="${k}">${l}<span class="n">${cnt(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
-        <input class="input" id="cardQ" type="search" placeholder="이름, 소속, 전화번호, 이메일, 태그" value="${e(f.q)}">
+        <input class="input" id="cardQ" type="search" placeholder="이름·소속·전화 뒷자리·초성(ㄱㅈㅂ)" value="${e(f.q)}">
         <span class="spacer"></span>
         <select class="select" id="cardSort" aria-label="정렬">
           <option value="recent" ${f.sort === 'recent' ? 'selected' : ''}>최근 받은 순</option>
@@ -286,6 +355,7 @@ window.V = (() => {
           <option value="org" ${f.sort === 'org' ? 'selected' : ''}>소속순</option>
         </select>
       </div>
+      <div class="index-bar" role="toolbar" aria-label="가나다 색인">${['', ...'ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ'.split(''), 'A-Z'].map(k => `<button type="button" class="${f.idx === k ? 'on' : ''}" data-act="card-idx" data-idx="${k}">${k || '전체'}</button>`).join('')}</div>
       <div id="cardResults"></div>`;
   }
   function cardResults() {
@@ -294,13 +364,14 @@ window.V = (() => {
     const all = S.view().cards;
     if (!all.length) return `<div class="panel">${emptyState('등록된 명함이 없습니다', '명함 사진과 연락처를 등록해 보세요.', 'new-card', '+ 명함 등록')}</div>`;
     const rows = all.filter(c => (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
-      (!nq || [c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo].map(U.norm).join('|').includes(nq)))
+      (!f.idx || U.indexOf(f.sort === 'org' ? c.org : c.name) === f.idx) &&
+      (!nq || U.match(f.q, c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo, c.address)))
       .sort({
         recent: (a, b) => (b.metAt || '').localeCompare(a.metAt || ''),
         name: (a, b) => a.name.localeCompare(b.name, 'ko'),
         org: (a, b) => (a.org || '').replace(/^\(주\)/, '').localeCompare((b.org || '').replace(/^\(주\)/, ''), 'ko'),
       }[f.sort]);
-    if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부나 전화번호 뒷자리로도 찾을 수 있어요.</div></div>`;
+    if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부, 전화번호 뒷자리, 초성(ㄱㅈㅂ)으로도 찾을 수 있어요.${f.idx ? '<div><button class="btn" type="button" data-act="card-idx" data-idx="">색인 해제</button></div>' : ''}</div></div>`;
     return `<div class="card-grid">${rows.map(c => {
       const link = S.linkOf(c);
       return `<article class="bcard" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
@@ -321,24 +392,35 @@ window.V = (() => {
     const f = ui.map;
     const st = S.view();
     const noPos = st.businesses.filter(b => !M.hasPos(b)).length + st.networks.filter(n => !M.hasPos(n)).length;
+    const pending = st.cards.filter(c => !c.linkType && M.hasPos(c) && !(c.tags || []).includes('개인')).length;
+    const guCount = g => st.businesses.filter(b => D.guOf(b.area) === g).length + st.networks.filter(n => D.guOf(n.area) === g).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">발굴 사업체는 진행 단계별 색상 원, 네트워크 기관은 남색 마름모로 표시합니다.${scopeNote()}</div></div>
+        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.${scopeNote()}</div></div>
         <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px" role="tablist">
         <button type="button" role="tab" class="chip ${f.mode === 'ours' ? 'on' : ''}" data-act="map-mode" data-mode="ours" aria-selected="${f.mode === 'ours'}">사업체·네트워크 지도</button>
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
-      ${f.mode === 'city' ? cityMap() : `<section class="panel map-layout">
+      ${f.mode === 'city' ? cityMap() : `
+      <div class="chips gu-chips" style="margin-bottom:12px">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>
+      <section class="panel map-layout">
         <div class="map-side">
           <div class="map-side-head">
-            <input class="input" id="mapQ" type="search" placeholder="지도에서 이름 찾기" value="${e(f.q)}">
+            <div class="month-nav">
+              <button class="icon-btn" type="button" data-act="map-month" data-d="-1" aria-label="이전 달">${I.back}</button>
+              <b class="num" id="mapMonthLabel">${monthLabel(f.month)}</b>
+              <button class="icon-btn" type="button" data-act="map-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button>
+              <button class="btn btn-ghost btn-sm" type="button" data-act="map-listmode" id="mapListMode">${f.listAll ? '이 달만' : '전체 목록'}</button>
+            </div>
+            <input class="input" id="mapQ" type="search" placeholder="지도에서 이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
               <button type="button" class="chip ${f.biz ? 'on' : ''}" data-act="map-layer" data-layer="biz">사업체 개발</button>
               <button type="button" class="chip ${f.net ? 'on' : ''}" data-act="map-layer" data-layer="net">네트워크</button>
+              <button type="button" class="chip ${f.card ? 'on' : ''}" data-act="map-layer" data-layer="card">분류 대기 명함${pending ? ` <span class="n">${pending}</span>` : ''}</button>
             </div>
-            <div class="map-legend">${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}><i style="--c:${s.color}"></i>${s.key}</label></span>`).join('')}<span><i class="sq" style="--c:var(--navy)"></i>네트워크 기관</span></div>
+            <div class="map-legend">${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}><i style="--c:${s.color}"></i>${s.key}</label></span>`).join('')}<span><i class="sq" style="--c:var(--navy)"></i>기관</span><span><i class="sq" style="--c:#9AA3B2"></i>명함</span><span><i class="ring"></i>이 달 발굴</span></div>
             ${noPos ? `<div class="sub">위치가 없는 곳 ${noPos}곳은 지도에 표시되지 않습니다.</div>` : ''}
           </div>
           <div class="map-list" id="mapList"></div>
@@ -346,34 +428,46 @@ window.V = (() => {
         <div class="map-canvas"><div class="map-box" id="bigMap"></div></div>
       </section>`}`;
   }
-  /** 화성시 통합 대시보드(공유 링크)를 그대로 보여준다. 사이트가 다른 곳 안에 표시되는 것을 막으면 새 창 링크를 쓴다. */
+  /** 화성시 통합 대시보드(공유 링크). 1920×1080 화면으로 그린 뒤 칸 너비에 맞춰 줄여 비율을 유지한다 */
   function cityMap() {
     const url = S.get().settings.cityMapUrl || '';
+    const f = ui.map;
     if (!url) return `<div class="panel">${emptyState('화성시 대시보드 주소가 없습니다', '데이터 관리 > 화성시 대시보드 주소에 공유 링크를 넣어 주세요.')}</div>`;
     return `<section class="panel" style="overflow:hidden">
       <div class="panel-pad" style="display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding-block:12px">
         <span class="sub">화성시 통합 대시보드 공유 화면입니다. 화면이 비어 보이면 새 창에서 여세요.</span>
-        <a class="btn btn-sm" href="${e(url)}" target="_blank" rel="noopener">새 창에서 열기</a>
+        <div class="inline">
+          <select class="select" id="cityFit" aria-label="화면 크기">${[['fit', '화면 맞춤 (16:9)'], ['wide', '넓은 화면 (21:9)'], ['full', '원래 크기']].map(([k, l]) => `<option value="${k}" ${f.cityFit === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          <a class="btn btn-sm" href="${e(url)}" target="_blank" rel="noopener">새 창에서 열기</a>
+        </div>
       </div>
-      <iframe class="city-frame" src="${e(url)}" title="화성시 통합 대시보드" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allow="fullscreen; geolocation"></iframe>
+      <div class="city-wrap" id="cityWrap"><iframe class="city-frame" id="cityFrame" src="${e(url)}" title="화성시 통합 대시보드" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allow="fullscreen; geolocation"></iframe></div>
     </section>`;
   }
+  const monthLabel = m => `${m.slice(0, 4)}년 ${+m.slice(5, 7)}월`;
+  const inMonth = (x, m) => (x.discoveredAt || x.since || x.metAt || x.createdAt || '').startsWith(m);
+  /** 지도에 찍을 전체 목록 (구·레이어·단계·검색 반영) */
   function mapItems() {
     const f = ui.map;
-    const nq = U.norm(f.q);
     const st = S.view();
     const items = [];
     if (f.biz) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     if (f.net) st.networks.forEach(n => items.push({ kind: 'net', x: n }));
-    return items.filter(({ x }) => !nq || U.norm(x.name + x.area + (x.industry || x.category)).includes(nq));
+    if (f.card) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
+    return items.filter(({ x, kind }) => (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category))
+      .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
+  /** 옆 목록: 기본은 고른 달에 발굴한 사업체만, 구별로 묶어서 */
   function mapList(items) {
-    if (!items.length) return '<div class="empty"><strong>표시할 곳이 없습니다</strong>레이어나 단계 선택을 확인하세요.</div>';
-    return items.map(({ kind, x }) => `
+    const f = ui.map;
+    const list = f.listAll ? items : items.filter(i => i.month);
+    if (!list.length) return `<div class="empty"><strong>${f.listAll ? '표시할 곳이 없습니다' : `${monthLabel(f.month)}에 발굴한 사업체가 없습니다`}</strong>${f.listAll ? '레이어나 단계 선택을 확인하세요.' : '다른 달을 보거나 전체 목록을 눌러 보세요.'}</div>`;
+    const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, list.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
+    return groups.map(([g, l]) => `<div class="map-group"><h4>${g ? `<span class="prog-dot" style="--c:${D.GU[g].color}"></span>${g}` : '구 미지정'} <span class="num">${l.length}</span></h4>${l.map(({ kind, x }) => `
       <div class="map-item" data-act="map-focus" data-kind="${kind}" data-id="${x.id}">
-        <span class="mk ${kind === 'net' ? 'sq' : ''}" style="--c:${kind === 'biz' ? D.STAGE[x.stage].color : 'var(--navy)'}"></span>
-        <div style="min-width:0"><div class="name">${e(x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)}` : `${e(x.category)} · ${e(x.status)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
-      </div>`).join('');
+        <span class="mk ${kind !== 'biz' ? 'sq' : ''}" style="--c:${kind === 'biz' ? D.STAGE[x.stage].color : kind === 'net' ? 'var(--navy)' : '#9AA3B2'}"></span>
+        <div style="min-width:0"><div class="name">${e(kind === 'card' ? (x.org || x.name) : x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)} · ${U.md(x.discoveredAt)} 발굴` : kind === 'net' ? `${e(x.category)} · ${e(x.status)}` : `명함 · ${e(x.name)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
+      </div>`).join('')}</div>`).join('');
   }
 
   /* ================= 일정 ================= */
@@ -476,6 +570,19 @@ window.V = (() => {
           <p>활동 기록을 남길 때 기록한 사람으로 저장됩니다. PC마다 따로 기억합니다.</p>
           <div class="inline" style="width:100%"><select class="select" id="meSel" data-act-change="me-set">${st.settings.staff.map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
         </section>
+        <section class="panel panel-pad staff-editor">
+          <h2 class="section-title">대시보드 바로가기</h2>
+          <p>취업알선 사이트, 복지관 홈페이지 등 자주 여는 사이트를 대시보드 위쪽 버튼으로 둡니다.</p>
+          <div class="staff-rows" id="linkRows">${(st.settings.links || []).map(l => linkRow(l)).join('')}</div>
+          <div class="inline"><button class="btn btn-sm" type="button" data-act="link-add">+ 바로가기 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-links">저장</button></div>
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">AI 도우미 (명함 읽기 · 기초 조사 · 요약)</h2>
+          <p>Claude API 키를 넣으면 명함 사진 자동 입력, 사업체 인터넷 기초 조사, 3줄 요약을 쓸 수 있습니다. 키는 <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>에서 발급하고, 쓴 만큼 요금이 나옵니다.</p>
+          <p>${S.REMOTE ? '키는 구글 서버(스크립트 속성)에만 저장되고 팀원 브라우저에는 전달되지 않습니다.' : '키는 이 PC 브라우저에만 저장됩니다. 공용 PC라면 쓰지 마세요.'} 명함 사진과 사업체 정보가 AI 서비스로 전송되니 기관 개인정보 지침을 확인하세요.</p>
+          <div class="inline" style="width:100%"><input class="input" id="aiKeyInput" type="password" autocomplete="off" placeholder="${AI.available() ? '저장됨 · 바꾸려면 새 키 입력' : 'sk-ant-...'}"><button class="btn" type="button" data-act="save-aikey">저장</button>${AI.available() ? '<button class="btn btn-ghost" type="button" data-act="clear-aikey">키 삭제</button>' : ''}</div>
+          <p>${AI.available() ? '<span class="badge success">사용 중</span>' : '<span class="badge">꺼짐</span>'}</p>
+        </section>
         <section class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
           <p>지도 화면의 '화성시 대시보드' 탭에 보여줄 화성시 통합 대시보드 공유 링크입니다.</p>
@@ -489,6 +596,7 @@ window.V = (() => {
       </div>`;
   }
 
+  const linkRow = (l = { label: '', url: '' }) => `<div class="staff-row"><input class="input" name="linkLabel" value="${e(l.label)}" placeholder="이름 (예: 고용24)" aria-label="바로가기 이름"><input class="input" name="linkUrl" value="${e(l.url)}" placeholder="https://..." aria-label="주소"><button class="icon-btn" type="button" data-act="staff-del" aria-label="바로가기 삭제">${I.close}</button></div>`;
   const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option ${p.key === s.program ? 'selected' : ''}>${e(p.key)}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
 
   /* ================= 상세 Drawer ================= */
@@ -532,6 +640,8 @@ window.V = (() => {
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
     ${M.hasPos(x) ? '<div class="mini-map" id="miniMap"></div>' : '<p class="sub" style="margin:0">위치가 지정되지 않았습니다. 수정에서 지도를 클릭해 위치를 지정하세요.</p>'}</section>`;
+  /** 글 속 인터넷 주소를 누를 수 있는 링크로 */
+  const linkify = t => e(t).replace(/https?:\/\/[^\s<)\]]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
   const kv = pairs => `<dl class="kv">${pairs.filter(([, v]) => v !== undefined).map(([k, v]) => `<dt>${e(k)}</dt><dd>${v === '' || v == null ? '<span class="sub">-</span>' : v}</dd>`).join('')}</dl>`;
 
   function detailBiz(b, canBack) {
@@ -555,13 +665,25 @@ window.V = (() => {
             <div><div class="l">채용 연계</div><div class="v">${Number(b.placements) || 0}<small>명</small></div></div>
             <div><div class="l">최근 연락</div><div class="v" style="font-size:16px">${la ? U.ago(la.date) : '-'}</div></div>
           </div>
+          <section class="dr-sec summary-sec"><h3>요약 ${AI.available() ? `<button class="btn btn-ghost btn-sm" type="button" data-act="ai-summary" data-id="${b.id}">${b.aiSummary ? 'AI 요약 다시 하기' : 'AI로 3줄 요약'}</button>` : ''}</h3>
+            <p class="one-line">${e(bizLine(b))}</p>
+            ${b.aiSummary ? `<div class="ai-box"><span class="ai-tag">AI 요약</span><div>${e(b.aiSummary)}</div></div>` : ''}
+          </section>
           ${b.memo ? `<div class="memo-box">${e(b.memo)}</div>` : ''}
           ${people('biz', b.id)}
           ${eventsSec('biz', b.id)}
           ${actsSec('biz', b.id)}
+          <section class="dr-sec"><h3>기초 조사 ${b.researchAt ? `<span class="sub">${U.dateDot(b.researchAt)} 조사</span>` : ''}</h3>
+            ${b.research ? `<div class="memo-box research">${linkify(b.research)}</div>` : '<p class="sub" style="margin:0 0 8px">아직 조사 내용이 없습니다. 아래 버튼으로 인터넷 검색 결과를 확인하고 정리해 두세요.</p>'}
+            <div class="inline research-actions">
+              ${AI.available() ? `<button class="btn btn-sm btn-primary" type="button" data-act="ai-research" data-id="${b.id}">AI로 인터넷 조사</button>` : ''}
+              <button class="btn btn-sm" type="button" data-act="edit-research" data-id="${b.id}">${b.research ? '조사 내용 고치기' : '직접 작성'}</button>
+              <span class="sub">검색:</span>${SEARCH_SITES.map(([l, fn]) => `<a class="btn btn-ghost btn-sm" href="${fn(b.name + (b.area ? ' ' + b.area : ''))}" target="_blank" rel="noopener">${l}</a>`).join('')}
+            </div>
+          </section>
           <section class="dr-sec"><h3>채용 정보</h3>${kv([['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
-          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', staffTag(b.staff)]])}</section>
+          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['대표 전화', b.phone ? `<a href="tel:${e(b.phone.replace(/[^0-9+]/g, ''))}">${e(b.phone)}</a>` : ''], ['홈페이지', b.homepage ? `<a href="${e(/^https?:/.test(b.homepage) ? b.homepage : 'https://' + b.homepage)}" target="_blank" rel="noopener">${e(b.homepage)}</a>` : ''], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
         </div>`,
       after: () => miniMap(b, 'biz'),
@@ -603,7 +725,7 @@ window.V = (() => {
         `<div class="dr-body">
           ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
-          <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : '<p class="sub" style="margin:0">연결된 사업체나 기관이 없습니다. 수정에서 연결할 수 있어요.</p>'}</section>
+          <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : `<p class="sub" style="margin:0 0 8px">연결된 사업체나 기관이 없습니다. 아래 버튼을 누르면 소속(${e(c.org || c.name)})으로 새로 등록하고 연결합니다.</p><div class="inline">${triageButtons(c)}</div>`}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>
           ${c.memo ? `<section class="dr-sec"><h3>메모</h3><div class="memo-box">${e(c.memo)}</div></section>` : ''}
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="card" data-id="${c.id}" style="color:var(--danger)">이 명함 삭제</button></div>
@@ -629,5 +751,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

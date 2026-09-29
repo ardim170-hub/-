@@ -66,5 +66,22 @@ window.U = (() => {
     return m ? `${m[1]}-${pad(m[2])}-${pad(m[3])}` : '';
   }
 
-  return { pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
+  /* 초성 검색: 'ㄱㅈㅂ' → '김정배' */
+  const CHO = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+  const cho = s => String(s ?? '').replace(/[가-힣]/g, ch => CHO[Math.floor((ch.charCodeAt(0) - 0xAC00) / 588)]).replace(/\s/g, '');
+  const isCho = q => /^[ㄱ-ㅎ]+$/.test(q);
+  /** 여러 값 중 하나라도 검색어를 포함하는지 (띄어쓰기·하이픈 무시, 초성 검색 지원) */
+  function match(q, ...vals) {
+    const nq = norm(q);
+    if (!nq) return true;
+    if (isCho(nq)) return vals.some(v => cho(v).includes(nq));
+    return vals.some(v => norm(v).includes(nq));
+  }
+  /** 가나다 색인용 첫 자음 (ㄲ→ㄱ 등으로 묶음) */
+  const indexOf = s => {
+    const c = cho(String(s ?? '').replace(/^\(주\)|^주식회사\s*/, '').trim()).charAt(0);
+    return ({ 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' })[c] || (/[ㄱ-ㅎ]/.test(c) ? c : (c ? 'A-Z' : ''));
+  };
+
+  return { cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
 })();
