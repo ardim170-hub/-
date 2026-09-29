@@ -197,6 +197,20 @@ window.App = (() => {
       ta.remove(); return ok;
     }
   }
+  async function handleHwpFiles(files) {
+    push({ type: 'loading', title: '한글 명령부 불러오기', body: `${files.length}개 파일을 읽는 중입니다.` });
+    const rows = [], errors = [];
+    for (const f of files) {
+      try {
+        const year = (f.name.match(/20\d\d/) || [])[0] || R.ui.orders.month.slice(0, 4);
+        const got = R.parseOrderTables(await HWP.readTables(await f.arrayBuffer()), year);
+        if (!got.length) errors.push(`${f.name}: 명령부 표를 찾지 못했습니다.`);
+        rows.push(...got);
+      } catch (err) { errors.push(`${f.name}: ${err.message}`); }
+    }
+    rows.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
+    push({ type: 'hwp', state: { files: files.map(f => f.name), rows: R.markDup(rows), errors } });
+  }
   function printHtml(html) {
     const root = $('#printRoot');
     root.innerHTML = html;
@@ -284,6 +298,11 @@ window.App = (() => {
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
       }, 250);
       if (!keepScroll) box.focus();
+      return;
+    }
+    if (top.type === 'hwp') {
+      inner.innerHTML = R.hwpDialog(top.state);
+      showDrawer();
       return;
     }
     if (top.type === 'loading') {
@@ -642,6 +661,8 @@ window.App = (() => {
     'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
     'sv-print': () => printHtml($('#svDoc').innerHTML),
     'od-print': el => printHtml(R.orderDoc(el.dataset.staff)),
+    'od-hwp': () => $('#hwpFile').click(),
+    'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
     'od-print-each': () => printHtml(R.orderDocsEach()),
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
@@ -719,6 +740,7 @@ window.App = (() => {
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
     });
     $('#searchTrigger').onclick = openSearch;
+    $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };
     $('#globalBizFile').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleBizFile(f); };
     $('#globalCardPhoto').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleCardPhoto(f); };
     $('#scopeSel').onchange = ev => S.setScope(ev.target.value);

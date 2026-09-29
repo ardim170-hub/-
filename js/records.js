@@ -204,11 +204,12 @@ window.R = (() => {
         <div class="inline">
           ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
           <button class="btn" type="button" data-act="od-add">+ 줄 추가</button>
+          <button class="btn" type="button" data-act="od-hwp">한글 명령부 불러오기</button>
         </div>
         <div class="inline"><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
       </div>
       ${list.length ? `<div class="panel-pad od-each">
-        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장·관장)이 따로 들어갑니다.</span>
+        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
         <div class="od-each-list">${orderStaff().map(s => { const n = list.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span></span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>` : ''}
@@ -228,7 +229,7 @@ window.R = (() => {
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
       </tbody></table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
-      : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나 줄을 추가하세요.' : '줄 추가로 특근 기록을 넣으세요.'}</div>`}
+      : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
   }
   function importVisits() {
@@ -245,7 +246,7 @@ window.R = (() => {
     const f = ui.orders;
     return tsv(trips(f.month, f.kind).map(t => f.kind === '출장'
       ? [md(t.date), t.staff, t.place, t.purpose, t.method, t.time, reportText(t), t.note]
-      : [md(t.date), t.staff, t.dept || '직업', t.time, t.purpose, t.note]));
+      : [md(t.date), t.staff, t.dept || '직업', t.time, [t.purpose, t.note].filter(Boolean).join(' / ')]));
   };
   const orderStaff = () => { const f = ui.orders; return [...new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)'))]; };
   const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
@@ -254,15 +255,15 @@ window.R = (() => {
     const f = ui.orders;
     const list = trips(f.month, f.kind).filter(t => staff == null || (t.staff || '(담당자 없음)') === staff);
     const trip = f.kind === '출장';
-    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th><th>관 장</th></tr><tr><td></td><td></td><td></td></tr></table>';
+    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
     return `<article class="doc order-doc">
       <div class="order-head">${sign}</div>
       <h1>${orderTitle(f.kind)}</h1>
       <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)${staff != null ? ` · <b>${trip ? '출장자' : '특근자'}: ${e(staff)}</b>` : ''}</p>
-      <table class="doc-tbl"><thead><tr>${trip ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방 법</th><th>출장시간</th><th>출장복명</th><th>비고</th>' : '<th>특근일자</th><th>특근자 성명</th><th>부서명</th><th>특근시간</th><th>특 근 업 무 내 용</th><th>비고</th>'}</tr></thead><tbody>
+      <table class="doc-tbl"><thead><tr>${trip ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방 법</th><th>출장시간</th><th>출장복명</th><th>비고</th>' : '<th>특근일자</th><th>특근자 성명</th><th>부서명</th><th>특근시간</th><th>특 근 업 무 내 용</th>'}</tr></thead><tbody>
       ${list.map(t => trip
         ? `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.place)}</td><td>${e(t.purpose)}</td><td>${e(t.method)}</td><td>${e(t.time)}</td><td class="nowrap">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</td><td>${e(t.note)}</td></tr>`
-        : `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.dept || '직업')}</td><td>${e(t.time)}</td><td>${e(t.purpose)}</td><td>${e(t.note)}</td></tr>`).join('')}
+        : `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.dept || '직업')}</td><td>${e(t.time)}</td><td>${e(t.purpose)}${t.note ? `<br>${e(t.note)}` : ''}</td></tr>`).join('')}
       </tbody></table>
     </article>`;
   }
@@ -278,6 +279,66 @@ window.R = (() => {
     return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
   }
 
+  /* ---------- 한글 명령부 불러오기 ---------- */
+  const HEAD = { 출장일: 'date', 특근일자: 'date', 성명: 'staff', 특근자성명: 'staff', 출장지: 'place', 출장용무: 'purpose', 방법: 'method', 출장시간: 'time', 특근시간: 'time', 출장복명: 'report', 비고: 'note', 부서명: 'dept', 특근업무내용: 'purpose' };
+  /** HWP.readTables 결과 → 명령부 줄. year는 파일 이름에서 찾은 해 */
+  function parseOrderTables(tables, year) {
+    const out = [];
+    tables.forEach(t => {
+      const hi = t.rows.findIndex(r => r.some(c => /^(출장일|특근일자)$/.test(c.replace(/\s/g, ''))));
+      if (hi < 0) return;
+      const kind = t.rows[hi].some(c => c.replace(/\s/g, '') === '출장일') ? '출장' : '특근';
+      const cols = [];
+      t.rows[hi].forEach((c, i) => { const k = HEAD[c.replace(/\s/g, '')]; if (k) cols.push({ k, from: i, to: i + ((t.spans[hi] || [])[i] || 1) }); });
+      t.rows.slice(hi + 1).forEach(r => {
+        const o = {};
+        cols.forEach(c => { o[c.k] = r.slice(c.from, c.to).filter(Boolean).join('\n').trim(); });
+        const m = (o.date || '').match(/(\d{1,2})\s*월\s*(\d{1,2})/);
+        if (!m || !o.staff) return;
+        const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
+        const pur = lines(o.purpose);
+        out.push({
+          kind, date: `${year}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, staff: o.staff.replace(/\s/g, ''),
+          place: lines(o.place).join(' '),
+          purpose: kind === '특근' ? pur[0] || '' : pur.join(' '),
+          method: lines(o.method).join(' '), time: lines(o.time).join(' ').replace(/∼/g, '~'),
+          report: D.TRIP_REPORTS.filter(x => new RegExp(x + '\\s*■').test(o.report || '')),
+          dept: kind === '특근' ? lines(o.dept).join(' ') || '직업' : '',
+          note: [...(kind === '특근' ? pur.slice(1) : []), ...lines(o.note)].join(' / '), actId: '',
+        });
+      });
+    });
+    return out;
+  }
+  const tripKey = t => [t.kind, t.date, t.staff, U.norm(t.place || ''), U.norm(t.purpose || ''), (t.time || '').replace(/\s/g, '')].join('|');
+  function markDup(rows) {
+    const have = new Set(S.get().trips.map(tripKey));
+    rows.forEach(r => { r.dup = have.has(tripKey(r)); });
+    return rows;
+  }
+  function hwpDialog(state) {
+    const rows = state.rows || [];
+    const fresh = rows.filter(r => !r.dup);
+    const months = [...new Set(rows.map(r => r.date.slice(0, 7)))].sort();
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">한글 명령부 불러오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
+      <div class="dr-body">
+        <p class="sub">${e(state.files.join(', '))}</p>
+        ${state.errors.length ? `<p class="sub" style="color:var(--danger)">${state.errors.map(e).join('<br>')}</p>` : ''}
+        ${rows.length ? `<p class="sub">${months.map(V.monthLabel).join(', ')} · 관내출장 ${rows.filter(r => r.kind === '출장').length}줄, 특근 ${rows.filter(r => r.kind === '특근').length}줄을 읽었습니다.${rows.length - fresh.length ? ` 이미 있는 ${rows.length - fresh.length}줄은 건너뜁니다.` : ''}</p>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>구분</th><th>날짜</th><th>성명</th><th>출장지</th><th>용무·내용</th><th>시간</th><th>복명</th><th>비고</th></tr></thead><tbody>
+          ${rows.map(r => `<tr class="${r.dup ? 'muted' : ''}"><td>${r.kind}${r.dup ? ' <span class="sub">(있음)</span>' : ''}</td><td class="num">${e(r.date)}</td><td><b>${e(r.staff)}</b></td><td>${e(r.place)}</td><td>${e(r.purpose)}</td><td class="nowrap">${e(r.time)}</td><td>${e(r.report.join(', '))}</td><td>${e(r.note)}</td></tr>`).join('')}
+          </tbody></table></div>` : state.errors.length ? '' : '<p class="sub">명령부 표(출장일 또는 특근일자 칸)를 찾지 못했습니다.</p>'}
+      </div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="od-hwp-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
+  }
+  function commitHwp(rows) {
+    const fresh = rows.filter(r => !r.dup).map(({ dup, ...r }) => r);
+    S.upsertMany('trip', fresh);
+    const last = fresh.map(r => r.date.slice(0, 7)).sort().pop();
+    if (last) { ui.orders.month = last; ui.orders.kind = fresh.some(r => r.kind === '출장' && r.date.startsWith(last)) ? '출장' : '특근'; }
+    return fresh.length;
+  }
+
   /* ================= 개발대장 ================= */
   /** 공유 시트 '구인업체 개발 대장' 열 순서: 등록일, 업체명, 주소, 전화번호, 대표명(담당자), 직종/직무, 근무시간, 복리후생(기타), 비고, 실적 진행도, 상담자 */
   const progressOf = b => b.progress || ((b.jobAnalyses || []).length ? '직무분석지 작성완료' : S.actsOf('biz', b.id).some(a => a.type === '방문') ? '방문완료' : '');
@@ -288,5 +349,5 @@ window.R = (() => {
     }));
   }
 
-  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, ledgerTsv, progressOf };
+  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();

@@ -1399,7 +1399,9 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .od-each { border-top: 1px solid var(--line, #E5E7EB); }
 .od-each-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
 .od-each-head .inline { margin-left: auto; }
-.od-each-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.od-each-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
+.od-each-item > span:first-child { white-space: nowrap; }
+.od-each-item .inline { flex-wrap: nowrap; }
 .od-each-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line, #E5E7EB); border-radius: 8px; }
 .order-doc h1 { margin-top: 8px; }
 .order-sub { text-align: center; margin: -6px 0 12px; color: #444; }
@@ -1484,9 +1486,10 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 <div class="toast-stack" id="toasts" aria-live="polite"></div>
 <div id="printRoot"></div>
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
+<input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.29 13:25";</script>
+<script>window.APP_VERSION = "2026.09.29 13:38";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -4337,6 +4340,136 @@ window.IMP = (() => {
 
 </script>
 <script>
+/* 한글(.hwp 5.x) 파일에서 표만 읽어 오는 최소 리더.
+ * 복합 문서(CFB) → BodyText/SectionN 스트림 → 압축 해제 → 표·칸·문단 레코드를 따라 칸별 글자를 모은다. */
+window.HWP = (() => {
+  const u16 = (b, o) => b[o] | (b[o + 1] << 8);
+  const u32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+  const ENDOFCHAIN = 0xFFFFFFFE;
+
+  /** 복합 문서에서 스트림 경로 → 바이트 */
+  function cfb(buf) {
+    const b = new Uint8Array(buf);
+    if (u32(b, 0) !== 0xE011CFD0 || u32(b, 4) !== 0xE11AB1A1) throw new Error('한글(.hwp) 파일이 아닙니다. 한글 2002 이후의 .hwp 파일만 읽을 수 있습니다 (.hwpx는 한글에서 .hwp로 다시 저장하세요).');
+    const ss = 1 << u16(b, 0x1E), mss = 1 << u16(b, 0x20);
+    const sec = n => 512 + n * ss;
+    const difat = [];
+    for (let i = 0; i < 109; i++) difat.push(u32(b, 0x4C + i * 4));
+    for (let d = u32(b, 0x44), n = u32(b, 0x48); n-- > 0 && d < ENDOFCHAIN;) {
+      for (let i = 0; i < ss / 4 - 1; i++) difat.push(u32(b, sec(d) + i * 4));
+      d = u32(b, sec(d) + ss - 4);
+    }
+    const fat = [];
+    difat.filter(x => x < ENDOFCHAIN).forEach(s => { for (let i = 0; i < ss / 4; i++) fat.push(u32(b, sec(s) + i * 4)); });
+    const chain = (start, table) => { const out = []; for (let s = start, guard = 0; s < ENDOFCHAIN && guard < 1e6; s = table[s], guard++) out.push(s); return out; };
+    const readBig = (start, size) => { const out = new Uint8Array(size); let o = 0; for (const s of chain(start, fat)) { const n = Math.min(ss, size - o); if (n <= 0) break; out.set(b.subarray(sec(s), sec(s) + n), o); o += n; } return out; };
+    const dirBytes = readBig(u32(b, 0x30), chain(u32(b, 0x30), fat).length * ss);
+    const dir = [];
+    for (let o = 0; o + 128 <= dirBytes.length; o += 128) {
+      const nl = u16(dirBytes, o + 64);
+      let name = '';
+      for (let i = 0; i < Math.max(0, nl - 2); i += 2) name += String.fromCharCode(u16(dirBytes, o + i));
+      dir.push({ name, type: dirBytes[o + 66], left: u32(dirBytes, o + 68), right: u32(dirBytes, o + 72), child: u32(dirBytes, o + 76), start: u32(dirBytes, o + 116), size: u32(dirBytes, o + 120) });
+    }
+    const root = dir[0];
+    const miniStream = readBig(root.start, root.size);
+    const minifat = [];
+    chain(u32(b, 0x3C), fat).forEach(s => { for (let i = 0; i < ss / 4; i++) minifat.push(u32(b, sec(s) + i * 4)); });
+    const cutoff = u32(b, 0x38);
+    const read = e => {
+      if (e.size >= cutoff) return readBig(e.start, e.size);
+      const out = new Uint8Array(e.size); let o = 0;
+      for (const s of chain(e.start, minifat)) { const n = Math.min(mss, e.size - o); if (n <= 0) break; out.set(miniStream.subarray(s * mss, s * mss + n), o); o += n; }
+      return out;
+    };
+    const children = id => { const out = []; const walk = i => { if (i >= dir.length || i >= 0xFFFFFFFA) return; const e = dir[i]; walk(e.left); out.push(e); walk(e.right); }; walk(id); return out; };
+    return {
+      get(path) {
+        let list = children(root.child), e;
+        for (const part of path.split('/')) { e = list.find(x => x.name === part); if (!e) return null; list = children(e.child); }
+        return e && e.type === 2 ? read(e) : null;
+      },
+      list(storage) { const s = children(root.child).find(x => x.name === storage); return s ? children(s.child).map(x => x.name) : []; },
+    };
+  }
+
+  async function inflateRaw(bytes) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('이 브라우저는 한글 파일 읽기를 지원하지 않습니다. 최신 크롬에서 열어 주세요.');
+    const ds = new DecompressionStream('deflate-raw');
+    const writer = ds.writable.getWriter();
+    writer.write(bytes).catch(() => {});
+    writer.close().catch(() => {});
+    // 한글 파일은 압축 데이터 뒤에 여분 바이트가 붙는 경우가 있어, 끝에서 나는 오류는 무시하고 풀린 만큼 쓴다
+    const reader = ds.readable.getReader(), parts = [];
+    let len = 0;
+    try { for (;;) { const { done, value } = await reader.read(); if (done) break; parts.push(value); len += value.length; } }
+    catch (err) { if (!len) throw new Error('한글 파일 압축을 풀지 못했습니다.'); }
+    const out = new Uint8Array(len);
+    let o = 0;
+    parts.forEach(p => { out.set(p, o); o += p.length; });
+    return out;
+  }
+
+  /** 문단 글자 레코드 → 문자열 (조판 부호는 건너뜀) */
+  function paraText(b, o, size) {
+    let t = '';
+    for (let j = 0; j + 1 < size;) {
+      const c = u16(b, o + j);
+      if (c < 32) { j += [0, 10, 13, 24, 25, 26, 27, 28, 29, 30, 31].includes(c) ? 2 : 16; continue; }
+      t += String.fromCharCode(c); j += 2;
+    }
+    return t;
+  }
+
+  /** 섹션 레코드에서 표를 뽑는다: [{ rows: [[칸 글자...]...] }] */
+  function tables(b) {
+    const out = [];
+    let tbl = null, cell = null, cellLevel = -1;
+    for (let i = 0; i + 4 <= b.length;) {
+      const h = u32(b, i); i += 4;
+      const tag = h & 0x3FF, level = (h >> 10) & 0x3FF;
+      let size = (h >>> 20) & 0xFFF;
+      if (size === 0xFFF) { size = u32(b, i); i += 4; }
+      if (cell && level < cellLevel) cell = null; // 칸 밖으로 나옴
+      if (tag === 77) { tbl = { rows: [], spans: [] }; out.push(tbl); cell = null; }
+      else if (tag === 72 && tbl && size >= 16) {
+        const col = u16(b, i + 8), row = u16(b, i + 10);
+        (tbl.rows[row] = tbl.rows[row] || [])[col] = '';
+        (tbl.spans[row] = tbl.spans[row] || [])[col] = u16(b, i + 12) || 1;
+        cell = { row, col }; cellLevel = level;
+      } else if (tag === 67 && cell) {
+        const t = paraText(b, i, size).trim();
+        if (t) { const r = tbl.rows[cell.row]; r[cell.col] = r[cell.col] ? r[cell.col] + '\n' + t : t; }
+      }
+      i += size;
+    }
+    out.forEach(t => { t.rows = Array.from(t.rows, r => Array.from(r || [], c => (c || '').normalize('NFKC'))); t.spans = Array.from(t.spans, r => Array.from(r || [], x => x || 1)); });
+    return out;
+  }
+
+  /** .hwp 파일(ArrayBuffer) → 표 목록 */
+  async function readTables(buf) {
+    const doc = cfb(buf);
+    const head = doc.get('FileHeader');
+    if (!head) throw new Error('한글 문서 머리 정보를 찾지 못했습니다.');
+    const flags = u32(head, 36);
+    if (flags & 2) throw new Error('암호가 걸린 한글 파일은 읽을 수 없습니다.');
+    if (flags & 4) throw new Error('배포용 한글 문서는 읽을 수 없습니다.');
+    const names = doc.list('BodyText').filter(n => /^Section\d+$/.test(n)).sort((a, b) => a.slice(7) - b.slice(7));
+    const all = [];
+    for (const n of names) {
+      let data = doc.get('BodyText/' + n);
+      if (flags & 1) data = await inflateRaw(data);
+      all.push(...tables(data));
+    }
+    return all;
+  }
+
+  return { readTables };
+})();
+
+</script>
+<script>
 /* 연락이력 · 방문 보고 · 출장/특근 명령부 · 개발대장
    복지관이 지금 쓰는 구글 시트·한글 서식과 같은 열 순서로 보여주고 복사할 수 있게 한다. */
 window.R = (() => {
@@ -4543,11 +4676,12 @@ window.R = (() => {
         <div class="inline">
           ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
           <button class="btn" type="button" data-act="od-add">+ 줄 추가</button>
+          <button class="btn" type="button" data-act="od-hwp">한글 명령부 불러오기</button>
         </div>
         <div class="inline"><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
       </div>
       ${list.length ? `<div class="panel-pad od-each">
-        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장·관장)이 따로 들어갑니다.</span>
+        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
         <div class="od-each-list">${orderStaff().map(s => { const n = list.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span></span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>` : ''}
@@ -4567,7 +4701,7 @@ window.R = (() => {
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
       </tbody></table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
-      : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나 줄을 추가하세요.' : '줄 추가로 특근 기록을 넣으세요.'}</div>`}
+      : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
   }
   function importVisits() {
@@ -4584,7 +4718,7 @@ window.R = (() => {
     const f = ui.orders;
     return tsv(trips(f.month, f.kind).map(t => f.kind === '출장'
       ? [md(t.date), t.staff, t.place, t.purpose, t.method, t.time, reportText(t), t.note]
-      : [md(t.date), t.staff, t.dept || '직업', t.time, t.purpose, t.note]));
+      : [md(t.date), t.staff, t.dept || '직업', t.time, [t.purpose, t.note].filter(Boolean).join(' / ')]));
   };
   const orderStaff = () => { const f = ui.orders; return [...new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)'))]; };
   const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
@@ -4593,15 +4727,15 @@ window.R = (() => {
     const f = ui.orders;
     const list = trips(f.month, f.kind).filter(t => staff == null || (t.staff || '(담당자 없음)') === staff);
     const trip = f.kind === '출장';
-    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th><th>관 장</th></tr><tr><td></td><td></td><td></td></tr></table>';
+    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
     return `<article class="doc order-doc">
       <div class="order-head">${sign}</div>
       <h1>${orderTitle(f.kind)}</h1>
       <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)${staff != null ? ` · <b>${trip ? '출장자' : '특근자'}: ${e(staff)}</b>` : ''}</p>
-      <table class="doc-tbl"><thead><tr>${trip ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방 법</th><th>출장시간</th><th>출장복명</th><th>비고</th>' : '<th>특근일자</th><th>특근자 성명</th><th>부서명</th><th>특근시간</th><th>특 근 업 무 내 용</th><th>비고</th>'}</tr></thead><tbody>
+      <table class="doc-tbl"><thead><tr>${trip ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방 법</th><th>출장시간</th><th>출장복명</th><th>비고</th>' : '<th>특근일자</th><th>특근자 성명</th><th>부서명</th><th>특근시간</th><th>특 근 업 무 내 용</th>'}</tr></thead><tbody>
       ${list.map(t => trip
         ? `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.place)}</td><td>${e(t.purpose)}</td><td>${e(t.method)}</td><td>${e(t.time)}</td><td class="nowrap">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</td><td>${e(t.note)}</td></tr>`
-        : `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.dept || '직업')}</td><td>${e(t.time)}</td><td>${e(t.purpose)}</td><td>${e(t.note)}</td></tr>`).join('')}
+        : `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.dept || '직업')}</td><td>${e(t.time)}</td><td>${e(t.purpose)}${t.note ? `<br>${e(t.note)}` : ''}</td></tr>`).join('')}
       </tbody></table>
     </article>`;
   }
@@ -4617,6 +4751,66 @@ window.R = (() => {
     return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
   }
 
+  /* ---------- 한글 명령부 불러오기 ---------- */
+  const HEAD = { 출장일: 'date', 특근일자: 'date', 성명: 'staff', 특근자성명: 'staff', 출장지: 'place', 출장용무: 'purpose', 방법: 'method', 출장시간: 'time', 특근시간: 'time', 출장복명: 'report', 비고: 'note', 부서명: 'dept', 특근업무내용: 'purpose' };
+  /** HWP.readTables 결과 → 명령부 줄. year는 파일 이름에서 찾은 해 */
+  function parseOrderTables(tables, year) {
+    const out = [];
+    tables.forEach(t => {
+      const hi = t.rows.findIndex(r => r.some(c => /^(출장일|특근일자)$/.test(c.replace(/\s/g, ''))));
+      if (hi < 0) return;
+      const kind = t.rows[hi].some(c => c.replace(/\s/g, '') === '출장일') ? '출장' : '특근';
+      const cols = [];
+      t.rows[hi].forEach((c, i) => { const k = HEAD[c.replace(/\s/g, '')]; if (k) cols.push({ k, from: i, to: i + ((t.spans[hi] || [])[i] || 1) }); });
+      t.rows.slice(hi + 1).forEach(r => {
+        const o = {};
+        cols.forEach(c => { o[c.k] = r.slice(c.from, c.to).filter(Boolean).join('\n').trim(); });
+        const m = (o.date || '').match(/(\d{1,2})\s*월\s*(\d{1,2})/);
+        if (!m || !o.staff) return;
+        const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
+        const pur = lines(o.purpose);
+        out.push({
+          kind, date: `${year}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, staff: o.staff.replace(/\s/g, ''),
+          place: lines(o.place).join(' '),
+          purpose: kind === '특근' ? pur[0] || '' : pur.join(' '),
+          method: lines(o.method).join(' '), time: lines(o.time).join(' ').replace(/∼/g, '~'),
+          report: D.TRIP_REPORTS.filter(x => new RegExp(x + '\\s*■').test(o.report || '')),
+          dept: kind === '특근' ? lines(o.dept).join(' ') || '직업' : '',
+          note: [...(kind === '특근' ? pur.slice(1) : []), ...lines(o.note)].join(' / '), actId: '',
+        });
+      });
+    });
+    return out;
+  }
+  const tripKey = t => [t.kind, t.date, t.staff, U.norm(t.place || ''), U.norm(t.purpose || ''), (t.time || '').replace(/\s/g, '')].join('|');
+  function markDup(rows) {
+    const have = new Set(S.get().trips.map(tripKey));
+    rows.forEach(r => { r.dup = have.has(tripKey(r)); });
+    return rows;
+  }
+  function hwpDialog(state) {
+    const rows = state.rows || [];
+    const fresh = rows.filter(r => !r.dup);
+    const months = [...new Set(rows.map(r => r.date.slice(0, 7)))].sort();
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">한글 명령부 불러오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
+      <div class="dr-body">
+        <p class="sub">${e(state.files.join(', '))}</p>
+        ${state.errors.length ? `<p class="sub" style="color:var(--danger)">${state.errors.map(e).join('<br>')}</p>` : ''}
+        ${rows.length ? `<p class="sub">${months.map(V.monthLabel).join(', ')} · 관내출장 ${rows.filter(r => r.kind === '출장').length}줄, 특근 ${rows.filter(r => r.kind === '특근').length}줄을 읽었습니다.${rows.length - fresh.length ? ` 이미 있는 ${rows.length - fresh.length}줄은 건너뜁니다.` : ''}</p>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>구분</th><th>날짜</th><th>성명</th><th>출장지</th><th>용무·내용</th><th>시간</th><th>복명</th><th>비고</th></tr></thead><tbody>
+          ${rows.map(r => `<tr class="${r.dup ? 'muted' : ''}"><td>${r.kind}${r.dup ? ' <span class="sub">(있음)</span>' : ''}</td><td class="num">${e(r.date)}</td><td><b>${e(r.staff)}</b></td><td>${e(r.place)}</td><td>${e(r.purpose)}</td><td class="nowrap">${e(r.time)}</td><td>${e(r.report.join(', '))}</td><td>${e(r.note)}</td></tr>`).join('')}
+          </tbody></table></div>` : state.errors.length ? '' : '<p class="sub">명령부 표(출장일 또는 특근일자 칸)를 찾지 못했습니다.</p>'}
+      </div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="od-hwp-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
+  }
+  function commitHwp(rows) {
+    const fresh = rows.filter(r => !r.dup).map(({ dup, ...r }) => r);
+    S.upsertMany('trip', fresh);
+    const last = fresh.map(r => r.date.slice(0, 7)).sort().pop();
+    if (last) { ui.orders.month = last; ui.orders.kind = fresh.some(r => r.kind === '출장' && r.date.startsWith(last)) ? '출장' : '특근'; }
+    return fresh.length;
+  }
+
   /* ================= 개발대장 ================= */
   /** 공유 시트 '구인업체 개발 대장' 열 순서: 등록일, 업체명, 주소, 전화번호, 대표명(담당자), 직종/직무, 근무시간, 복리후생(기타), 비고, 실적 진행도, 상담자 */
   const progressOf = b => b.progress || ((b.jobAnalyses || []).length ? '직무분석지 작성완료' : S.actsOf('biz', b.id).some(a => a.type === '방문') ? '방문완료' : '');
@@ -4627,7 +4821,7 @@ window.R = (() => {
     }));
   }
 
-  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, ledgerTsv, progressOf };
+  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();
 
 </script>
@@ -4831,6 +5025,20 @@ window.App = (() => {
       ta.remove(); return ok;
     }
   }
+  async function handleHwpFiles(files) {
+    push({ type: 'loading', title: '한글 명령부 불러오기', body: `${files.length}개 파일을 읽는 중입니다.` });
+    const rows = [], errors = [];
+    for (const f of files) {
+      try {
+        const year = (f.name.match(/20\d\d/) || [])[0] || R.ui.orders.month.slice(0, 4);
+        const got = R.parseOrderTables(await HWP.readTables(await f.arrayBuffer()), year);
+        if (!got.length) errors.push(`${f.name}: 명령부 표를 찾지 못했습니다.`);
+        rows.push(...got);
+      } catch (err) { errors.push(`${f.name}: ${err.message}`); }
+    }
+    rows.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
+    push({ type: 'hwp', state: { files: files.map(f => f.name), rows: R.markDup(rows), errors } });
+  }
   function printHtml(html) {
     const root = $('#printRoot');
     root.innerHTML = html;
@@ -4918,6 +5126,11 @@ window.App = (() => {
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
       }, 250);
       if (!keepScroll) box.focus();
+      return;
+    }
+    if (top.type === 'hwp') {
+      inner.innerHTML = R.hwpDialog(top.state);
+      showDrawer();
       return;
     }
     if (top.type === 'loading') {
@@ -5276,6 +5489,8 @@ window.App = (() => {
     'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
     'sv-print': () => printHtml($('#svDoc').innerHTML),
     'od-print': el => printHtml(R.orderDoc(el.dataset.staff)),
+    'od-hwp': () => $('#hwpFile').click(),
+    'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
     'od-print-each': () => printHtml(R.orderDocsEach()),
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
@@ -5353,6 +5568,7 @@ window.App = (() => {
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
     });
     $('#searchTrigger').onclick = openSearch;
+    $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };
     $('#globalBizFile').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleBizFile(f); };
     $('#globalCardPhoto').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleCardPhoto(f); };
     $('#scopeSel').onchange = ev => S.setScope(ev.target.value);
