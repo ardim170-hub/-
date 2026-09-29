@@ -22,9 +22,9 @@ window.V = (() => {
     camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
-    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
-    net: { cat: '전체', q: '', status: '' },
-    cards: { q: '', link: 'all', sort: 'recent', idx: '' },
+    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
+    net: { cat: '전체', q: '', status: '', dup: false },
+    cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
@@ -89,16 +89,16 @@ window.V = (() => {
     const pr = S.priorities().slice(0, 10);
     const feed = S.recentActs(9);
     const org = S.get().settings.orgName;
-    const kpi = (label, value, unit, foot, href) => `<a class="kpi" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
+    const kpi = (label, value, unit, foot, href, tone = '') => `<a class="kpi ${tone ? 'tone-' + tone : ''}" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
       <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
       ${quickLinks()}
       <section class="panel kpis" aria-label="주요 현황">
-        ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz')}
-        ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz')}
-        ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz')}
-        ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network')}
-        ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards')}
+        ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz', 'biz')}
+        ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz', 'biz')}
+        ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz', 'support')}
+        ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network', 'net')}
+        ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards', 'card')}
       </section>
       <div class="dash-grid dash-top">
           <section class="panel panel-pad">
@@ -231,7 +231,9 @@ window.V = (() => {
   function bizFiltered() {
     const f = ui.biz;
     const nq = U.norm(f.q);
+    const dup = S.dupIndex('biz');
     let list = S.view().businesses.filter(b => {
+      if (f.dup && !dup.has(b.id)) return false;
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
       if (!inArea(b, f.area)) return false;
       if (f.industry && b.industry !== f.industry) return false;
@@ -249,6 +251,21 @@ window.V = (() => {
     return list.sort(sorters[f.sort] || sorters.recent);
   }
 
+  /** 중복 의심 표시 · 지원고용 표시 */
+  const dupTag = (idx, id) => (idx.has(id) ? ` <span class="badge dup" title="${e(idx.get(id).map(d => d.x.name + ' (' + d.why.join(', ') + ')').join(' / '))}">중복?</span>` : '');
+  const supTag = b => { const t = S.supportOf(b).types; return t.length ? ` <span class="badge support">${t.join('·')}</span>` : ''; };
+  const dupBar = (kind, n, on) => (n ? `<div class="dup-bar"><span>${{ biz: '사업체', net: '기관', card: '명함' }[kind]} <b>${n}</b>건이 다른 것과 겹쳐 보여요. 같은 곳이면 상세 화면에서 합칠 수 있어요.</span><button class="btn btn-sm" type="button" data-act="dup-toggle" data-kind="${kind}">${on ? '전체 보기' : '겹치는 것만 보기'}</button></div>` : '');
+  function dupSec(kind, x) {
+    const list = S.dupIndex(kind).get(x.id) || [];
+    if (!list.length) return '';
+    const label = y => (kind === 'card' ? `${y.name} · ${y.org || '소속 없음'}` : y.name);
+    const meta = y => (kind === 'card' ? [y.mobile, y.email].filter(Boolean).join(' · ') : [y.address, y.phone].filter(Boolean).join(' · '));
+    return `<section class="dr-sec dup-sec"><h3>중복 의심 <span class="badge dup">${list.length}</span></h3>
+      <p class="sub" style="margin:0 0 8px">같은 ${kind === 'card' ? '사람' : '곳'}이 두 번 등록된 것 같아요. <b>이쪽으로 합치기</b>를 누르면 빈 칸을 채우고${kind === 'card' ? '' : ' 활동·일정·명함을 옮긴 뒤'} 다른 쪽을 지웁니다.</p>
+      <div class="people">${list.map(d => `<div class="person"><div style="min-width:0"><div class="pn" data-act="open" data-kind="${kind}" data-id="${d.x.id}">${e(label(d.x))}</div><div class="pm"><b>${e(d.why.join(' · '))}</b>${meta(d.x) ? ' · ' + e(meta(d.x)) : ''}</div></div>
+        <div class="inline"><button class="btn btn-sm" type="button" data-act="open" data-kind="${kind}" data-id="${d.x.id}">열기</button><button class="btn btn-sm btn-primary" type="button" data-act="merge" data-kind="${kind}" data-keep="${x.id}" data-drop="${d.x.id}">이쪽으로 합치기</button></div></div>`).join('')}</div></section>`;
+  }
+
   function bizResults() {
     const f = ui.biz;
     const rows = bizFiltered();
@@ -259,15 +276,17 @@ window.V = (() => {
     if (f.industry) applied.push(['industry', f.industry]);
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
+    if (f.dup) applied.push(['dup', '중복 의심만']);
+    const dup = S.dupIndex('biz');
     const chipsHtml = applied.length ? `<div class="chips" style="margin-bottom:10px">${applied.map(([k, l]) => `<button type="button" class="chip chip-applied" data-act="biz-unfilter" data-k="${k}">${e(l)} ✕</button>`).join('')}<button type="button" class="btn btn-ghost btn-sm" data-act="biz-reset">전체 초기화</button></div>` : '';
     if (!S.view().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
     if (!rows.length) return chipsHtml + `<div class="panel"><div class="empty"><strong>조건에 맞는 사업체가 없습니다</strong>검색어나 필터를 바꿔 보세요.<div><button class="btn" type="button" data-act="biz-reset">필터 초기화</button></div></div></div>`;
-    return chipsHtml + `<div class="panel">
+    return chipsHtml + dupBar('biz', dup.size, f.dup) + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
         <thead><tr><th>사업체</th><th>단계</th><th>발굴일</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
-          <tr data-act="open" data-kind="biz" data-id="${b.id}">
-            <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
+          <tr data-act="open" data-kind="biz" data-id="${b.id}" class="row-biz ${S.supportOf(b).types.length ? 'is-support' : ''}">
+            <td><div class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
             <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
@@ -280,8 +299,8 @@ window.V = (() => {
           </tr>`).join('')}</tbody>
       </table></div>
       <div class="mlist">${rows.map(({ b, la, ne, pc }) => `
-        <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
-          <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
+        <div class="mrow row-biz ${S.supportOf(b).types.length ? 'is-support' : ''}" data-act="open" data-kind="biz" data-id="${b.id}">
+          <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</span>${stageBadge(b.stage)}</div>
           ${b.jobs ? `<div class="meta">가능 직무: ${e(b.jobs)}</div>` : ''}
           <div class="meta">${e(b.industry)} · ${e(b.area || '')} · ${b.discoveredAt ? U.dateDot(b.discoveredAt) + ' 발굴' : ''}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
           <div class="meta">${staffTag(b.staff)}</div>
@@ -327,17 +346,18 @@ window.V = (() => {
     const nq = U.norm(f.q);
     const all = S.view().networks;
     if (!all.length) return `<div class="panel">${emptyState('등록된 기관이 없습니다', '협력·홍보 기관을 등록하면 지도에 함께 표시됩니다.', 'new-net', '+ 기관 등록')}</div>`;
-    const rows = all.filter(n => (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
+    const dup = S.dupIndex('net');
+    const rows = all.filter(n => (!f.dup || dup.has(n.id)) && (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
       (!nq || U.match(f.q, n.name, n.relation, n.promo, n.memo, n.address, n.staff, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone]))))
       .map(n => ({ n, la: S.lastAct('net', n.id), ne: S.nextEvent('net', n.id), pc: primaryContact('net', n.id) }))
       .sort((x, y) => (y.la?.date || '').localeCompare(x.la?.date || ''));
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>조건에 맞는 기관이 없습니다</strong>검색어나 분류를 바꿔 보세요.</div></div>`;
-    return `<div class="panel">
+    return dupBar('net', dup.size, f.dup) + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
         <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>기관 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
         <tbody>${rows.map(({ n, la, ne, pc }) => `
-          <tr data-act="open" data-kind="net" data-id="${n.id}">
-            <td><div class="name">${U.hl(n.name, f.q)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
+          <tr data-act="open" data-kind="net" data-id="${n.id}" class="row-net ${S.isHome(n) ? 'is-home' : ''}">
+            <td><div class="name">${S.isHome(n) ? '<span class="home-star" aria-hidden="true">★</span>' : ''}${U.hl(n.name, f.q)}${dupTag(dup, n.id)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
@@ -384,7 +404,8 @@ window.V = (() => {
     const nq = U.norm(f.q);
     const all = S.view().cards;
     if (!all.length) return `<div class="panel">${emptyState('등록된 명함이 없습니다', '명함 사진과 연락처를 등록해 보세요.', 'new-card', '+ 명함 등록')}</div>`;
-    const rows = all.filter(c => (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
+    const dup = S.dupIndex('card');
+    const rows = all.filter(c => (!f.dup || dup.has(c.id)) && (!f.of || (c.linkType === f.of.kind && c.linkId === f.of.id)) && (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
       (!f.idx || U.indexOf(f.sort === 'org' ? c.org : c.name) === f.idx) &&
       (!nq || U.match(f.q, c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo, c.address)))
       .sort({
@@ -392,12 +413,15 @@ window.V = (() => {
         name: (a, b) => a.name.localeCompare(b.name, 'ko'),
         org: (a, b) => (a.org || '').replace(/^\(주\)/, '').localeCompare((b.org || '').replace(/^\(주\)/, ''), 'ko'),
       }[f.sort]);
+    const ofChip = f.of ? `<div class="chips" style="margin-bottom:10px"><button type="button" class="chip chip-applied" data-act="cards-of-clear">${e(f.of.name)}의 명함만 ✕</button></div>` : '';
+    if (!rows.length && f.of) return ofChip + `<div class="panel"><div class="empty"><strong>${e(f.of.name)}에 연결된 명함이 없습니다</strong>명함을 등록할 때 이곳과 연결하면 여기에 모입니다.</div></div>`;
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부, 전화번호 뒷자리, 초성(ㄱㅈㅂ)으로도 찾을 수 있어요.${f.idx ? '<div><button class="btn" type="button" data-act="card-idx" data-idx="">색인 해제</button></div>' : ''}</div></div>`;
-    return `<div class="card-grid">${rows.map(c => {
+    return ofChip + dupBar('card', dup.size, f.dup) + `<div class="card-grid">${rows.map(c => {
       const link = S.linkOf(c);
-      return `<article class="bcard" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
+      const tone = c.linkType === 'biz' ? (link && S.supportOf(link).types.length ? 'k-support' : 'k-biz') : c.linkType === 'net' ? (link && S.isHome(link) ? 'k-home' : 'k-net') : 'k-none';
+      return `<article class="bcard ${tone}" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
         <div class="org">${c.linkType === 'biz' ? `<span class="badge stage-badge" style="--c:${D.STAGE[link?.stage]?.color || 'var(--muted)'}"><span class="dot"></span>사업체</span>` : c.linkType === 'net' ? '<span class="badge navy">기관</span>' : ''}<span>${U.hl(c.org || '소속 미기재', f.q)}</span></div>
-        <div class="pname">${U.hl(c.name, f.q)}<span class="ptitle">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
+        <div class="pname">${U.hl(c.name, f.q)}${dupTag(dup, c.id)}<span class="ptitle">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
         <div class="contact">
           ${c.mobile ? `<div>M ${U.hl(c.mobile, f.q)}</div>` : ''}
           ${c.phone ? `<div>T ${U.hl(c.phone, f.q)}</div>` : ''}
@@ -746,7 +770,7 @@ window.V = (() => {
   const callBtn = c => (tel(c) ? `<a class="btn btn-sm" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}${e(c.name)} 전화</a>` : '');
   const people = (kind, id) => {
     const cs = S.cardsOf(kind, id);
-    return `<section class="dr-sec"><h3>담당자 <button class="btn btn-ghost btn-sm" type="button" data-act="new-card" data-link="${kind}:${id}">+ 명함 추가</button></h3>
+    return `<section class="dr-sec"><h3>담당자 명함 <span class="inline" style="gap:4px">${cs.length ? `<button class="btn btn-ghost btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${id}">명함 관리에서 보기</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="new-card" data-link="${kind}:${id}">+ 명함 추가</button></span></h3>
       ${cs.length ? `<div class="people">${cs.map(c => `<div class="person"><div style="min-width:0"><div class="pn" data-act="open" data-kind="card" data-id="${c.id}">${e(c.name)} <span class="pm">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
         <div class="pm">${[c.mobile && `휴대 ${e(c.mobile)}`, c.phone && `사무실 ${e(c.phone)}`, c.email && e(c.email)].filter(Boolean).join(' · ')}</div></div>
         <div class="inline">${tel(c) ? `<a class="icon-btn" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}" aria-label="전화">${I.phone}</a>` : ''}${c.email ? `<a class="icon-btn" href="mailto:${e(c.email)}" aria-label="이메일">${I.mail}</a>` : ''}</div></div>`).join('')}</div>`
@@ -779,7 +803,7 @@ window.V = (() => {
         <input type="hidden" name="staff" value="${e(S.me())}">
         ${perfSelect(kind, id)}
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 보기</a>` : ''}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
@@ -813,6 +837,7 @@ window.V = (() => {
             <p class="one-line">${e(bizLine(b))}</p>
             ${b.aiSummary ? `<div class="ai-box"><span class="ai-tag">AI 요약</span><div>${e(b.aiSummary)}</div></div>` : ''}
           </section>
+          ${dupSec('biz', b)}
           ${b.memo ? `<div class="memo-box">${e(b.memo)}</div>` : ''}
           ${people('biz', b.id)}
           ${eventsSec('biz', b.id)}
@@ -827,7 +852,7 @@ window.V = (() => {
               <span class="sub">검색:</span>${SEARCH_SITES.map(([l, fn]) => `<a class="btn btn-ghost btn-sm" href="${fn(b.name + (b.area ? ' ' + b.area : ''))}" target="_blank" rel="noopener">${l}</a>`).join('')}
             </div>
           </section>
-          <section class="dr-sec"><h3>채용 정보</h3>${kv([['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
+          <section class="dr-sec"><h3>채용 정보</h3>${kv([['최근 구인공고', (() => { const a = S.actsOf('biz', b.id).find(x => R.jobLink(x.jobUrl)); return a ? `<a class="btn btn-sm btn-job" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">공고 보기</a> <span class="sub">${U.dateDot(a.date)} 연락 기록</span>` : ''; })()], ['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
           <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['대표 전화', b.phone ? `<a href="tel:${e(b.phone.replace(/[^0-9+]/g, ''))}">${e(b.phone)}</a>` : ''], ['홈페이지', b.homepage ? `<a href="${e(/^https?:/.test(b.homepage) ? b.homepage : 'https://' + b.homepage)}" target="_blank" rel="noopener">${e(b.homepage)}</a>` : ''], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['실적 진행도', e(R.progressOf(b))], ['복리후생', e(b.welfare)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
@@ -849,6 +874,7 @@ window.V = (() => {
             <div><div class="l">활동 기록</div><div class="v">${S.actsOf('net', n.id).length}<small>건</small></div></div>
             <div><div class="l">담당자 명함</div><div class="v">${S.cardsOf('net', n.id).length}<small>장</small></div></div>
           </div>
+          ${dupSec('net', n)}
           ${n.memo ? `<div class="memo-box">${e(n.memo)}</div>` : ''}
           <section class="dr-sec"><h3>협력 · 홍보</h3>${kv([['협력 내용', e(n.relation)], ['홍보 방식', e(n.promo)], ['관계 상태', e(n.status)], ['담당 직원', staffTag(n.staff)]])}</section>
           ${people('net', n.id)}
@@ -870,6 +896,7 @@ window.V = (() => {
         `${tel(c) ? `<a class="btn btn-sm btn-primary" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}전화</a>` : ''}${c.mobile ? `<a class="btn btn-sm" href="sms:${e(c.mobile.replace(/[^0-9+]/g, ''))}">문자</a>` : ''}${c.email ? `<a class="btn btn-sm" href="mailto:${e(c.email)}">${I.mail}이메일</a>` : ''}<button class="btn btn-sm" type="button" data-act="vcard" data-id="${c.id}">연락처 파일(vcf)</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="card" data-id="${c.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
+          ${dupSec('card', c)}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
           <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : `<p class="sub" style="margin:0 0 8px">연결된 사업체나 기관이 없습니다. 아래 버튼을 누르면 소속(${e(c.org || c.name)})으로 새로 등록하고 연결합니다.</p><div class="inline">${triageButtons(c)}</div>`}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>

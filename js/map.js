@@ -133,8 +133,17 @@ window.M = (() => {
     const meta = kind === 'biz'
       ? `${sup.length ? `<b style="color:${D.MAP_COLORS.support}">${sup.join('·')} 진행</b> · ` : ''}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
-    return `<div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
-      <button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button>`;
+    // 연결된 명함: 이름을 누르면 명함 상세, 전화 아이콘은 바로 걸기
+    const cards = S.cardsOf(kind, x.id);
+    const telOf = c => String(c.mobile || c.phone || '').replace(/[^0-9+]/g, '');
+    const tone = kind === 'biz' ? (sup.length ? 'support' : 'biz') : S.isHome(x) ? 'home' : 'net';
+    const cardList = cards.length
+      ? `<ul class="pop-cards">${cards.slice(0, 4).map(c => `<li><button type="button" class="linklike" data-act="open" data-kind="card" data-id="${c.id}">${U.esc(c.name)}</button> <span class="pop-meta">${U.esc([c.dept, c.title].filter(Boolean).join(' · '))}</span>${telOf(c) ? ` <a class="pop-tel" href="tel:${telOf(c)}">${U.esc(c.mobile || c.phone)}</a>` : ''}</li>`).join('')}${cards.length > 4 ? `<li class="pop-meta">외 ${cards.length - 4}장</li>` : ''}</ul>`
+      : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
+    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', support: '지원고용·현장훈련', net: '기관', home: '우리 복지관' }[tone]}</div>
+      <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
+      ${cardList}
+      <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div></div>`;
   }
 
   /** 위치 지정용 지도: 클릭하면 핀 이동 */

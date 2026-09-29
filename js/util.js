@@ -37,6 +37,8 @@ window.U = (() => {
   const num = n => Number(n || 0).toLocaleString('ko-KR');
   const uid = p => p + Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 6);
   const norm = s => String(s ?? '').toLowerCase().replace(/[\s\-().]/g, '');
+  /** 회사 이름 비교용: (주)·㈜·주식회사 같은 회사 형태 표기를 지우고 norm (norm이 괄호를 먼저 지우므로 순서가 중요) */
+  const orgKey = s => norm(String(s ?? '').replace(/[(（]\s*(주|유|재|사|합|의)\s*[)）]|㈜|주식회사|유한회사|유한책임회사|재단법인|사단법인|합자회사|의료법인|사회복지법인/g, ''));
 
   /** 검색어를 강조 표시 (이스케이프 후) */
   function hl(text, q) {
@@ -83,5 +85,5 @@ window.U = (() => {
     return ({ 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' })[c] || (/[ㄱ-ㅎ]/.test(c) ? c : (c ? 'A-Z' : ''));
   };
 
-  return { cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
+  return { orgKey, cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
 })();

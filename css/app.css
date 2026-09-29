@@ -29,6 +29,15 @@
   --st-placed: #2F7D57;
   --st-hold: #B8BFCC;
 
+  /* 종류별 색 (지도·목록·상세·대시보드 공통): 사업체 노랑, 지원고용·현장훈련 빨강, 기관 검정, 복지관 금색, 명함 청록, 중복 주황 */
+  --k-biz: #F5B700;      --k-biz-soft: #FFF6D6;      --k-biz-ink: #7A5A00;
+  --k-support: #E5383B;  --k-support-soft: #FDE8E8;  --k-support-ink: #A61B1E;
+  --k-net: #1B1F24;      --k-net-soft: #ECEEF1;      --k-net-ink: #1B1F24;
+  --k-home: #D4A017;     --k-home-soft: #FFF8E1;     --k-home-ink: #6B4E00;
+  --k-card: #0E9384;     --k-card-soft: #E3F6F3;     --k-card-ink: #0B6B61;
+  --k-ev: #2563EB;       --k-ev-soft: #EAF1FE;       --k-ev-ink: #1D4ED8;
+  --k-dup: #EA580C;      --k-dup-soft: #FFF1E6;      --k-dup-ink: #C2410C;
+
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
   --radius: 8px;
   --radius-sm: 6px;
@@ -750,3 +759,105 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .notice { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--accent-soft); color: var(--text); font-size: 14px; }
 label.field > span { font-size: 13px; font-weight: 600; color: var(--text); }
 label.field .textarea { width: 100%; }
+
+/* ================= 색으로 구분하기 =================
+ * 메뉴·제목: 화면마다 고유 색 / 목록·명함·상세·지도 팝업: 종류(사업체·지원고용·기관·복지관·명함) 색 */
+/* ---------- 메뉴별 퍼스널 컬러 ----------
+ * 각 메뉴는 고유 색 하나를 가진다: --pc 본색, --ps 연한 바탕, --pi 글자용 진한 색, --pn 본색 위 아이콘 색
+ * 옆 메뉴 아이콘 칸 · 선택된 메뉴 · 그 화면의 제목 띠 · 선택된 탭/필터가 모두 같은 색을 쓴다 */
+.side-nav a[href="#/dashboard"], .bottom-nav a[href="#/dashboard"], body[data-route="dashboard"] { --pc: #132B4F; --ps: #E8EDF5; --pi: #132B4F; --pn: #fff; }
+.side-nav a[href="#/biz"], .bottom-nav a[href="#/biz"], body[data-route="biz"] { --pc: #F5B700; --ps: #FFF6D6; --pi: #7A5A00; --pn: #3B2A00; }
+.side-nav a[href="#/map"], .bottom-nav a[href="#/map"], body[data-route="map"] { --pc: #2F9E62; --ps: #E4F5EB; --pi: #1E6B42; --pn: #fff; }
+.side-nav a[href="#/cards"], .bottom-nav a[href="#/cards"], body[data-route="cards"] { --pc: #0E9384; --ps: #E3F6F3; --pi: #0B6B61; --pn: #fff; }
+.side-nav a[href="#/network"], .bottom-nav a[href="#/network"], body[data-route="network"] { --pc: #1B1F24; --ps: #ECEEF1; --pi: #1B1F24; --pn: #fff; }
+.side-nav a[href="#/schedule"], body[data-route="schedule"] { --pc: #2563EB; --ps: #EAF1FE; --pi: #1D4ED8; --pn: #fff; }
+.side-nav a[href="#/contacts"], body[data-route="contacts"] { --pc: #E8590C; --ps: #FFF0E6; --pi: #B03E05; --pn: #fff; }
+.side-nav a[href="#/perf"], body[data-route="perf"] { --pc: #7C4DDB; --ps: #F1EAFD; --pi: #5B2FB5; --pn: #fff; }
+.side-nav a[href="#/orders"], body[data-route="orders"] { --pc: #3B5BDB; --ps: #EAEEFC; --pi: #2A44B0; --pn: #fff; }
+.side-nav a[href="#/data"], body[data-route="data"] { --pc: #667085; --ps: #EEF0F4; --pi: #475467; --pn: #fff; }
+
+/* 옆 메뉴: 아이콘을 색 칸에 담고, 선택된 메뉴는 색을 꽉 채운다 */
+.side-nav a { position: relative; padding: 6px 10px; }
+.side-nav a svg { width: 30px; height: 30px; padding: 6px; border-radius: 9px; background: var(--ps, var(--surface-2)); color: var(--pi, var(--text-2)); transition: background .15s, color .15s; }
+.side-nav a:hover { background: var(--ps, var(--surface-2)); color: var(--text); }
+.side-nav a:hover svg { background: var(--surface); }
+.side-nav a.active { background: var(--ps); color: var(--pi); font-weight: 700; }
+.side-nav a.active svg { background: var(--pc); color: var(--pn); box-shadow: 0 2px 6px color-mix(in srgb, var(--pc) 40%, transparent); }
+.side-nav a.active::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--pc); }
+.side-nav a.active .count { color: var(--pi); font-weight: 700; }
+.bottom-nav a.active, .bottom-nav a[aria-current="page"] { color: var(--pi, var(--navy)); }
+
+/* 화면 제목: 메뉴 색 띠 */
+.page-head { position: relative; padding: 14px 18px; border-radius: 12px; background: linear-gradient(100deg, var(--ps, var(--surface)) 0%, var(--surface) 70%); border: 1px solid color-mix(in srgb, var(--pc, var(--line)) 22%, var(--line)); border-left: 6px solid var(--pc, var(--navy)); align-items: center; }
+.page-title { color: var(--pi, var(--text)); }
+.page-desc { color: var(--text-2); }
+
+/* 그 화면의 선택된 탭·필터도 메뉴 색 */
+#view .chip.on { background: var(--pi, var(--navy)); border-color: var(--pi, var(--navy)); color: #fff; }
+#view .section-title { color: var(--text); }
+
+/* 대시보드 숫자 칸: 위쪽 색 띠 */
+.kpi { position: relative; }
+.kpi[class*="tone-"]::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--tc); }
+.kpi.tone-biz { --tc: var(--k-biz); }
+.kpi.tone-support { --tc: var(--k-support); }
+.kpi.tone-net { --tc: var(--k-net); }
+.kpi.tone-card { --tc: var(--k-card); }
+.kpi[class*="tone-"] .kpi-label::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tc); margin-right: 6px; vertical-align: 1px; }
+
+/* 목록 줄: 왼쪽 색 띠 */
+.tbl tr.row-biz td:first-child { box-shadow: inset 4px 0 0 var(--k-biz); }
+.tbl tr.row-biz.is-support td:first-child { box-shadow: inset 4px 0 0 var(--k-support); }
+.tbl tr.row-net td:first-child { box-shadow: inset 4px 0 0 var(--k-net); }
+.tbl tr.row-net.is-home td:first-child { box-shadow: inset 4px 0 0 var(--k-home); }
+.mrow.row-biz { border-left: 4px solid var(--k-biz); }
+.mrow.row-biz.is-support { border-left-color: var(--k-support); }
+.home-star { color: var(--k-home); margin-right: 4px; }
+
+/* 명함: 위쪽 색 띠 = 연결된 곳의 종류 */
+.bcard::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--kc, transparent); }
+.bcard.k-biz { --kc: var(--k-biz); }
+.bcard.k-support { --kc: var(--k-support); }
+.bcard.k-net { --kc: var(--k-net); }
+.bcard.k-home { --kc: var(--k-home); }
+.bcard.k-none { border-style: dashed; border-color: var(--line-strong); }
+
+/* 배지 */
+.badge.dup { background: var(--k-dup-soft); color: var(--k-dup-ink); border: 1px solid #FDBA8C; cursor: help; }
+.badge.support { background: var(--k-support-soft); color: var(--k-support-ink); font-weight: 700; }
+
+/* 중복 안내 */
+.dup-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 0 0 12px; padding: 10px 14px; border: 1px solid #FED7AA; border-left: 4px solid var(--k-dup); border-radius: 8px; background: var(--k-dup-soft); color: var(--k-dup-ink); font-size: 14px; }
+.dup-sec { border: 1px solid #FED7AA; border-radius: 10px; background: #FFFBF5; padding: 12px 14px; }
+.dup-sec h3 { color: var(--k-dup-ink); }
+
+/* 상세·등록 창: 머리에 종류 색 띠와 이름표 */
+#drawerInner[data-tone] { --dc: transparent; --ds: var(--surface); --di: var(--text-2); }
+#drawerInner[data-tone="biz"] { --dc: var(--k-biz); --ds: var(--k-biz-soft); --di: var(--k-biz-ink); --dl: "사업체 개발"; }
+#drawerInner[data-tone="support"] { --dc: var(--k-support); --ds: var(--k-support-soft); --di: var(--k-support-ink); --dl: "지원고용 · 현장훈련 사업체"; }
+#drawerInner[data-tone="net"] { --dc: var(--k-net); --ds: var(--k-net-soft); --di: var(--k-net-ink); --dl: "네트워크 기관"; }
+#drawerInner[data-tone="home"] { --dc: var(--k-home); --ds: var(--k-home-soft); --di: var(--k-home-ink); --dl: "★ 우리 복지관"; }
+#drawerInner[data-tone="card"] { --dc: var(--k-card); --ds: var(--k-card-soft); --di: var(--k-card-ink); --dl: "명함"; }
+#drawerInner[data-tone="ev"] { --dc: var(--k-ev); --ds: var(--k-ev-soft); --di: var(--k-ev-ink); --dl: "일정"; }
+#drawerInner[data-tone]:not([data-tone=""]) .dr-head { border-top: 6px solid var(--dc); background: linear-gradient(var(--ds), var(--surface) 85%); }
+#drawerInner[data-tone]:not([data-tone=""]) .dr-head::before { content: var(--dl); align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--di); background: var(--surface); border: 1px solid var(--dc); border-radius: 999px; padding: 1px 10px; }
+
+/* 지도 팝업 */
+.leaflet-popup-content .pop-kind { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; margin-bottom: 6px; background: var(--ps); color: var(--pi); border: 1px solid var(--pc); }
+.pop.tone-biz { --pc: var(--k-biz); --ps: var(--k-biz-soft); --pi: var(--k-biz-ink); }
+.pop.tone-support { --pc: var(--k-support); --ps: var(--k-support-soft); --pi: var(--k-support-ink); }
+.pop.tone-net { --pc: var(--k-net); --ps: var(--k-net-soft); --pi: var(--k-net-ink); }
+.pop.tone-home { --pc: var(--k-home); --ps: var(--k-home-soft); --pi: var(--k-home-ink); }
+.leaflet-popup-content .pop-cards { list-style: none; margin: 0 0 8px; padding: 8px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.leaflet-popup-content .pop-cards li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+.leaflet-popup-content .pop-cards .pop-meta { margin: 0; }
+.leaflet-popup-content .pop-cards li::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--k-card); flex: none; align-self: center; }
+.leaflet-popup-content .pop-nocard { border-top: 1px solid var(--line); padding-top: 6px; }
+.leaflet-popup-content .pop-tel { font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.leaflet-popup-content .pop-actions { gap: 6px; flex-wrap: wrap; }
+/* 구인공고 바로가기 */
+.btn-job { background: var(--k-ev-soft); border-color: #BFD3FB; color: var(--k-ev-ink); font-weight: 700; }
+.btn-job-inline { margin-left: 6px; font-size: 12.5px; font-weight: 700; color: var(--k-ev-ink); background: var(--k-ev-soft); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.url-in { min-width: 150px; }
+.linklike { border: 0; background: none; padding: 0; color: var(--k-card-ink); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.kpi, .kpi:hover { text-decoration: none; color: inherit; }

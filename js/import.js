@@ -64,12 +64,12 @@ window.IMP = (() => {
   }
 
   function records(st) {
-    const existing = new Set(S.get().businesses.map(b => U.norm(b.name).replace(/^\(주\)|주식회사/g, '')));
+    const existing = new Set(S.get().businesses.map(b => U.orgKey(b.name)));
     const seen = new Set();
     const cell = (r, k) => (st.map[k] != null ? String(r[st.map[k]] ?? '').trim() : '');
     return st.rows.map(r => {
       const name = cell(r, 'name');
-      const key = U.norm(name).replace(/^\(주\)|주식회사/g, '');
+      const key = U.orgKey(name);
       const dup = !name ? false : existing.has(key) || seen.has(key);
       if (name) seen.add(key);
       return {

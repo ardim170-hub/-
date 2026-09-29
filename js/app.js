@@ -86,6 +86,7 @@ window.App = (() => {
   let bigMap = null, markerIndex = {}, markerGroup = null;
   function render() {
     const r = route();
+    document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
@@ -275,6 +276,7 @@ window.App = (() => {
     const top = stack[stack.length - 1];
     if (!top) return closeDrawer();
     const inner = $('#drawerInner');
+    inner.dataset.tone = '';
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
     if (top.type === 'bulk') {
@@ -290,7 +292,7 @@ window.App = (() => {
       const box = $('#ctPasteBox');
       box.oninput = U.debounce(() => {
         const { rows } = R.parsePaste(box.value);
-        const key = n => U.norm(n).replace(/^\(주\)|주식회사|\(주\)/g, '');
+        const key = n => U.orgKey(n);
         const have = new Set(S.get().businesses.map(b => key(b.name)));
         top.state = { text: box.value, rows, newCount: new Set(rows.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size };
         renderDrawer(true);
@@ -332,6 +334,9 @@ window.App = (() => {
       v = { biz: () => F.biz(x, top.preset, top.focus), net: () => F.net(x, top.preset), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
     }
     inner.innerHTML = v.html;
+    // 무엇을 보고 있는지 색으로 구분: 사업체(노랑)·지원고용(빨강)·기관(검정)·복지관(금색)·명함(청록)·일정(파랑)
+    const cur = top.id ? S.find(top.kind, top.id) : null;
+    inner.dataset.tone = top.kind === 'biz' ? (cur && S.supportOf(cur).types.length ? 'support' : 'biz') : top.kind === 'net' ? (cur && S.isHome(cur) ? 'home' : 'net') : top.kind === 'card' ? 'card' : 'ev';
     showDrawer();
     const form = inner.querySelector('#entityForm');
     if (v.after) v.after(form);
@@ -348,12 +353,17 @@ window.App = (() => {
   }
   const openDetail = (kind, id, fromDrawer) => (kind === 'ev' ? push({ type: 'form', kind: 'ev', id }, fromDrawer) : push({ type: 'detail', kind, id }, fromDrawer));
 
-  function onSubmit(form) {
+  async function onSubmit(form) {
     const res = F.collect(form);
     if (!res) return;
     const { kind, obj } = res;
     const id = form.dataset.id;
     if (id) obj.id = id;
+    if (!id && ['biz', 'net', 'card'].includes(kind)) {
+      const d = S.dupesOf(kind, obj);
+      const list = d.slice(0, 3).map(x => `'${x.x.name}${kind === 'card' && x.x.org ? ' · ' + x.x.org : ''}' (${x.why.join(', ')})`).join(', ');
+      if (d.length && !(await confirmBox('이미 비슷한 게 있어요', `${list}${d.length > 3 ? ` 외 ${d.length - 3}건` : ''}. 그래도 새로 등록할까요? 등록한 뒤에도 상세 화면에서 합칠 수 있어요.`, '그래도 등록'))) return;
+    }
     const saved = S.upsert(kind, obj);
     if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
     toast(id ? '저장했습니다.' : '등록했습니다.');
@@ -425,9 +435,9 @@ window.App = (() => {
   }
 
   function guessLink(org) {
-    const k = U.norm(org).replace(/^\(주\)|주식회사|\(주\)/g, '');
+    const k = U.orgKey(org);
     if (k.length < 2) return null;
-    const hit = (list, kind) => { const x = list.find(o => { const n = U.norm(o.name).replace(/^\(주\)|주식회사|\(주\)/g, ''); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
+    const hit = (list, kind) => { const x = list.find(o => { const n = U.orgKey(o.name); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
     return hit(S.get().businesses, 'biz') || hit(S.get().networks, 'net');
   }
 
@@ -557,7 +567,27 @@ window.App = (() => {
     'dr-cancel': () => { stack.pop(); renderDrawer(); },
     'biz-stage': el => { V.ui.biz.stage = el.dataset.stage; if (route() === 'biz') render(); else location.hash = '#/biz'; },
     'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else f[k] = ''; render(); },
-    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all' }); render(); },
+    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all', dup: false }); render(); },
+    'dup-toggle': el => { const f = V.ui[el.dataset.kind === 'card' ? 'cards' : el.dataset.kind]; f.dup = !f.dup; render(); },
+    'cards-of': el => {
+      const x = S.find(el.dataset.kind, el.dataset.id);
+      if (!x) return;
+      Object.assign(V.ui.cards, { of: { kind: el.dataset.kind, id: x.id, name: x.name }, q: '', idx: '', link: 'all', dup: false });
+      closeDrawer();
+      if (location.hash === '#/cards') render(); else location.hash = '#/cards';
+    },
+    'cards-of-clear': () => { V.ui.cards.of = null; render(); },
+    merge: async el => {
+      const { kind, keep, drop } = el.dataset;
+      const a = S.find(kind, keep), b = S.find(kind, drop);
+      if (!a || !b) return;
+      const what = { biz: '사업체', net: '기관', card: '명함' }[kind];
+      if (!(await confirmBox(`${what}를 하나로 합칠까요?`, `'${b.name}'의 내용을 '${a.name}'에 합칩니다. 비어 있는 칸만 채우고${kind === 'card' ? '' : ', 활동 기록·일정·명함 연결을 옮긴'} 뒤 '${b.name}'은(는) 지웁니다.${kind === 'card' && !a.photo && b.photo ? ' (사진이 있는 쪽을 남깁니다)' : ''}`, '합치기'))) return;
+      const kept = S.merge(kind, keep, drop);
+      toast(`${what}를 합쳤습니다.`);
+      stack = [{ type: 'detail', kind, id: kept }];
+      renderDrawer();
+    },
     'biz-upload': () => $('#globalBizFile').click(),
     'card-photo': () => $('#globalCardPhoto').click(),
     'card-idx': el => { V.ui.cards.idx = el.dataset.idx; render(); },
@@ -701,6 +731,14 @@ window.App = (() => {
     'ct-copy': async () => { const ok = await copyText(R.contactTsv()); toast(ok ? '복사했습니다. 공유 시트 연락이력 탭의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-copy-report': async () => { const ok = await copyText(R.reportTsv()); toast(ok ? '복사했습니다. 보고용 시트 방문 사업체 표의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-paste': () => push({ type: 'paste', state: { text: '', rows: [] } }, false),
+    'ct-url': el => {
+      const a = S.find('act', el.dataset.id);
+      if (!a) return;
+      const v = window.prompt('구인공고 주소 (지우려면 비워 두세요)', a.jobUrl || '');
+      if (v == null) return;
+      S.upsert('act', { id: a.id, jobUrl: v.trim() });
+      toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
+    },
     'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const n = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${n}줄을 가져왔습니다.`); },
     'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },

@@ -58,6 +58,7 @@ window.R = (() => {
           <label>연락결과<select class="select" name="result">${opts(D.CONTACT_RESULTS, '', '선택')}</select></label>
           <label>상태<select class="select" name="status">${opts(D.CONTACT_STATUS, '연락완료')}</select></label>
           <label class="grow">주소 <span class="sub">(새 사업체일 때)</span><input class="input" name="address"></label>
+          <label class="grow">구인공고 주소 <span class="sub">(고용24·워크투게더 등 공고 글 주소)</span><input class="input" name="jobUrl" inputmode="url" placeholder="https://www.work24.go.kr/..."></label>
           <button class="btn btn-primary" type="submit">추가</button>
           <datalist id="ctBizList">${names.map(n => `<option value="${e(n)}">`).join('')}</datalist>
         </form>
@@ -93,12 +94,14 @@ window.R = (() => {
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
-      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th></tr></thead><tbody>
+      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th></tr></thead><tbody>
         ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num">${a.date}</td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap">${e(a.content)}</td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
-          <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td></tr>`).join('')}
+          <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td>
+          <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
+            : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td></tr>`).join('')}
       </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
   }
@@ -107,7 +110,7 @@ window.R = (() => {
 
   /** 연락 기록 한 줄 저장 (새 사업체면 등록, 단계도 자연스럽게 올림) */
   function addContact(fd) {
-    const key = n => U.norm(n).replace(/^\(주\)|주식회사|\(주\)/g, '');
+    const key = n => U.orgKey(n);
     const name = fd.name.trim();
     let b = S.get().businesses.find(x => key(x.name) === key(name));
     const me = fd.staff && S.staff().some(x => x.name === fd.staff) ? fd.staff : S.me();
@@ -122,12 +125,19 @@ window.R = (() => {
       else if (b.stage === '접촉' && fd.type === '방문') patch.stage = '방문상담';
       if (Object.keys(patch).length) S.upsert('biz', { id: b.id, ...patch });
     }
-    S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', perf: '', people: '' });
+    S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', jobUrl: (fd.jobUrl || '').trim(), perf: '', people: '' });
     return b;
+  }
+  /** 구인공고 주소를 열 수 있는 링크로: http(s)만, www.로 시작하면 https를 붙인다 */
+  function jobLink(u) {
+    const s = String(u || '').trim();
+    if (/^https?:\/\/\S+$/i.test(s)) return s;
+    if (/^www\.\S+$/i.test(s) || /^[a-z0-9-]+(\.[a-z0-9-]+)+\/\S*$/i.test(s)) return 'https://' + s;
+    return '';
   }
 
   /* ---------- 공유 시트에서 붙여넣어 가져오기 ---------- */
-  const COLS = [['date', ['날짜', '일자']], ['name', ['사업체명', '업체명', '사업체', '업체']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명']], ['jobType', ['직종', '직무']], ['content', ['결과', '내용']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원']]];
+  const COLS = [['date', ['날짜', '일자']], ['name', ['사업체명', '업체명', '사업체', '업체']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명']], ['jobType', ['직종', '직무']], ['content', ['결과', '내용']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
   // 머리글이 없으면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
   function parsePaste(text) {
@@ -355,5 +365,5 @@ window.R = (() => {
     }));
   }
 
-  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ui, jobLink, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();

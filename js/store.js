@@ -13,7 +13,7 @@ window.S = (() => {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
@@ -315,6 +315,86 @@ window.S = (() => {
     };
   }
 
+  /* ---------- 중복 찾기 · 합치기 ---------- */
+  const orgKey = U.orgKey;
+  const digits = s => String(s || '').replace(/\D/g, '');
+  /** 같은 곳·같은 사람으로 볼 열쇠들. 열쇠 하나라도 같으면 중복 의심 */
+  function dupKeys(kind, x) {
+    const k = [];
+    if (kind === 'card') {
+      if (digits(x.mobile).length >= 10) k.push(['m' + digits(x.mobile), '휴대전화 같음']);
+      if (x.email && x.email.includes('@')) k.push(['e' + x.email.trim().toLowerCase(), '이메일 같음']);
+      if (U.norm(x.name) && orgKey(x.org)) k.push(['o' + U.norm(x.name) + '|' + orgKey(x.org), '이름·소속 같음']);
+    } else {
+      if (orgKey(x.name).length >= 2) k.push(['n' + orgKey(x.name), '이름 같음']);
+      if (kind === 'biz' && digits(x.bizNo).length === 10) k.push(['b' + digits(x.bizNo), '사업자번호 같음']);
+      if (digits(x.phone).length >= 9) k.push(['p' + digits(x.phone), '대표 전화 같음']);
+    }
+    return k;
+  }
+  /** kind 전체에서 중복 의심 묶음: id → [{ x, why }] */
+  function dupIndex(kind) {
+    const list = state[COL[kind]];
+    const bucket = new Map();
+    list.forEach(x => dupKeys(kind, x).forEach(([key, why]) => { if (!bucket.has(key)) bucket.set(key, []); bucket.get(key).push([x, why]); }));
+    const out = new Map();
+    bucket.forEach(group => {
+      if (group.length < 2) return;
+      group.forEach(([x]) => group.forEach(([y, why]) => {
+        if (x.id === y.id) return;
+        const arr = out.get(x.id) || out.set(x.id, []).get(x.id);
+        const hit = arr.find(d => d.x.id === y.id);
+        if (hit) { if (!hit.why.includes(why)) hit.why.push(why); } else arr.push({ x: y, why: [why] });
+      }));
+    });
+    return out;
+  }
+  /** 새로 등록하려는 것과 겹치는 기존 항목 */
+  function dupesOf(kind, obj) {
+    const keys = new Map(dupKeys(kind, obj));
+    const out = [];
+    state[COL[kind]].forEach(y => {
+      if (y.id === obj.id) return;
+      const why = dupKeys(kind, y).filter(([k]) => keys.has(k)).map(([, w]) => w);
+      if (why.length) out.push({ x: y, why });
+    });
+    return out;
+  }
+  /** dropId를 keepId에 합친다: 빈 칸 채우기, 활동·일정·명함 연결 옮기기, dropId 삭제 */
+  function merge(kind, keepId, dropId) {
+    const col = COL[kind];
+    let keep = find(kind, keepId), drop = find(kind, dropId);
+    if (!keep || !drop || keep === drop) return null;
+    if (kind === 'card' && !keep.photo && drop.photo) [keep, drop] = [drop, keep]; // 사진 있는 쪽을 남긴다
+    const patch = { id: keep.id };
+    const empty = v => v == null || v === '' || v === 0 || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
+    Object.keys(drop).forEach(k => {
+      if (['id', 'createdAt', 'updatedAt', 'photo', 'lat', 'lng', 'approx', 'area'].includes(k)) return;
+      const kv = keep[k], dv = drop[k];
+      if (empty(dv)) return;
+      if (k === 'jobAnalyses') patch[k] = [...(kv || []), ...dv.filter(j => !(kv || []).some(o => o.id === j.id))];
+      else if (Array.isArray(dv)) patch[k] = [...new Set([...(kv || []), ...dv])];
+      else if (k === 'memo' && kv && !String(kv).includes(dv)) patch[k] = `${kv}\n${dv}`;
+      else if (empty(kv)) patch[k] = dv;
+    });
+    if (kind !== 'card' ? (keep.approx || keep.lat == null) && drop.lat != null && !drop.approx : keep.lat == null && drop.lat != null) Object.assign(patch, { lat: drop.lat, lng: drop.lng, approx: !!drop.approx, area: drop.area || keep.area });
+    if (kind === 'biz' && D.STAGE[drop.stage] && D.STAGE[keep.stage] && drop.stage !== '보류' && (keep.stage === '보류' || D.STAGE[drop.stage].i > D.STAGE[keep.stage].i)) patch.stage = drop.stage;
+    if (kind === 'biz') patch.placements = Math.max(Number(keep.placements) || 0, Number(drop.placements) || 0);
+    const moved = [];
+    if (kind !== 'card') {
+      state.activities.forEach(a => { if (a.targetType === kind && a.targetId === drop.id) { a.targetId = keep.id; moved.push(['activities', a]); } });
+      state.events.forEach(v => { if (v.targetType === kind && v.targetId === drop.id) { v.targetId = keep.id; moved.push(['events', v]); } });
+      state.cards.forEach(c => { if (c.linkType === kind && c.linkId === drop.id) { c.linkId = keep.id; moved.push(['cards', c]); } });
+    }
+    state[col] = state[col].filter(x => x.id !== drop.id);
+    upsert(kind, patch); // commit + 저장
+    if (REMOTE) {
+      send('api_apply', [...moved.map(([c, r]) => opPut(c, r)), opDel(col, drop.id)]).catch(() => {});
+      if (kind === 'card' && drop.photo) send('api_delPhoto', drop.id).catch(() => {});
+    }
+    return keep.id;
+  }
+
   /** 명함 사진: 로컬 모드는 data URL, 공유 모드는 필요할 때 시트에서 불러온다 */
   const photoLoading = new Set();
   function photo(c) {
@@ -558,8 +638,8 @@ window.S = (() => {
     const found = new Set();
     const scan = txt => { if (/현장\s*훈련/.test(txt || '')) found.add('현장훈련'); if (/지원\s*고용/.test(txt || '')) found.add('지원고용'); };
     actsOf('biz', b.id).forEach(a => { if (a.training === '유') found.add('현장훈련'); scan(a.content); });
-    const key = U.norm(b.name).replace(/\(주\)|주식회사|점$/g, '');
-    if (key.length >= 2) state.trips.forEach(t => { const p = U.norm(t.place || '').replace(/\(주\)|주식회사|점$/g, ''); if (p && (p.includes(key) || key.includes(p)) && p.length >= 2) scan(t.purpose); });
+    const key = U.orgKey(b.name).replace(/점$/, '');
+    if (key.length >= 2) state.trips.forEach(t => { const p = U.orgKey(t.place || '').replace(/점$/, ''); if (p && (p.includes(key) || key.includes(p)) && p.length >= 2) scan(t.purpose); });
     found.forEach(t => set.add(t));
     return { types: D.SUPPORT_TYPES.filter(t => set.has(t)), auto: [...found].some(t => !(b.support || []).includes(t)) };
   }
@@ -567,7 +647,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, accessInfo, supportOf, isHome, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, accessInfo, supportOf, isHome, dupIndex, dupesOf, merge, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

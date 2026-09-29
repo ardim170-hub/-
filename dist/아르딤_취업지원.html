@@ -701,6 +701,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --st-placed: #2F7D57;
   --st-hold: #B8BFCC;
 
+  /* 종류별 색 (지도·목록·상세·대시보드 공통): 사업체 노랑, 지원고용·현장훈련 빨강, 기관 검정, 복지관 금색, 명함 청록, 중복 주황 */
+  --k-biz: #F5B700;      --k-biz-soft: #FFF6D6;      --k-biz-ink: #7A5A00;
+  --k-support: #E5383B;  --k-support-soft: #FDE8E8;  --k-support-ink: #A61B1E;
+  --k-net: #1B1F24;      --k-net-soft: #ECEEF1;      --k-net-ink: #1B1F24;
+  --k-home: #D4A017;     --k-home-soft: #FFF8E1;     --k-home-ink: #6B4E00;
+  --k-card: #0E9384;     --k-card-soft: #E3F6F3;     --k-card-ink: #0B6B61;
+  --k-ev: #2563EB;       --k-ev-soft: #EAF1FE;       --k-ev-ink: #1D4ED8;
+  --k-dup: #EA580C;      --k-dup-soft: #FFF1E6;      --k-dup-ink: #C2410C;
+
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
   --radius: 8px;
   --radius-sm: 6px;
@@ -1423,6 +1432,108 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 label.field > span { font-size: 13px; font-weight: 600; color: var(--text); }
 label.field .textarea { width: 100%; }
 
+/* ================= 색으로 구분하기 =================
+ * 메뉴·제목: 화면마다 고유 색 / 목록·명함·상세·지도 팝업: 종류(사업체·지원고용·기관·복지관·명함) 색 */
+/* ---------- 메뉴별 퍼스널 컬러 ----------
+ * 각 메뉴는 고유 색 하나를 가진다: --pc 본색, --ps 연한 바탕, --pi 글자용 진한 색, --pn 본색 위 아이콘 색
+ * 옆 메뉴 아이콘 칸 · 선택된 메뉴 · 그 화면의 제목 띠 · 선택된 탭/필터가 모두 같은 색을 쓴다 */
+.side-nav a[href="#/dashboard"], .bottom-nav a[href="#/dashboard"], body[data-route="dashboard"] { --pc: #132B4F; --ps: #E8EDF5; --pi: #132B4F; --pn: #fff; }
+.side-nav a[href="#/biz"], .bottom-nav a[href="#/biz"], body[data-route="biz"] { --pc: #F5B700; --ps: #FFF6D6; --pi: #7A5A00; --pn: #3B2A00; }
+.side-nav a[href="#/map"], .bottom-nav a[href="#/map"], body[data-route="map"] { --pc: #2F9E62; --ps: #E4F5EB; --pi: #1E6B42; --pn: #fff; }
+.side-nav a[href="#/cards"], .bottom-nav a[href="#/cards"], body[data-route="cards"] { --pc: #0E9384; --ps: #E3F6F3; --pi: #0B6B61; --pn: #fff; }
+.side-nav a[href="#/network"], .bottom-nav a[href="#/network"], body[data-route="network"] { --pc: #1B1F24; --ps: #ECEEF1; --pi: #1B1F24; --pn: #fff; }
+.side-nav a[href="#/schedule"], body[data-route="schedule"] { --pc: #2563EB; --ps: #EAF1FE; --pi: #1D4ED8; --pn: #fff; }
+.side-nav a[href="#/contacts"], body[data-route="contacts"] { --pc: #E8590C; --ps: #FFF0E6; --pi: #B03E05; --pn: #fff; }
+.side-nav a[href="#/perf"], body[data-route="perf"] { --pc: #7C4DDB; --ps: #F1EAFD; --pi: #5B2FB5; --pn: #fff; }
+.side-nav a[href="#/orders"], body[data-route="orders"] { --pc: #3B5BDB; --ps: #EAEEFC; --pi: #2A44B0; --pn: #fff; }
+.side-nav a[href="#/data"], body[data-route="data"] { --pc: #667085; --ps: #EEF0F4; --pi: #475467; --pn: #fff; }
+
+/* 옆 메뉴: 아이콘을 색 칸에 담고, 선택된 메뉴는 색을 꽉 채운다 */
+.side-nav a { position: relative; padding: 6px 10px; }
+.side-nav a svg { width: 30px; height: 30px; padding: 6px; border-radius: 9px; background: var(--ps, var(--surface-2)); color: var(--pi, var(--text-2)); transition: background .15s, color .15s; }
+.side-nav a:hover { background: var(--ps, var(--surface-2)); color: var(--text); }
+.side-nav a:hover svg { background: var(--surface); }
+.side-nav a.active { background: var(--ps); color: var(--pi); font-weight: 700; }
+.side-nav a.active svg { background: var(--pc); color: var(--pn); box-shadow: 0 2px 6px color-mix(in srgb, var(--pc) 40%, transparent); }
+.side-nav a.active::before { content: ""; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--pc); }
+.side-nav a.active .count { color: var(--pi); font-weight: 700; }
+.bottom-nav a.active, .bottom-nav a[aria-current="page"] { color: var(--pi, var(--navy)); }
+
+/* 화면 제목: 메뉴 색 띠 */
+.page-head { position: relative; padding: 14px 18px; border-radius: 12px; background: linear-gradient(100deg, var(--ps, var(--surface)) 0%, var(--surface) 70%); border: 1px solid color-mix(in srgb, var(--pc, var(--line)) 22%, var(--line)); border-left: 6px solid var(--pc, var(--navy)); align-items: center; }
+.page-title { color: var(--pi, var(--text)); }
+.page-desc { color: var(--text-2); }
+
+/* 그 화면의 선택된 탭·필터도 메뉴 색 */
+#view .chip.on { background: var(--pi, var(--navy)); border-color: var(--pi, var(--navy)); color: #fff; }
+#view .section-title { color: var(--text); }
+
+/* 대시보드 숫자 칸: 위쪽 색 띠 */
+.kpi { position: relative; }
+.kpi[class*="tone-"]::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; background: var(--tc); }
+.kpi.tone-biz { --tc: var(--k-biz); }
+.kpi.tone-support { --tc: var(--k-support); }
+.kpi.tone-net { --tc: var(--k-net); }
+.kpi.tone-card { --tc: var(--k-card); }
+.kpi[class*="tone-"] .kpi-label::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--tc); margin-right: 6px; vertical-align: 1px; }
+
+/* 목록 줄: 왼쪽 색 띠 */
+.tbl tr.row-biz td:first-child { box-shadow: inset 4px 0 0 var(--k-biz); }
+.tbl tr.row-biz.is-support td:first-child { box-shadow: inset 4px 0 0 var(--k-support); }
+.tbl tr.row-net td:first-child { box-shadow: inset 4px 0 0 var(--k-net); }
+.tbl tr.row-net.is-home td:first-child { box-shadow: inset 4px 0 0 var(--k-home); }
+.mrow.row-biz { border-left: 4px solid var(--k-biz); }
+.mrow.row-biz.is-support { border-left-color: var(--k-support); }
+.home-star { color: var(--k-home); margin-right: 4px; }
+
+/* 명함: 위쪽 색 띠 = 연결된 곳의 종류 */
+.bcard::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--kc, transparent); }
+.bcard.k-biz { --kc: var(--k-biz); }
+.bcard.k-support { --kc: var(--k-support); }
+.bcard.k-net { --kc: var(--k-net); }
+.bcard.k-home { --kc: var(--k-home); }
+.bcard.k-none { border-style: dashed; border-color: var(--line-strong); }
+
+/* 배지 */
+.badge.dup { background: var(--k-dup-soft); color: var(--k-dup-ink); border: 1px solid #FDBA8C; cursor: help; }
+.badge.support { background: var(--k-support-soft); color: var(--k-support-ink); font-weight: 700; }
+
+/* 중복 안내 */
+.dup-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 0 0 12px; padding: 10px 14px; border: 1px solid #FED7AA; border-left: 4px solid var(--k-dup); border-radius: 8px; background: var(--k-dup-soft); color: var(--k-dup-ink); font-size: 14px; }
+.dup-sec { border: 1px solid #FED7AA; border-radius: 10px; background: #FFFBF5; padding: 12px 14px; }
+.dup-sec h3 { color: var(--k-dup-ink); }
+
+/* 상세·등록 창: 머리에 종류 색 띠와 이름표 */
+#drawerInner[data-tone] { --dc: transparent; --ds: var(--surface); --di: var(--text-2); }
+#drawerInner[data-tone="biz"] { --dc: var(--k-biz); --ds: var(--k-biz-soft); --di: var(--k-biz-ink); --dl: "사업체 개발"; }
+#drawerInner[data-tone="support"] { --dc: var(--k-support); --ds: var(--k-support-soft); --di: var(--k-support-ink); --dl: "지원고용 · 현장훈련 사업체"; }
+#drawerInner[data-tone="net"] { --dc: var(--k-net); --ds: var(--k-net-soft); --di: var(--k-net-ink); --dl: "네트워크 기관"; }
+#drawerInner[data-tone="home"] { --dc: var(--k-home); --ds: var(--k-home-soft); --di: var(--k-home-ink); --dl: "★ 우리 복지관"; }
+#drawerInner[data-tone="card"] { --dc: var(--k-card); --ds: var(--k-card-soft); --di: var(--k-card-ink); --dl: "명함"; }
+#drawerInner[data-tone="ev"] { --dc: var(--k-ev); --ds: var(--k-ev-soft); --di: var(--k-ev-ink); --dl: "일정"; }
+#drawerInner[data-tone]:not([data-tone=""]) .dr-head { border-top: 6px solid var(--dc); background: linear-gradient(var(--ds), var(--surface) 85%); }
+#drawerInner[data-tone]:not([data-tone=""]) .dr-head::before { content: var(--dl); align-self: flex-start; font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--di); background: var(--surface); border: 1px solid var(--dc); border-radius: 999px; padding: 1px 10px; }
+
+/* 지도 팝업 */
+.leaflet-popup-content .pop-kind { display: inline-block; font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 1px 8px; margin-bottom: 6px; background: var(--ps); color: var(--pi); border: 1px solid var(--pc); }
+.pop.tone-biz { --pc: var(--k-biz); --ps: var(--k-biz-soft); --pi: var(--k-biz-ink); }
+.pop.tone-support { --pc: var(--k-support); --ps: var(--k-support-soft); --pi: var(--k-support-ink); }
+.pop.tone-net { --pc: var(--k-net); --ps: var(--k-net-soft); --pi: var(--k-net-ink); }
+.pop.tone-home { --pc: var(--k-home); --ps: var(--k-home-soft); --pi: var(--k-home-ink); }
+.leaflet-popup-content .pop-cards { list-style: none; margin: 0 0 8px; padding: 8px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.leaflet-popup-content .pop-cards li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; }
+.leaflet-popup-content .pop-cards .pop-meta { margin: 0; }
+.leaflet-popup-content .pop-cards li::before { content: ""; width: 7px; height: 7px; border-radius: 2px; background: var(--k-card); flex: none; align-self: center; }
+.leaflet-popup-content .pop-nocard { border-top: 1px solid var(--line); padding-top: 6px; }
+.leaflet-popup-content .pop-tel { font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.leaflet-popup-content .pop-actions { gap: 6px; flex-wrap: wrap; }
+/* 구인공고 바로가기 */
+.btn-job { background: var(--k-ev-soft); border-color: #BFD3FB; color: var(--k-ev-ink); font-weight: 700; }
+.btn-job-inline { margin-left: 6px; font-size: 12.5px; font-weight: 700; color: var(--k-ev-ink); background: var(--k-ev-soft); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
+.url-in { min-width: 150px; }
+.linklike { border: 0; background: none; padding: 0; color: var(--k-card-ink); font-weight: 700; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.kpi, .kpi:hover { text-decoration: none; color: inherit; }
+
 </style>
 </head>
 <body>
@@ -1504,7 +1615,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.29 15:18";</script>
+<script>window.APP_VERSION = "2026.09.29 15:40";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -1578,6 +1689,8 @@ window.U = (() => {
   const num = n => Number(n || 0).toLocaleString('ko-KR');
   const uid = p => p + Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 6);
   const norm = s => String(s ?? '').toLowerCase().replace(/[\s\-().]/g, '');
+  /** 회사 이름 비교용: (주)·㈜·주식회사 같은 회사 형태 표기를 지우고 norm (norm이 괄호를 먼저 지우므로 순서가 중요) */
+  const orgKey = s => norm(String(s ?? '').replace(/[(（]\s*(주|유|재|사|합|의)\s*[)）]|㈜|주식회사|유한회사|유한책임회사|재단법인|사단법인|합자회사|의료법인|사회복지법인/g, ''));
 
   /** 검색어를 강조 표시 (이스케이프 후) */
   function hl(text, q) {
@@ -1624,7 +1737,7 @@ window.U = (() => {
     return ({ 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' })[c] || (/[ㄱ-ㅎ]/.test(c) ? c : (c ? 'A-Z' : ''));
   };
 
-  return { cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
+  return { orgKey, cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
 })();
 
 </script>
@@ -1989,7 +2102,7 @@ window.S = (() => {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
@@ -2291,6 +2404,86 @@ window.S = (() => {
     };
   }
 
+  /* ---------- 중복 찾기 · 합치기 ---------- */
+  const orgKey = U.orgKey;
+  const digits = s => String(s || '').replace(/\D/g, '');
+  /** 같은 곳·같은 사람으로 볼 열쇠들. 열쇠 하나라도 같으면 중복 의심 */
+  function dupKeys(kind, x) {
+    const k = [];
+    if (kind === 'card') {
+      if (digits(x.mobile).length >= 10) k.push(['m' + digits(x.mobile), '휴대전화 같음']);
+      if (x.email && x.email.includes('@')) k.push(['e' + x.email.trim().toLowerCase(), '이메일 같음']);
+      if (U.norm(x.name) && orgKey(x.org)) k.push(['o' + U.norm(x.name) + '|' + orgKey(x.org), '이름·소속 같음']);
+    } else {
+      if (orgKey(x.name).length >= 2) k.push(['n' + orgKey(x.name), '이름 같음']);
+      if (kind === 'biz' && digits(x.bizNo).length === 10) k.push(['b' + digits(x.bizNo), '사업자번호 같음']);
+      if (digits(x.phone).length >= 9) k.push(['p' + digits(x.phone), '대표 전화 같음']);
+    }
+    return k;
+  }
+  /** kind 전체에서 중복 의심 묶음: id → [{ x, why }] */
+  function dupIndex(kind) {
+    const list = state[COL[kind]];
+    const bucket = new Map();
+    list.forEach(x => dupKeys(kind, x).forEach(([key, why]) => { if (!bucket.has(key)) bucket.set(key, []); bucket.get(key).push([x, why]); }));
+    const out = new Map();
+    bucket.forEach(group => {
+      if (group.length < 2) return;
+      group.forEach(([x]) => group.forEach(([y, why]) => {
+        if (x.id === y.id) return;
+        const arr = out.get(x.id) || out.set(x.id, []).get(x.id);
+        const hit = arr.find(d => d.x.id === y.id);
+        if (hit) { if (!hit.why.includes(why)) hit.why.push(why); } else arr.push({ x: y, why: [why] });
+      }));
+    });
+    return out;
+  }
+  /** 새로 등록하려는 것과 겹치는 기존 항목 */
+  function dupesOf(kind, obj) {
+    const keys = new Map(dupKeys(kind, obj));
+    const out = [];
+    state[COL[kind]].forEach(y => {
+      if (y.id === obj.id) return;
+      const why = dupKeys(kind, y).filter(([k]) => keys.has(k)).map(([, w]) => w);
+      if (why.length) out.push({ x: y, why });
+    });
+    return out;
+  }
+  /** dropId를 keepId에 합친다: 빈 칸 채우기, 활동·일정·명함 연결 옮기기, dropId 삭제 */
+  function merge(kind, keepId, dropId) {
+    const col = COL[kind];
+    let keep = find(kind, keepId), drop = find(kind, dropId);
+    if (!keep || !drop || keep === drop) return null;
+    if (kind === 'card' && !keep.photo && drop.photo) [keep, drop] = [drop, keep]; // 사진 있는 쪽을 남긴다
+    const patch = { id: keep.id };
+    const empty = v => v == null || v === '' || v === 0 || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v).length);
+    Object.keys(drop).forEach(k => {
+      if (['id', 'createdAt', 'updatedAt', 'photo', 'lat', 'lng', 'approx', 'area'].includes(k)) return;
+      const kv = keep[k], dv = drop[k];
+      if (empty(dv)) return;
+      if (k === 'jobAnalyses') patch[k] = [...(kv || []), ...dv.filter(j => !(kv || []).some(o => o.id === j.id))];
+      else if (Array.isArray(dv)) patch[k] = [...new Set([...(kv || []), ...dv])];
+      else if (k === 'memo' && kv && !String(kv).includes(dv)) patch[k] = `${kv}\n${dv}`;
+      else if (empty(kv)) patch[k] = dv;
+    });
+    if (kind !== 'card' ? (keep.approx || keep.lat == null) && drop.lat != null && !drop.approx : keep.lat == null && drop.lat != null) Object.assign(patch, { lat: drop.lat, lng: drop.lng, approx: !!drop.approx, area: drop.area || keep.area });
+    if (kind === 'biz' && D.STAGE[drop.stage] && D.STAGE[keep.stage] && drop.stage !== '보류' && (keep.stage === '보류' || D.STAGE[drop.stage].i > D.STAGE[keep.stage].i)) patch.stage = drop.stage;
+    if (kind === 'biz') patch.placements = Math.max(Number(keep.placements) || 0, Number(drop.placements) || 0);
+    const moved = [];
+    if (kind !== 'card') {
+      state.activities.forEach(a => { if (a.targetType === kind && a.targetId === drop.id) { a.targetId = keep.id; moved.push(['activities', a]); } });
+      state.events.forEach(v => { if (v.targetType === kind && v.targetId === drop.id) { v.targetId = keep.id; moved.push(['events', v]); } });
+      state.cards.forEach(c => { if (c.linkType === kind && c.linkId === drop.id) { c.linkId = keep.id; moved.push(['cards', c]); } });
+    }
+    state[col] = state[col].filter(x => x.id !== drop.id);
+    upsert(kind, patch); // commit + 저장
+    if (REMOTE) {
+      send('api_apply', [...moved.map(([c, r]) => opPut(c, r)), opDel(col, drop.id)]).catch(() => {});
+      if (kind === 'card' && drop.photo) send('api_delPhoto', drop.id).catch(() => {});
+    }
+    return keep.id;
+  }
+
   /** 명함 사진: 로컬 모드는 data URL, 공유 모드는 필요할 때 시트에서 불러온다 */
   const photoLoading = new Set();
   function photo(c) {
@@ -2534,8 +2727,8 @@ window.S = (() => {
     const found = new Set();
     const scan = txt => { if (/현장\s*훈련/.test(txt || '')) found.add('현장훈련'); if (/지원\s*고용/.test(txt || '')) found.add('지원고용'); };
     actsOf('biz', b.id).forEach(a => { if (a.training === '유') found.add('현장훈련'); scan(a.content); });
-    const key = U.norm(b.name).replace(/\(주\)|주식회사|점$/g, '');
-    if (key.length >= 2) state.trips.forEach(t => { const p = U.norm(t.place || '').replace(/\(주\)|주식회사|점$/g, ''); if (p && (p.includes(key) || key.includes(p)) && p.length >= 2) scan(t.purpose); });
+    const key = U.orgKey(b.name).replace(/점$/, '');
+    if (key.length >= 2) state.trips.forEach(t => { const p = U.orgKey(t.place || '').replace(/점$/, ''); if (p && (p.includes(key) || key.includes(p)) && p.length >= 2) scan(t.purpose); });
     found.forEach(t => set.add(t));
     return { types: D.SUPPORT_TYPES.filter(t => set.has(t)), auto: [...found].some(t => !(b.support || []).includes(t)) };
   }
@@ -2543,7 +2736,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, accessInfo, supportOf, isHome, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, accessInfo, supportOf, isHome, dupIndex, dupesOf, merge, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
@@ -2689,8 +2882,17 @@ window.M = (() => {
     const meta = kind === 'biz'
       ? `${sup.length ? `<b style="color:${D.MAP_COLORS.support}">${sup.join('·')} 진행</b> · ` : ''}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
-    return `<div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
-      <button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button>`;
+    // 연결된 명함: 이름을 누르면 명함 상세, 전화 아이콘은 바로 걸기
+    const cards = S.cardsOf(kind, x.id);
+    const telOf = c => String(c.mobile || c.phone || '').replace(/[^0-9+]/g, '');
+    const tone = kind === 'biz' ? (sup.length ? 'support' : 'biz') : S.isHome(x) ? 'home' : 'net';
+    const cardList = cards.length
+      ? `<ul class="pop-cards">${cards.slice(0, 4).map(c => `<li><button type="button" class="linklike" data-act="open" data-kind="card" data-id="${c.id}">${U.esc(c.name)}</button> <span class="pop-meta">${U.esc([c.dept, c.title].filter(Boolean).join(' · '))}</span>${telOf(c) ? ` <a class="pop-tel" href="tel:${telOf(c)}">${U.esc(c.mobile || c.phone)}</a>` : ''}</li>`).join('')}${cards.length > 4 ? `<li class="pop-meta">외 ${cards.length - 4}장</li>` : ''}</ul>`
+      : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
+    return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', support: '지원고용·현장훈련', net: '기관', home: '우리 복지관' }[tone]}</div>
+      <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
+      ${cardList}
+      <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div></div>`;
   }
 
   /** 위치 지정용 지도: 클릭하면 핀 이동 */
@@ -2899,9 +3101,9 @@ window.V = (() => {
     camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
-    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
-    net: { cat: '전체', q: '', status: '' },
-    cards: { q: '', link: 'all', sort: 'recent', idx: '' },
+    biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
+    net: { cat: '전체', q: '', status: '', dup: false },
+    cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
@@ -2966,16 +3168,16 @@ window.V = (() => {
     const pr = S.priorities().slice(0, 10);
     const feed = S.recentActs(9);
     const org = S.get().settings.orgName;
-    const kpi = (label, value, unit, foot, href) => `<a class="kpi" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
+    const kpi = (label, value, unit, foot, href, tone = '') => `<a class="kpi ${tone ? 'tone-' + tone : ''}" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
       <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
       ${quickLinks()}
       <section class="panel kpis" aria-label="주요 현황">
-        ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz')}
-        ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz')}
-        ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz')}
-        ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network')}
-        ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards')}
+        ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz', 'biz')}
+        ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz', 'biz')}
+        ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz', 'support')}
+        ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network', 'net')}
+        ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards', 'card')}
       </section>
       <div class="dash-grid dash-top">
           <section class="panel panel-pad">
@@ -3108,7 +3310,9 @@ window.V = (() => {
   function bizFiltered() {
     const f = ui.biz;
     const nq = U.norm(f.q);
+    const dup = S.dupIndex('biz');
     let list = S.view().businesses.filter(b => {
+      if (f.dup && !dup.has(b.id)) return false;
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
       if (!inArea(b, f.area)) return false;
       if (f.industry && b.industry !== f.industry) return false;
@@ -3126,6 +3330,21 @@ window.V = (() => {
     return list.sort(sorters[f.sort] || sorters.recent);
   }
 
+  /** 중복 의심 표시 · 지원고용 표시 */
+  const dupTag = (idx, id) => (idx.has(id) ? ` <span class="badge dup" title="${e(idx.get(id).map(d => d.x.name + ' (' + d.why.join(', ') + ')').join(' / '))}">중복?</span>` : '');
+  const supTag = b => { const t = S.supportOf(b).types; return t.length ? ` <span class="badge support">${t.join('·')}</span>` : ''; };
+  const dupBar = (kind, n, on) => (n ? `<div class="dup-bar"><span>${{ biz: '사업체', net: '기관', card: '명함' }[kind]} <b>${n}</b>건이 다른 것과 겹쳐 보여요. 같은 곳이면 상세 화면에서 합칠 수 있어요.</span><button class="btn btn-sm" type="button" data-act="dup-toggle" data-kind="${kind}">${on ? '전체 보기' : '겹치는 것만 보기'}</button></div>` : '');
+  function dupSec(kind, x) {
+    const list = S.dupIndex(kind).get(x.id) || [];
+    if (!list.length) return '';
+    const label = y => (kind === 'card' ? `${y.name} · ${y.org || '소속 없음'}` : y.name);
+    const meta = y => (kind === 'card' ? [y.mobile, y.email].filter(Boolean).join(' · ') : [y.address, y.phone].filter(Boolean).join(' · '));
+    return `<section class="dr-sec dup-sec"><h3>중복 의심 <span class="badge dup">${list.length}</span></h3>
+      <p class="sub" style="margin:0 0 8px">같은 ${kind === 'card' ? '사람' : '곳'}이 두 번 등록된 것 같아요. <b>이쪽으로 합치기</b>를 누르면 빈 칸을 채우고${kind === 'card' ? '' : ' 활동·일정·명함을 옮긴 뒤'} 다른 쪽을 지웁니다.</p>
+      <div class="people">${list.map(d => `<div class="person"><div style="min-width:0"><div class="pn" data-act="open" data-kind="${kind}" data-id="${d.x.id}">${e(label(d.x))}</div><div class="pm"><b>${e(d.why.join(' · '))}</b>${meta(d.x) ? ' · ' + e(meta(d.x)) : ''}</div></div>
+        <div class="inline"><button class="btn btn-sm" type="button" data-act="open" data-kind="${kind}" data-id="${d.x.id}">열기</button><button class="btn btn-sm btn-primary" type="button" data-act="merge" data-kind="${kind}" data-keep="${x.id}" data-drop="${d.x.id}">이쪽으로 합치기</button></div></div>`).join('')}</div></section>`;
+  }
+
   function bizResults() {
     const f = ui.biz;
     const rows = bizFiltered();
@@ -3136,15 +3355,17 @@ window.V = (() => {
     if (f.industry) applied.push(['industry', f.industry]);
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
+    if (f.dup) applied.push(['dup', '중복 의심만']);
+    const dup = S.dupIndex('biz');
     const chipsHtml = applied.length ? `<div class="chips" style="margin-bottom:10px">${applied.map(([k, l]) => `<button type="button" class="chip chip-applied" data-act="biz-unfilter" data-k="${k}">${e(l)} ✕</button>`).join('')}<button type="button" class="btn btn-ghost btn-sm" data-act="biz-reset">전체 초기화</button></div>` : '';
     if (!S.view().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
     if (!rows.length) return chipsHtml + `<div class="panel"><div class="empty"><strong>조건에 맞는 사업체가 없습니다</strong>검색어나 필터를 바꿔 보세요.<div><button class="btn" type="button" data-act="biz-reset">필터 초기화</button></div></div></div>`;
-    return chipsHtml + `<div class="panel">
+    return chipsHtml + dupBar('biz', dup.size, f.dup) + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
         <thead><tr><th>사업체</th><th>단계</th><th>발굴일</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
-          <tr data-act="open" data-kind="biz" data-id="${b.id}">
-            <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
+          <tr data-act="open" data-kind="biz" data-id="${b.id}" class="row-biz ${S.supportOf(b).types.length ? 'is-support' : ''}">
+            <td><div class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</div><div class="meta">${e(b.industry)} · ${D.guOf(b.area) ? e(D.guOf(b.area)) + ' ' : ''}${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
             <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
@@ -3157,8 +3378,8 @@ window.V = (() => {
           </tr>`).join('')}</tbody>
       </table></div>
       <div class="mlist">${rows.map(({ b, la, ne, pc }) => `
-        <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
-          <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
+        <div class="mrow row-biz ${S.supportOf(b).types.length ? 'is-support' : ''}" data-act="open" data-kind="biz" data-id="${b.id}">
+          <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}${supTag(b)}${dupTag(dup, b.id)}</span>${stageBadge(b.stage)}</div>
           ${b.jobs ? `<div class="meta">가능 직무: ${e(b.jobs)}</div>` : ''}
           <div class="meta">${e(b.industry)} · ${e(b.area || '')} · ${b.discoveredAt ? U.dateDot(b.discoveredAt) + ' 발굴' : ''}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
           <div class="meta">${staffTag(b.staff)}</div>
@@ -3204,17 +3425,18 @@ window.V = (() => {
     const nq = U.norm(f.q);
     const all = S.view().networks;
     if (!all.length) return `<div class="panel">${emptyState('등록된 기관이 없습니다', '협력·홍보 기관을 등록하면 지도에 함께 표시됩니다.', 'new-net', '+ 기관 등록')}</div>`;
-    const rows = all.filter(n => (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
+    const dup = S.dupIndex('net');
+    const rows = all.filter(n => (!f.dup || dup.has(n.id)) && (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
       (!nq || U.match(f.q, n.name, n.relation, n.promo, n.memo, n.address, n.staff, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone]))))
       .map(n => ({ n, la: S.lastAct('net', n.id), ne: S.nextEvent('net', n.id), pc: primaryContact('net', n.id) }))
       .sort((x, y) => (y.la?.date || '').localeCompare(x.la?.date || ''));
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>조건에 맞는 기관이 없습니다</strong>검색어나 분류를 바꿔 보세요.</div></div>`;
-    return `<div class="panel">
+    return dupBar('net', dup.size, f.dup) + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
         <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>기관 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
         <tbody>${rows.map(({ n, la, ne, pc }) => `
-          <tr data-act="open" data-kind="net" data-id="${n.id}">
-            <td><div class="name">${U.hl(n.name, f.q)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
+          <tr data-act="open" data-kind="net" data-id="${n.id}" class="row-net ${S.isHome(n) ? 'is-home' : ''}">
+            <td><div class="name">${S.isHome(n) ? '<span class="home-star" aria-hidden="true">★</span>' : ''}${U.hl(n.name, f.q)}${dupTag(dup, n.id)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
@@ -3261,7 +3483,8 @@ window.V = (() => {
     const nq = U.norm(f.q);
     const all = S.view().cards;
     if (!all.length) return `<div class="panel">${emptyState('등록된 명함이 없습니다', '명함 사진과 연락처를 등록해 보세요.', 'new-card', '+ 명함 등록')}</div>`;
-    const rows = all.filter(c => (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
+    const dup = S.dupIndex('card');
+    const rows = all.filter(c => (!f.dup || dup.has(c.id)) && (!f.of || (c.linkType === f.of.kind && c.linkId === f.of.id)) && (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
       (!f.idx || U.indexOf(f.sort === 'org' ? c.org : c.name) === f.idx) &&
       (!nq || U.match(f.q, c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo, c.address)))
       .sort({
@@ -3269,12 +3492,15 @@ window.V = (() => {
         name: (a, b) => a.name.localeCompare(b.name, 'ko'),
         org: (a, b) => (a.org || '').replace(/^\(주\)/, '').localeCompare((b.org || '').replace(/^\(주\)/, ''), 'ko'),
       }[f.sort]);
+    const ofChip = f.of ? `<div class="chips" style="margin-bottom:10px"><button type="button" class="chip chip-applied" data-act="cards-of-clear">${e(f.of.name)}의 명함만 ✕</button></div>` : '';
+    if (!rows.length && f.of) return ofChip + `<div class="panel"><div class="empty"><strong>${e(f.of.name)}에 연결된 명함이 없습니다</strong>명함을 등록할 때 이곳과 연결하면 여기에 모입니다.</div></div>`;
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부, 전화번호 뒷자리, 초성(ㄱㅈㅂ)으로도 찾을 수 있어요.${f.idx ? '<div><button class="btn" type="button" data-act="card-idx" data-idx="">색인 해제</button></div>' : ''}</div></div>`;
-    return `<div class="card-grid">${rows.map(c => {
+    return ofChip + dupBar('card', dup.size, f.dup) + `<div class="card-grid">${rows.map(c => {
       const link = S.linkOf(c);
-      return `<article class="bcard" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
+      const tone = c.linkType === 'biz' ? (link && S.supportOf(link).types.length ? 'k-support' : 'k-biz') : c.linkType === 'net' ? (link && S.isHome(link) ? 'k-home' : 'k-net') : 'k-none';
+      return `<article class="bcard ${tone}" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
         <div class="org">${c.linkType === 'biz' ? `<span class="badge stage-badge" style="--c:${D.STAGE[link?.stage]?.color || 'var(--muted)'}"><span class="dot"></span>사업체</span>` : c.linkType === 'net' ? '<span class="badge navy">기관</span>' : ''}<span>${U.hl(c.org || '소속 미기재', f.q)}</span></div>
-        <div class="pname">${U.hl(c.name, f.q)}<span class="ptitle">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
+        <div class="pname">${U.hl(c.name, f.q)}${dupTag(dup, c.id)}<span class="ptitle">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
         <div class="contact">
           ${c.mobile ? `<div>M ${U.hl(c.mobile, f.q)}</div>` : ''}
           ${c.phone ? `<div>T ${U.hl(c.phone, f.q)}</div>` : ''}
@@ -3623,7 +3849,7 @@ window.V = (() => {
   const callBtn = c => (tel(c) ? `<a class="btn btn-sm" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}${e(c.name)} 전화</a>` : '');
   const people = (kind, id) => {
     const cs = S.cardsOf(kind, id);
-    return `<section class="dr-sec"><h3>담당자 <button class="btn btn-ghost btn-sm" type="button" data-act="new-card" data-link="${kind}:${id}">+ 명함 추가</button></h3>
+    return `<section class="dr-sec"><h3>담당자 명함 <span class="inline" style="gap:4px">${cs.length ? `<button class="btn btn-ghost btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${id}">명함 관리에서 보기</button>` : ''}<button class="btn btn-ghost btn-sm" type="button" data-act="new-card" data-link="${kind}:${id}">+ 명함 추가</button></span></h3>
       ${cs.length ? `<div class="people">${cs.map(c => `<div class="person"><div style="min-width:0"><div class="pn" data-act="open" data-kind="card" data-id="${c.id}">${e(c.name)} <span class="pm">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
         <div class="pm">${[c.mobile && `휴대 ${e(c.mobile)}`, c.phone && `사무실 ${e(c.phone)}`, c.email && e(c.email)].filter(Boolean).join(' · ')}</div></div>
         <div class="inline">${tel(c) ? `<a class="icon-btn" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}" aria-label="전화">${I.phone}</a>` : ''}${c.email ? `<a class="icon-btn" href="mailto:${e(c.email)}" aria-label="이메일">${I.mail}</a>` : ''}</div></div>`).join('')}</div>`
@@ -3656,7 +3882,7 @@ window.V = (() => {
         <input type="hidden" name="staff" value="${e(S.me())}">
         ${perfSelect(kind, id)}
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 보기</a>` : ''}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
@@ -3690,6 +3916,7 @@ window.V = (() => {
             <p class="one-line">${e(bizLine(b))}</p>
             ${b.aiSummary ? `<div class="ai-box"><span class="ai-tag">AI 요약</span><div>${e(b.aiSummary)}</div></div>` : ''}
           </section>
+          ${dupSec('biz', b)}
           ${b.memo ? `<div class="memo-box">${e(b.memo)}</div>` : ''}
           ${people('biz', b.id)}
           ${eventsSec('biz', b.id)}
@@ -3704,7 +3931,7 @@ window.V = (() => {
               <span class="sub">검색:</span>${SEARCH_SITES.map(([l, fn]) => `<a class="btn btn-ghost btn-sm" href="${fn(b.name + (b.area ? ' ' + b.area : ''))}" target="_blank" rel="noopener">${l}</a>`).join('')}
             </div>
           </section>
-          <section class="dr-sec"><h3>채용 정보</h3>${kv([['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
+          <section class="dr-sec"><h3>채용 정보</h3>${kv([['최근 구인공고', (() => { const a = S.actsOf('biz', b.id).find(x => R.jobLink(x.jobUrl)); return a ? `<a class="btn btn-sm btn-job" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">공고 보기</a> <span class="sub">${U.dateDot(a.date)} 연락 기록</span>` : ''; })()], ['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
           <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['대표 전화', b.phone ? `<a href="tel:${e(b.phone.replace(/[^0-9+]/g, ''))}">${e(b.phone)}</a>` : ''], ['홈페이지', b.homepage ? `<a href="${e(/^https?:/.test(b.homepage) ? b.homepage : 'https://' + b.homepage)}" target="_blank" rel="noopener">${e(b.homepage)}</a>` : ''], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['실적 진행도', e(R.progressOf(b))], ['복리후생', e(b.welfare)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
@@ -3726,6 +3953,7 @@ window.V = (() => {
             <div><div class="l">활동 기록</div><div class="v">${S.actsOf('net', n.id).length}<small>건</small></div></div>
             <div><div class="l">담당자 명함</div><div class="v">${S.cardsOf('net', n.id).length}<small>장</small></div></div>
           </div>
+          ${dupSec('net', n)}
           ${n.memo ? `<div class="memo-box">${e(n.memo)}</div>` : ''}
           <section class="dr-sec"><h3>협력 · 홍보</h3>${kv([['협력 내용', e(n.relation)], ['홍보 방식', e(n.promo)], ['관계 상태', e(n.status)], ['담당 직원', staffTag(n.staff)]])}</section>
           ${people('net', n.id)}
@@ -3747,6 +3975,7 @@ window.V = (() => {
         `${tel(c) ? `<a class="btn btn-sm btn-primary" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}전화</a>` : ''}${c.mobile ? `<a class="btn btn-sm" href="sms:${e(c.mobile.replace(/[^0-9+]/g, ''))}">문자</a>` : ''}${c.email ? `<a class="btn btn-sm" href="mailto:${e(c.email)}">${I.mail}이메일</a>` : ''}<button class="btn btn-sm" type="button" data-act="vcard" data-id="${c.id}">연락처 파일(vcf)</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="card" data-id="${c.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
+          ${dupSec('card', c)}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
           <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : `<p class="sub" style="margin:0 0 8px">연결된 사업체나 기관이 없습니다. 아래 버튼을 누르면 소속(${e(c.org || c.name)})으로 새로 등록하고 연결합니다.</p><div class="inline">${triageButtons(c)}</div>`}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>
@@ -4354,12 +4583,12 @@ window.IMP = (() => {
   }
 
   function records(st) {
-    const existing = new Set(S.get().businesses.map(b => U.norm(b.name).replace(/^\(주\)|주식회사/g, '')));
+    const existing = new Set(S.get().businesses.map(b => U.orgKey(b.name)));
     const seen = new Set();
     const cell = (r, k) => (st.map[k] != null ? String(r[st.map[k]] ?? '').trim() : '');
     return st.rows.map(r => {
       const name = cell(r, 'name');
-      const key = U.norm(name).replace(/^\(주\)|주식회사/g, '');
+      const key = U.orgKey(name);
       const dup = !name ? false : existing.has(key) || seen.has(key);
       if (name) seen.add(key);
       return {
@@ -4704,6 +4933,7 @@ window.R = (() => {
           <label>연락결과<select class="select" name="result">${opts(D.CONTACT_RESULTS, '', '선택')}</select></label>
           <label>상태<select class="select" name="status">${opts(D.CONTACT_STATUS, '연락완료')}</select></label>
           <label class="grow">주소 <span class="sub">(새 사업체일 때)</span><input class="input" name="address"></label>
+          <label class="grow">구인공고 주소 <span class="sub">(고용24·워크투게더 등 공고 글 주소)</span><input class="input" name="jobUrl" inputmode="url" placeholder="https://www.work24.go.kr/..."></label>
           <button class="btn btn-primary" type="submit">추가</button>
           <datalist id="ctBizList">${names.map(n => `<option value="${e(n)}">`).join('')}</datalist>
         </form>
@@ -4739,12 +4969,14 @@ window.R = (() => {
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
-      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th></tr></thead><tbody>
+      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th></tr></thead><tbody>
         ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num">${a.date}</td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap">${e(a.content)}</td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
-          <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td></tr>`).join('')}
+          <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td>
+          <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
+            : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td></tr>`).join('')}
       </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
   }
@@ -4753,7 +4985,7 @@ window.R = (() => {
 
   /** 연락 기록 한 줄 저장 (새 사업체면 등록, 단계도 자연스럽게 올림) */
   function addContact(fd) {
-    const key = n => U.norm(n).replace(/^\(주\)|주식회사|\(주\)/g, '');
+    const key = n => U.orgKey(n);
     const name = fd.name.trim();
     let b = S.get().businesses.find(x => key(x.name) === key(name));
     const me = fd.staff && S.staff().some(x => x.name === fd.staff) ? fd.staff : S.me();
@@ -4768,12 +5000,19 @@ window.R = (() => {
       else if (b.stage === '접촉' && fd.type === '방문') patch.stage = '방문상담';
       if (Object.keys(patch).length) S.upsert('biz', { id: b.id, ...patch });
     }
-    S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', perf: '', people: '' });
+    S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', jobUrl: (fd.jobUrl || '').trim(), perf: '', people: '' });
     return b;
+  }
+  /** 구인공고 주소를 열 수 있는 링크로: http(s)만, www.로 시작하면 https를 붙인다 */
+  function jobLink(u) {
+    const s = String(u || '').trim();
+    if (/^https?:\/\/\S+$/i.test(s)) return s;
+    if (/^www\.\S+$/i.test(s) || /^[a-z0-9-]+(\.[a-z0-9-]+)+\/\S*$/i.test(s)) return 'https://' + s;
+    return '';
   }
 
   /* ---------- 공유 시트에서 붙여넣어 가져오기 ---------- */
-  const COLS = [['date', ['날짜', '일자']], ['name', ['사업체명', '업체명', '사업체', '업체']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명']], ['jobType', ['직종', '직무']], ['content', ['결과', '내용']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원']]];
+  const COLS = [['date', ['날짜', '일자']], ['name', ['사업체명', '업체명', '사업체', '업체']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명']], ['jobType', ['직종', '직무']], ['content', ['결과', '내용']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
   // 머리글이 없으면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
   function parsePaste(text) {
@@ -5001,7 +5240,7 @@ window.R = (() => {
     }));
   }
 
-  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ui, jobLink, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();
 
 </script>
@@ -5094,6 +5333,7 @@ window.App = (() => {
   let bigMap = null, markerIndex = {}, markerGroup = null;
   function render() {
     const r = route();
+    document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
@@ -5283,6 +5523,7 @@ window.App = (() => {
     const top = stack[stack.length - 1];
     if (!top) return closeDrawer();
     const inner = $('#drawerInner');
+    inner.dataset.tone = '';
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
     if (top.type === 'bulk') {
@@ -5298,7 +5539,7 @@ window.App = (() => {
       const box = $('#ctPasteBox');
       box.oninput = U.debounce(() => {
         const { rows } = R.parsePaste(box.value);
-        const key = n => U.norm(n).replace(/^\(주\)|주식회사|\(주\)/g, '');
+        const key = n => U.orgKey(n);
         const have = new Set(S.get().businesses.map(b => key(b.name)));
         top.state = { text: box.value, rows, newCount: new Set(rows.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size };
         renderDrawer(true);
@@ -5340,6 +5581,9 @@ window.App = (() => {
       v = { biz: () => F.biz(x, top.preset, top.focus), net: () => F.net(x, top.preset), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
     }
     inner.innerHTML = v.html;
+    // 무엇을 보고 있는지 색으로 구분: 사업체(노랑)·지원고용(빨강)·기관(검정)·복지관(금색)·명함(청록)·일정(파랑)
+    const cur = top.id ? S.find(top.kind, top.id) : null;
+    inner.dataset.tone = top.kind === 'biz' ? (cur && S.supportOf(cur).types.length ? 'support' : 'biz') : top.kind === 'net' ? (cur && S.isHome(cur) ? 'home' : 'net') : top.kind === 'card' ? 'card' : 'ev';
     showDrawer();
     const form = inner.querySelector('#entityForm');
     if (v.after) v.after(form);
@@ -5356,12 +5600,17 @@ window.App = (() => {
   }
   const openDetail = (kind, id, fromDrawer) => (kind === 'ev' ? push({ type: 'form', kind: 'ev', id }, fromDrawer) : push({ type: 'detail', kind, id }, fromDrawer));
 
-  function onSubmit(form) {
+  async function onSubmit(form) {
     const res = F.collect(form);
     if (!res) return;
     const { kind, obj } = res;
     const id = form.dataset.id;
     if (id) obj.id = id;
+    if (!id && ['biz', 'net', 'card'].includes(kind)) {
+      const d = S.dupesOf(kind, obj);
+      const list = d.slice(0, 3).map(x => `'${x.x.name}${kind === 'card' && x.x.org ? ' · ' + x.x.org : ''}' (${x.why.join(', ')})`).join(', ');
+      if (d.length && !(await confirmBox('이미 비슷한 게 있어요', `${list}${d.length > 3 ? ` 외 ${d.length - 3}건` : ''}. 그래도 새로 등록할까요? 등록한 뒤에도 상세 화면에서 합칠 수 있어요.`, '그래도 등록'))) return;
+    }
     const saved = S.upsert(kind, obj);
     if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
     toast(id ? '저장했습니다.' : '등록했습니다.');
@@ -5433,9 +5682,9 @@ window.App = (() => {
   }
 
   function guessLink(org) {
-    const k = U.norm(org).replace(/^\(주\)|주식회사|\(주\)/g, '');
+    const k = U.orgKey(org);
     if (k.length < 2) return null;
-    const hit = (list, kind) => { const x = list.find(o => { const n = U.norm(o.name).replace(/^\(주\)|주식회사|\(주\)/g, ''); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
+    const hit = (list, kind) => { const x = list.find(o => { const n = U.orgKey(o.name); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
     return hit(S.get().businesses, 'biz') || hit(S.get().networks, 'net');
   }
 
@@ -5565,7 +5814,27 @@ window.App = (() => {
     'dr-cancel': () => { stack.pop(); renderDrawer(); },
     'biz-stage': el => { V.ui.biz.stage = el.dataset.stage; if (route() === 'biz') render(); else location.hash = '#/biz'; },
     'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else f[k] = ''; render(); },
-    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all' }); render(); },
+    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all', dup: false }); render(); },
+    'dup-toggle': el => { const f = V.ui[el.dataset.kind === 'card' ? 'cards' : el.dataset.kind]; f.dup = !f.dup; render(); },
+    'cards-of': el => {
+      const x = S.find(el.dataset.kind, el.dataset.id);
+      if (!x) return;
+      Object.assign(V.ui.cards, { of: { kind: el.dataset.kind, id: x.id, name: x.name }, q: '', idx: '', link: 'all', dup: false });
+      closeDrawer();
+      if (location.hash === '#/cards') render(); else location.hash = '#/cards';
+    },
+    'cards-of-clear': () => { V.ui.cards.of = null; render(); },
+    merge: async el => {
+      const { kind, keep, drop } = el.dataset;
+      const a = S.find(kind, keep), b = S.find(kind, drop);
+      if (!a || !b) return;
+      const what = { biz: '사업체', net: '기관', card: '명함' }[kind];
+      if (!(await confirmBox(`${what}를 하나로 합칠까요?`, `'${b.name}'의 내용을 '${a.name}'에 합칩니다. 비어 있는 칸만 채우고${kind === 'card' ? '' : ', 활동 기록·일정·명함 연결을 옮긴'} 뒤 '${b.name}'은(는) 지웁니다.${kind === 'card' && !a.photo && b.photo ? ' (사진이 있는 쪽을 남깁니다)' : ''}`, '합치기'))) return;
+      const kept = S.merge(kind, keep, drop);
+      toast(`${what}를 합쳤습니다.`);
+      stack = [{ type: 'detail', kind, id: kept }];
+      renderDrawer();
+    },
     'biz-upload': () => $('#globalBizFile').click(),
     'card-photo': () => $('#globalCardPhoto').click(),
     'card-idx': el => { V.ui.cards.idx = el.dataset.idx; render(); },
@@ -5709,6 +5978,14 @@ window.App = (() => {
     'ct-copy': async () => { const ok = await copyText(R.contactTsv()); toast(ok ? '복사했습니다. 공유 시트 연락이력 탭의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-copy-report': async () => { const ok = await copyText(R.reportTsv()); toast(ok ? '복사했습니다. 보고용 시트 방문 사업체 표의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-paste': () => push({ type: 'paste', state: { text: '', rows: [] } }, false),
+    'ct-url': el => {
+      const a = S.find('act', el.dataset.id);
+      if (!a) return;
+      const v = window.prompt('구인공고 주소 (지우려면 비워 두세요)', a.jobUrl || '');
+      if (v == null) return;
+      S.upsert('act', { id: a.id, jobUrl: v.trim() });
+      toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
+    },
     'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const n = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${n}줄을 가져왔습니다.`); },
     'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
