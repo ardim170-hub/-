@@ -223,7 +223,15 @@ function writeSettings_(settings) {
 
 /** 설정과 직원 목록 저장. staffRows = [{ 이름, 소속 사업 }] */
 function api_saveSettings(settings, staffRows) {
-  requireAdmin_();
+  var acc = requireAdmin_();
+  settings = settings || {};
+  // 관리자 명단을 바꿀 때 저장하는 사람은 늘 관리자로 남긴다 (소유자를 못 읽는 경우에도 잠기지 않게)
+  if (Object.prototype.hasOwnProperty.call(settings, 'admins') && acc.me && acc.me !== acc.owner) {
+    var list = emails_(settings.admins);
+    if (list.indexOf(acc.me) < 0) { list.push(acc.me); settings.admins = list.join(','); }
+    var mem = emails_(settings.members);
+    if (mem.length && mem.indexOf(acc.me) < 0) { mem.push(acc.me); settings.members = mem.join(','); }
+  }
   return withLock_(function () {
     writeSettings_(settings || {});
     if (staffRows) {

@@ -176,8 +176,10 @@ window.S = (() => {
     try {
       const res = await call('api_load', schema());
       if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
+      const before = JSON.stringify(access);
       const next = fromServer(res);
       const sig = JSON.stringify(next);
+      if (before !== JSON.stringify(access)) lastSig = ''; // 내 권한이 바뀌면 화면을 다시 그린다
       if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
       setSync('saved');
     } catch (err) { setSync('error', err); }

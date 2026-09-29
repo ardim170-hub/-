@@ -899,6 +899,19 @@ label.field .textarea { width: 100%; }
 .leaflet-tooltip.route-tip { background: #172033; color: #fff; border: 0; font-weight: 700; font-size: 12.5px; padding: 3px 8px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
 .leaflet-tooltip.route-tip::before { display: none; }
 
+/* 사용 권한 목록 */
+.acc-list { width: 100%; list-style: none; margin: 10px 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.acc-list li { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+.acc-list li:first-child { border-top: 0; }
+.acc-list .acc-mail { flex: 1; min-width: 180px; font-weight: 600; overflow-wrap: anywhere; }
+.acc-list .acc-owner { background: var(--k-home-soft); }
+.acc-list .acc-empty { justify-content: center; padding: 12px; }
+.acc-list .select.sm { width: auto; }
+.badge.admin { background: var(--navy); color: #fff; }
+.acc-add { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; }
+.acc-add .input { flex: 1; min-width: 220px; }
+.acc-add .select { width: auto; }
+
 </style>
 </head>
 <body>
@@ -980,7 +993,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.29 15:52";</script>
+<script>window.APP_VERSION = "2026.09.29 16:04";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -1599,8 +1612,10 @@ window.S = (() => {
     try {
       const res = await call('api_load', schema());
       if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
+      const before = JSON.stringify(access);
       const next = fromServer(res);
       const sig = JSON.stringify(next);
+      if (before !== JSON.stringify(access)) lastSig = ''; // 내 권한이 바뀌면 화면을 다시 그린다
       if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
       setSync('saved');
     } catch (err) { setSync('error', err); }
@@ -3106,21 +3121,34 @@ window.V = (() => {
   }
 
   /* ================= 데이터 관리 ================= */
+  /** 사용 권한 목록: 관리자·사용자 이메일을 한 줄씩 */
+  function accRows() {
+    const st = S.get().settings;
+    const split = v => String(v || '').toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@'));
+    const admins = split(st.admins), members = split(st.members);
+    return [...new Set([...admins, ...members])].map(email => ({ email, admin: admins.includes(email) }));
+  }
   function dataPage() {
     const st = S.get();
     const admin = S.isAdmin();
     const acc = S.accessInfo();
     return `
       <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
-      ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.</div>` : ''}
+      ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.<br><span class="sub">내 계정: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · 관리자가 되어야 한다면 이 주소를 관리자에게 알려 주세요.</span></div>` : ''}
       <div class="data-grid">
         ${S.REMOTE && admin ? `<section class="panel panel-pad staff-editor">
-          <h2 class="section-title">사용 권한</h2>
-          <p>지금 로그인: <b>${e(acc.me || '(확인 안 됨)')}</b> · <span class="badge success">관리자</span></p>
-          <p>관리자는 설정·직원 목록·AI 키·엑셀 전체 교체를 할 수 있고, 다른 사람은 등록·수정만 합니다. 구글 시트 소유자${acc.owner ? `(${e(acc.owner)})` : ''}는 항상 관리자입니다.</p>
-          <label class="field"><span>관리자 추가 (이메일, 줄마다 하나)</span><textarea class="textarea" id="accAdmins" rows="2" placeholder="예: teamlead@ardim.or.kr">${e((st.settings.admins || '').split(/[\s,;]+/).filter(Boolean).join('\n'))}</textarea></label>
-          <label class="field"><span>사용할 수 있는 사람 (이메일, 줄마다 하나 · 비워 두면 들어올 수 있는 사람 모두)</span><textarea class="textarea" id="accMembers" rows="4" placeholder="예: staff1@ardim.or.kr">${e((st.settings.members || '').split(/[\s,;]+/).filter(Boolean).join('\n'))}</textarea></label>
-          <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="save-access">저장</button></div>
+          <h2 class="section-title">사용 권한 <span class="sub">바꾸면 바로 저장돼요</span></h2>
+          <p>지금 로그인: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · <span class="badge success">관리자</span></p>
+          <p class="sub" style="margin:0">관리자는 설정·직원 목록·AI 키·엑셀 전체 교체·사용 권한을 바꿀 수 있고, 사용자는 등록·수정만 해요.
+            <b>목록에 한 명이라도 있으면 목록에 있는 사람만</b> 들어올 수 있어요. 비어 있으면 복지관 계정 누구나 들어와요.</p>
+          <ul class="acc-list">
+            ${acc.owner ? `<li class="acc-owner"><span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
+            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li><span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}</span>
+              <select class="select sm" data-chg="acc-role" data-email="${e(r.email)}" aria-label="${e(r.email)} 권한"><option value="admin" ${r.admin ? 'selected' : ''}>관리자</option><option value="user" ${r.admin ? '' : 'selected'}>사용자</option></select>
+              <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button></li>`).join('')}
+            ${!accRows().some(r => r.email !== acc.owner) ? '<li class="sub acc-empty">아직 추가한 사람이 없어요.</li>' : ''}
+          </ul>
+          <div class="acc-add"><input class="input" id="accNew" type="email" inputmode="email" autocomplete="off" placeholder="추가할 구글 계정 이메일 (예: ardim169@ardim.or.kr)" aria-label="추가할 이메일"><select class="select" id="accNewRole" aria-label="권한"><option value="user">사용자</option><option value="admin">관리자</option></select><button class="btn btn-primary" type="button" data-act="acc-add">+ 추가</button></div>
         </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
@@ -3379,7 +3407,7 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
 
 </script>
@@ -4875,6 +4903,12 @@ window.App = (() => {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
+  /** 사용 권한 저장: 관리자 = 관리자로 고른 사람, 사용할 수 있는 사람 = 목록 전체. 저장하는 나는 늘 목록에 남긴다 */
+  async function saveAcc(rows) {
+    const { me, owner } = S.accessInfo();
+    if (me && me !== owner && !rows.some(r => r.email === me)) rows.push({ email: me, admin: true });
+    await S.saveSettings({ admins: rows.filter(r => r.admin).map(r => r.email).join(','), members: rows.map(r => r.email).join(',') });
+  }
   function bindData() {
     if ($('#xlsxFile')) $('#xlsxFile').onchange = async ev => {
       const file = ev.target.files[0];
@@ -4903,6 +4937,7 @@ window.App = (() => {
         toast('백업에서 복원했습니다.');
       } catch { toast('백업 파일을 읽지 못했습니다. 이 프로그램에서 받은 JSON 파일인지 확인하세요.', 'error'); }
     };
+    if ($('#accNew')) $('#accNew').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); A['acc-add'](); } };
     if ($('#meSel')) $('#meSel').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다.`); };
   }
 
@@ -5422,13 +5457,23 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
-    'save-access': async () => {
-      const clean = v => [...new Set(v.toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@')))];
-      const admins = clean($('#accAdmins').value), members = clean($('#accMembers').value);
-      const me = S.accessInfo().me;
-      if (members.length && me && !members.includes(me) && !admins.includes(me) && me !== S.accessInfo().owner) members.push(me);
-      await S.saveSettings({ admins: admins.join(','), members: members.join(',') });
-      toast(members.length ? `사용할 수 있는 사람 ${members.length}명을 저장했습니다.` : '사용 권한을 저장했습니다. 명단이 비어 있어 들어올 수 있는 사람 모두 씁니다.');
+    'acc-add': async () => {
+      const inp = $('#accNew');
+      const email = inp.value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { inp.focus(); return toast('이메일 주소를 확인해 주세요. 예: ardim169@ardim.or.kr', 'error'); }
+      const { owner } = S.accessInfo();
+      const rows = V.accRows();
+      if (email === owner || rows.some(r => r.email === email)) return toast('이미 목록에 있어요.', 'error');
+      rows.push({ email, admin: $('#accNewRole').value === 'admin' });
+      await saveAcc(rows);
+      toast(`${email}을(를) ${$('#accNewRole')?.value === 'admin' ? '관리자' : '사용자'}로 추가했습니다.`);
+    },
+    'acc-del': async el => {
+      const email = el.dataset.email;
+      if (email === S.accessInfo().me) return toast('자기 자신은 뺄 수 없어요. 다른 관리자가 빼 주세요.', 'error');
+      if (!(await confirmBox('목록에서 뺄까요?', `${email}은(는) 이제 이 사이트에 들어올 수 없게 됩니다${V.accRows().length <= 1 ? ' (목록이 비면 복지관 계정 누구나 들어올 수 있어요)' : ''}.`, '빼기'))) return;
+      await saveAcc(V.accRows().filter(r => r.email !== email));
+      toast(`${email}을(를) 뺐습니다.`);
     },
     'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
     'save-citymap': () => {
@@ -5497,6 +5542,13 @@ window.App = (() => {
       if (!el) return;
       const { id, field } = el.dataset;
       inlineEdit = true;
+      if (el.dataset.chg === 'acc-role') {
+        inlineEdit = false;
+        const email = el.dataset.email;
+        if (email === S.accessInfo().me && el.value !== 'admin') { el.value = 'admin'; toast('자기 자신을 사용자로 내릴 수는 없어요. 다른 관리자가 바꿔 주세요.', 'error'); return; }
+        saveAcc(V.accRows().map(r => (r.email === email ? { ...r, admin: el.value === 'admin' } : r))).then(() => toast(`${email}을(를) ${el.value === 'admin' ? '관리자' : '사용자'}로 바꿨습니다.`));
+        return;
+      }
       if (el.dataset.chg === 'act-field' && field === 'jobUrl') {
         if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https:\/\/…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });

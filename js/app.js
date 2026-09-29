@@ -242,6 +242,12 @@ window.App = (() => {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
+  /** 사용 권한 저장: 관리자 = 관리자로 고른 사람, 사용할 수 있는 사람 = 목록 전체. 저장하는 나는 늘 목록에 남긴다 */
+  async function saveAcc(rows) {
+    const { me, owner } = S.accessInfo();
+    if (me && me !== owner && !rows.some(r => r.email === me)) rows.push({ email: me, admin: true });
+    await S.saveSettings({ admins: rows.filter(r => r.admin).map(r => r.email).join(','), members: rows.map(r => r.email).join(',') });
+  }
   function bindData() {
     if ($('#xlsxFile')) $('#xlsxFile').onchange = async ev => {
       const file = ev.target.files[0];
@@ -270,6 +276,7 @@ window.App = (() => {
         toast('백업에서 복원했습니다.');
       } catch { toast('백업 파일을 읽지 못했습니다. 이 프로그램에서 받은 JSON 파일인지 확인하세요.', 'error'); }
     };
+    if ($('#accNew')) $('#accNew').onkeydown = ev => { if (ev.key === 'Enter') { ev.preventDefault(); A['acc-add'](); } };
     if ($('#meSel')) $('#meSel').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다.`); };
   }
 
@@ -789,13 +796,23 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
-    'save-access': async () => {
-      const clean = v => [...new Set(v.toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@')))];
-      const admins = clean($('#accAdmins').value), members = clean($('#accMembers').value);
-      const me = S.accessInfo().me;
-      if (members.length && me && !members.includes(me) && !admins.includes(me) && me !== S.accessInfo().owner) members.push(me);
-      await S.saveSettings({ admins: admins.join(','), members: members.join(',') });
-      toast(members.length ? `사용할 수 있는 사람 ${members.length}명을 저장했습니다.` : '사용 권한을 저장했습니다. 명단이 비어 있어 들어올 수 있는 사람 모두 씁니다.');
+    'acc-add': async () => {
+      const inp = $('#accNew');
+      const email = inp.value.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { inp.focus(); return toast('이메일 주소를 확인해 주세요. 예: ardim169@ardim.or.kr', 'error'); }
+      const { owner } = S.accessInfo();
+      const rows = V.accRows();
+      if (email === owner || rows.some(r => r.email === email)) return toast('이미 목록에 있어요.', 'error');
+      rows.push({ email, admin: $('#accNewRole').value === 'admin' });
+      await saveAcc(rows);
+      toast(`${email}을(를) ${$('#accNewRole')?.value === 'admin' ? '관리자' : '사용자'}로 추가했습니다.`);
+    },
+    'acc-del': async el => {
+      const email = el.dataset.email;
+      if (email === S.accessInfo().me) return toast('자기 자신은 뺄 수 없어요. 다른 관리자가 빼 주세요.', 'error');
+      if (!(await confirmBox('목록에서 뺄까요?', `${email}은(는) 이제 이 사이트에 들어올 수 없게 됩니다${V.accRows().length <= 1 ? ' (목록이 비면 복지관 계정 누구나 들어올 수 있어요)' : ''}.`, '빼기'))) return;
+      await saveAcc(V.accRows().filter(r => r.email !== email));
+      toast(`${email}을(를) 뺐습니다.`);
     },
     'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
     'save-citymap': () => {
@@ -864,6 +881,13 @@ window.App = (() => {
       if (!el) return;
       const { id, field } = el.dataset;
       inlineEdit = true;
+      if (el.dataset.chg === 'acc-role') {
+        inlineEdit = false;
+        const email = el.dataset.email;
+        if (email === S.accessInfo().me && el.value !== 'admin') { el.value = 'admin'; toast('자기 자신을 사용자로 내릴 수는 없어요. 다른 관리자가 바꿔 주세요.', 'error'); return; }
+        saveAcc(V.accRows().map(r => (r.email === email ? { ...r, admin: el.value === 'admin' } : r))).then(() => toast(`${email}을(를) ${el.value === 'admin' ? '관리자' : '사용자'}로 바꿨습니다.`));
+        return;
+      }
       if (el.dataset.chg === 'act-field' && field === 'jobUrl') {
         if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });

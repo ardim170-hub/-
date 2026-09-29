@@ -673,21 +673,34 @@ window.V = (() => {
   }
 
   /* ================= 데이터 관리 ================= */
+  /** 사용 권한 목록: 관리자·사용자 이메일을 한 줄씩 */
+  function accRows() {
+    const st = S.get().settings;
+    const split = v => String(v || '').toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@'));
+    const admins = split(st.admins), members = split(st.members);
+    return [...new Set([...admins, ...members])].map(email => ({ email, admin: admins.includes(email) }));
+  }
   function dataPage() {
     const st = S.get();
     const admin = S.isAdmin();
     const acc = S.accessInfo();
     return `
       <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
-      ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.</div>` : ''}
+      ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.<br><span class="sub">내 계정: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · 관리자가 되어야 한다면 이 주소를 관리자에게 알려 주세요.</span></div>` : ''}
       <div class="data-grid">
         ${S.REMOTE && admin ? `<section class="panel panel-pad staff-editor">
-          <h2 class="section-title">사용 권한</h2>
-          <p>지금 로그인: <b>${e(acc.me || '(확인 안 됨)')}</b> · <span class="badge success">관리자</span></p>
-          <p>관리자는 설정·직원 목록·AI 키·엑셀 전체 교체를 할 수 있고, 다른 사람은 등록·수정만 합니다. 구글 시트 소유자${acc.owner ? `(${e(acc.owner)})` : ''}는 항상 관리자입니다.</p>
-          <label class="field"><span>관리자 추가 (이메일, 줄마다 하나)</span><textarea class="textarea" id="accAdmins" rows="2" placeholder="예: teamlead@ardim.or.kr">${e((st.settings.admins || '').split(/[\s,;]+/).filter(Boolean).join('\n'))}</textarea></label>
-          <label class="field"><span>사용할 수 있는 사람 (이메일, 줄마다 하나 · 비워 두면 들어올 수 있는 사람 모두)</span><textarea class="textarea" id="accMembers" rows="4" placeholder="예: staff1@ardim.or.kr">${e((st.settings.members || '').split(/[\s,;]+/).filter(Boolean).join('\n'))}</textarea></label>
-          <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="save-access">저장</button></div>
+          <h2 class="section-title">사용 권한 <span class="sub">바꾸면 바로 저장돼요</span></h2>
+          <p>지금 로그인: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · <span class="badge success">관리자</span></p>
+          <p class="sub" style="margin:0">관리자는 설정·직원 목록·AI 키·엑셀 전체 교체·사용 권한을 바꿀 수 있고, 사용자는 등록·수정만 해요.
+            <b>목록에 한 명이라도 있으면 목록에 있는 사람만</b> 들어올 수 있어요. 비어 있으면 복지관 계정 누구나 들어와요.</p>
+          <ul class="acc-list">
+            ${acc.owner ? `<li class="acc-owner"><span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
+            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li><span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}</span>
+              <select class="select sm" data-chg="acc-role" data-email="${e(r.email)}" aria-label="${e(r.email)} 권한"><option value="admin" ${r.admin ? 'selected' : ''}>관리자</option><option value="user" ${r.admin ? '' : 'selected'}>사용자</option></select>
+              <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button></li>`).join('')}
+            ${!accRows().some(r => r.email !== acc.owner) ? '<li class="sub acc-empty">아직 추가한 사람이 없어요.</li>' : ''}
+          </ul>
+          <div class="acc-add"><input class="input" id="accNew" type="email" inputmode="email" autocomplete="off" placeholder="추가할 구글 계정 이메일 (예: ardim169@ardim.or.kr)" aria-label="추가할 이메일"><select class="select" id="accNewRole" aria-label="권한"><option value="user">사용자</option><option value="admin">관리자</option></select><button class="btn btn-primary" type="button" data-act="acc-add">+ 추가</button></div>
         </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
@@ -946,5 +959,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
