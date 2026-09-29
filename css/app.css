@@ -958,3 +958,31 @@ label.field .textarea { width: 100%; }
 .nopos-btn { border: 1px dashed #F59E0B; background: #FFFBEB; color: #92400E; }
 .me-quick { display: inline-flex; align-items: center; gap: 6px; margin: 2px 0; }
 .me-quick select { font: inherit; font-size: 12px; font-weight: 700; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 1px 4px; background: var(--surface); }
+
+/* ---------- 메뉴 권한: 보기만(ro-) · 삭제 불가(nodel-) 인 버튼 숨기기 (동작은 app.js·서버에서도 막음) ---------- */
+.ro-biz [data-act="new-biz"], .ro-biz [data-act="biz-upload"], .ro-biz [data-act="edit"][data-kind="biz"], .ro-biz [data-act="edit-loc"][data-kind="biz"],
+.ro-biz [data-act="stage-set"], .ro-biz [data-act="sup-toggle"], .ro-biz [data-act="edit-research"], .ro-biz [data-act="ai-research"], .ro-biz [data-act="ai-summary"],
+.ro-biz [data-act="sv-biz-edit"], .ro-biz [data-act="sv-job-edit"], .ro-biz [data-act="sv-clear"], .ro-biz form.quick-log[data-kind="biz"], .ro-biz [data-act="triage"][data-to="biz"], .ro-biz [data-act="nopos-refind"],
+.nodel-biz [data-act="delete"][data-kind="biz"], .nodel-biz [data-act="merge"][data-kind="biz"], .nodel-biz [data-act="sv-job-del"],
+.ro-network [data-act="new-net"], .ro-network [data-act="home-add"], .ro-network [data-act="edit"][data-kind="net"], .ro-network [data-act="edit-loc"][data-kind="net"], .ro-network [data-act="triage"][data-to="net"], .ro-network form.quick-log[data-kind="net"],
+.nodel-network [data-act="delete"][data-kind="net"], .nodel-network [data-act="merge"][data-kind="net"],
+.ro-cards [data-act="new-card"], .ro-cards [data-act="card-photo"], .ro-cards [data-act="edit"][data-kind="card"], .ro-cards [data-act="triage"], .ro-cards [data-act="photo-clear"],
+.nodel-cards [data-act="delete"][data-kind="card"], .nodel-cards [data-act="merge"][data-kind="card"],
+.ro-schedule [data-act="new-event"], .ro-schedule [data-act="edit-event"], .nodel-schedule [data-act="delete"][data-kind="ev"],
+.ro-contacts form[data-form="ct-add"], .ro-contacts [data-act="ct-paste"], .ro-contacts [data-act="ct-url"], .ro-contacts .url-in,
+.ro-perf form[data-form="perf-add"], .nodel-perf [data-act="perf-del"],
+.ro-orders [data-act="od-hwp"], .ro-orders [data-act="od-import"], .ro-orders [data-act="od-add"], .ro-orders [data-act="od-dup"], .nodel-orders [data-act="od-del"] { display: none !important; }
+.nodel-biz.nodel-network [data-act="act-del"] { display: none !important; }
+.ro-contacts [data-chg="act-field"], .ro-orders [data-chg^="trip"], .ro-schedule [data-act="ev-toggle"] { pointer-events: none; opacity: .6; }
+
+/* 메뉴 권한 설정 칸 */
+.acc-list .perm-sum { flex-basis: 100%; font-size: 12px; margin-top: -4px; }
+.acc-list .perm-btn.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.acc-list .acc-perm { display: block; background: var(--surface-2); }
+.perm-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px; }
+.perm-cell { display: flex; align-items: center; justify-content: space-between; gap: 6px; padding: 6px 8px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid #2F9E62; font-size: 13px; font-weight: 600; }
+.perm-cell.lv-edit { border-left-color: #2563EB; }
+.perm-cell.lv-view { border-left-color: #F59E0B; }
+.perm-cell.lv-none { border-left-color: #B42318; background: #FEF3F2; }
+.perm-cell .select.sm { width: auto; }

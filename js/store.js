@@ -150,23 +150,26 @@ window.S = (() => {
     const st = res.settings || {};
     next.settings = {
       orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '', perfByProgram: st.perfByProgram || null,
-      admins: st.admins || '', members: st.members || '',
+      admins: st.admins || '', members: st.members || '', perms: st.perms || '',
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
     };
     next.isDemo = st.isDemo === 'Y';
     aiServer = !!res.ai;
-    if (res.access) access = { me: res.access.me || '', owner: res.access.owner || '', admin: !!res.access.admin };
+    if (res.access) access = { me: res.access.me || '', owner: res.access.owner || '', admin: !!res.access.admin, perms: res.access.perms || {} };
     return normalize(next);
   }
   function serverPayload(s) {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '' } : {}) } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
   }
   /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
-  let access = { me: '', owner: '', admin: true };
+  let access = { me: '', owner: '', admin: true, perms: {} };
   const isAdmin = () => !REMOTE || access.admin;
+  /** 이 사람의 메뉴 권한 (0 숨김 · 1 보기만 · 2 등록·수정 · 3 삭제까지). 파일 버전·관리자·정하지 않은 메뉴는 3 */
+  const level = menu => (isAdmin() ? 3 : D.PERM_RANK[(access.perms || {})[menu]] ?? 3);
+  const can = (menu, need) => level(menu) >= need;
   const accessInfo = () => ({ ...access });
 
   let lastSig = '';
@@ -585,7 +588,7 @@ window.S = (() => {
     const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff, b.phone) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
     const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
     const card = state.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
-    return { biz: biz.slice(0, 8), net: net.slice(0, 6), card: card.slice(0, 8) };
+    return { biz: can('biz', 1) ? biz.slice(0, 8) : [], net: can('network', 1) ? net.slice(0, 6) : [], card: can('cards', 1) ? card.slice(0, 8) : [] };
   }
 
   /* ---------- 엑셀 ---------- */
@@ -663,7 +666,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

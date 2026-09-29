@@ -512,10 +512,10 @@ window.V = (() => {
     const f = ui.map;
     const st = S.view();
     const items = [];
-    if (f.biz) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
+    if (f.biz && S.can('biz', 1)) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
-    st.networks.forEach(n => { if (f.net || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
-    if (f.card) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
+    st.networks.forEach(n => { if ((f.net && S.can('network', 1)) || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
+    if (f.card && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
     return items.filter(({ x, home }) => home || ((!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
@@ -692,6 +692,25 @@ window.V = (() => {
   }
 
   /* ================= 데이터 관리 ================= */
+  /** 사용자별 메뉴 권한 { 이메일: { 메뉴: 'none'|'view'|'edit'|'full' } } */
+  function permsAll() { try { return JSON.parse(S.get().settings.perms || '{}') || {}; } catch { return {}; } }
+  const permOf = (email, menu) => (permsAll()[email] || {})[menu] || (menu === 'map' ? 'view' : 'full');
+  function permSummary(email) {
+    const p = permsAll()[email] || {};
+    const diff = D.PERM_MENUS.filter(([k]) => p[k] && p[k] !== (k === 'map' ? 'view' : 'full'));
+    if (!diff.length) return '전부 허용';
+    const L = Object.fromEntries(D.PERM_LEVELS);
+    return diff.map(([k, l]) => `${l} ${L[p[k]]}`).join(' · ');
+  }
+  function permPanel(email) {
+    const L = D.PERM_LEVELS;
+    return `<li class="acc-perm"><div class="perm-presets"><span class="sub">한 번에:</span>
+        <button class="btn btn-sm" type="button" data-act="acc-preset" data-email="${e(email)}" data-preset="full">전부 허용</button>
+        <button class="btn btn-sm" type="button" data-act="acc-preset" data-email="${e(email)}" data-preset="edit">삭제만 막기</button>
+        <button class="btn btn-sm" type="button" data-act="acc-preset" data-email="${e(email)}" data-preset="view">보기만</button></div>
+      <div class="perm-grid">${D.PERM_MENUS.map(([k, l]) => `<label class="perm-cell lv-${k === 'map' && permOf(email, k) === 'view' ? 'full' : permOf(email, k)}"><span>${l}</span><select class="select sm" data-chg="acc-perm" data-email="${e(email)}" data-menu="${k}" aria-label="${e(l)} 권한">${(k === 'map' ? L.slice(0, 2) : L).map(([v, t]) => `<option value="${v}" ${permOf(email, k) === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`).join('')}</div>
+      <p class="sub" style="margin:6px 0 0">숨김 = 메뉴가 안 보여요 · 보기만 = 볼 수만 있어요 · 등록·수정 = 삭제만 못 해요 · 삭제까지 = 전부. 구글 시트 서버에서도 같은 기준으로 막고, 그 사람 화면에는 1분 안에 반영돼요.</p></li>`;
+  }
   /** 사용 권한 목록: 관리자·사용자 이메일을 한 줄씩 */
   function accRows() {
     const st = S.get().settings;
@@ -716,7 +735,10 @@ window.V = (() => {
             ${acc.owner ? `<li class="acc-owner"><span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
             ${accRows().filter(r => r.email !== acc.owner).map(r => `<li><span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}</span>
               <select class="select sm" data-chg="acc-role" data-email="${e(r.email)}" aria-label="${e(r.email)} 권한"><option value="admin" ${r.admin ? 'selected' : ''}>관리자</option><option value="user" ${r.admin ? '' : 'selected'}>사용자</option></select>
-              <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button></li>`).join('')}
+              ${r.admin ? '' : `<button class="btn btn-sm perm-btn ${ui.accOpen === r.email ? 'on' : ''}" type="button" data-act="acc-perm-open" data-email="${e(r.email)}">메뉴 권한 ▾</button>`}
+              <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button>
+              <span class="sub perm-sum">${r.admin ? '모든 메뉴' : e(permSummary(r.email))}</span></li>
+              ${!r.admin && ui.accOpen === r.email ? permPanel(r.email) : ''}`).join('')}
             ${!accRows().some(r => r.email !== acc.owner) ? '<li class="sub acc-empty">아직 추가한 사람이 없어요.</li>' : ''}
           </ul>
           <div class="acc-add"><input class="input" id="accNew" type="email" inputmode="email" autocomplete="off" placeholder="추가할 구글 계정 이메일 (예: ardim169@ardim.or.kr)" aria-label="추가할 이메일"><select class="select" id="accNewRole" aria-label="권한"><option value="user">사용자</option><option value="admin">관리자</option></select><button class="btn btn-primary" type="button" data-act="acc-add">+ 추가</button></div>

@@ -45,13 +45,51 @@ window.App = (() => {
     });
   }
 
+  /* ---------- 메뉴별 권한 ----------
+   * 버튼 동작마다 필요한 [메뉴, 단계]. 2 = 등록·수정, 3 = 삭제. 서버(Code.gs)도 같은 기준으로 막는다 */
+  const KIND_MENU = { biz: 'biz', net: 'network', card: 'cards', ev: 'schedule' };
+  const GATES = {
+    'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
+    'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
+    'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
+    'new-card': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
+    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]],
+  };
+  function gateOf(act, el) {
+    const d = el.dataset || {};
+    if (act === 'edit' || act === 'edit-loc') return [[KIND_MENU[d.kind], 2]];
+    if (act === 'delete' || act === 'merge') return [[KIND_MENU[d.kind], 3]];
+    if (act === 'triage') return d.to === 'personal' ? [['cards', 2]] : [['cards', 2], [KIND_MENU[d.to], 2]];
+    if (act === 'act-del') { const x = S.find('act', d.id); return [[x && x.targetType === 'net' ? 'network' : 'biz', 3]]; }
+    if (act === 'focus-log') { const top = stack[stack.length - 1]; return [[KIND_MENU[top && top.kind] || 'biz', 2]]; }
+    if (act === 'open') return [[KIND_MENU[d.kind], 1]];
+    return GATES[act] || null;
+  }
+  const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const CHG_GATES = { 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
+  /** 권한이 모자라면 알리고 false */
+  function allowed(gates) {
+    const miss = (gates || []).find(([m, n]) => m && !S.can(m, n));
+    if (!miss) return true;
+    toast(`${MENU_NAME[miss[0]] || ''} ${miss[1] >= 3 ? '삭제' : miss[1] >= 2 ? '등록·수정' : '보기'} 권한이 없어요. 관리자에게 요청하세요.`, 'error');
+    return false;
+  }
+  /** 보기만·삭제 불가인 메뉴의 버튼을 숨기도록 body에 표시 */
+  function applyPermClasses() {
+    D.PERM_MENUS.forEach(([m]) => { const l = S.level(m); document.body.classList.toggle(`ro-${m}`, l < 2); document.body.classList.toggle(`nodel-${m}`, l < 3); });
+  }
+
   /* ---------- Nav ---------- */
   function renderNav() {
     const r = route();
     // 데이터 관리는 관리자에게만 보인다 (팀원은 등록·수정·삭제만)
-    $('#sideNav').innerHTML = NAV.filter(([k]) => k !== 'data' || S.isAdmin()).map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
+    applyPermClasses();
+    $('#sideNav').innerHTML = NAV.filter(([k]) => (k !== 'data' || S.isAdmin()) && (!MENU_NAME[k] || S.level(k) >= 1)).map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
     const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'data'].includes(r);
-    $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
+    $('#bottomNav').innerHTML = MOBILE.filter(([k]) => !MENU_NAME[k] || S.level(k) >= 1).map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
     $('#demoBanner').hidden = !S.get().isDemo;
@@ -102,7 +140,8 @@ window.App = (() => {
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
-    const [html, after] = pages[r] || pages.dashboard;
+    let [html, after] = pages[r] || pages.dashboard;
+    if (MENU_NAME[r] && S.level(r) < 1) [html, after] = [() => `<div class="panel"><div class="empty"><strong>${MENU_NAME[r]} 메뉴는 볼 권한이 없어요</strong>관리자에게 권한을 요청하세요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`, null];
     try {
       view.innerHTML = html();
       after && after();
@@ -258,6 +297,14 @@ window.App = (() => {
   function bindSched() {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
+  }
+  /** 한 사람의 메뉴 권한 저장. 전부 기본값이면 지운다 */
+  async function savePerms(email, p) {
+    let all = {};
+    try { all = JSON.parse(S.get().settings.perms || '{}') || {}; } catch { all = {}; }
+    const clean = Object.fromEntries(Object.entries(p || {}).filter(([k, v]) => v !== (k === 'map' ? 'view' : 'full')));
+    if (Object.keys(clean).length) all[email] = clean; else delete all[email];
+    await S.saveSettings({ perms: JSON.stringify(all) });
   }
   /** 사용 권한 저장: 관리자 = 관리자로 고른 사람, 사용할 수 있는 사람 = 목록 전체. 저장하는 나는 늘 목록에 남긴다 */
   async function saveAcc(rows) {
@@ -881,11 +928,19 @@ window.App = (() => {
       await saveAcc(rows);
       toast(`${email}을(를) ${$('#accNewRole')?.value === 'admin' ? '관리자' : '사용자'}로 추가했습니다.`);
     },
+    'acc-perm-open': el => { V.ui.accOpen = V.ui.accOpen === el.dataset.email ? '' : el.dataset.email; render(); },
+    'acc-preset': async el => {
+      const { email, preset } = el.dataset;
+      const p = D.PERM_MENUS.reduce((o, [k]) => ({ ...o, [k]: k === 'map' ? (preset === 'none' ? 'none' : 'view') : preset }), {});
+      await savePerms(email, p);
+      toast(`${email}: ${{ full: '전부 허용', edit: '삭제만 막기', view: '보기만' }[preset]}으로 정했어요.`);
+    },
     'acc-del': async el => {
       const email = el.dataset.email;
       if (email === S.accessInfo().me) return toast('자기 자신은 뺄 수 없어요. 다른 관리자가 빼 주세요.', 'error');
       if (!(await confirmBox('목록에서 뺄까요?', `${email}은(는) 이제 이 사이트에 들어올 수 없게 됩니다${V.accRows().length <= 1 ? ' (목록이 비면 복지관 계정 누구나 들어올 수 있어요)' : ''}.`, '빼기'))) return;
       await saveAcc(V.accRows().filter(r => r.email !== email));
+      await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
     },
     'save-vworld': async () => { await S.saveSettings({ vworldKey: $('#vworldKeyInput').value.trim() }); toast('브이월드 키를 저장했습니다. 지도 오른쪽 위 배경 목록에 브이월드가 나타납니다.'); },
@@ -916,6 +971,7 @@ window.App = (() => {
       if (!el) return;
       const act = el.dataset.act;
       if (!A[act]) return;
+      if (!allowed(gateOf(act, el))) { ev.preventDefault(); return; }
       if (el.tagName === 'A' && act !== 'map-net-only') ev.preventDefault();
       if (el.closest('.menu')) $('#quickMenu').hidden = true;
       A[act](el, !!el.closest('#drawer'));
@@ -955,6 +1011,15 @@ window.App = (() => {
       if (!el) return;
       const { id, field } = el.dataset;
       inlineEdit = true;
+      if (!allowed(CHG_GATES[el.dataset.chg])) { inlineEdit = false; render(); return; }
+      if (el.dataset.chg === 'acc-perm') {
+        inlineEdit = false;
+        const { email, menu } = el.dataset;
+        let cur = {};
+        try { cur = (JSON.parse(S.get().settings.perms || '{}') || {})[email] || {}; } catch { cur = {}; }
+        savePerms(email, { ...cur, [menu]: el.value }).then(() => toast(`${email}: ${Object.fromEntries(D.PERM_MENUS)[menu]} → ${Object.fromEntries(D.PERM_LEVELS)[el.value]}`));
+        return;
+      }
       if (el.dataset.chg === 'acc-role') {
         inlineEdit = false;
         const email = el.dataset.email;
@@ -977,7 +1042,9 @@ window.App = (() => {
     document.addEventListener('submit', ev => {
       const form = ev.target;
       ev.preventDefault();
-      if (form.id === 'entityForm') return onSubmit(form);
+      if (form.id === 'entityForm') { const k = KIND_MENU[form.dataset.form]; if (!allowed(k ? [[k, 2]] : null)) return; const m = form.elements.regMode?.value; if ((m === 'net' || m === 'biz') && !allowed([[KIND_MENU[m], 2]])) return; return onSubmit(form); }
+      if (form.dataset.form === 'quick-log' && !allowed([[KIND_MENU[form.dataset.kind] || 'biz', 2]])) return;
+      if (!allowed(FORM_GATES[form.dataset.form])) return;
       if (form.dataset.form === 'sv-biz' || form.dataset.form === 'sv-job') {
         const b = S.find('biz', form.dataset.id);
         if (!b) return;

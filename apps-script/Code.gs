@@ -112,7 +112,25 @@ function access_() {
   // 소유자도 관리자 명단도 알 수 없으면 잠기지 않도록 모두 관리자로 둔다
   var admin = admins.length ? (!!me && admins.indexOf(me) >= 0) : true;
   var allowed = admin || !members.length || (!!me && members.indexOf(me) >= 0);
-  return { me: me, owner: owner, admin: admin, allowed: allowed };
+  var perms = {};
+  if (!admin && me) { try { perms = (JSON.parse(st.perms || '{}') || {})[me] || {}; } catch (e) { perms = {}; } }
+  return { me: me, owner: owner, admin: admin, allowed: allowed, perms: perms };
+}
+
+/* ---------- 메뉴별 권한 ----------
+ * 설정 시트 'perms' = { 이메일: { biz: 'none'|'view'|'edit'|'full', ... } }. 정하지 않은 메뉴는 'full'(전부 허용). 관리자는 늘 'full'. */
+var PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
+var SHEET_MENU = { '사업체': ['biz'], '네트워크': ['network'], '명함': ['cards'], '일정': ['schedule'], '실적입력': ['perf'], '출장특근': ['orders'], '활동기록': ['biz', 'network', 'contacts'] };
+function level_(acc, menu) {
+  if (acc.admin) return 3;
+  var v = acc.perms && acc.perms[menu];
+  return PERM_RANK[v] == null ? 3 : PERM_RANK[v];
+}
+function requirePerm_(acc, sheet, need) {
+  var menus = SHEET_MENU[sheet];
+  if (!menus) return;
+  var ok = menus.some(function (m) { return level_(acc, m) >= need; });
+  if (!ok) throw new Error(sheet + ' ' + (need >= 3 ? '삭제' : '등록·수정') + ' 권한이 없습니다. 관리자에게 권한을 요청하세요.');
 }
 function requireMember_() {
   var a = access_();
@@ -136,16 +154,25 @@ function api_load(schema) {
     });
     ensureSheet_(SETTINGS_SHEET, ['항목', '값']);
     var settings = readSettings_();
-    if (!acc.admin) { delete settings.admins; delete settings.members; }
-    return { sheets: sheets, settings: settings, ai: !!aiKey_(), access: { me: acc.me, owner: acc.owner, admin: acc.admin } };
+    if (!acc.admin) { delete settings.admins; delete settings.members; delete settings.perms; }
+    // 숨김 메뉴의 시트는 아예 보내지 않는다
+    Object.keys(SHEET_MENU).forEach(function (name) { if (sheets[name] && name !== '활동기록' && !SHEET_MENU[name].some(function (m) { return level_(acc, m) >= 1; })) sheets[name] = []; });
+    return { sheets: sheets, settings: settings, ai: !!aiKey_(), access: { me: acc.me, owner: acc.owner, admin: acc.admin, perms: acc.perms } };
   });
 }
 
 /** 여러 건 저장·삭제. ops = [{ sheet, op: 'put'|'del', id, row: { 열 제목: 값 } }] */
 function api_apply(ops) {
-  requireMember_();
+  var acc = requireMember_();
   (ops || []).forEach(function (o) {
     if (DATA_LOCKED.indexOf(o.sheet) >= 0) throw new Error(o.sheet + ' 시트는 데이터 관리 화면에서만 바꿀 수 있습니다.');
+    // 사업체·기관을 지우거나 합칠 때 명함의 연결만 바꾸는 것은 명함 권한이 없어도 허용 (연결 칸만 쓴다)
+    if (o.sheet === '명함' && o.op !== 'del' && level_(acc, 'cards') < 2 && (level_(acc, 'biz') >= 2 || level_(acc, 'network') >= 2)) {
+      o.row = { '명함ID': o.row && o.row['명함ID'], '연결 구분(biz/net)': o.row && o.row['연결 구분(biz/net)'], '연결ID': o.row && o.row['연결ID'] };
+      o.linkOnly = true; // 있는 명함의 연결만 바꾼다. 새 명함은 만들지 않는다
+      return;
+    }
+    requirePerm_(acc, o.sheet, o.op === 'del' ? 3 : 2);
   });
   return withLock_(function () {
     var bySheet = {};
@@ -160,6 +187,7 @@ function api_apply(ops) {
       var dels = [];
       list.forEach(function (o) {
         var idx = ids.indexOf(String(o.id));
+        if (o.linkOnly && idx < 0) return;
         if (o.op === 'del') {
           if (idx >= 0) { dels.push(idx + 2); ids[idx] = null; }
           return;
@@ -256,7 +284,7 @@ function photoRow_(sh, id) {
 }
 
 function api_putPhoto(id, dataUrl) {
-  requireMember_();
+  requirePerm_(requireMember_(), '명함', 2);
   return withLock_(function () {
     var sh = ensureSheet_(PHOTO_SHEET);
     var parts = [String(id)];
@@ -281,7 +309,7 @@ function api_getPhoto(id) {
 }
 
 function api_delPhoto(id) {
-  requireMember_();
+  requirePerm_(requireMember_(), '명함', 2);
   return withLock_(function () {
     var sh = book_().getSheetByName(PHOTO_SHEET);
     if (!sh) return { ok: true };

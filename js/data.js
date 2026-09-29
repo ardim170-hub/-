@@ -85,6 +85,10 @@ window.D = (() => {
   const CITY_DASHBOARD_URL = 'https://total.hscity.go.kr/web2/dashboard-main/shares/415bf387db01b77eb8d2f6ae700b8934';
 
   /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
+  /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
+  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근']];
+  const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
+  const PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
   const SUPPORT_LABEL = { 지원고용: '지원고용', 현장훈련: '현장훈련 (현장중심)' };
   const MAP_COLORS = { biz: '#F5B700', placed: '#FF7A00', employ: '#E5383B', training: '#7C3AED', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
@@ -335,5 +339,5 @@ window.D = (() => {
     };
   }
 
-  return { SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();
