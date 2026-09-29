@@ -329,7 +329,7 @@ window.App = (() => {
       v = { biz: V.detailBiz, net: V.detailNet, card: V.detailCard }[top.kind](x, stack.length > 1);
     } else {
       const x = top.id ? S.find(top.kind, top.id) : null;
-      v = { biz: () => F.biz(x, top.preset, top.focus), net: () => F.net(x), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
+      v = { biz: () => F.biz(x, top.preset, top.focus), net: () => F.net(x, top.preset), card: () => F.card(x, top.preset), ev: () => F.event(x, top.preset) }[top.kind]();
     }
     inner.innerHTML = v.html;
     showDrawer();
@@ -395,14 +395,33 @@ window.App = (() => {
       catch (err) { console.error(err); toast('파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
       return;
     }
-    if (!AI.available()) return toast('사진·PDF에서 사업체 정보를 읽으려면 AI 키가 필요합니다 (데이터 관리 > AI 도우미). 엑셀·CSV 목록은 키 없이 등록할 수 있어요.', 'error');
     if (file.size > 20 * 1024 * 1024) return toast('파일이 너무 큽니다. 20MB 이하로 올려 주세요.', 'error');
+    if (!AI.available()) return readBizFileLocal(file);
     push({ type: 'loading', title: '문서를 읽는 중', body: 'AI가 사업자등록증·구인공고에서 사업체 정보를 찾고 있습니다. 10~20초 걸립니다.' }, false);
     try {
       const data = file.type === 'application/pdf' ? await readDataUrl(file) : await F.resizeImage(file, 1800, .85);
       const r = await AI.readBizDoc(data);
       replaceTop({ type: 'form', kind: 'biz', preset: { ...r, employees: Number(String(r.employees).replace(/[^0-9]/g, '')) || '', source: '현장 발굴', _notice: 'AI가 문서에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.' } });
     } catch (err) { closeDrawer(); toast('문서를 읽지 못했습니다: ' + err.message, 'error'); }
+  }
+
+  /** AI 키가 없을 때: PDF 글자를 직접 읽어 채우고, 못 읽으면 빈 등록 양식을 연다 */
+  async function readBizFileLocal(file) {
+    const blank = why => replaceTop({ type: 'form', kind: 'biz', preset: { source: '현장 발굴', _notice: why } });
+    push({ type: 'loading', title: '문서를 읽는 중', body: 'PDF에서 사업체 정보를 찾고 있습니다.' }, false);
+    if (!/pdf$/i.test(file.type) && !/\.pdf$/i.test(file.name)) {
+      return blank(`사진(${file.name})은 AI 키가 있어야 글자를 읽을 수 있어요. 사진을 보며 아래 칸을 직접 채워 주세요. 데이터 관리 > AI 도우미에 키를 넣으면 다음부터 자동으로 채워집니다.`);
+    }
+    try {
+      const text = await DT.pdfText(file);
+      const r = DT.parseBiz(text);
+      const got = ['name', 'ceo', 'bizNo', 'address', 'phone'].filter(k => r[k]);
+      if (text.replace(/\s/g, '').length < 20) return blank('이 PDF는 스캔한 그림이라 글자를 읽을 수 없어요. 문서를 보며 아래 칸을 직접 채워 주세요. (AI 키가 있으면 스캔본도 읽을 수 있습니다)');
+      replaceTop({ type: 'form', kind: 'biz', preset: { ...r, source: '현장 발굴', memo: r.name ? '' : text.slice(0, 400), _notice: got.length ? `PDF 글자에서 ${got.length}개 항목을 찾아 채웠어요. 틀린 곳이 없는지 꼭 확인하고 등록하세요.` : 'PDF에서 사업체 항목을 찾지 못해 읽은 글자를 메모 칸에 넣었어요. 필요한 내용을 옮겨 적어 주세요.' } });
+    } catch (err) {
+      console.error(err);
+      blank('PDF를 읽지 못했어요 (' + err.message + '). 문서를 보며 아래 칸을 직접 채워 주세요.');
+    }
   }
 
   function guessLink(org) {
@@ -473,6 +492,11 @@ window.App = (() => {
     'close-search': closeSearch,
     'new-biz': (el, fd) => push({ type: 'form', kind: 'biz' }, fd),
     'new-net': (el, fd) => push({ type: 'form', kind: 'net' }, fd),
+    'home-add': () => {
+      const home = S.get().networks.find(S.isHome);
+      if (home) return push({ type: 'form', kind: 'net', id: home.id });
+      push({ type: 'form', kind: 'net', preset: { name: '화성시아르딤복지관', category: '복지기관', relation: '우리 기관 (지도 기준점)' } });
+    },
     'new-card': (el, fd) => {
       const [lt, li] = (el.dataset.link || '').split(':');
       const t = lt ? S.find(lt, li) : null;

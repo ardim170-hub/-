@@ -302,8 +302,18 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 .map-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .map-legend i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); display: inline-block; }
 .map-legend i.sq { border-radius: 2px; transform: rotate(45deg); }
+.map-legend i.dot-lg { width: 12px; height: 12px; box-sizing: border-box; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.55); }
+.map-legend i.star, .map-item .mk.star { width: 14px; height: 14px; border-radius: 0; clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 35%); }
+.map-key { color: var(--text); font-weight: 600; }
+.map-stages { align-items: center; }
 .pick-pin { width: 22px; height: 22px; background: var(--accent); border: 3px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 6px rgba(0,0,0,.35); }
-.net-pin { width: 14px; height: 14px; background: var(--navy); border: 2px solid #fff; transform: rotate(45deg); border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.net-pin { width: 100%; height: 100%; box-sizing: border-box; background: var(--c, #1B1F24); border: 2px solid #fff; transform: rotate(45deg) scale(.86); border-radius: 2px; box-shadow: 0 0 0 1px rgba(0,0,0,.6), 0 2px 4px rgba(0,0,0,.4); }
+/* 지도 핀: 흰 테두리 + 진한 외곽선으로 일반 지도·위성 사진 어디서나 잘 보이게 */
+.bz-pin { width: 100%; height: 100%; box-sizing: border-box; border-radius: 50%; background: var(--c); border: 2.5px solid #fff; box-shadow: 0 0 0 1.5px rgba(0,0,0,.6), 0 2px 5px rgba(0,0,0,.4); }
+.bz-pin.hot { border-width: 3px; box-shadow: 0 0 0 3px #111, 0 3px 8px rgba(0,0,0,.5); }
+.home-pin { position: relative; width: 34px; height: 34px; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.home-pin svg { display: block; }
+.home-pin span { position: absolute; left: 50%; top: 32px; transform: translateX(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; line-height: 1.5; color: #3B2A00; background: #FFF8E1; border: 1.5px solid #D4A017; border-radius: 10px; padding: 0 7px; }
 .leaflet-popup-content { font-family: var(--font); font-size: 13px; margin: 12px 14px; }
 .leaflet-popup-content .pop-name { font-weight: 700; font-size: 14px; margin-bottom: 2px; }
 .leaflet-popup-content .pop-meta { color: var(--text-2); margin-bottom: 8px; }

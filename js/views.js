@@ -441,7 +441,16 @@ window.V = (() => {
               <button type="button" class="chip ${f.net ? 'on' : ''}" data-act="map-layer" data-layer="net">네트워크</button>
               <button type="button" class="chip ${f.card ? 'on' : ''}" data-act="map-layer" data-layer="card">분류 대기 명함${pending ? ` <span class="n">${pending}</span>` : ''}</button>
             </div>
-            <div class="map-legend">${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}><i style="--c:${s.color}"></i>${s.key}</label></span>`).join('')}<span><i class="sq" style="--c:var(--navy)"></i>기관</span><span><i class="sq" style="--c:#9AA3B2"></i>명함</span><span><i class="ring"></i>이 달 발굴</span></div>
+            <div class="map-legend map-key">
+              <span><i class="dot-lg" style="--c:${D.MAP_COLORS.biz}"></i>사업체 개발</span>
+              <span><i class="dot-lg" style="--c:${D.MAP_COLORS.support}"></i>지원고용·현장훈련</span>
+              <span><i class="sq" style="--c:${D.MAP_COLORS.net}"></i>기관</span>
+              <span><i class="star" style="--c:${D.MAP_COLORS.home}"></i>아르딤복지관</span>
+              <span><i class="sq" style="--c:${D.MAP_COLORS.card}"></i>명함</span>
+              <span><i class="ring"></i>이 달 발굴</span>
+            </div>
+            ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 화성시아르딤복지관 위치 등록</button>`}
+            <div class="map-legend map-stages"><span class="sub">단계</span>${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label></span>`).join('')}</div>
             ${noPos ? `<div class="sub">위치가 없는 곳 ${noPos}곳은 지도에 표시되지 않습니다.</div>` : ''}
           </div>
           <div class="map-list" id="mapList"></div>
@@ -473,9 +482,10 @@ window.V = (() => {
     const st = S.view();
     const items = [];
     if (f.biz) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
-    if (f.net) st.networks.forEach(n => items.push({ kind: 'net', x: n }));
+    // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
+    st.networks.forEach(n => { if (f.net || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
     if (f.card) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
-    return items.filter(({ x, kind }) => (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category))
+    return items.filter(({ x, home }) => home || ((!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
   /** 옆 목록: 기본은 고른 달에 발굴한 사업체만, 구별로 묶어서 */
@@ -486,7 +496,7 @@ window.V = (() => {
     const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, list.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
     return groups.map(([g, l]) => `<div class="map-group"><h4>${g ? `<span class="prog-dot" style="--c:${D.GU[g].color}"></span>${g}` : '구 미지정'} <span class="num">${l.length}</span></h4>${l.map(({ kind, x }) => `
       <div class="map-item" data-act="map-focus" data-kind="${kind}" data-id="${x.id}">
-        <span class="mk ${kind !== 'biz' ? 'sq' : ''}" style="--c:${kind === 'biz' ? D.STAGE[x.stage].color : kind === 'net' ? 'var(--navy)' : '#9AA3B2'}"></span>
+        <span class="mk ${kind === 'net' && S.isHome(x) ? 'star' : kind !== 'biz' ? 'sq' : ''}" style="--c:${kind === 'biz' ? M.bizColor(x) : kind === 'net' ? (S.isHome(x) ? D.MAP_COLORS.home : D.MAP_COLORS.net) : D.MAP_COLORS.card}"></span>
         <div style="min-width:0"><div class="name">${e(kind === 'card' ? (x.org || x.name) : x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)} · ${U.md(x.discoveredAt)} 발굴` : kind === 'net' ? `${e(x.category)} · ${e(x.status)}` : `명함 · ${e(x.name)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
       </div>`).join('')}</div>`).join('');
   }

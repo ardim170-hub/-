@@ -76,6 +76,7 @@ window.F = (() => {
           ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
           ${field('복리후생(기타)', inp('welfare', x.welfare, 'placeholder="예: 중식 제공, 통근버스"'), { full: true, for: 'f_welfare' })}
           ${field('실적 진행도', sel('progress', D.PROCEDURES, x.progress, '자동 (방문·직무분석지 기록으로 판단)'), { full: true, for: 'f_progress' })}
+          ${field('진행 사업 (지도에 빨간색)', `<div class="inline">${D.SUPPORT_TYPES.map(t => `<label class="check"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}>${t}</label>`).join('')}</div>`, { full: true })}
           ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
         </div></div>
         <div class="fsec"><h3>기초 조사</h3><div class="frow">
@@ -94,8 +95,8 @@ window.F = (() => {
   }
 
   /* ---------- 네트워크 ---------- */
-  function net(n) {
-    const x = n || { category: '복지기관', status: '활발', since: U.today(), staff: S.me() };
+  function net(n, preset = {}) {
+    const x = n || { category: '복지기관', status: '활발', since: U.today(), staff: S.me(), ...preset };
     return {
       html: head(n ? '기관 정보 수정' : '네트워크 기관 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="net" data-id="${n ? n.id : ''}" novalidate>
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
@@ -224,7 +225,7 @@ window.F = (() => {
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
-      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');
       obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim() };

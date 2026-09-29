@@ -81,6 +81,10 @@ window.D = (() => {
   /** 화성시 통합 대시보드 공유 링크 (지도 화면 '화성시 대시보드' 탭) */
   const CITY_DASHBOARD_URL = 'https://total.hscity.go.kr/web2/dashboard-main/shares/415bf387db01b77eb8d2f6ae700b8934';
 
+  /** 지도 표시 색: 사업체 개발(노랑) · 지원고용/현장훈련 진행(빨강) · 기관(검정) · 우리 복지관(금색 별) */
+  const SUPPORT_TYPES = ['지원고용', '현장훈련'];
+  const MAP_COLORS = { biz: '#F5B700', support: '#E5383B', net: '#1B1F24', home: '#D4A017', card: '#9AA3B2' };
+
   const STAGES = [
     { key: '발굴', color: 'var(--st-discover)', hex: '#8A94A6', desc: '채용 가능성이 있는 사업체를 찾아 기록한 단계' },
     { key: '접촉', color: 'var(--st-contact)', hex: '#6B9BEF', desc: '전화·이메일로 첫 연락을 한 단계' },
@@ -327,5 +331,5 @@ window.D = (() => {
     };
   }
 
-  return { CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { SUPPORT_TYPES, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

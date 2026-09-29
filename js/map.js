@@ -98,18 +98,29 @@ window.M = (() => {
     return pts.length ? L.latLngBounds(pts) : null;
   }
 
-  /** hot: 이번 달 발굴처럼 강조할 곳이면 크게, 진한 테두리 */
+  /** 사업체: 노랑(개발) / 빨강(지원고용·현장훈련 진행). hot = 이번 달 발굴이면 크게, 진한 테두리 */
+  const bizColor = b => (S.supportOf(b).types.length ? D.MAP_COLORS.support : D.MAP_COLORS.biz);
   function bizMarker(b, hot) {
-    const st = D.STAGE[b.stage] || D.STAGE['발굴'];
-    return L.circleMarker([b.lat, b.lng], {
-      radius: hot ? 10 : (b.stage === '채용연계' ? 8 : 7), color: hot ? '#172033' : '#fff', weight: hot ? 3 : 2, fillColor: st.hex, fillOpacity: b.stage === '보류' ? .75 : .95,
+    const size = hot ? 22 : 17;
+    const dim = b.stage === '보류' ? 'opacity:.6;' : '';
+    return L.marker([b.lat, b.lng], {
+      riseOnHover: true, zIndexOffset: hot ? 300 : 100,
+      icon: L.divIcon({ className: '', html: `<div class="bz-pin ${hot ? 'hot' : ''}" style="--c:${bizColor(b)};${dim}"></div>`, iconSize: [size, size], iconAnchor: [size / 2, size / 2], popupAnchor: [0, -size / 2] }),
     });
   }
   function cardMarker(c) {
     return L.marker([c.lat, c.lng], { icon: L.divIcon({ className: '', html: '<div class="card-pin"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }) });
   }
+  /** 기관: 검정 마름모. 우리 복지관은 금색 별 + 이름표 */
+  const STAR = '<svg viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M12 1.8l3.1 6.5 7.1.9-5.2 4.9 1.3 7.1L12 17.8l-6.3 3.4 1.3-7.1L1.8 9.2l7.1-.9z" fill="var(--c)" stroke="#3B2A00" stroke-width="1.3" stroke-linejoin="round"/></svg>';
   function netMarker(n) {
-    return L.marker([n.lat, n.lng], { icon: L.divIcon({ className: '', html: `<div class="net-pin" style="${n.status === '휴면' ? 'opacity:.55' : ''}"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] }) });
+    if (S.isHome(n)) {
+      return L.marker([n.lat, n.lng], {
+        zIndexOffset: 1000, riseOnHover: true,
+        icon: L.divIcon({ className: '', html: `<div class="home-pin" style="--c:${D.MAP_COLORS.home}">${STAR}<span>${U.esc(n.name)}</span></div>`, iconSize: [34, 34], iconAnchor: [17, 17], popupAnchor: [0, -16] }),
+      });
+    }
+    return L.marker([n.lat, n.lng], { riseOnHover: true, icon: L.divIcon({ className: '', html: `<div class="net-pin" style="--c:${D.MAP_COLORS.net};${n.status === '휴면' ? 'opacity:.55' : ''}"></div>`, iconSize: [15, 15], iconAnchor: [7.5, 7.5] }) });
   }
   const hasPos = x => x && x.lat != null && x.lng != null && !isNaN(x.lat) && !isNaN(x.lng) && x.lat !== '' && x.lng !== '';
 
@@ -118,8 +129,9 @@ window.M = (() => {
       return `<div class="pop-name">${U.esc(x.org || x.name)}</div><div class="pop-meta">분류 대기 명함 · ${U.esc(x.name)} ${U.esc(x.title || '')}<br>${U.esc(x.address || '')}</div>
         <div class="inline">${V.triageButtons(x)}</div>`;
     }
+    const sup = kind === 'biz' ? S.supportOf(x).types : [];
     const meta = kind === 'biz'
-      ? `${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
+      ? `${sup.length ? `<b style="color:${D.MAP_COLORS.support}">${sup.join('·')} 진행</b> · ` : ''}${U.esc(x.stage)} · ${U.esc(x.industry || '')} · ${U.esc(x.area || '')}`
       : `${U.esc(x.category)} · 관계 ${U.esc(x.status)} · ${U.esc(x.area || '')}`;
     return `<div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       <button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button>`;
@@ -161,5 +173,5 @@ window.M = (() => {
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { BASES, create, guBounds, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { BASES, create, guBounds, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();

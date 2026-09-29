@@ -10,7 +10,7 @@ window.S = (() => {
 
   /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
   const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차']]],
@@ -27,7 +27,7 @@ window.S = (() => {
   function toRow(col, x) {
     return Object.fromEntries(SHEETS[col][1].map(([k, h]) => {
       let v = x[k];
-      if (k === 'tags' || k === 'report') v = (v || []).join(', ');
+      if (k === 'tags' || k === 'report' || k === 'support') v = (v || []).join(', ');
       else if (k === 'done' || k === 'approx') v = v ? 'Y' : (k === 'done' ? 'N' : '');
       else if (k === 'photo') v = v ? 'Y' : '';
       else if (JSON_KEYS.has(k)) v = v && (Array.isArray(v) ? v.length : Object.keys(v).length) ? JSON.stringify(v) : '';
@@ -41,7 +41,7 @@ window.S = (() => {
       if (v === undefined) continue;
       if (DATE_KEYS.has(k)) v = U.toDateStr(v);
       else if (NUM_KEYS.has(k)) v = v === '' || v == null ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
-      else if (k === 'tags' || k === 'report') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
+      else if (k === 'tags' || k === 'report' || k === 'support') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
       else if (k === 'done' || k === 'approx') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
       else if (k === 'photo') v = /^y$/i.test(String(v).trim()) ? 'Y' : null;
       else if (JSON_KEYS.has(k)) { try { v = v ? JSON.parse(v) : (k === 'jobAnalyses' ? [] : null); } catch { v = k === 'jobAnalyses' ? [] : null; } }
@@ -552,8 +552,22 @@ window.S = (() => {
     XLSX.writeFile(wb, '아르딤_취업지원_엑셀양식.xlsx');
   }
 
+  /** 지원고용·현장훈련 진행 여부: 직접 체크한 것 + 활동 기록(현장훈련 유, 내용)·출장 명령부에서 찾은 것 */
+  function supportOf(b) {
+    const set = new Set((b.support || []).filter(t => D.SUPPORT_TYPES.includes(t)));
+    const found = new Set();
+    const scan = txt => { if (/현장\s*훈련/.test(txt || '')) found.add('현장훈련'); if (/지원\s*고용/.test(txt || '')) found.add('지원고용'); };
+    actsOf('biz', b.id).forEach(a => { if (a.training === '유') found.add('현장훈련'); scan(a.content); });
+    const key = U.norm(b.name).replace(/\(주\)|주식회사|점$/g, '');
+    if (key.length >= 2) state.trips.forEach(t => { const p = U.norm(t.place || '').replace(/\(주\)|주식회사|점$/g, ''); if (p && (p.includes(key) || key.includes(p)) && p.length >= 2) scan(t.purpose); });
+    found.forEach(t => set.add(t));
+    return { types: D.SUPPORT_TYPES.filter(t => set.has(t)), auto: [...found].some(t => !(b.support || []).includes(t)) };
+  }
+  /** 지도에 별로 표시할 우리 복지관 (네트워크에 '아르딤'이 들어간 기관) */
+  const isHome = n => /아르딤/.test(n.name || '');
+
   return {
-    REMOTE, isAdmin, accessInfo, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, accessInfo, supportOf, isHome, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
