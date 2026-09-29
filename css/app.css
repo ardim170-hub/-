@@ -722,6 +722,13 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .order-doc .sign { width: auto; border-collapse: collapse; margin: 0; }
 .order-doc .sign th, .order-doc .sign td { width: 70px; text-align: center; border: 1px solid #444; }
 .order-doc .sign td { height: 48px; }
+.order-doc .sign .sign-side { width: 24px; }
+#printRoot .order-doc + .order-doc { page-break-before: always; break-before: page; }
+.od-each { border-top: 1px solid var(--line, #E5E7EB); }
+.od-each-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
+.od-each-head .inline { margin-left: auto; }
+.od-each-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.od-each-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line, #E5E7EB); border-radius: 8px; }
 .order-doc h1 { margin-top: 8px; }
 .order-sub { text-align: center; margin: -6px 0 12px; color: #444; }
 .order-doc .doc-tbl th { width: auto; text-align: center; }

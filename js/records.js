@@ -205,8 +205,13 @@ window.R = (() => {
           ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
           <button class="btn" type="button" data-act="od-add">+ 줄 추가</button>
         </div>
-        <div class="inline"><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>인쇄 · PDF 저장</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
       </div>
+      ${list.length ? `<div class="panel-pad od-each">
+        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장·관장)이 따로 들어갑니다.</span>
+          <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = list.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span></span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+      </div>` : ''}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
         ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th></th>'
@@ -242,21 +247,35 @@ window.R = (() => {
       ? [md(t.date), t.staff, t.place, t.purpose, t.method, t.time, reportText(t), t.note]
       : [md(t.date), t.staff, t.dept || '직업', t.time, t.purpose, t.note]));
   };
-  function orderDoc() {
+  const orderStaff = () => { const f = ui.orders; return [...new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)'))]; };
+  const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
+  /** staff를 주면 그 담당자 줄만 모아 결재란이 따로 있는 한 장을 만든다. 없으면 전체 */
+  function orderDoc(staff) {
     const f = ui.orders;
-    const list = trips(f.month, f.kind);
+    const list = trips(f.month, f.kind).filter(t => staff == null || (t.staff || '(담당자 없음)') === staff);
     const trip = f.kind === '출장';
-    const sign = '<table class="sign"><tr><th>담 당</th><th>팀 장</th><th>관 장</th></tr><tr><td></td><td></td><td></td></tr></table>';
+    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th><th>관 장</th></tr><tr><td></td><td></td><td></td></tr></table>';
     return `<article class="doc order-doc">
       <div class="order-head">${sign}</div>
-      <h1>${trip ? '관내출장 명령부' : '특근 명령부'}</h1>
-      <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)</p>
+      <h1>${orderTitle(f.kind)}</h1>
+      <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)${staff != null ? ` · <b>${trip ? '출장자' : '특근자'}: ${e(staff)}</b>` : ''}</p>
       <table class="doc-tbl"><thead><tr>${trip ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방 법</th><th>출장시간</th><th>출장복명</th><th>비고</th>' : '<th>특근일자</th><th>특근자 성명</th><th>부서명</th><th>특근시간</th><th>특 근 업 무 내 용</th><th>비고</th>'}</tr></thead><tbody>
       ${list.map(t => trip
         ? `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.place)}</td><td>${e(t.purpose)}</td><td>${e(t.method)}</td><td>${e(t.time)}</td><td class="nowrap">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</td><td>${e(t.note)}</td></tr>`
         : `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.dept || '직업')}</td><td>${e(t.time)}</td><td>${e(t.purpose)}</td><td>${e(t.note)}</td></tr>`).join('')}
       </tbody></table>
     </article>`;
+  }
+  /** 담당자마다 한 장씩, 페이지를 나눠 이어 붙인다 */
+  const orderDocsEach = () => orderStaff().map(orderDoc).join('');
+  /** 한글에서 열 수 있는 워드 호환 문서(.doc)로 저장 */
+  function orderFile(staff) {
+    const f = ui.orders;
+    const css = 'body{font-family:"맑은 고딕",sans-serif;font-size:10pt}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:6pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:60pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center}.doc-tbl{width:100%;border-collapse:collapse}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:3pt;text-align:center}.doc-tbl th{background:#eee}';
+    const body = staff == null ? orderDocsEach().replace(/<\/article><article/g, '</article><br style="page-break-before:always"><article') : orderDoc(staff);
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${orderTitle(f.kind)}</title><style>${css}</style></head><body>${body}</body></html>`;
+    const name = `${V.monthLabel(f.month)} ${orderTitle(f.kind)}${staff != null ? '_' + staff : '_담당자별'}.doc`.replace(/[\\/:*?"<>|]/g, '');
+    return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
   }
 
   /* ================= 개발대장 ================= */
@@ -269,5 +288,5 @@ window.R = (() => {
     }));
   }
 
-  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, ledgerTsv, progressOf };
+  return { ui, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, ledgerTsv, progressOf };
 })();
