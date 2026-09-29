@@ -9,6 +9,7 @@ window.App = (() => {
     ['cards', '명함 관리', 'card', () => S.get().cards.length],
     ['network', '네트워크', 'net', () => S.get().networks.length],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
+    ['perf', '실적', 'perf'],
     ['data', '데이터 관리', 'data'],
   ];
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
@@ -46,7 +47,7 @@ window.App = (() => {
   function renderNav() {
     const r = route();
     $('#sideNav').innerHTML = NAV.map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
-    const moreActive = ['network', 'schedule', 'data'].includes(r);
+    const moreActive = ['network', 'schedule', 'perf', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
@@ -91,6 +92,7 @@ window.App = (() => {
       cards: [V.cardsPage, bindCards],
       network: [V.netPage, bindNet],
       schedule: [V.schedPage, bindSched],
+      perf: [V.perfPage, bindPerf],
       data: [V.dataPage, bindData],
     };
     const [html, after] = pages[r] || pages.dashboard;
@@ -180,6 +182,17 @@ window.App = (() => {
       else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     }
   }
+  function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
+      ta.remove(); return ok;
+    }
+  }
   function bindSched() {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
@@ -248,6 +261,18 @@ window.App = (() => {
       inner.innerHTML = `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${U.esc(top.title)}</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
         <div class="dr-body"><p class="sub">${U.esc(top.body || '')}</p><div class="skel" style="height:22px;width:60%"></div><div class="skel" style="height:22px;width:85%"></div><div class="skel" style="height:160px"></div></div>`;
       showDrawer();
+      return;
+    }
+    if (top.type.startsWith('sv')) {
+      const b = S.find('biz', top.id);
+      if (!b) { stack.pop(); return renderDrawer(); }
+      const j = (b.jobAnalyses || []).find(x => x.id === top.job);
+      inner.innerHTML = top.type === 'svBiz' ? SV.bizForm(b)
+        : top.type === 'svJob' ? SV.jobForm(b, j)
+        : top.type === 'svBizView' ? SV.viewer(`사업체정보지 · ${U.esc(b.name)}`, SV.bizDoc(b), 'sv-biz-edit', b.id)
+        : SV.viewer(`직무분석지 · ${U.esc(j?.jobName || '')}`, SV.jobDoc(b, j || {}), 'sv-job-edit', b.id, top.job);
+      showDrawer();
+      if (!keepScroll) inner.querySelector('.dr-body').scrollTop = 0; else if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
       return;
     }
     if (top.type === 'detail') {
@@ -367,7 +392,7 @@ window.App = (() => {
     if (document.querySelector('.more-sheet')) return closeMore();
     const el = document.createElement('div');
     el.className = 'more-sheet';
-    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/data">데이터 관리</a>';
+    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/perf">실적</a><a href="#/data">데이터 관리</a>';
     document.body.appendChild(el);
   }
 
@@ -553,6 +578,47 @@ window.App = (() => {
     },
     'cal-pick': el => { V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
     'cal-move': el => { const [y, m] = V.ui.sched.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.sched.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
+    'perf-month': el => { const [y, m] = V.ui.perf.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.perf.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'perf-set': el => { V.ui.perf.set = el.dataset.set; render(); },
+    'perf-acts': el => { V.ui.perf.withActs = el.checked; bindPerf(); },
+    'perf-no': el => { V.ui.perf.withNo = el.checked; bindPerf(); },
+    'perf-copy': async () => {
+      const ok = await copyText(V.perfTsv());
+      toast(ok ? '복사했습니다. 구글 시트의 실적(기타) 탭에서 붙여넣을 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다. 엑셀로 받기를 이용하세요.', ok ? '' : 'error');
+    },
+    'perf-xlsx': () => {
+      const f = V.ui.perf;
+      const rows = S.perfTable(f.month, f.set, f.withActs).map((r, i) => ({ '연번': i + 1, '사업날짜': r.date, '대분류': r.big, '중분류': r.mid, '세부사업명': r.item, '참여인원': r.people, '참여인원(신규)': r.newPeople, '회차': r.round, '비고': r.note, '출처(참고)': r.src }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), '실적(기타)');
+      XLSX.writeFile(wb, `실적_${f.set}_${f.month}.xlsx`);
+    },
+    'perf-del': el => { const undo = S.remove('perf', el.dataset.id); if (undo) toast('실적을 삭제했습니다.', '', { undo }); },
+    'save-perfmap': async () => {
+      const map = Object.fromEntries([...document.querySelectorAll('[data-perfmap]')].map(sel => [sel.dataset.perfmap, sel.value]));
+      await S.saveSettings({ perfByProgram: map });
+      toast('실적 분류표 연결을 저장했습니다.');
+    },
+    'sv-biz-edit': (el, fd) => push({ type: 'svBiz', id: el.dataset.id }, true),
+    'sv-biz-view': (el, fd) => push({ type: 'svBizView', id: el.dataset.id }, true),
+    'sv-job-edit': (el, fd) => push({ type: 'svJob', id: el.dataset.id, job: el.dataset.job || '' }, true),
+    'sv-job-view': (el, fd) => push({ type: 'svJobView', id: el.dataset.id, job: el.dataset.job }, true),
+    'sv-job-del': async el => {
+      const b = S.find('biz', el.dataset.id);
+      const j = (b?.jobAnalyses || []).find(x => x.id === el.dataset.job);
+      if (!j || !(await confirmBox('직무분석지를 삭제할까요?', `'${j.jobName || '직무명 없음'}' 직무분석지를 삭제합니다.`, '삭제'))) return;
+      S.upsert('biz', { id: b.id, jobAnalyses: b.jobAnalyses.filter(x => x.id !== j.id) });
+      toast('직무분석지를 삭제했습니다.');
+    },
+    'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
+    'sv-print': () => {
+      const root = $('#printRoot');
+      root.innerHTML = $('#svDoc').innerHTML;
+      document.body.classList.add('printing');
+      const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; window.removeEventListener('afterprint', done); };
+      window.addEventListener('afterprint', done);
+      setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
+    },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
     'dash-move': el => { const [y, m] = V.ui.dash.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.dash.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; $('#dashCal').innerHTML = V.dashCal(); },
     'cal-clear': () => { V.ui.sched.sel = ''; bindSched(); },
@@ -637,10 +703,37 @@ window.App = (() => {
       const form = ev.target;
       ev.preventDefault();
       if (form.id === 'entityForm') return onSubmit(form);
+      if (form.dataset.form === 'sv-biz' || form.dataset.form === 'sv-job') {
+        const b = S.find('biz', form.dataset.id);
+        if (!b) return;
+        if (form.dataset.form === 'sv-biz') {
+          S.upsert('biz', { id: b.id, survey: SV.collectBiz(form) });
+          stack[stack.length - 1] = { type: 'svBizView', id: b.id };
+          toast('사업체정보지를 저장했습니다.');
+        } else {
+          const j = SV.collectJob(form);
+          if (!j.jobName) { form.elements.jobName.focus(); return toast('담당직무명을 입력하세요.', 'error'); }
+          const list = [...(b.jobAnalyses || [])];
+          const i = list.findIndex(x => x.id === j.id);
+          if (i >= 0) list[i] = j; else list.push(j);
+          S.upsert('biz', { id: b.id, jobAnalyses: list });
+          stack[stack.length - 1] = { type: 'svJobView', id: b.id, job: j.id };
+          toast('직무분석지를 저장했습니다.');
+        }
+        renderDrawer();
+        return;
+      }
+      if (form.dataset.form === 'perf-add') {
+        const fd = Object.fromEntries(new FormData(form).entries());
+        if (!fd.date) return toast('사업날짜를 입력하세요.', 'error');
+        S.upsert('perf', { date: fd.date, set: V.ui.perf.set, item: fd.item, people: fd.people ? +fd.people : '', newPeople: fd.newPeople ? +fd.newPeople : '', round: fd.round.trim(), note: fd.note.trim(), staff: S.me() });
+        toast(`${fd.date} ${fd.item} 실적을 추가했습니다.`);
+        return;
+      }
       if (form.dataset.form === 'quick-log') {
         const fd = Object.fromEntries(new FormData(form).entries());
         if (!fd.content.trim()) { form.elements.content.focus(); return toast('기록할 내용을 입력하세요.', 'error'); }
-        S.upsert('act', { targetType: form.dataset.kind, targetId: form.dataset.id, date: fd.date || U.today(), type: fd.type, content: fd.content.trim(), staff: fd.staff });
+        S.upsert('act', { targetType: form.dataset.kind, targetId: form.dataset.id, date: fd.date || U.today(), type: fd.type, content: fd.content.trim(), staff: fd.staff, perf: fd.perf || '', people: fd.people ? +fd.people : '' });
         toast('활동을 기록했습니다.');
       }
     });

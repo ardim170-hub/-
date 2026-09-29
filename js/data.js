@@ -92,6 +92,27 @@ window.D = (() => {
   ];
   const PROGRAM = Object.fromEntries(PROGRAMS.map(p => [p.key, p]));
 
+  /** 실적 분류표 (복지관 실적 시트의 대분류·중분류·세부사업명) */
+  const PERF_SETS = {
+    '현장중심직업재활센터': { big: '중증장애인직업재활사업(현장중심직업재활센터)', mid: '현장중심직업재활센터', items: ['직업상담(현장중심)', '직업평가', '현장중심 직업훈련', '사업체개발', '취업알선(현장중심)', '취업', '취업후적응지도'] },
+    '고용지원사업': { big: '직업지원사업', mid: '고용지원사업', items: ['직업상담', '취업알선', '취업확정', '사후관리', '취업자자조모임', '고용자원개발', '사업체관리', '고용네트워크'] },
+  };
+  /** 소속 → 실적 분류표 (데이터 관리에서 바꿀 수 있음) */
+  const DEFAULT_PERF_BY_PROGRAM = { '장애인개발원': '현장중심직업재활센터', '고용공단': '고용지원사업' };
+  /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님 */
+  function suggestPerf(setKey, act, target) {
+    if (!PERF_SETS[setKey] || !act) return null;
+    if (/^진행 단계 변경/.test(act.content || '')) return null;
+    if (setKey === '현장중심직업재활센터') {
+      if (act.targetType !== 'biz') return null;
+      return act.type === '채용연계' ? '취업' : '사업체개발';
+    }
+    if (act.targetType === 'net') return '고용네트워크';
+    if (act.targetType !== 'biz') return null;
+    if (act.type === '채용연계') return '취업확정';
+    return target && target.stage === '채용연계' ? '사업체관리' : '고용자원개발';
+  }
+
   const INDUSTRIES = {
     '전자부품 제조': { suf: ['전자', '테크', '일렉트론'], jobs: ['부품 조립 보조', '제품 검수', '포장'], acc: '작업대 높이 조절 가능, 1층 작업장' },
     '자동차부품 제조': { suf: ['정밀', '오토텍', '기공'], jobs: ['부품 검수', '자재 정리', '포장'], acc: '소음 있음, 안전교육 필수' },
@@ -299,5 +320,5 @@ window.D = (() => {
     };
   }
 
-  return { BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

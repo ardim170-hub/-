@@ -16,6 +16,7 @@ window.V = (() => {
     mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
     edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
+    perf: '<svg viewBox="0 0 24 24"><path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/></svg>',
     camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
@@ -25,6 +26,7 @@ window.V = (() => {
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
+    perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false },
   };
 
   /** 기간 필터: 발굴일이 기간 안에 드는지 */
@@ -548,6 +550,70 @@ window.V = (() => {
       <div class="cal-grid">${U.WD.map(w => `<div class="cal-dow">${w}</div>`).join('')}${cells}</div></div>`;
   }
 
+  /* ================= 실적 ================= */
+  /** 보기 범위 안의 직원들이 쓰는 실적 분류표 */
+  function perfSets() {
+    const sets = [...new Set(S.staff().map(st => S.perfSetOf(st.name)).filter(Boolean))];
+    return sets.length ? sets : Object.keys(D.PERF_SETS);
+  }
+  function perfPage() {
+    const f = ui.perf;
+    const sets = perfSets();
+    if (!sets.includes(f.set)) f.set = sets.includes(S.perfSetOf(S.me())) ? S.perfSetOf(S.me()) : sets[0];
+    const def = D.PERF_SETS[f.set];
+    return `
+      <div class="page-head">
+        <div><h1 class="page-title">실적</h1><div class="page-desc">실적을 입력하고, 구글 시트 '실적(기타)'에 그대로 붙여넣을 수 있게 정리합니다.${scopeNote()}</div></div>
+      </div>
+      <div class="toolbar perf-bar">
+        <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
+        <div class="chips">${sets.map(k => `<button type="button" class="chip ${f.set === k ? 'on' : ''}" data-act="perf-set" data-set="${e(k)}">${e(k)}</button>`).join('')}</div>
+      </div>
+      <section class="panel panel-pad perf-input">
+        <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)}</span></h2>
+        <form class="perf-form" data-form="perf-add">
+          <label>사업날짜<input class="input" type="date" name="date" value="${f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
+          <label>세부사업명<select class="select" name="item">${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></label>
+          <label>참여인원<input class="input" type="number" min="0" name="people" inputmode="numeric"></label>
+          <label>참여인원(신규)<input class="input" type="number" min="0" name="newPeople" inputmode="numeric"></label>
+          <label>회차<input class="input" name="round"></label>
+          <label class="grow">비고<input class="input" name="note"></label>
+          <button class="btn btn-primary" type="submit">추가</button>
+        </form>
+        <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면에서 남긴 활동 기록(방문·전화 등)은 따로 입력하지 않아도 아래 표에 날짜·세부사업별로 자동 집계됩니다.</p>
+      </section>
+      <div id="perfResults"></div>`;
+  }
+  function perfResults() {
+    const f = ui.perf;
+    const def = D.PERF_SETS[f.set];
+    const rows = S.perfTable(f.month, f.set, f.withActs);
+    const counts = def.items.map(i => [i, rows.filter(r => r.item === i).length, rows.filter(r => r.item === i).reduce((t, r) => t + (Number(r.people) || 0), 0)]);
+    return `<section class="panel perf-sum">${counts.map(([i, n, p]) => `<div class="${n ? '' : 'zero'}"><span class="l">${e(i)}</span><b class="num">${n}</b><span class="sub">줄${p ? ` · ${p}명` : ''}</span></div>`).join('')}</section>
+      <section class="panel">
+        <div class="panel-pad perf-actions">
+          <div class="inline">
+            <label class="check"><input type="checkbox" data-act="perf-acts" ${f.withActs ? 'checked' : ''}>활동 기록 자동 집계 포함</label>
+            <label class="check"><input type="checkbox" data-act="perf-no" ${f.withNo ? 'checked' : ''}>연번 포함해서 복사</label>
+          </div>
+          <div class="inline"><button class="btn btn-primary" type="button" data-act="perf-copy" ${rows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${rows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${rows.length ? '' : 'disabled'}>엑셀로 받기</button></div>
+        </div>
+        <p class="sub perf-help">구글 시트 <b>실적(기타)</b> 탭에서 새로 입력할 줄의 <b>${f.withNo ? '연번(A열)' : '사업날짜(B열)'}</b> 칸을 누르고 <kbd>Ctrl</kbd>+<kbd>V</kbd> 하세요.</p>
+        ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl">
+          <thead><tr><th class="r">연번</th><th>사업날짜</th><th>대분류</th><th>중분류</th><th>세부사업명</th><th class="r">참여인원</th><th class="r">참여인원(신규)</th><th>회차</th><th>비고</th><th>출처</th><th></th></tr></thead>
+          <tbody>${rows.map((r, i) => `<tr class="${r.kind}"><td class="r num">${i + 1}</td><td class="num nowrap">${r.date}</td><td class="clip" title="${e(r.big)}">${e(r.big)}</td><td>${e(r.mid)}</td><td><b>${e(r.item)}</b></td><td class="r num">${e(r.people)}</td><td class="r num">${e(r.newPeople)}</td><td>${e(r.round)}</td><td>${e(r.note)}</td>
+            <td class="src"><div class="clip" title="${e(r.src)}">${r.kind === 'auto' ? '<span class="badge accent">자동</span> ' : '<span class="badge">직접</span> '}${e(r.src)}</div></td>
+            <td>${r.kind === 'manual' ? `<button class="icon-btn" type="button" aria-label="삭제" data-act="perf-del" data-id="${r.id}">${I.close}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`
+          : `<div class="empty"><strong>${monthLabel(f.month)} 실적이 없습니다</strong>위에서 실적을 입력하거나, 사업체·기관 상세 화면에서 활동을 기록하세요.</div>`}
+      </section>`;
+  }
+  /** 구글 시트에 붙여넣을 탭 구분 글 */
+  function perfTsv() {
+    const f = ui.perf;
+    const clean = v => String(v ?? '').replace(/[\t\n\r]+/g, ' ');
+    return S.perfTable(f.month, f.set, f.withActs).map((r, i) => [...(f.withNo ? [i + 1] : []), r.date, r.big, r.mid, r.item, r.people, r.newPeople, r.round, r.note].map(clean).join('\t')).join('\n');
+  }
+
   /* ================= 데이터 관리 ================= */
   function dataPage() {
     const st = S.get();
@@ -581,6 +647,12 @@ window.V = (() => {
           <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
           <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
           <div class="inline"><button class="btn btn-sm" type="button" data-act="staff-add">+ 직원 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-staff">저장</button></div>
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">소속별 실적 분류표</h2>
+          <p>활동 기록을 어느 실적표(대분류·중분류·세부사업명)로 집계할지 정합니다.</p>
+          ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600">${e(pr.key)}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
+          <button class="btn btn-sm" type="button" data-act="save-perfmap">저장</button>
         </section>
         <section class="panel panel-pad">
           <h2 class="section-title">이 PC를 쓰는 사람</h2>
@@ -647,6 +719,16 @@ window.V = (() => {
       ${evs.length ? `<div class="people">${evs.map(x => `<div class="person"><div><div style="font-weight:600">${e(x.title)}</div><div class="pm">${U.dateKo(x.date)} ${e(x.time || '')} · ${e(x.type)}</div></div>
         <div class="inline"><span class="badge ${U.dday(x.date).tone} num">${U.dday(x.date).label}</span><input type="checkbox" aria-label="완료 표시" data-act="ev-toggle" data-id="${x.id}" style="width:18px;height:18px"></div></div>`).join('')}</div>` : '<p class="sub" style="margin:0">예정된 일정이 없습니다.</p>'}</section>`;
   };
+  /** 활동 기록 입력 칸 아래의 실적 선택 (이 PC 사용자의 실적 분류표) */
+  const perfSelect = (kind, id) => {
+    const set = S.perfSetOf(S.me());
+    const def = D.PERF_SETS[set];
+    if (!def) return '';
+    const auto = D.suggestPerf(set, { targetType: kind, type: '전화', content: '' }, S.find(kind, id));
+    return `<div class="quick-perf"><span class="sub">실적</span>
+      <select class="select" name="perf" aria-label="실적 세부사업"><option value="">자동${auto ? ` (${e(auto)})` : ' (실적 아님)'}</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}<option value="제외">실적 아님</option></select>
+      <input class="input" type="number" min="0" name="people" placeholder="참여인원" aria-label="참여인원"></div>`;
+  };
   const actsSec = (kind, id) => {
     const acts = S.actsOf(kind, id);
     return `<section class="dr-sec"><h3>활동 기록</h3>
@@ -656,8 +738,9 @@ window.V = (() => {
         <input class="input grow" name="content" id="quickLogContent" placeholder="예: 인사팀장 통화, 다음 주 방문 약속" aria-label="내용" required>
         <button class="btn btn-primary" type="submit">기록</button>
         <input type="hidden" name="staff" value="${e(S.me())}">
+        ${perfSelect(kind, id)}
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
@@ -695,7 +778,9 @@ window.V = (() => {
           ${people('biz', b.id)}
           ${eventsSec('biz', b.id)}
           ${actsSec('biz', b.id)}
-          <section class="dr-sec"><h3>기초 조사 ${b.researchAt ? `<span class="sub">${U.dateDot(b.researchAt)} 조사</span>` : ''}</h3>
+          <section class="dr-sec"><h3>기초 조사</h3>
+            ${SV.section(b)}
+            <h4 class="sub-h">인터넷 조사 메모 ${b.researchAt ? `<span class="sub">${U.dateDot(b.researchAt)} 조사</span>` : ''}</h4>
             ${b.research ? `<div class="memo-box research">${linkify(b.research)}</div>` : '<p class="sub" style="margin:0 0 8px">아직 조사 내용이 없습니다. 아래 버튼으로 인터넷 검색 결과를 확인하고 정리해 두세요.</p>'}
             <div class="inline research-actions">
               ${AI.available() ? `<button class="btn btn-sm btn-primary" type="button" data-act="ai-research" data-id="${b.id}">AI로 인터넷 조사</button>` : ''}
@@ -773,5 +858,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

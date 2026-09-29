@@ -10,15 +10,17 @@ window.S = (() => {
 
   /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
   const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
   };
+  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
-  const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng']);
+  const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
+  const JSON_KEYS = new Set(['survey', 'jobAnalyses']);
   const COLS = Object.keys(SHEETS);
 
   function toRow(col, x) {
@@ -27,6 +29,7 @@ window.S = (() => {
       if (k === 'tags') v = (v || []).join(', ');
       else if (k === 'done' || k === 'approx') v = v ? 'Y' : (k === 'done' ? 'N' : '');
       else if (k === 'photo') v = v ? 'Y' : '';
+      else if (JSON_KEYS.has(k)) v = v && (Array.isArray(v) ? v.length : Object.keys(v).length) ? JSON.stringify(v) : '';
       return [h, v ?? ''];
     }));
   }
@@ -40,13 +43,14 @@ window.S = (() => {
       else if (k === 'tags') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
       else if (k === 'done' || k === 'approx') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
       else if (k === 'photo') v = /^y$/i.test(String(v).trim()) ? 'Y' : null;
+      else if (JSON_KEYS.has(k)) { try { v = v ? JSON.parse(v) : (k === 'jobAnalyses' ? [] : null); } catch { v = k === 'jobAnalyses' ? [] : null; } }
       else v = v == null ? '' : String(v).trim();
       o[k] = v;
     }
     if (!o.id) o.id = U.uid(col[0].toUpperCase());
     return o;
   }
-  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : o.name);
+  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : o.name);
   function normalize(next) {
     for (const k of COLS) next[k] ||= [];
     next.settings ||= {};
@@ -56,6 +60,8 @@ window.S = (() => {
     if (!next.settings.staff.length) next.settings.staff = [{ name: '김정배', program: '' }];
     if (typeof next.settings.links === 'string') { try { next.settings.links = JSON.parse(next.settings.links); } catch { next.settings.links = null; } }
     if (!Array.isArray(next.settings.links)) next.settings.links = D.DEFAULT_LINKS.map(l => ({ ...l }));
+    if (typeof next.settings.perfByProgram === 'string') { try { next.settings.perfByProgram = JSON.parse(next.settings.perfByProgram); } catch { next.settings.perfByProgram = null; } }
+    next.settings.perfByProgram = { ...D.DEFAULT_PERF_BY_PROGRAM, ...(next.settings.perfByProgram || {}) };
     next.cards.forEach(c => place(c));
     next.businesses.forEach(b => { if (!D.STAGE[b.stage]) b.stage = '발굴'; place(b); });
     next.networks.forEach(n => { if (!D.NET_STATUS.includes(n.status)) n.status = '보통'; place(n); });
@@ -142,7 +148,7 @@ window.S = (() => {
     for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     const st = res.settings || {};
     next.settings = {
-      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '',
+      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '', perfByProgram: st.perfByProgram || null,
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
     };
     next.isDemo = st.isDemo === 'Y';
@@ -153,7 +159,7 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', isDemo: s.isDemo ? 'Y' : '' } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '' } };
   }
 
   let lastSig = '';
@@ -211,8 +217,8 @@ window.S = (() => {
   }
 
   /* ---------- CRUD ---------- */
-  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events' };
-  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E' };
+  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs' };
+  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
   const photoCache = new Map();
 
@@ -223,7 +229,7 @@ window.S = (() => {
     Object.keys(obj).forEach(k => obj[k] === undefined && delete obj[k]);
     const i = list.findIndex(x => x.id === obj.id);
     const before = i >= 0 ? list[i] : null;
-    if (kind !== 'act' && kind !== 'ev') { obj.updatedAt = U.today(); if (!before) obj.createdAt = U.today(); }
+    if (kind !== 'act' && kind !== 'ev' && kind !== 'perf') { obj.updatedAt = U.today(); if (!before) obj.createdAt = U.today(); }
     let photoOp = null;
     if (REMOTE && kind === 'card' && 'photo' in obj) {
       if (typeof obj.photo === 'string' && obj.photo.startsWith('data:')) { photoCache.set(obj.id, obj.photo); photoOp = ['api_putPhoto', obj.id, obj.photo]; obj.photo = 'Y'; }
@@ -350,6 +356,7 @@ window.S = (() => {
       cards: state.cards.filter(c => !c.linkType || ids.has(c.linkType + c.linkId)),
       activities: state.activities.filter(a => staffInScope(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
       events: state.events.filter(inT),
+      perfs: state.perfs.filter(p => staffInScope(p.staff)),
     };
   }
 
@@ -396,6 +403,47 @@ window.S = (() => {
     const known = new Set(staff().map(s => s.name));
     const orphan = state.businesses.filter(b => !known.has(b.staff)).length;
     return { groups, total: sum(people), orphan };
+  }
+
+  /* ---------- 실적 ---------- */
+  /** 직원의 실적 분류표 이름 (현장중심직업재활센터 / 고용지원사업) */
+  const perfSetOf = staffName => state.settings.perfByProgram[programOf(staffName)] || '';
+  /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null */
+  function perfOf(a) {
+    const set = perfSetOf(a.staff);
+    const def = D.PERF_SETS[set];
+    if (!def) return null;
+    let item = a.perf;
+    if (item === '제외') return null;
+    if (!item || !def.items.includes(item)) item = D.suggestPerf(set, a, targetOf(a));
+    return item ? { set, big: def.big, mid: def.mid, item } : null;
+  }
+  /** 기간(YYYY-MM) 안의 실적 기록 */
+  function perfRows(month, v = view()) {
+    return v.activities.filter(a => a.date.startsWith(month)).map(a => ({ a, p: perfOf(a), t: targetOf(a) })).filter(r => r.p)
+      .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.p.item.localeCompare(y.p.item));
+  }
+
+  /** 실적 표 (구글 시트 '실적(기타)' 열 순서). 직접 입력한 실적 + 활동 기록 자동 집계(날짜·세부사업별 한 줄) */
+  function perfTable(month, set, withActs = true, v = view()) {
+    const def = D.PERF_SETS[set];
+    if (!def) return [];
+    const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => ({
+      kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
+      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: p.note || '', src: `직접 입력 · ${p.staff || ''}`,
+    }));
+    if (withActs) {
+      const groups = new Map();
+      perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t }) => {
+        const k = a.date + '|' + p.item;
+        const g = groups.get(k) || { kind: 'auto', date: a.date, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
+        g.n++; g.people += Number(a.people) || 0;
+        if (t) g.targets.set(t.id, t.name);
+        groups.set(k, g);
+      });
+      groups.forEach(g => rows.push({ ...g, people: g.people || '', newPeople: '', round: '', note: g.targets.size || g.n, src: `활동 ${g.n}건: ${[...g.targets.values()].join(', ')}` }));
+    }
+    return rows.sort((x, y) => x.date.localeCompare(y.date) || def.items.indexOf(x.item) - def.items.indexOf(y.item));
   }
 
   /** 최근 12개월: 신규 발굴 수, 채용연계 활동 수 */
@@ -499,7 +547,7 @@ window.S = (() => {
   return {
     REMOTE, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
