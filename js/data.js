@@ -51,6 +51,13 @@ window.D = (() => {
     if (/협회|연합|조합|상공|협의회|단지/.test(n)) return '기업·경제단체';
     return '복지기관';
   }
+  /** 연락이력·보고용 선택지 (복지관 공유 시트와 같은 값) */
+  const CONTACT_RESULTS = ['채용의향 있음', '채용안함', '채용마감', '검토중', '부재·미응답', '기타'];
+  const CONTACT_STATUS = ['연락완료', '재연락'];
+  const PROCEDURES = ['방문완료', '직무분석지 작성 전', '직무분석지 작성완료', '실적입력', '실적 입력 완료'];
+  const TRIP_METHODS = ['복지관 차량', '대중교통', '도보', '개인 차량'];
+  const TRIP_REPORTS = ['현장중심', '장애인고용'];
+
   /** 대시보드 바로가기 기본값 */
   const DEFAULT_LINKS = [
     { label: '고용24', url: 'https://www.work24.go.kr' },
@@ -320,5 +327,5 @@ window.D = (() => {
     };
   }
 
-  return { PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

@@ -9,7 +9,9 @@ window.App = (() => {
     ['cards', '명함 관리', 'card', () => S.get().cards.length],
     ['network', '네트워크', 'net', () => S.get().networks.length],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
+    ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
+    ['orders', '출장·특근', 'trip'],
     ['data', '데이터 관리', 'data'],
   ];
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
@@ -47,7 +49,7 @@ window.App = (() => {
   function renderNav() {
     const r = route();
     $('#sideNav').innerHTML = NAV.map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
-    const moreActive = ['network', 'schedule', 'perf', 'data'].includes(r);
+    const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
@@ -93,6 +95,8 @@ window.App = (() => {
       network: [V.netPage, bindNet],
       schedule: [V.schedPage, bindSched],
       perf: [V.perfPage, bindPerf],
+      contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
+      orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
       data: [V.dataPage, bindData],
     };
     const [html, after] = pages[r] || pages.dashboard;
@@ -193,6 +197,14 @@ window.App = (() => {
       ta.remove(); return ok;
     }
   }
+  function printHtml(html) {
+    const root = $('#printRoot');
+    root.innerHTML = html;
+    document.body.classList.add('printing');
+    const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done);
+    setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
+  }
   function bindSched() {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
@@ -230,6 +242,7 @@ window.App = (() => {
 
   /* ---------- Drawer ---------- */
   let stack = [];
+  let inlineEdit = false;
   const drawer = $('#drawer');
   function drawerOpen() { return drawer.classList.contains('open'); }
   function showDrawer() {
@@ -255,6 +268,22 @@ window.App = (() => {
       showDrawer();
       IMP.bind(top.state, () => renderDrawer(true));
       if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
+      return;
+    }
+    if (top.type === 'paste') {
+      inner.innerHTML = R.pasteDialog(top.state);
+      showDrawer();
+      const box = $('#ctPasteBox');
+      box.oninput = U.debounce(() => {
+        const { rows } = R.parsePaste(box.value);
+        const key = n => U.norm(n).replace(/^\(주\)|주식회사|\(주\)/g, '');
+        const have = new Set(S.get().businesses.map(b => key(b.name)));
+        top.state = { text: box.value, rows, newCount: new Set(rows.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size };
+        renderDrawer(true);
+        $('#ctPasteBox').focus();
+        $('#ctPasteBox').setSelectionRange(9e9, 9e9);
+      }, 250);
+      if (!keepScroll) box.focus();
       return;
     }
     if (top.type === 'loading') {
@@ -392,7 +421,7 @@ window.App = (() => {
     if (document.querySelector('.more-sheet')) return closeMore();
     const el = document.createElement('div');
     el.className = 'more-sheet';
-    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/perf">실적</a><a href="#/data">데이터 관리</a>';
+    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a><a href="#/data">데이터 관리</a>';
     document.body.appendChild(el);
   }
 
@@ -611,14 +640,22 @@ window.App = (() => {
       toast('직무분석지를 삭제했습니다.');
     },
     'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
-    'sv-print': () => {
-      const root = $('#printRoot');
-      root.innerHTML = $('#svDoc').innerHTML;
-      document.body.classList.add('printing');
-      const done = () => { document.body.classList.remove('printing'); root.innerHTML = ''; window.removeEventListener('afterprint', done); };
-      window.addEventListener('afterprint', done);
-      setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
-    },
+    'sv-print': () => printHtml($('#svDoc').innerHTML),
+    'od-print': () => printHtml(R.orderDoc()),
+    'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
+    'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
+    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
+    'od-dup': el => { const t = S.find('trip', el.dataset.id); if (!t) return; const other = S.staff().map(s => s.name).find(n => n !== t.staff) || t.staff; S.upsert('trip', { ...t, id: undefined, staff: other, actId: '' }); toast(`${other} 동행 줄을 추가했습니다. 성명을 확인하세요.`); },
+    'od-del': el => { const undo = S.remove('trip', el.dataset.id); if (undo) toast('한 줄을 삭제했습니다.', '', { undo }); },
+    'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
+    'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
+    'ct-copy': async () => { const ok = await copyText(R.contactTsv()); toast(ok ? '복사했습니다. 공유 시트 연락이력 탭의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
+    'ct-copy-report': async () => { const ok = await copyText(R.reportTsv()); toast(ok ? '복사했습니다. 보고용 시트 방문 사업체 표의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
+    'ct-paste': () => push({ type: 'paste', state: { text: '', rows: [] } }, false),
+    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const n = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${n}줄을 가져왔습니다.`); },
+    'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
     'dash-move': el => { const [y, m] = V.ui.dash.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.dash.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; $('#dashCal').innerHTML = V.dashCal(); },
     'cal-clear': () => { V.ui.sched.sel = ''; bindSched(); },
@@ -699,6 +736,20 @@ window.App = (() => {
       }
     });
     $('#scrim').onclick = closeDrawer;
+    document.addEventListener('change', ev => {
+      const el = ev.target.closest('[data-chg]');
+      if (!el) return;
+      const { id, field } = el.dataset;
+      inlineEdit = true;
+      if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
+      else if (el.dataset.chg === 'trip-field') S.upsert('trip', { id, [field]: el.value });
+      else if (el.dataset.chg === 'trip-report') {
+        const t = S.find('trip', id);
+        const set = new Set(t.report || []);
+        if (el.checked) set.add(el.value); else set.delete(el.value);
+        S.upsert('trip', { id, report: D.TRIP_REPORTS.filter(r => set.has(r)) });
+      }
+    });
     document.addEventListener('submit', ev => {
       const form = ev.target;
       ev.preventDefault();
@@ -723,6 +774,14 @@ window.App = (() => {
         renderDrawer();
         return;
       }
+      if (form.dataset.form === 'ct-add') {
+        const fd = Object.fromEntries(new FormData(form).entries());
+        if (!fd.name.trim() || !fd.content.trim()) return toast('사업체명과 결과를 입력하세요.', 'error');
+        const b = R.addContact(fd);
+        toast(`${b.name} 연락을 기록했습니다.`);
+        setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
+        return;
+      }
       if (form.dataset.form === 'perf-add') {
         const fd = Object.fromEntries(new FormData(form).entries());
         if (!fd.date) return toast('사업날짜를 입력하세요.', 'error');
@@ -739,6 +798,8 @@ window.App = (() => {
     });
     window.addEventListener('hashchange', () => { if (drawerOpen()) closeDrawer(); render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
     S.subscribe(() => {
+      // 표 안에서 칸을 고칠 때는 화면 전체를 다시 그리지 않아 입력 위치가 유지되게 한다
+      if (inlineEdit) { inlineEdit = false; if (route() === 'contacts') $('#ctResults').innerHTML = R.contactsResults(); return; }
       if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
     });
