@@ -1,11 +1,71 @@
 /* 데이터 저장소: 모든 화면은 이 한 곳의 데이터에서 계산한다.
-   저장 위치는 이 브라우저의 IndexedDB (없으면 localStorage). */
+   - 파일로 열면(로컬 모드): 이 브라우저의 IndexedDB에 저장
+   - 구글 Apps Script 웹 앱으로 열면(공유 모드): 구글 시트에 저장하고 팀원과 함께 본다 */
 window.S = (() => {
   const DB_NAME = 'ardim-jobs-crm';
   const KEY = 'state';
+  const REMOTE = !!(window.google && google.script && google.script.run);
   let state = null;
   const listeners = new Set();
 
+  /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
+  const SHEETS = {
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원']]],
+    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
+  };
+  const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
+  const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt']);
+  const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng']);
+  const COLS = Object.keys(SHEETS);
+
+  function toRow(col, x) {
+    return Object.fromEntries(SHEETS[col][1].map(([k, h]) => {
+      let v = x[k];
+      if (k === 'tags') v = (v || []).join(', ');
+      else if (k === 'done' || k === 'approx') v = v ? 'Y' : (k === 'done' ? 'N' : '');
+      else if (k === 'photo') v = v ? 'Y' : '';
+      return [h, v ?? ''];
+    }));
+  }
+  function fromRow(col, r) {
+    const o = {};
+    for (const [k, h] of SHEETS[col][1]) {
+      let v = r[h];
+      if (v === undefined) continue;
+      if (DATE_KEYS.has(k)) v = U.toDateStr(v);
+      else if (NUM_KEYS.has(k)) v = v === '' || v == null ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
+      else if (k === 'tags') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
+      else if (k === 'done' || k === 'approx') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
+      else if (k === 'photo') v = /^y$/i.test(String(v).trim()) ? 'Y' : null;
+      else v = v == null ? '' : String(v).trim();
+      o[k] = v;
+    }
+    if (!o.id) o.id = U.uid(col[0].toUpperCase());
+    return o;
+  }
+  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : o.name);
+  function normalize(next) {
+    for (const k of COLS) next[k] ||= [];
+    next.settings ||= {};
+    next.settings.orgName ||= '화성시아르딤복지관 직업지원팀';
+    if (next.settings.cityMapUrl == null) next.settings.cityMapUrl = D.CITY_DASHBOARD_URL;
+    next.settings.staff = (next.settings.staff || []).map(s => (typeof s === 'string' ? { name: s, program: '' } : { name: String(s.name || '').trim(), program: s.program || '' })).filter(s => s.name);
+    if (!next.settings.staff.length) next.settings.staff = [{ name: '김정배', program: '' }];
+    next.businesses.forEach(b => {
+      if (!D.STAGE[b.stage]) b.stage = '발굴';
+      if ((b.lat == null || isNaN(b.lat)) && D.AREA_BY_NAME[b.area]) { b.lat = D.AREA_BY_NAME[b.area].lat; b.lng = D.AREA_BY_NAME[b.area].lng; b.approx = true; }
+    });
+    next.networks.forEach(n => {
+      if (!D.NET_STATUS.includes(n.status)) n.status = '보통';
+      if ((n.lat == null || isNaN(n.lat)) && D.AREA_BY_NAME[n.area]) { n.lat = D.AREA_BY_NAME[n.area].lat; n.lng = D.AREA_BY_NAME[n.area].lng; n.approx = true; }
+    });
+    return next;
+  }
+
+  /* ---------- 로컬 저장 (IndexedDB) ---------- */
   function openDb() {
     return new Promise((res, rej) => {
       const r = indexedDB.open(DB_NAME, 1);
@@ -38,64 +98,220 @@ window.S = (() => {
       localStorage.setItem(DB_NAME, JSON.stringify(v));
     }
   }
-
   let saveTimer = null;
-  let saveError = null;
-  function persist() {
+  function persistLocal() {
+    if (REMOTE) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
-      try { await writeRaw(state); saveError = null; }
-      catch (e) { saveError = e; App.toast('저장하지 못했습니다. 저장 공간이 부족할 수 있어요. 명함 사진을 줄이거나 엑셀로 백업하세요.', 'error'); }
+      try { await writeRaw(state); }
+      catch (e) { App.toast('저장하지 못했습니다. 저장 공간이 부족할 수 있어요. 명함 사진을 줄이거나 엑셀로 백업하세요.', 'error'); }
     }, 150);
   }
 
+  /* ---------- 공유 모드 (구글 Apps Script) ---------- */
+  const sync = { status: REMOTE ? 'loading' : 'local', at: null, error: null };
+  const syncListeners = new Set();
+  const setSync = (status, error = null) => { sync.status = status; sync.error = error; if (status === 'saved') sync.at = new Date(); syncListeners.forEach(fn => fn(sync)); };
+  const call = (fn, ...args) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+  let pending = 0;
+  function send(fn, ...args) {
+    if (!REMOTE) return Promise.resolve();
+    pending++;
+    setSync('saving');
+    return call(fn, ...args)
+      .then(r => { if (--pending === 0) setSync('saved'); return r; })
+      .catch(err => {
+        pending--;
+        setSync('error', err);
+        App.toast('구글 시트에 저장하지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요. (' + (err && err.message || err) + ')', 'error');
+        throw err;
+      });
+  }
+  const opPut = (col, x) => ({ sheet: SHEETS[col][0], op: 'put', id: x.id, row: toRow(col, x) });
+  const opDel = (col, id) => ({ sheet: SHEETS[col][0], op: 'del', id });
+  const schema = () => Object.fromEntries([...COLS.map(c => [SHEETS[c][0], SHEETS[c][1].map(x => x[1])]), [STAFF_SHEET[0], STAFF_SHEET[1].map(x => x[1])]]);
+
+  function fromServer(res) {
+    const next = { version: 1 };
+    for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
+    const st = res.settings || {};
+    next.settings = {
+      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null,
+      staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
+    };
+    next.isDemo = st.isDemo === 'Y';
+    return normalize(next);
+  }
+  function serverPayload(s) {
+    const sheets = {};
+    for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
+    sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', isDemo: s.isDemo ? 'Y' : '' } };
+  }
+
+  let lastSig = '';
+  async function refresh() {
+    if (!REMOTE || pending) return;
+    try {
+      const res = await call('api_load', schema());
+      if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
+      const next = fromServer(res);
+      const sig = JSON.stringify(next);
+      if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
+      setSync('saved');
+    } catch (err) { setSync('error', err); }
+  }
+
+  /* ---------- 초기화 ---------- */
   async function init() {
+    if (REMOTE) {
+      const res = await call('api_load', schema());
+      state = fromServer(res);
+      lastSig = JSON.stringify(state);
+      setSync('saved');
+      setInterval(refresh, 60000);
+      window.addEventListener('focus', refresh);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+      return state;
+    }
     const raw = await readRaw();
-    state = raw && raw.version ? raw : D.demo();
-    for (const k of ['businesses', 'networks', 'cards', 'activities', 'events']) state[k] ||= [];
-    state.settings ||= { orgName: '화성시아르딤복지관 직업지원팀', staff: ['김정배'] };
-    if (state.settings.cityMapUrl == null) state.settings.cityMapUrl = D.CITY_DASHBOARD_URL;
-    if (!raw) persist();
+    state = normalize(raw && raw.version ? raw : D.demo());
+    if (!raw) persistLocal();
     return state;
   }
 
   const get = () => state;
-  function commit() { persist(); listeners.forEach(fn => fn()); }
+  function notify() { listeners.forEach(fn => fn()); }
+  function commit() { persistLocal(); if (REMOTE) lastSig = JSON.stringify(state); notify(); }
   const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
-  function replace(next) { state = next; commit(); }
+  async function replace(next) {
+    next = normalize(next);
+    if (REMOTE) {
+      // 사진은 시트 밖에서 따로 올린다
+      const photos = next.cards.filter(c => typeof c.photo === 'string' && c.photo.startsWith('data:'));
+      photos.forEach(c => { photoCache.set(c.id, c.photo); c.photo = 'Y'; });
+      await send('api_replaceAll', serverPayload(next));
+      for (const c of photos) await send('api_putPhoto', c.id, photoCache.get(c.id));
+    }
+    state = next; commit();
+  }
+  async function saveSettings(patch) {
+    Object.assign(state.settings, patch);
+    normalize(state);
+    commit();
+    if (REMOTE) await send('api_saveSettings', serverPayload(state).settings, serverPayload(state).sheets[STAFF_SHEET[0]]);
+  }
 
+  /* ---------- CRUD ---------- */
   const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events' };
   const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
+  const photoCache = new Map();
+
   function upsert(kind, obj) {
-    const list = state[COL[kind]];
+    const col = COL[kind];
+    const list = state[col];
     if (!obj.id) obj.id = U.uid(PREFIX[kind]);
+    Object.keys(obj).forEach(k => obj[k] === undefined && delete obj[k]);
     const i = list.findIndex(x => x.id === obj.id);
-    obj.updatedAt = U.today();
-    if (i >= 0) list[i] = { ...list[i], ...obj }; else { obj.createdAt = U.today(); list.push(obj); }
+    const before = i >= 0 ? list[i] : null;
+    if (kind !== 'act' && kind !== 'ev') { obj.updatedAt = U.today(); if (!before) obj.createdAt = U.today(); }
+    let photoOp = null;
+    if (REMOTE && kind === 'card' && 'photo' in obj) {
+      if (typeof obj.photo === 'string' && obj.photo.startsWith('data:')) { photoCache.set(obj.id, obj.photo); photoOp = ['api_putPhoto', obj.id, obj.photo]; obj.photo = 'Y'; }
+      else if (!obj.photo && before && before.photo) { photoCache.delete(obj.id); photoOp = ['api_delPhoto', obj.id]; obj.photo = null; }
+    }
+    const rec = before ? { ...before, ...obj } : obj;
+    if (i >= 0) list[i] = rec; else list.push(rec);
     commit();
-    return find(kind, obj.id);
+    if (REMOTE) {
+      send('api_apply', [opPut(col, rec)]).catch(() => {});
+      if (photoOp) send(...photoOp).catch(() => {});
+    }
+    return rec;
   }
+
   function remove(kind, id) {
-    const list = state[COL[kind]];
+    const col = COL[kind];
+    const list = state[col];
     const i = list.findIndex(x => x.id === id);
     if (i < 0) return null;
     const [gone] = list.splice(i, 1);
-    const removedLinks = { acts: [], evs: [], cards: [] };
+    const removed = { acts: [], evs: [], cards: [] };
     if (kind === 'biz' || kind === 'net') {
-      removedLinks.acts = state.activities.filter(a => a.targetType === kind && a.targetId === id);
-      removedLinks.evs = state.events.filter(e => e.targetType === kind && e.targetId === id);
+      removed.acts = state.activities.filter(a => a.targetType === kind && a.targetId === id);
+      removed.evs = state.events.filter(e => e.targetType === kind && e.targetId === id);
       state.activities = state.activities.filter(a => !(a.targetType === kind && a.targetId === id));
       state.events = state.events.filter(e => !(e.targetType === kind && e.targetId === id));
-      state.cards.forEach(c => { if (c.linkType === kind && c.linkId === id) { removedLinks.cards.push(c.id); c.linkType = ''; c.linkId = ''; } });
+      state.cards.forEach(c => { if (c.linkType === kind && c.linkId === id) { removed.cards.push(c); c.linkType = ''; c.linkId = ''; } });
     }
     commit();
+    if (REMOTE) {
+      send('api_apply', [opDel(col, id), ...removed.acts.map(a => opDel('activities', a.id)), ...removed.evs.map(e => opDel('events', e.id)), ...removed.cards.map(c => opPut('cards', c))]).catch(() => {});
+      if (kind === 'card' && gone.photo) send('api_delPhoto', id).catch(() => {}); // 되돌리기 시 사진은 복구되지 않음
+    }
     return () => { // 되돌리기
       list.splice(Math.min(i, list.length), 0, gone);
-      state.activities.push(...removedLinks.acts);
-      state.events.push(...removedLinks.evs);
-      state.cards.forEach(c => { if (removedLinks.cards.includes(c.id)) { c.linkType = kind; c.linkId = id; } });
+      state.activities.push(...removed.acts);
+      state.events.push(...removed.evs);
+      removed.cards.forEach(c => { c.linkType = kind; c.linkId = id; });
+      if (kind === 'card' && REMOTE && gone.photo) gone.photo = photoCache.has(id) ? gone.photo : null;
       commit();
+      if (REMOTE) {
+        send('api_apply', [opPut(col, gone), ...removed.acts.map(a => opPut('activities', a)), ...removed.evs.map(e => opPut('events', e)), ...removed.cards.map(c => opPut('cards', c))]).catch(() => {});
+        if (kind === 'card' && photoCache.has(id)) send('api_putPhoto', id, photoCache.get(id)).catch(() => {});
+      }
+    };
+  }
+
+  /** 명함 사진: 로컬 모드는 data URL, 공유 모드는 필요할 때 시트에서 불러온다 */
+  const photoLoading = new Set();
+  function photo(c) {
+    if (!c || !c.photo) return null;
+    if (typeof c.photo === 'string' && c.photo.startsWith('data:')) return c.photo;
+    if (!REMOTE) return null;
+    if (photoCache.has(c.id)) return photoCache.get(c.id);
+    if (!photoLoading.has(c.id)) {
+      photoLoading.add(c.id);
+      call('api_getPhoto', c.id).then(d => { photoCache.set(c.id, d || null); notify(); }).catch(() => {}).finally(() => photoLoading.delete(c.id));
+    }
+    return null;
+  }
+
+  /* ---------- 직원 · 소속 · 보기 범위 ---------- */
+  const staff = () => state.settings.staff;
+  const programOf = name => (staff().find(s => s.name === name) || {}).program || '';
+  const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 환경 */ } };
+  let scope = lsGet('ardim.scope') || 'all';
+  const getScope = () => scope;
+  function setScope(v) { scope = v; lsSet('ardim.scope', v); notify(); }
+  function me() { const m = lsGet('ardim.me'); return staff().some(s => s.name === m) ? m : (staff()[0]?.name || ''); }
+  function setMe(v) { lsSet('ardim.me', v); notify(); }
+  function staffInScope(name) {
+    if (scope === 'all') return true;
+    if (scope.startsWith('p:')) return programOf(name) === scope.slice(2);
+    if (scope.startsWith('s:')) return name === scope.slice(2);
+    return true;
+  }
+  function scopeLabel() {
+    if (scope.startsWith('p:')) return scope.slice(2);
+    if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
+    return '전체 팀';
+  }
+  /** 현재 보기 범위(전체 팀/소속/직원)에 해당하는 데이터 */
+  function view() {
+    if (scope === 'all') return state;
+    const biz = state.businesses.filter(b => staffInScope(b.staff));
+    const net = state.networks.filter(n => staffInScope(n.staff));
+    const ids = new Set([...biz.map(b => 'biz' + b.id), ...net.map(n => 'net' + n.id)]);
+    const inT = x => !x.targetType || ids.has(x.targetType + x.targetId);
+    return {
+      ...state,
+      businesses: biz, networks: net,
+      cards: state.cards.filter(c => !c.linkType || ids.has(c.linkType + c.linkId)),
+      activities: state.activities.filter(a => staffInScope(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
+      events: state.events.filter(inT),
     };
   }
 
@@ -108,23 +324,44 @@ window.S = (() => {
   const targetOf = x => (x.targetType && x.targetId ? find(x.targetType, x.targetId) : null);
   const linkOf = c => (c.linkType && c.linkId ? find(c.linkType, c.linkId) : null);
 
-  function stats() {
-    const T = U.today();
-    const ym = T.slice(0, 7);
-    const b = state.businesses;
+  function stats(v = view()) {
+    const ym = U.today().slice(0, 7);
+    const b = v.businesses;
     const byStage = Object.fromEntries(D.STAGES.map(s => [s.key, 0]));
     b.forEach(x => { byStage[x.stage] = (byStage[x.stage] || 0) + 1; });
     const placedPeople = b.reduce((s, x) => s + (Number(x.placements) || 0), 0);
     const newThisMonth = b.filter(x => (x.discoveredAt || '').startsWith(ym)).length;
     const active = D.ACTIVE_STAGES.reduce((s, k) => s + (byStage[k] || 0), 0);
     const mandatoryBiz = b.filter(x => D.mandatoryCount(x.employees) > 0).length;
-    const netActive = state.networks.filter(n => n.status === '활발').length;
-    const cardsThisMonth = state.cards.filter(c => (c.metAt || c.createdAt || '').startsWith(ym)).length;
-    return { total: b.length, byStage, placedPeople, newThisMonth, active, mandatoryBiz, netTotal: state.networks.length, netActive, cardTotal: state.cards.length, cardsThisMonth, placedBiz: byStage['채용연계'] || 0 };
+    const netActive = v.networks.filter(n => n.status === '활발').length;
+    const cardsThisMonth = v.cards.filter(c => (c.metAt || c.createdAt || '').startsWith(ym)).length;
+    return { total: b.length, byStage, placedPeople, newThisMonth, active, mandatoryBiz, netTotal: v.networks.length, netActive, cardTotal: v.cards.length, cardsThisMonth, placedBiz: byStage['채용연계'] || 0 };
+  }
+
+  /** 직원별·소속별 실적 (전체 팀 기준) */
+  function staffStats() {
+    const ym = U.today().slice(0, 7);
+    const row = name => {
+      const b = state.businesses.filter(x => x.staff === name);
+      return {
+        biz: b.length,
+        active: b.filter(x => D.ACTIVE_STAGES.includes(x.stage)).length,
+        placedBiz: b.filter(x => x.stage === '채용연계').length,
+        placed: b.reduce((s, x) => s + (Number(x.placements) || 0), 0),
+        net: state.networks.filter(x => x.staff === name).length,
+        actsMonth: state.activities.filter(a => a.staff === name && a.date.startsWith(ym)).length,
+      };
+    };
+    const people = staff().map(s => ({ ...s, ...row(s.name) }));
+    const sum = list => list.reduce((t, r) => { for (const k of ['biz', 'active', 'placedBiz', 'placed', 'net', 'actsMonth']) t[k] = (t[k] || 0) + r[k]; return t; }, {});
+    const groups = [...D.PROGRAMS.map(p => p.key), ''].map(key => ({ key, people: people.filter(p => (p.program || '') === key) })).filter(g => g.people.length).map(g => ({ ...g, total: sum(g.people) }));
+    const known = new Set(staff().map(s => s.name));
+    const orphan = state.businesses.filter(b => !known.has(b.staff)).length;
+    return { groups, total: sum(people), orphan };
   }
 
   /** 최근 12개월: 신규 발굴 수, 채용연계 활동 수 */
-  function monthly() {
+  function monthly(v = view()) {
     const T = U.parse(U.today());
     const months = [];
     for (let i = 11; i >= 0; i--) {
@@ -132,66 +369,52 @@ window.S = (() => {
       months.push({ key: `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`, label: `${d.getMonth() + 1}월`, discovered: 0, placed: 0 });
     }
     const idx = Object.fromEntries(months.map((m, i) => [m.key, i]));
-    state.businesses.forEach(b => { const i = idx[(b.discoveredAt || '').slice(0, 7)]; if (i != null) months[i].discovered++; });
-    state.activities.forEach(a => { if (a.type === '채용연계') { const i = idx[a.date.slice(0, 7)]; if (i != null) months[i].placed++; } });
+    v.businesses.forEach(b => { const i = idx[(b.discoveredAt || '').slice(0, 7)]; if (i != null) months[i].discovered++; });
+    v.activities.forEach(a => { if (a.type === '채용연계') { const i = idx[a.date.slice(0, 7)]; if (i != null) months[i].placed++; } });
     return months;
   }
 
   /** 오늘 확인할 일: 지난 미완료 일정, 7일 내 일정, 연락 공백이 긴 진행 중 사업체 */
-  function priorities() {
+  function priorities(v = view()) {
     const T = U.today();
     const out = [];
-    state.events.filter(e => !e.done && U.diffDays(T, e.date) <= 7).forEach(e => {
+    v.events.filter(e => !e.done && U.diffDays(T, e.date) <= 7).forEach(e => {
       const t = targetOf(e);
-      out.push({ kind: 'ev', id: e.id, date: e.date, name: t ? t.name : e.title, why: t ? `${e.type}${e.time ? ' · ' + e.time : ''}` : e.type, target: t ? { kind: e.targetType, id: t.id } : null, sort: U.diffDays(T, e.date) });
+      out.push({ kind: 'ev', id: e.id, date: e.date, name: t ? t.name : e.title, why: t ? `${e.type}${e.time ? ' · ' + e.time : ''}` : e.type, staff: t?.staff || '', target: t ? { kind: e.targetType, id: t.id } : null, sort: U.diffDays(T, e.date) });
     });
-    state.businesses.filter(b => D.ACTIVE_STAGES.includes(b.stage) && !nextEvent('biz', b.id)).forEach(b => {
+    v.businesses.filter(b => D.ACTIVE_STAGES.includes(b.stage) && !nextEvent('biz', b.id)).forEach(b => {
       const la = lastAct('biz', b.id);
       const gap = la ? U.diffDays(la.date, T) : 999;
-      if (gap >= 21) out.push({ kind: 'gap', id: b.id, date: la?.date, name: b.name, why: `${b.stage} 단계 · 마지막 연락 ${gap}일 전`, gap, target: { kind: 'biz', id: b.id }, sort: 8 + (60 - Math.min(gap, 60)) / 100 });
+      if (gap >= 21) out.push({ kind: 'gap', id: b.id, date: la?.date, name: b.name, why: `${b.stage} 단계 · 마지막 연락 ${gap}일 전`, staff: b.staff, gap, target: { kind: 'biz', id: b.id }, sort: 8 + (60 - Math.min(gap, 60)) / 100 });
     });
     return out.sort((a, b) => a.sort - b.sort);
   }
 
-  function recentActs(n = 8) {
-    return [...state.activities].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, n);
+  function recentActs(n = 8, v = view()) {
+    return [...v.activities].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, n);
   }
 
-  /* ---------- 검색 ---------- */
+  /* ---------- 검색 (보기 범위와 관계없이 팀 전체) ---------- */
   function search(q) {
     const nq = U.norm(q);
     if (!nq) return { biz: [], net: [], card: [] };
     const hit = (...vals) => vals.some(v => U.norm(v).includes(nq));
-    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
-    const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
     const card = state.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
     return { biz: biz.slice(0, 8), net: net.slice(0, 6), card: card.slice(0, 8) };
   }
 
   /* ---------- 엑셀 ---------- */
-  const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모']]],
-    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모']]],
-    cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원']]],
-    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
-  };
-  const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date']);
-  const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng']);
-
   function exportXlsx() {
     const wb = XLSX.utils.book_new();
-    for (const [col, [sheet, cols]] of Object.entries(SHEETS)) {
-      const rows = state[col].map(x => Object.fromEntries(cols.map(([k, h]) => {
-        let v = x[k];
-        if (k === 'tags') v = (v || []).join(', ');
-        if (k === 'done') v = v ? 'Y' : 'N';
-        return [h, v ?? ''];
-      })));
-      const ws = XLSX.utils.json_to_sheet(rows, { header: cols.map(c => c[1]) });
+    for (const col of COLS) {
+      const [sheet, cols] = SHEETS[col];
+      const ws = XLSX.utils.json_to_sheet(state[col].map(x => toRow(col, x)), { header: cols.map(c => c[1]) });
       ws['!cols'] = cols.map(([k]) => ({ wch: ['name', 'address', 'memo', 'content', 'relation', 'jobs', 'accessibility', 'title', 'org'].includes(k) ? 28 : 13 }));
       XLSX.utils.book_append_sheet(wb, ws, sheet);
     }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(state.settings.staff.map(s => ({ '이름': s.name, '소속 사업': s.program })), { header: ['이름', '소속 사업'] }), STAFF_SHEET[0]);
     XLSX.writeFile(wb, `아르딤_취업지원_${U.today()}.xlsx`);
   }
 
@@ -200,53 +423,46 @@ window.S = (() => {
     const next = D.empty();
     next.settings = { ...state.settings };
     const found = [];
-    for (const [col, [sheet, cols]] of Object.entries(SHEETS)) {
-      const ws = wb.Sheets[sheet];
+    for (const col of COLS) {
+      const ws = wb.Sheets[SHEETS[col][0]];
       if (!ws) continue;
-      found.push(sheet);
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      next[col] = rows.map(r => {
-        const o = {};
-        for (const [k, h] of cols) {
-          let v = r[h];
-          if (DATE_KEYS.has(k)) v = U.toDateStr(v);
-          else if (NUM_KEYS.has(k)) v = v === '' ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
-          else if (k === 'tags') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
-          else if (k === 'done') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
-          else v = v == null ? '' : String(v).trim();
-          o[k] = v;
-        }
-        if (!o.id) o.id = U.uid(col[0].toUpperCase());
-        return o;
-      }).filter(o => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : o.name));
+      found.push(SHEETS[col][0]);
+      next[col] = XLSX.utils.sheet_to_json(ws, { defval: '' }).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     }
-    next.businesses.forEach(b => {
-      if (!D.STAGE[b.stage]) b.stage = '발굴';
-      if ((b.lat == null || isNaN(b.lat)) && D.AREA_BY_NAME[b.area]) { b.lat = D.AREA_BY_NAME[b.area].lat; b.lng = D.AREA_BY_NAME[b.area].lng; b.approx = true; }
-    });
-    next.networks.forEach(n => {
-      if (!D.NET_STATUS.includes(n.status)) n.status = '보통';
-      if ((n.lat == null || isNaN(n.lat)) && D.AREA_BY_NAME[n.area]) { n.lat = D.AREA_BY_NAME[n.area].lat; n.lng = D.AREA_BY_NAME[n.area].lng; n.approx = true; }
-    });
-    return { next, found };
+    const sw = wb.Sheets[STAFF_SHEET[0]];
+    if (sw) {
+      const list = XLSX.utils.sheet_to_json(sw, { defval: '' }).map(r => ({ name: String(r['이름'] || '').trim(), program: String(r['소속 사업'] || '').trim() })).filter(s => s.name);
+      if (list.length) { next.settings.staff = list; found.push(STAFF_SHEET[0]); }
+    }
+    // 사진은 엑셀에 없으므로 같은 ID의 기존 사진을 유지
+    const old = Object.fromEntries(state.cards.filter(c => c.photo).map(c => [c.id, c.photo]));
+    next.cards.forEach(c => { c.photo = old[c.id] || null; });
+    return { next: normalize(next), found };
   }
 
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+  function download(name, blob) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `아르딤_취업지원_백업_${U.today()}.json`;
+    a.download = name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
-
+  function exportJson() {
+    const copy = { ...state, cards: state.cards.map(c => ({ ...c, photo: photo(c) || (REMOTE ? null : c.photo) })) };
+    download(`아르딤_취업지원_백업_${U.today()}.json`, new Blob([JSON.stringify(copy)], { type: 'application/json' }));
+  }
   function templateXlsx() {
     const wb = XLSX.utils.book_new();
-    for (const [, [sheet, cols]] of Object.entries(SHEETS)) {
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([cols.map(c => c[1])]), sheet);
-    }
+    for (const col of COLS) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([SHEETS[col][1].map(c => c[1])]), SHEETS[col][0]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['이름', '소속 사업']]), STAFF_SHEET[0]);
     XLSX.writeFile(wb, '아르딤_취업지원_엑셀양식.xlsx');
   }
 
-  return { init, get, commit, subscribe, replace, find, upsert, remove, actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, monthly, priorities, recentActs, search, exportXlsx, parseXlsx, exportJson, templateXlsx, SHEETS, get saveError() { return saveError; } };
+  return {
+    REMOTE, init, get, commit, subscribe, replace, saveSettings, find, upsert, remove, photo,
+    staff, programOf, getScope, setScope, scopeLabel, me, setMe, view,
+    actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
+    exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
+    sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
+  };
 })();

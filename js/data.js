@@ -29,6 +29,13 @@ window.D = (() => {
   const STAGE = Object.fromEntries(STAGES.map((s, i) => [s.key, { ...s, i }]));
   const ACTIVE_STAGES = ['접촉', '방문상담', '채용협의'];
 
+  /** 직원 소속 사업 (같은 업무라도 지원 기관별로 실적을 나눠 본다) */
+  const PROGRAMS = [
+    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)' },
+    { key: '고용공단', short: '공단', color: 'var(--prog-b)' },
+  ];
+  const PROGRAM = Object.fromEntries(PROGRAMS.map(p => [p.key, p]));
+
   const INDUSTRIES = {
     '전자부품 제조': { suf: ['전자', '테크', '일렉트론'], jobs: ['부품 조립 보조', '제품 검수', '포장'], acc: '작업대 높이 조절 가능, 1층 작업장' },
     '자동차부품 제조': { suf: ['정밀', '오토텍', '기공'], jobs: ['부품 검수', '자재 정리', '포장'], acc: '소음 있음, 안전교육 필수' },
@@ -67,7 +74,8 @@ window.D = (() => {
     const SUR = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '유', '홍'];
     const GIV = ['민준', '서연', '지훈', '하은', '도윤', '수빈', '현우', '지아', '준호', '예린', '성민', '유진', '태희', '동현', '수아', '재원', '미정', '영수', '혜진', '상훈', '경아', '은비', '진우', '나래'];
     const person = () => pick(SUR) + pick(GIV);
-    const STAFF = ['김정배', '이수정', '박현우'];
+    const STAFF_LIST = [{ name: '김정배', program: '장애인개발원' }, { name: '이수정', program: '장애인개발원' }, { name: '박현우', program: '장애인개발원' }, { name: '최유나', program: '고용공단' }];
+    const STAFF = STAFF_LIST.map(s => s.name);
     const PRE = ['동탄', '향남', '봉담', '남양', '송산', '우정', '서해', '제부', '비봉', '정남', '팔탄', '매송', '마도', '새솔', '병점', '기안', '청명', '한울', '늘푸른', '새빛', '다온', '도담', '가온', '라온', '해솔', '온누리', '푸른들', '한결', '누리', '바른'];
     const used = new Set();
     const coName = ind => {
@@ -216,7 +224,7 @@ window.D = (() => {
 
     return {
       version: 1, isDemo: true,
-      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: STAFF, cityMapUrl: CITY_DASHBOARD_URL },
+      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: STAFF_LIST, cityMapUrl: CITY_DASHBOARD_URL },
       businesses, networks, cards, activities, events,
     };
   }
@@ -224,10 +232,10 @@ window.D = (() => {
   function empty() {
     return {
       version: 1, isDemo: false,
-      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: ['김정배'], cityMapUrl: CITY_DASHBOARD_URL },
+      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: [{ name: '김정배', program: '' }], cityMapUrl: CITY_DASHBOARD_URL },
       businesses: [], networks: [], cards: [], activities: [], events: [],
     };
   }
 
-  return { AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

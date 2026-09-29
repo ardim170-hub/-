@@ -27,6 +27,9 @@ window.V = (() => {
 
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
+  const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(p.key)}">${e(p.short)}</span>` : ''; };
+  const staffTag = name => name ? `<span class="staff-tag">${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
+  const scopeNote = () => S.getScope() === 'all' ? '' : ` · <b>${e(S.scopeLabel())}</b> 기준`;
   const ddayBadge = date => { const d = U.dday(date); return `<span class="badge ${d.tone} num">${d.label}</span>`; };
   const primaryContact = (kind, id) => S.cardsOf(kind, id)[0] || null;
   const tel = c => c ? (c.mobile || c.phone || '') : '';
@@ -41,7 +44,7 @@ window.V = (() => {
     const org = S.get().settings.orgName;
     const kpi = (label, value, unit, foot, href) => `<a class="kpi" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
-      <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
       <section class="panel kpis" aria-label="주요 현황">
         ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz')}
         ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz')}
@@ -56,10 +59,11 @@ window.V = (() => {
             ${pr.length ? `<ul class="prio">${pr.map(p => `
               <li data-act="${p.target ? 'open' : 'go'}" data-kind="${p.target?.kind || ''}" data-id="${p.target?.id || ''}" data-href="#/schedule">
                 <span class="dday">${p.kind === 'gap' ? '<span class="badge warn">연락 필요</span>' : ddayBadge(p.date)}</span>
-                <span style="min-width:0"><span class="who">${e(p.name)}</span> <span class="why">· ${e(p.why)}</span></span>
+                <span style="min-width:0"><span class="who">${e(p.name)}</span> <span class="why">· ${e(p.why)}</span>${p.staff && S.getScope() === 'all' ? ` <span class="why">· ${e(p.staff)}</span>` : ''}</span>
                 <span class="when">${p.kind === 'gap' ? '' : e(U.dateKo(p.date))}</span>
               </li>`).join('')}</ul>` : emptyState('오늘 확인할 일이 없습니다', '다가오는 일정이나 연락이 필요한 사업체가 생기면 여기에 표시됩니다.')}
           </section>
+          ${staffPanel()}
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">월별 발굴 · 채용연계</h2>
               <div class="legend"><span><i style="--c:var(--accent)"></i>신규 발굴 사업체</span><span><i style="--c:var(--success)"></i>채용연계 건수</span></div></div>
@@ -87,6 +91,22 @@ window.V = (() => {
       </div>`;
   }
 
+  function staffPanel() {
+    const ss = S.staffStats();
+    const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
+    return `<section class="panel panel-pad">
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">팀 전체 · 행을 누르면 그 범위로 봅니다</span></div>
+      <div class="table-wrap"><table class="tbl staff-tbl">
+        <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
+        <tbody>${ss.groups.map(g => `
+          ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
+          ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
+          ${row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
+        </tbody></table></div>
+      ${ss.orphan ? `<p class="sub" style="margin:10px 0 0">담당 직원이 직원 목록에 없는 사업체 ${ss.orphan}곳은 위 표에 들어가지 않습니다. 데이터 관리에서 직원 목록을 확인하세요.</p>` : ''}
+    </section>`;
+  }
+
   function chart(months) {
     const W = 640, H = 210, L = 30, R = 8, T = 16, B = 26;
     const max = Math.max(1, ...months.map(m => Math.max(m.discovered, m.placed)));
@@ -109,12 +129,12 @@ window.V = (() => {
   /* ================= 사업체 개발 ================= */
   function bizPage() {
     const f = ui.biz;
-    const all = S.get().businesses;
+    const all = S.view().businesses;
     const count = k => k === '전체' ? all.length : all.filter(b => b.stage === k).length;
     const areas = [...new Set(all.map(b => b.area).filter(Boolean))].sort();
     return `
       <div class="page-head">
-        <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.</div></div>
+        <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.${scopeNote()}</div></div>
         <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
@@ -137,13 +157,13 @@ window.V = (() => {
   function bizFiltered() {
     const f = ui.biz;
     const nq = U.norm(f.q);
-    let list = S.get().businesses.filter(b => {
+    let list = S.view().businesses.filter(b => {
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
       if (f.area && b.area !== f.area) return false;
       if (f.industry && b.industry !== f.industry) return false;
       if (f.mandatory && !D.mandatoryCount(b.employees)) return false;
       if (nq) {
-        const hay = [b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|');
+        const hay = [b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|');
         if (!hay.includes(nq)) return false;
       }
       return true;
@@ -167,17 +187,18 @@ window.V = (() => {
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
     const chipsHtml = applied.length ? `<div class="chips" style="margin-bottom:10px">${applied.map(([k, l]) => `<button type="button" class="chip chip-applied" data-act="biz-unfilter" data-k="${k}">${e(l)} ✕</button>`).join('')}<button type="button" class="btn btn-ghost btn-sm" data-act="biz-reset">전체 초기화</button></div>` : '';
-    if (!S.get().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
+    if (!S.view().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
     if (!rows.length) return chipsHtml + `<div class="panel"><div class="empty"><strong>조건에 맞는 사업체가 없습니다</strong>검색어나 필터를 바꿔 보세요.<div><button class="btn" type="button" data-act="biz-reset">필터 초기화</button></div></div></div>`;
     return chipsHtml + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
-        <thead><tr><th>사업체</th><th>단계</th><th>가능 직무</th><th>담당자</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
+        <thead><tr><th>사업체</th><th>단계</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
           <tr data-act="open" data-kind="biz" data-id="${b.id}">
             <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td class="nowrap">${staffTag(b.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '<span class="meta">-</span>'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
             <td class="r">${b.employees ? U.num(b.employees) + '명' : '-'}${D.mandatoryCount(b.employees) ? `<div class="meta">의무 ${D.mandatoryCount(b.employees)}명</div>` : ''}</td>
@@ -188,20 +209,21 @@ window.V = (() => {
         <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
           <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
           <div class="meta">${e(b.industry)} · ${e(b.area || '')}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
+          <div class="meta">${staffTag(b.staff)}</div>
           <div class="meta">${la ? `최근 ${e(la.type)} ${U.ago(la.date)}` : ''}${ne ? ` · 다음 ${e(ne.type)} ${U.dday(ne.date).label}` : ''}</div>
         </div>`).join('')}</div>
-      <div class="list-count num">${rows.length}곳 표시 · 전체 ${S.get().businesses.length}곳</div>
+      <div class="list-count num">${rows.length}곳 표시 · ${e(S.scopeLabel())} ${S.view().businesses.length}곳</div>
     </div>`;
   }
 
   /* ================= 네트워크 ================= */
   function netPage() {
     const f = ui.net;
-    const all = S.get().networks;
+    const all = S.view().networks;
     const count = k => k === '전체' ? all.length : all.filter(n => n.category === k).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">네트워크</h1><div class="page-desc">복지관 홍보와 협력을 위한 지역 기관을 관리합니다.</div></div>
+        <div><h1 class="page-title">네트워크</h1><div class="page-desc">복지관 홍보와 협력을 위한 지역 기관을 관리합니다.${scopeNote()}</div></div>
         <div class="inline"><a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px">${['전체', ...D.NET_CATEGORIES].map(k => `<button type="button" class="chip ${f.cat === k ? 'on' : ''}" data-act="net-cat" data-cat="${k}">${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
@@ -214,7 +236,7 @@ window.V = (() => {
   function netResults() {
     const f = ui.net;
     const nq = U.norm(f.q);
-    const all = S.get().networks;
+    const all = S.view().networks;
     if (!all.length) return `<div class="panel">${emptyState('등록된 기관이 없습니다', '협력·홍보 기관을 등록하면 지도에 함께 표시됩니다.', 'new-net', '+ 기관 등록')}</div>`;
     const rows = all.filter(n => (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
       (!nq || [n.name, n.relation, n.promo, n.memo, n.address, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|').includes(nq)))
@@ -223,13 +245,14 @@ window.V = (() => {
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>조건에 맞는 기관이 없습니다</strong>검색어나 분류를 바꿔 보세요.</div></div>`;
     return `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
-        <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>담당자</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
+        <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>기관 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
         <tbody>${rows.map(({ n, la, ne, pc }) => `
           <tr data-act="open" data-kind="net" data-id="${n.id}">
             <td><div class="name">${U.hl(n.name, f.q)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td class="nowrap">${staffTag(n.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '-'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
           </tr>`).join('')}</tbody></table></div>
@@ -239,14 +262,14 @@ window.V = (() => {
           <div class="meta">${e(n.category)} · ${e(n.relation || '')}</div>
           <div class="meta">${pc ? `${e(pc.name)} ${e(tel(pc))}` : ''}${la ? ` · 최근 ${U.ago(la.date)}` : ''}</div>
         </div>`).join('')}</div>
-      <div class="list-count num">${rows.length}곳 표시 · 전체 ${all.length}곳</div>
+      <div class="list-count num">${rows.length}곳 표시 · ${e(S.scopeLabel())} ${all.length}곳</div>
     </div>`;
   }
 
   /* ================= 명함 ================= */
   function cardsPage() {
     const f = ui.cards;
-    const all = S.get().cards;
+    const all = S.view().cards;
     const cnt = k => all.filter(c => k === 'all' ? true : k === 'none' ? !c.linkType : c.linkType === k).length;
     return `
       <div class="page-head">
@@ -268,7 +291,7 @@ window.V = (() => {
   function cardResults() {
     const f = ui.cards;
     const nq = U.norm(f.q);
-    const all = S.get().cards;
+    const all = S.view().cards;
     if (!all.length) return `<div class="panel">${emptyState('등록된 명함이 없습니다', '명함 사진과 연락처를 등록해 보세요.', 'new-card', '+ 명함 등록')}</div>`;
     const rows = all.filter(c => (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
       (!nq || [c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo].map(U.norm).join('|').includes(nq)))
@@ -288,19 +311,19 @@ window.V = (() => {
           ${c.phone ? `<div>T ${U.hl(c.phone, f.q)}</div>` : ''}
           ${c.email ? `<div>${e(c.email)}</div>` : ''}
         </div>
-        ${c.photo ? '<span class="tagline photo-flag">사진 있음</span>' : ''}
+        ${c.photo ? '<span class="tagline photo-flag">사진 있음</span>' : ''}${link && link.staff ? `<span class="card-staff">우리 담당 ${e(link.staff)}</span>` : ''}
       </article>`;
-    }).join('')}</div><p class="sub num" style="margin-top:12px">${rows.length}장 표시 · 전체 ${all.length}장</p>`;
+    }).join('')}</div><p class="sub num" style="margin-top:12px">${rows.length}장 표시 · ${e(S.scopeLabel())} ${all.length}장</p>`;
   }
 
   /* ================= 지도 ================= */
   function mapPage() {
     const f = ui.map;
-    const st = S.get();
+    const st = S.view();
     const noPos = st.businesses.filter(b => !M.hasPos(b)).length + st.networks.filter(n => !M.hasPos(n)).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">발굴 사업체는 진행 단계별 색상 원, 네트워크 기관은 남색 마름모로 표시합니다.</div></div>
+        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">발굴 사업체는 진행 단계별 색상 원, 네트워크 기관은 남색 마름모로 표시합니다.${scopeNote()}</div></div>
         <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px" role="tablist">
@@ -338,7 +361,7 @@ window.V = (() => {
   function mapItems() {
     const f = ui.map;
     const nq = U.norm(f.q);
-    const st = S.get();
+    const st = S.view();
     const items = [];
     if (f.biz) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     if (f.net) st.networks.forEach(n => items.push({ kind: 'net', x: n }));
@@ -379,7 +402,7 @@ window.V = (() => {
   function evList() {
     const f = ui.sched;
     const T = U.today();
-    let evs = [...S.get().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    let evs = [...S.view().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     if (f.sel) evs = evs.filter(x => x.date === f.sel);
     const groups = f.sel ? [[U.dateKo(f.sel), evs.filter(x => f.showDone || !x.done)]] : [
       ['지난 일정 (완료 안 됨)', evs.filter(x => !x.done && x.date < T)],
@@ -401,7 +424,7 @@ window.V = (() => {
     const start = new Date(y, m - 1, 1 - first.getDay());
     const T = U.today();
     const byDate = {};
-    S.get().events.forEach(x => { (byDate[x.date] ||= []).push(x); });
+    S.view().events.forEach(x => { (byDate[x.date] ||= []).push(x); });
     let cells = '';
     for (let i = 0; i < 42; i++) {
       const d = new Date(start); d.setDate(start.getDate() + i);
@@ -418,7 +441,7 @@ window.V = (() => {
   function dataPage() {
     const st = S.get();
     return `
-      <div class="page-head"><div><h1 class="page-title">데이터 관리</h1><div class="page-desc">데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">데이터 관리</h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
       <div class="data-grid">
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
@@ -442,10 +465,16 @@ window.V = (() => {
           <input type="file" id="jsonFile" accept=".json,application/json" hidden>
           <div class="inline"><button class="btn" type="button" data-act="json-export">백업 파일 받기</button><button class="btn" type="button" data-act="json-import">백업에서 복원</button></div>
         </section>
+        <section class="panel panel-pad staff-editor">
+          <h2 class="section-title">담당 직원과 소속 사업</h2>
+          <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
+          <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
+          <div class="inline"><button class="btn btn-sm" type="button" data-act="staff-add">+ 직원 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-staff">저장</button></div>
+        </section>
         <section class="panel panel-pad">
-          <h2 class="section-title">담당 직원</h2>
-          <p>활동 기록과 사업체 담당자 선택에 쓰는 직원 이름입니다. 쉼표로 구분하세요.</p>
-          <div class="inline" style="width:100%"><input class="input" id="staffInput" value="${e(st.settings.staff.join(', '))}"><button class="btn" type="button" data-act="save-staff">저장</button></div>
+          <h2 class="section-title">이 PC를 쓰는 사람</h2>
+          <p>활동 기록을 남길 때 기록한 사람으로 저장됩니다. PC마다 따로 기억합니다.</p>
+          <div class="inline" style="width:100%"><select class="select" id="meSel" data-act-change="me-set">${st.settings.staff.map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
         </section>
         <section class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
@@ -459,6 +488,8 @@ window.V = (() => {
         </section>
       </div>`;
   }
+
+  const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option ${p.key === s.program ? 'selected' : ''}>${e(p.key)}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
 
   /* ================= 상세 Drawer ================= */
   function drHead(title, badges, actions, canBack) {
@@ -488,16 +519,15 @@ window.V = (() => {
   };
   const actsSec = (kind, id) => {
     const acts = S.actsOf(kind, id);
-    const staff = S.get().settings.staff;
     return `<section class="dr-sec"><h3>활동 기록</h3>
       <form class="quick-log" data-form="quick-log" data-kind="${kind}" data-id="${id}">
         <input class="input" type="date" name="date" value="${U.today()}" aria-label="날짜" required>
         <select class="select" name="type" aria-label="유형">${opts(D.ACT_TYPES.filter(t => t !== '발굴'), '전화')}</select>
         <input class="input grow" name="content" id="quickLogContent" placeholder="예: 인사팀장 통화, 다음 주 방문 약속" aria-label="내용" required>
         <button class="btn btn-primary" type="submit">기록</button>
-        <input type="hidden" name="staff" value="${e(staff[0] || '')}">
+        <input type="hidden" name="staff" value="${e(S.me())}">
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>` : ''}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
@@ -512,7 +542,7 @@ window.V = (() => {
     const steps = D.STAGES.filter(s => s.key !== '보류');
     return {
       html: drHead(e(b.name),
-        `${stageBadge(b.stage)}<span class="badge outline">${e(b.industry || '업종 미입력')}</span><span class="badge outline">${e(b.area || '지역 미지정')}</span>${mand ? '<span class="badge navy">의무고용 대상</span>' : ''}`,
+        `${stageBadge(b.stage)}<span class="badge outline">${e(b.industry || '업종 미입력')}</span><span class="badge outline">${e(b.area || '지역 미지정')}</span>${mand ? '<span class="badge navy">의무고용 대상</span>' : ''}${b.staff ? `<span class="badge outline">담당 ${e(b.staff)}</span>${progBadge(S.programOf(b.staff))}` : ''}`,
         `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="biz:${b.id}">일정 추가</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="biz" data-id="${b.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           <section class="dr-sec"><h3>진행 단계 <button class="btn btn-ghost btn-sm" type="button" data-act="stage-set" data-id="${b.id}" data-stage="${b.stage === '보류' ? '접촉' : '보류'}">${b.stage === '보류' ? '보류 해제' : '보류로 변경'}</button></h3>
@@ -531,7 +561,7 @@ window.V = (() => {
           ${actsSec('biz', b.id)}
           <section class="dr-sec"><h3>채용 정보</h3>${kv([['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
-          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', e(b.staff)]])}</section>
+          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
         </div>`,
       after: () => miniMap(b, 'biz'),
@@ -542,7 +572,7 @@ window.V = (() => {
     const la = S.lastAct('net', n.id);
     const pc = primaryContact('net', n.id);
     return {
-      html: drHead(e(n.name), `<span class="badge navy">${e(n.category)}</span>${statusBadge(n.status)}<span class="badge outline">${e(n.area || '지역 미지정')}</span>`,
+      html: drHead(e(n.name), `<span class="badge navy">${e(n.category)}</span>${statusBadge(n.status)}<span class="badge outline">${e(n.area || '지역 미지정')}</span>${n.staff ? `<span class="badge outline">담당 ${e(n.staff)}</span>${progBadge(S.programOf(n.staff))}` : ''}`,
         `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="net:${n.id}">일정 추가</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="net" data-id="${n.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           <div class="summary">
@@ -552,7 +582,7 @@ window.V = (() => {
             <div><div class="l">담당자 명함</div><div class="v">${S.cardsOf('net', n.id).length}<small>장</small></div></div>
           </div>
           ${n.memo ? `<div class="memo-box">${e(n.memo)}</div>` : ''}
-          <section class="dr-sec"><h3>협력 · 홍보</h3>${kv([['협력 내용', e(n.relation)], ['홍보 방식', e(n.promo)], ['관계 상태', e(n.status)], ['담당 직원', e(n.staff)]])}</section>
+          <section class="dr-sec"><h3>협력 · 홍보</h3>${kv([['협력 내용', e(n.relation)], ['홍보 방식', e(n.promo)], ['관계 상태', e(n.status)], ['담당 직원', staffTag(n.staff)]])}</section>
           ${people('net', n.id)}
           ${eventsSec('net', n.id)}
           ${actsSec('net', n.id)}
@@ -571,7 +601,7 @@ window.V = (() => {
         `${c.linkType === 'biz' && link ? stageBadge(link.stage) : ''}${c.linkType === 'net' ? '<span class="badge navy">네트워크 기관</span>' : ''}${(c.tags || []).map(t => `<span class="badge outline">${e(t)}</span>`).join('')}`,
         `${tel(c) ? `<a class="btn btn-sm btn-primary" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}전화</a>` : ''}${c.mobile ? `<a class="btn btn-sm" href="sms:${e(c.mobile.replace(/[^0-9+]/g, ''))}">문자</a>` : ''}${c.email ? `<a class="btn btn-sm" href="mailto:${e(c.email)}">${I.mail}이메일</a>` : ''}<button class="btn btn-sm" type="button" data-act="vcard" data-id="${c.id}">연락처 파일(vcf)</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="card" data-id="${c.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
-          ${c.photo ? `<img class="card-photo" src="${c.photo}" alt="${e(c.name)} 명함 사진">` : ''}
+          ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
           <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : '<p class="sub" style="margin:0">연결된 사업체나 기관이 없습니다. 수정에서 연결할 수 있어요.</p>'}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>
@@ -599,5 +629,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

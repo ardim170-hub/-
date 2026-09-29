@@ -49,8 +49,34 @@ window.App = (() => {
     const moreActive = ['network', 'schedule', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
-    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>데이터는 이 브라우저에 저장됩니다.`;
+    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b>`;
     $('#demoBanner').hidden = !S.get().isDemo;
+    renderScope();
+  }
+
+  /* ---------- 보기 범위 · 동기화 상태 ---------- */
+  function renderScope() {
+    const sel = $('#scopeSel');
+    const staff = S.staff();
+    const cur = S.getScope();
+    const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key));
+    sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
+      progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
+      `<optgroup label="직원별">${staff.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>`;
+    sel.value = cur;
+    if (sel.value !== cur) { sel.value = 'all'; }
+    sel.classList.toggle('scoped', cur !== 'all');
+  }
+  function renderSync(sync) {
+    const el = $('#syncState');
+    if (!S.REMOTE) { el.hidden = true; return; }
+    el.hidden = false;
+    const t = sync.at ? `${U.pad(sync.at.getHours())}:${U.pad(sync.at.getMinutes())}` : '';
+    const map = { loading: ['불러오는 중', ''], saving: ['저장 중…', 'busy'], saved: [`저장됨 ${t}`, 'ok'], error: ['저장 오류', 'err'] };
+    const [label, cls] = map[sync.status] || ['', ''];
+    el.className = 'sync ' + cls;
+    el.textContent = label;
+    el.title = sync.status === 'error' ? '구글 시트와 연결되지 않았습니다. 새로고침해 보세요.' : '팀원이 바꾼 내용은 1분마다, 또는 이 창으로 돌아올 때 반영됩니다.';
   }
 
   /* ---------- Pages ---------- */
@@ -138,10 +164,8 @@ window.App = (() => {
         if (!found.length) { toast('알맞은 시트를 찾지 못했습니다. 시트 이름이 사업체·네트워크·명함·활동기록·일정인지 확인하세요.', 'error'); return; }
         const ok = await confirmBox('엑셀 데이터로 교체할까요?', `${found.join(', ')} 시트에서 사업체 ${next.businesses.length}곳, 기관 ${next.networks.length}곳, 명함 ${next.cards.length}장, 활동 ${next.activities.length}건, 일정 ${next.events.length}건을 읽었습니다. 지금 데이터는 모두 교체됩니다.`, '교체');
         if (!ok) return;
-        // 사진은 엑셀에 없으므로 같은 ID의 기존 사진을 유지
-        const photos = Object.fromEntries(S.get().cards.filter(c => c.photo).map(c => [c.id, c.photo]));
-        next.cards.forEach(c => { c.photo = photos[c.id] || null; });
-        S.replace(next);
+        next.isDemo = false;
+        await S.replace(next);
         toast('엑셀 데이터를 불러왔습니다.');
       } catch (err) { console.error(err); toast('엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
     };
@@ -153,10 +177,12 @@ window.App = (() => {
         const next = JSON.parse(await file.text());
         if (!next.version || !Array.isArray(next.businesses)) throw new Error('형식 오류');
         if (!(await confirmBox('백업 파일로 복원할까요?', `사업체 ${next.businesses.length}곳, 명함 ${next.cards.length}장이 들어 있습니다. 지금 데이터는 모두 교체됩니다.`, '복원'))) return;
-        S.replace(next);
+        next.isDemo = false;
+        await S.replace(next);
         toast('백업에서 복원했습니다.');
       } catch { toast('백업 파일을 읽지 못했습니다. 이 프로그램에서 받은 JSON 파일인지 확인하세요.', 'error'); }
     };
+    $('#meSel').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다.`); };
   }
 
   /* ---------- Drawer ---------- */
@@ -211,7 +237,7 @@ window.App = (() => {
     const id = form.dataset.id;
     if (id) obj.id = id;
     const saved = S.upsert(kind, obj);
-    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff });
+    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
     toast(id ? '저장했습니다.' : '등록했습니다.');
     stack.pop();
     if (!id && kind !== 'ev' && !stack.length) stack.push({ type: 'detail', kind, id: saved.id });
@@ -308,7 +334,7 @@ window.App = (() => {
       const to = el.dataset.stage;
       if (!b || b.stage === to) return;
       const from = b.stage;
-      S.upsert('act', { targetType: 'biz', targetId: b.id, date: U.today(), type: '기타', content: `진행 단계 변경: ${from} → ${to}`, staff: S.get().settings.staff[0] || '' });
+      S.upsert('act', { targetType: 'biz', targetId: b.id, date: U.today(), type: '기타', content: `진행 단계 변경: ${from} → ${to}`, staff: S.me() });
       S.upsert('biz', { id: b.id, stage: to });
       toast(`${b.name}: ${to} 단계로 변경했습니다.${to === '채용연계' && !Number(b.placements) ? ' 채용 인원은 수정에서 입력하세요.' : ''}`);
     },
@@ -364,26 +390,31 @@ window.App = (() => {
     'xlsx-import': () => $('#xlsxFile').click(),
     'json-export': () => { S.exportJson(); toast('백업 파일을 내려받았습니다.'); },
     'json-import': () => $('#jsonFile').click(),
-    'save-staff': () => {
-      const list = $('#staffInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    'save-staff': async () => {
+      const list = [...document.querySelectorAll('#staffRows .staff-row')].map(r => ({ name: r.querySelector('[name=staffName]').value.trim(), program: r.querySelector('[name=staffProg]').value })).filter(s => s.name);
       if (!list.length) return toast('직원 이름을 한 명 이상 입력하세요.', 'error');
-      S.get().settings.staff = list; S.commit(); toast('담당 직원 목록을 저장했습니다.');
+      if (new Set(list.map(s => s.name)).size !== list.length) return toast('같은 이름이 두 번 있습니다. 동명이인은 "김정배A"처럼 구분해 주세요.', 'error');
+      await S.saveSettings({ staff: list });
+      toast('직원 목록을 저장했습니다.');
     },
+    'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
+    'staff-del': el => el.closest('.staff-row').remove(),
+    'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();
       if (v && !/^https?:\/\//.test(v)) return toast('http:// 또는 https:// 로 시작하는 주소를 입력하세요.', 'error');
-      S.get().settings.cityMapUrl = v; S.commit(); toast('화성시 대시보드 주소를 저장했습니다.');
+      S.saveSettings({ cityMapUrl: v }); toast('화성시 대시보드 주소를 저장했습니다.');
     },
     'data-clear': async () => {
       if (!(await confirmBox('모든 데이터를 지울까요?', '사업체, 명함, 기관, 활동 기록, 일정이 모두 삭제됩니다. 되돌릴 수 없으니 먼저 엑셀이나 백업 파일로 저장해 두세요.', '모두 지우기'))) return;
       const next = D.empty();
-      next.settings = { ...S.get().settings, staff: S.get().settings.staff };
-      S.replace(next);
+      next.settings = { ...S.get().settings };
+      await S.replace(next);
       toast('모든 데이터를 지웠습니다. 새로 등록을 시작하세요.');
     },
     'data-demo': async () => {
       if (!(await confirmBox('예시 데이터를 불러올까요?', '지금 데이터가 예시 데이터로 교체됩니다.', '불러오기'))) return;
-      S.replace(D.demo());
+      await S.replace(D.demo());
       toast('예시 데이터를 불러왔습니다.');
     },
   };
@@ -410,6 +441,9 @@ window.App = (() => {
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
     });
     $('#searchTrigger').onclick = openSearch;
+    $('#scopeSel').onchange = ev => S.setScope(ev.target.value);
+    S.onSync(renderSync);
+    renderSync(S.sync);
     $('#searchLayer').addEventListener('click', ev => { if (ev.target.id === 'searchLayer') closeSearch(); });
     $('#searchInput').addEventListener('input', ev => { srIndex = 0; drawSearch(ev.target.value); });
     $('#searchInput').addEventListener('keydown', ev => {
@@ -435,7 +469,7 @@ window.App = (() => {
         toast('활동을 기록했습니다.');
       }
     });
-    window.addEventListener('hashchange', () => { render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
+    window.addEventListener('hashchange', () => { if (drawerOpen()) closeDrawer(); render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
     S.subscribe(() => {
       if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);

@@ -1,17 +1,34 @@
-// 모든 CSS·JS를 index.html 한 파일에 합쳐 dist/아르딤_취업지원.html 을 만든다.
-// 사용: node scripts/build.mjs  → 만들어진 파일을 더블클릭하면 바로 실행된다.
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+// 배포 파일을 만든다.  사용: node scripts/build.mjs
+//  1) dist/아르딤_취업지원.html  : 모든 CSS·JS를 한 파일에 합친 버전. 더블클릭하면 이 PC에서만 쓰는 로컬 모드로 실행된다.
+//  2) dist/apps-script/          : 구글 Apps Script에 붙여 넣는 팀 공유 버전 (Code.gs, index.html, appsscript.json)
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => readFileSync(join(root, p), 'utf8');
-let html = read('index.html');
+const inlineJs = p => `<script>\n${read(p).replace(/<\/script/gi, '<\\/script')}\n</script>`;
+const src = read('index.html');
 
-html = html.replace(/<link rel="stylesheet" href="((?:css|vendor)\/[^"]+)">/g, (_, p) => `<style>\n${read(p)}\n</style>`);
-html = html.replace(/<script src="((?:js|vendor)\/[^"]+)"><\/script>/g, (_, p) => `<script>\n${read(p).replace(/<\/script/gi, '<\\/script')}\n</script>`);
+// Apps Script 파일 크기를 줄이기 위해 공유 버전은 라이브러리를 CDN에서 불러온다
+const CDN = {
+  'vendor/leaflet.css': '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">',
+  'vendor/leaflet.js': '<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>',
+  'vendor/xlsx.full.min.js': '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>',
+};
 
-mkdirSync(join(root, 'dist'), { recursive: true });
-const out = join(root, 'dist', '아르딤_취업지원.html');
-writeFileSync(out, html);
-console.log(`만들었습니다: ${out} (${(Buffer.byteLength(html) / 1024).toFixed(0)} KB)`);
+function build(useCdn) {
+  return src
+    .replace(/<link rel="stylesheet" href="((?:css|vendor)\/[^"]+)">/g, (_, p) => (useCdn && CDN[p]) || `<style>\n${read(p)}\n</style>`)
+    .replace(/<script src="((?:js|vendor)\/[^"]+)"><\/script>/g, (_, p) => (useCdn && CDN[p]) || inlineJs(p));
+}
+
+mkdirSync(join(root, 'dist', 'apps-script'), { recursive: true });
+const single = join(root, 'dist', '아르딤_취업지원.html');
+writeFileSync(single, build(false));
+writeFileSync(join(root, 'dist', 'apps-script', 'index.html'), build(true));
+copyFileSync(join(root, 'apps-script', 'Code.gs'), join(root, 'dist', 'apps-script', 'Code.gs'));
+copyFileSync(join(root, 'apps-script', 'appsscript.json'), join(root, 'dist', 'apps-script', 'appsscript.json'));
+const kb = p => (readFileSync(p).length / 1024).toFixed(0) + ' KB';
+console.log(`로컬 버전: ${single} (${kb(single)})`);
+console.log(`공유 버전: dist/apps-script/index.html (${kb(join(root, 'dist', 'apps-script', 'index.html'))}), Code.gs, appsscript.json`);

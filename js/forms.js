@@ -4,6 +4,7 @@ window.F = (() => {
   const field = (label, input, opt = {}) => `<div class="field ${opt.full ? 'full' : ''}" data-f="${opt.name || ''}"><label ${opt.for ? `for="${opt.for}"` : ''}>${label}${opt.req ? ' <span class="req">*</span>' : ''}</label>${input}${opt.hint ? `<span class="hint">${opt.hint}</span>` : ''}</div>`;
   const inp = (name, v, attrs = '') => `<input class="input" id="f_${name}" name="${name}" value="${e(v ?? '')}" ${attrs}>`;
   const ta = (name, v, attrs = '') => `<textarea class="textarea" id="f_${name}" name="${name}" ${attrs}>${e(v ?? '')}</textarea>`;
+  const staffSel = v => `<select class="select" id="f_staff" name="staff"><option value="">선택</option>${S.staff().map(st => `<option value="${e(st.name)}" ${st.name === v ? 'selected' : ''}>${e(st.name)}${st.program ? ' · ' + e(st.program) : ''}</option>`).join('')}${v && !S.staff().some(st => st.name === v) ? `<option selected>${e(v)}</option>` : ''}</select>`;
   const sel = (name, list, v, blank) => `<select class="select" id="f_${name}" name="${name}">${V.opts(list, v, blank)}</select>`;
   const foot = (label) => `<div class="dr-foot"><button class="btn" type="button" data-act="dr-cancel">취소</button><button class="btn btn-primary" type="submit" form="entityForm">${label}</button></div>`;
   const head = (title) => `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${title}</h2><button class="icon-btn" type="button" data-act="dr-cancel" aria-label="닫기">${V.I.close}</button></div></div>`;
@@ -54,7 +55,7 @@ window.F = (() => {
 
   /* ---------- 사업체 ---------- */
   function biz(b) {
-    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.get().settings.staff[0] || '', source: '현장 발굴', placements: 0 };
+    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0 };
     return {
       html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" novalidate>
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
@@ -75,7 +76,7 @@ window.F = (() => {
         <div class="fsec"><h3>운영 정보</h3><div class="frow">
           ${field('발굴 경로', sel('source', D.SOURCES, x.source, '선택'), { for: 'f_source' })}
           ${field('발굴일', inp('discoveredAt', x.discoveredAt, 'type="date"'), { for: 'f_discoveredAt' })}
-          ${field('담당 직원', sel('staff', S.get().settings.staff, x.staff, '선택'), { for: 'f_staff' })}
+          ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 인사팀장 통화는 오후 2시 이후"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(b ? '저장' : '등록'),
@@ -85,7 +86,7 @@ window.F = (() => {
 
   /* ---------- 네트워크 ---------- */
   function net(n) {
-    const x = n || { category: '복지기관', status: '활발', since: U.today(), staff: S.get().settings.staff[0] || '' };
+    const x = n || { category: '복지기관', status: '활발', since: U.today(), staff: S.me() };
     return {
       html: head(n ? '기관 정보 수정' : '네트워크 기관 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="net" data-id="${n ? n.id : ''}" novalidate>
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
@@ -98,7 +99,7 @@ window.F = (() => {
           ${field('협력 내용', ta('relation', x.relation, 'rows="2" placeholder="예: 구직 장애인 의뢰, 채용박람회 공동 개최"'), { full: true, for: 'f_relation' })}
           ${field('홍보 방식', inp('promo', x.promo, 'placeholder="예: 리플릿 비치, 소식지 게재, SNS 공동 홍보"'), { full: true, for: 'f_promo' })}
           ${field('협력 시작일', inp('since', x.since, 'type="date"'), { for: 'f_since' })}
-          ${field('담당 직원', sel('staff', S.get().settings.staff, x.staff, '선택'), { for: 'f_staff' })}
+          ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
           ${field('메모', ta('memo', x.memo, 'rows="3"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(n ? '저장' : '등록'),
@@ -114,7 +115,7 @@ window.F = (() => {
       html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>
         <div class="fsec"><h3>명함 사진</h3>
           <div class="photo-drop" id="photoDrop">
-            <img id="photoPreview" ${x.photo ? `src="${x.photo}"` : 'hidden'} alt="명함 사진 미리보기">
+            <img id="photoPreview" ${S.photo(x) ? `src="${S.photo(x)}"` : 'hidden'} alt="명함 사진 미리보기">
             <span id="photoHint">${x.photo ? '' : '명함을 찍은 사진을 올려 두면 원본을 다시 확인할 수 있어요.'}</span>
             <div class="inline"><label class="btn btn-sm" for="f_photoFile">사진 선택</label>${x.photo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="photo-clear">사진 삭제</button>' : ''}</div>
             <input type="file" id="f_photoFile" accept="image/*" capture="environment" hidden>
@@ -142,7 +143,7 @@ window.F = (() => {
         </div></div>
       </form></div>` + foot(c ? '저장' : '등록'),
       after: form => {
-        form.elements.photo.value = x.photo || '';
+        form.elements.photo.value = 'keep';
         const file = form.querySelector('#f_photoFile');
         const prev = form.querySelector('#photoPreview');
         file.addEventListener('change', async () => {
@@ -221,7 +222,7 @@ window.F = (() => {
     } else if (kind === 'card') {
       need('name', '이름을 입력하세요.');
       const [lt, li] = (fd.link || '').split(':');
-      obj = { name: fd.name.trim(), title: fd.title.trim(), org: fd.org.trim(), dept: fd.dept.trim(), mobile: fd.mobile.trim(), phone: fd.phone.trim(), email: fd.email.trim(), address: fd.address.trim(), linkType: lt || '', linkId: li || '', metAt: fd.metAt, metWhere: fd.metWhere.trim(), tags: fd.tags.split(',').map(t => t.trim()).filter(Boolean), memo: fd.memo.trim(), photo: fd.photo || null };
+      obj = { name: fd.name.trim(), title: fd.title.trim(), org: fd.org.trim(), dept: fd.dept.trim(), mobile: fd.mobile.trim(), phone: fd.phone.trim(), email: fd.email.trim(), address: fd.address.trim(), linkType: lt || '', linkId: li || '', metAt: fd.metAt, metWhere: fd.metWhere.trim(), tags: fd.tags.split(',').map(t => t.trim()).filter(Boolean), memo: fd.memo.trim(), photo: fd.photo === 'keep' ? undefined : (fd.photo || null) };
     } else if (kind === 'ev') {
       need('date', '날짜를 입력하세요.');
       const [lt, li] = (fd.link || '').split(':');

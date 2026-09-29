@@ -691,6 +691,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --muted: #8A94A6;
   --muted-soft: #EEF0F4;
 
+  --prog-a: #0F7B7B;
+  --prog-b: #6A4FB8;
+
   --st-discover: #8A94A6;
   --st-contact: #6B9BEF;
   --st-visit: #2563EB;
@@ -768,7 +771,27 @@ svg { stroke-linecap: round; stroke-linejoin: round; }
 .search-trigger svg, .search-input-row svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; flex: none; }
 .search-trigger span { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 kbd { font-family: inherit; font-size: 11.5px; padding: 2px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface-2); color: var(--text-2); }
-.topbar-actions { display: flex; gap: 8px; }
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+.scope-select { width: auto; max-width: 210px; font-weight: 600; }
+.scope-select.scoped { border-color: var(--accent); background: var(--accent-soft); color: var(--navy); }
+.sync { font-size: 12.5px; color: var(--text-2); white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+.sync::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.sync.ok::before { background: var(--success); }
+.sync.busy::before { background: var(--warning); }
+.sync.err { color: var(--danger); font-weight: 600; }
+.sync.err::before { background: var(--danger); }
+.badge.prog { height: 19px; padding: 0 6px; font-size: 11px; background: transparent; border: 1px solid var(--c); color: var(--c); margin-left: 4px; }
+.staff-tag { display: inline-flex; align-items: center; white-space: nowrap; }
+.staff-tbl td, .staff-tbl th { padding: 8px 10px; white-space: nowrap; }
+.staff-tbl tbody tr[data-act] { cursor: pointer; }
+.prog-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--c); margin-right: 7px; vertical-align: 1px; }
+.staff-tbl tr.grp td { background: var(--surface-2); }
+.staff-tbl tr.total td { border-top: 1px solid var(--line-strong); }
+.staff-tbl .indent { padding-left: 14px; display: inline-block; }
+.staff-tbl .meta { margin-left: 2px; font-size: 12px; color: var(--text-2); }
+.card-staff { position: absolute; right: 14px; bottom: 12px; font-size: 11.5px; color: var(--text-2); }
+.staff-rows { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.staff-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px; gap: 6px; align-items: center; }
 .menu-wrap { position: relative; }
 .menu {
   position: absolute; right: 0; top: calc(100% + 6px); min-width: 190px; z-index: 30;
@@ -1120,6 +1143,10 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
   .sidebar { display: none; }
   .topbar { padding: 10px 16px; }
   .search-trigger kbd { display: none; }
+  .topbar { flex-wrap: wrap; }
+  .search-trigger { flex: 1 1 100%; max-width: none; order: 2; }
+  .topbar-actions { width: 100%; justify-content: space-between; }
+  .scope-select { flex: 1; max-width: none; }
   .demo-banner { margin: 12px 16px 0; }
   .view { padding: 16px 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1197,6 +1224,8 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
         <kbd>Ctrl K</kbd>
       </button>
       <div class="topbar-actions">
+        <span class="sync" id="syncState" hidden aria-live="polite"></span>
+        <select class="select scope-select" id="scopeSel" aria-label="보기 범위"></select>
         <div class="menu-wrap">
           <button class="btn btn-primary" type="button" data-act="toggle-quick" aria-haspopup="true">+ 새로 등록</button>
           <div class="menu" id="quickMenu" hidden>
@@ -1384,6 +1413,13 @@ window.D = (() => {
   const STAGE = Object.fromEntries(STAGES.map((s, i) => [s.key, { ...s, i }]));
   const ACTIVE_STAGES = ['접촉', '방문상담', '채용협의'];
 
+  /** 직원 소속 사업 (같은 업무라도 지원 기관별로 실적을 나눠 본다) */
+  const PROGRAMS = [
+    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)' },
+    { key: '고용공단', short: '공단', color: 'var(--prog-b)' },
+  ];
+  const PROGRAM = Object.fromEntries(PROGRAMS.map(p => [p.key, p]));
+
   const INDUSTRIES = {
     '전자부품 제조': { suf: ['전자', '테크', '일렉트론'], jobs: ['부품 조립 보조', '제품 검수', '포장'], acc: '작업대 높이 조절 가능, 1층 작업장' },
     '자동차부품 제조': { suf: ['정밀', '오토텍', '기공'], jobs: ['부품 검수', '자재 정리', '포장'], acc: '소음 있음, 안전교육 필수' },
@@ -1422,7 +1458,8 @@ window.D = (() => {
     const SUR = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '유', '홍'];
     const GIV = ['민준', '서연', '지훈', '하은', '도윤', '수빈', '현우', '지아', '준호', '예린', '성민', '유진', '태희', '동현', '수아', '재원', '미정', '영수', '혜진', '상훈', '경아', '은비', '진우', '나래'];
     const person = () => pick(SUR) + pick(GIV);
-    const STAFF = ['김정배', '이수정', '박현우'];
+    const STAFF_LIST = [{ name: '김정배', program: '장애인개발원' }, { name: '이수정', program: '장애인개발원' }, { name: '박현우', program: '장애인개발원' }, { name: '최유나', program: '고용공단' }];
+    const STAFF = STAFF_LIST.map(s => s.name);
     const PRE = ['동탄', '향남', '봉담', '남양', '송산', '우정', '서해', '제부', '비봉', '정남', '팔탄', '매송', '마도', '새솔', '병점', '기안', '청명', '한울', '늘푸른', '새빛', '다온', '도담', '가온', '라온', '해솔', '온누리', '푸른들', '한결', '누리', '바른'];
     const used = new Set();
     const coName = ind => {
@@ -1571,7 +1608,7 @@ window.D = (() => {
 
     return {
       version: 1, isDemo: true,
-      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: STAFF, cityMapUrl: CITY_DASHBOARD_URL },
+      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: STAFF_LIST, cityMapUrl: CITY_DASHBOARD_URL },
       businesses, networks, cards, activities, events,
     };
   }
@@ -1579,24 +1616,84 @@ window.D = (() => {
   function empty() {
     return {
       version: 1, isDemo: false,
-      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: ['김정배'], cityMapUrl: CITY_DASHBOARD_URL },
+      settings: { orgName: '화성시아르딤복지관 직업지원팀', staff: [{ name: '김정배', program: '' }], cityMapUrl: CITY_DASHBOARD_URL },
       businesses: [], networks: [], cards: [], activities: [], events: [],
     };
   }
 
-  return { AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();
 
 </script>
 <script>
 /* 데이터 저장소: 모든 화면은 이 한 곳의 데이터에서 계산한다.
-   저장 위치는 이 브라우저의 IndexedDB (없으면 localStorage). */
+   - 파일로 열면(로컬 모드): 이 브라우저의 IndexedDB에 저장
+   - 구글 Apps Script 웹 앱으로 열면(공유 모드): 구글 시트에 저장하고 팀원과 함께 본다 */
 window.S = (() => {
   const DB_NAME = 'ardim-jobs-crm';
   const KEY = 'state';
+  const REMOTE = !!(window.google && google.script && google.script.run);
   let state = null;
   const listeners = new Set();
 
+  /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
+  const SHEETS = {
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원']]],
+    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
+  };
+  const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
+  const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt']);
+  const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng']);
+  const COLS = Object.keys(SHEETS);
+
+  function toRow(col, x) {
+    return Object.fromEntries(SHEETS[col][1].map(([k, h]) => {
+      let v = x[k];
+      if (k === 'tags') v = (v || []).join(', ');
+      else if (k === 'done' || k === 'approx') v = v ? 'Y' : (k === 'done' ? 'N' : '');
+      else if (k === 'photo') v = v ? 'Y' : '';
+      return [h, v ?? ''];
+    }));
+  }
+  function fromRow(col, r) {
+    const o = {};
+    for (const [k, h] of SHEETS[col][1]) {
+      let v = r[h];
+      if (v === undefined) continue;
+      if (DATE_KEYS.has(k)) v = U.toDateStr(v);
+      else if (NUM_KEYS.has(k)) v = v === '' || v == null ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
+      else if (k === 'tags') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
+      else if (k === 'done' || k === 'approx') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
+      else if (k === 'photo') v = /^y$/i.test(String(v).trim()) ? 'Y' : null;
+      else v = v == null ? '' : String(v).trim();
+      o[k] = v;
+    }
+    if (!o.id) o.id = U.uid(col[0].toUpperCase());
+    return o;
+  }
+  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : o.name);
+  function normalize(next) {
+    for (const k of COLS) next[k] ||= [];
+    next.settings ||= {};
+    next.settings.orgName ||= '화성시아르딤복지관 직업지원팀';
+    if (next.settings.cityMapUrl == null) next.settings.cityMapUrl = D.CITY_DASHBOARD_URL;
+    next.settings.staff = (next.settings.staff || []).map(s => (typeof s === 'string' ? { name: s, program: '' } : { name: String(s.name || '').trim(), program: s.program || '' })).filter(s => s.name);
+    if (!next.settings.staff.length) next.settings.staff = [{ name: '김정배', program: '' }];
+    next.businesses.forEach(b => {
+      if (!D.STAGE[b.stage]) b.stage = '발굴';
+      if ((b.lat == null || isNaN(b.lat)) && D.AREA_BY_NAME[b.area]) { b.lat = D.AREA_BY_NAME[b.area].lat; b.lng = D.AREA_BY_NAME[b.area].lng; b.approx = true; }
+    });
+    next.networks.forEach(n => {
+      if (!D.NET_STATUS.includes(n.status)) n.status = '보통';
+      if ((n.lat == null || isNaN(n.lat)) && D.AREA_BY_NAME[n.area]) { n.lat = D.AREA_BY_NAME[n.area].lat; n.lng = D.AREA_BY_NAME[n.area].lng; n.approx = true; }
+    });
+    return next;
+  }
+
+  /* ---------- 로컬 저장 (IndexedDB) ---------- */
   function openDb() {
     return new Promise((res, rej) => {
       const r = indexedDB.open(DB_NAME, 1);
@@ -1629,64 +1726,220 @@ window.S = (() => {
       localStorage.setItem(DB_NAME, JSON.stringify(v));
     }
   }
-
   let saveTimer = null;
-  let saveError = null;
-  function persist() {
+  function persistLocal() {
+    if (REMOTE) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(async () => {
-      try { await writeRaw(state); saveError = null; }
-      catch (e) { saveError = e; App.toast('저장하지 못했습니다. 저장 공간이 부족할 수 있어요. 명함 사진을 줄이거나 엑셀로 백업하세요.', 'error'); }
+      try { await writeRaw(state); }
+      catch (e) { App.toast('저장하지 못했습니다. 저장 공간이 부족할 수 있어요. 명함 사진을 줄이거나 엑셀로 백업하세요.', 'error'); }
     }, 150);
   }
 
+  /* ---------- 공유 모드 (구글 Apps Script) ---------- */
+  const sync = { status: REMOTE ? 'loading' : 'local', at: null, error: null };
+  const syncListeners = new Set();
+  const setSync = (status, error = null) => { sync.status = status; sync.error = error; if (status === 'saved') sync.at = new Date(); syncListeners.forEach(fn => fn(sync)); };
+  const call = (fn, ...args) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+  let pending = 0;
+  function send(fn, ...args) {
+    if (!REMOTE) return Promise.resolve();
+    pending++;
+    setSync('saving');
+    return call(fn, ...args)
+      .then(r => { if (--pending === 0) setSync('saved'); return r; })
+      .catch(err => {
+        pending--;
+        setSync('error', err);
+        App.toast('구글 시트에 저장하지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요. (' + (err && err.message || err) + ')', 'error');
+        throw err;
+      });
+  }
+  const opPut = (col, x) => ({ sheet: SHEETS[col][0], op: 'put', id: x.id, row: toRow(col, x) });
+  const opDel = (col, id) => ({ sheet: SHEETS[col][0], op: 'del', id });
+  const schema = () => Object.fromEntries([...COLS.map(c => [SHEETS[c][0], SHEETS[c][1].map(x => x[1])]), [STAFF_SHEET[0], STAFF_SHEET[1].map(x => x[1])]]);
+
+  function fromServer(res) {
+    const next = { version: 1 };
+    for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
+    const st = res.settings || {};
+    next.settings = {
+      orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null,
+      staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
+    };
+    next.isDemo = st.isDemo === 'Y';
+    return normalize(next);
+  }
+  function serverPayload(s) {
+    const sheets = {};
+    for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
+    sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', isDemo: s.isDemo ? 'Y' : '' } };
+  }
+
+  let lastSig = '';
+  async function refresh() {
+    if (!REMOTE || pending) return;
+    try {
+      const res = await call('api_load', schema());
+      if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
+      const next = fromServer(res);
+      const sig = JSON.stringify(next);
+      if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
+      setSync('saved');
+    } catch (err) { setSync('error', err); }
+  }
+
+  /* ---------- 초기화 ---------- */
   async function init() {
+    if (REMOTE) {
+      const res = await call('api_load', schema());
+      state = fromServer(res);
+      lastSig = JSON.stringify(state);
+      setSync('saved');
+      setInterval(refresh, 60000);
+      window.addEventListener('focus', refresh);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+      return state;
+    }
     const raw = await readRaw();
-    state = raw && raw.version ? raw : D.demo();
-    for (const k of ['businesses', 'networks', 'cards', 'activities', 'events']) state[k] ||= [];
-    state.settings ||= { orgName: '화성시아르딤복지관 직업지원팀', staff: ['김정배'] };
-    if (state.settings.cityMapUrl == null) state.settings.cityMapUrl = D.CITY_DASHBOARD_URL;
-    if (!raw) persist();
+    state = normalize(raw && raw.version ? raw : D.demo());
+    if (!raw) persistLocal();
     return state;
   }
 
   const get = () => state;
-  function commit() { persist(); listeners.forEach(fn => fn()); }
+  function notify() { listeners.forEach(fn => fn()); }
+  function commit() { persistLocal(); if (REMOTE) lastSig = JSON.stringify(state); notify(); }
   const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
-  function replace(next) { state = next; commit(); }
+  async function replace(next) {
+    next = normalize(next);
+    if (REMOTE) {
+      // 사진은 시트 밖에서 따로 올린다
+      const photos = next.cards.filter(c => typeof c.photo === 'string' && c.photo.startsWith('data:'));
+      photos.forEach(c => { photoCache.set(c.id, c.photo); c.photo = 'Y'; });
+      await send('api_replaceAll', serverPayload(next));
+      for (const c of photos) await send('api_putPhoto', c.id, photoCache.get(c.id));
+    }
+    state = next; commit();
+  }
+  async function saveSettings(patch) {
+    Object.assign(state.settings, patch);
+    normalize(state);
+    commit();
+    if (REMOTE) await send('api_saveSettings', serverPayload(state).settings, serverPayload(state).sheets[STAFF_SHEET[0]]);
+  }
 
+  /* ---------- CRUD ---------- */
   const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events' };
   const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
+  const photoCache = new Map();
+
   function upsert(kind, obj) {
-    const list = state[COL[kind]];
+    const col = COL[kind];
+    const list = state[col];
     if (!obj.id) obj.id = U.uid(PREFIX[kind]);
+    Object.keys(obj).forEach(k => obj[k] === undefined && delete obj[k]);
     const i = list.findIndex(x => x.id === obj.id);
-    obj.updatedAt = U.today();
-    if (i >= 0) list[i] = { ...list[i], ...obj }; else { obj.createdAt = U.today(); list.push(obj); }
+    const before = i >= 0 ? list[i] : null;
+    if (kind !== 'act' && kind !== 'ev') { obj.updatedAt = U.today(); if (!before) obj.createdAt = U.today(); }
+    let photoOp = null;
+    if (REMOTE && kind === 'card' && 'photo' in obj) {
+      if (typeof obj.photo === 'string' && obj.photo.startsWith('data:')) { photoCache.set(obj.id, obj.photo); photoOp = ['api_putPhoto', obj.id, obj.photo]; obj.photo = 'Y'; }
+      else if (!obj.photo && before && before.photo) { photoCache.delete(obj.id); photoOp = ['api_delPhoto', obj.id]; obj.photo = null; }
+    }
+    const rec = before ? { ...before, ...obj } : obj;
+    if (i >= 0) list[i] = rec; else list.push(rec);
     commit();
-    return find(kind, obj.id);
+    if (REMOTE) {
+      send('api_apply', [opPut(col, rec)]).catch(() => {});
+      if (photoOp) send(...photoOp).catch(() => {});
+    }
+    return rec;
   }
+
   function remove(kind, id) {
-    const list = state[COL[kind]];
+    const col = COL[kind];
+    const list = state[col];
     const i = list.findIndex(x => x.id === id);
     if (i < 0) return null;
     const [gone] = list.splice(i, 1);
-    const removedLinks = { acts: [], evs: [], cards: [] };
+    const removed = { acts: [], evs: [], cards: [] };
     if (kind === 'biz' || kind === 'net') {
-      removedLinks.acts = state.activities.filter(a => a.targetType === kind && a.targetId === id);
-      removedLinks.evs = state.events.filter(e => e.targetType === kind && e.targetId === id);
+      removed.acts = state.activities.filter(a => a.targetType === kind && a.targetId === id);
+      removed.evs = state.events.filter(e => e.targetType === kind && e.targetId === id);
       state.activities = state.activities.filter(a => !(a.targetType === kind && a.targetId === id));
       state.events = state.events.filter(e => !(e.targetType === kind && e.targetId === id));
-      state.cards.forEach(c => { if (c.linkType === kind && c.linkId === id) { removedLinks.cards.push(c.id); c.linkType = ''; c.linkId = ''; } });
+      state.cards.forEach(c => { if (c.linkType === kind && c.linkId === id) { removed.cards.push(c); c.linkType = ''; c.linkId = ''; } });
     }
     commit();
+    if (REMOTE) {
+      send('api_apply', [opDel(col, id), ...removed.acts.map(a => opDel('activities', a.id)), ...removed.evs.map(e => opDel('events', e.id)), ...removed.cards.map(c => opPut('cards', c))]).catch(() => {});
+      if (kind === 'card' && gone.photo) send('api_delPhoto', id).catch(() => {}); // 되돌리기 시 사진은 복구되지 않음
+    }
     return () => { // 되돌리기
       list.splice(Math.min(i, list.length), 0, gone);
-      state.activities.push(...removedLinks.acts);
-      state.events.push(...removedLinks.evs);
-      state.cards.forEach(c => { if (removedLinks.cards.includes(c.id)) { c.linkType = kind; c.linkId = id; } });
+      state.activities.push(...removed.acts);
+      state.events.push(...removed.evs);
+      removed.cards.forEach(c => { c.linkType = kind; c.linkId = id; });
+      if (kind === 'card' && REMOTE && gone.photo) gone.photo = photoCache.has(id) ? gone.photo : null;
       commit();
+      if (REMOTE) {
+        send('api_apply', [opPut(col, gone), ...removed.acts.map(a => opPut('activities', a)), ...removed.evs.map(e => opPut('events', e)), ...removed.cards.map(c => opPut('cards', c))]).catch(() => {});
+        if (kind === 'card' && photoCache.has(id)) send('api_putPhoto', id, photoCache.get(id)).catch(() => {});
+      }
+    };
+  }
+
+  /** 명함 사진: 로컬 모드는 data URL, 공유 모드는 필요할 때 시트에서 불러온다 */
+  const photoLoading = new Set();
+  function photo(c) {
+    if (!c || !c.photo) return null;
+    if (typeof c.photo === 'string' && c.photo.startsWith('data:')) return c.photo;
+    if (!REMOTE) return null;
+    if (photoCache.has(c.id)) return photoCache.get(c.id);
+    if (!photoLoading.has(c.id)) {
+      photoLoading.add(c.id);
+      call('api_getPhoto', c.id).then(d => { photoCache.set(c.id, d || null); notify(); }).catch(() => {}).finally(() => photoLoading.delete(c.id));
+    }
+    return null;
+  }
+
+  /* ---------- 직원 · 소속 · 보기 범위 ---------- */
+  const staff = () => state.settings.staff;
+  const programOf = name => (staff().find(s => s.name === name) || {}).program || '';
+  const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+  const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 환경 */ } };
+  let scope = lsGet('ardim.scope') || 'all';
+  const getScope = () => scope;
+  function setScope(v) { scope = v; lsSet('ardim.scope', v); notify(); }
+  function me() { const m = lsGet('ardim.me'); return staff().some(s => s.name === m) ? m : (staff()[0]?.name || ''); }
+  function setMe(v) { lsSet('ardim.me', v); notify(); }
+  function staffInScope(name) {
+    if (scope === 'all') return true;
+    if (scope.startsWith('p:')) return programOf(name) === scope.slice(2);
+    if (scope.startsWith('s:')) return name === scope.slice(2);
+    return true;
+  }
+  function scopeLabel() {
+    if (scope.startsWith('p:')) return scope.slice(2);
+    if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
+    return '전체 팀';
+  }
+  /** 현재 보기 범위(전체 팀/소속/직원)에 해당하는 데이터 */
+  function view() {
+    if (scope === 'all') return state;
+    const biz = state.businesses.filter(b => staffInScope(b.staff));
+    const net = state.networks.filter(n => staffInScope(n.staff));
+    const ids = new Set([...biz.map(b => 'biz' + b.id), ...net.map(n => 'net' + n.id)]);
+    const inT = x => !x.targetType || ids.has(x.targetType + x.targetId);
+    return {
+      ...state,
+      businesses: biz, networks: net,
+      cards: state.cards.filter(c => !c.linkType || ids.has(c.linkType + c.linkId)),
+      activities: state.activities.filter(a => staffInScope(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
+      events: state.events.filter(inT),
     };
   }
 
@@ -1699,23 +1952,44 @@ window.S = (() => {
   const targetOf = x => (x.targetType && x.targetId ? find(x.targetType, x.targetId) : null);
   const linkOf = c => (c.linkType && c.linkId ? find(c.linkType, c.linkId) : null);
 
-  function stats() {
-    const T = U.today();
-    const ym = T.slice(0, 7);
-    const b = state.businesses;
+  function stats(v = view()) {
+    const ym = U.today().slice(0, 7);
+    const b = v.businesses;
     const byStage = Object.fromEntries(D.STAGES.map(s => [s.key, 0]));
     b.forEach(x => { byStage[x.stage] = (byStage[x.stage] || 0) + 1; });
     const placedPeople = b.reduce((s, x) => s + (Number(x.placements) || 0), 0);
     const newThisMonth = b.filter(x => (x.discoveredAt || '').startsWith(ym)).length;
     const active = D.ACTIVE_STAGES.reduce((s, k) => s + (byStage[k] || 0), 0);
     const mandatoryBiz = b.filter(x => D.mandatoryCount(x.employees) > 0).length;
-    const netActive = state.networks.filter(n => n.status === '활발').length;
-    const cardsThisMonth = state.cards.filter(c => (c.metAt || c.createdAt || '').startsWith(ym)).length;
-    return { total: b.length, byStage, placedPeople, newThisMonth, active, mandatoryBiz, netTotal: state.networks.length, netActive, cardTotal: state.cards.length, cardsThisMonth, placedBiz: byStage['채용연계'] || 0 };
+    const netActive = v.networks.filter(n => n.status === '활발').length;
+    const cardsThisMonth = v.cards.filter(c => (c.metAt || c.createdAt || '').startsWith(ym)).length;
+    return { total: b.length, byStage, placedPeople, newThisMonth, active, mandatoryBiz, netTotal: v.networks.length, netActive, cardTotal: v.cards.length, cardsThisMonth, placedBiz: byStage['채용연계'] || 0 };
+  }
+
+  /** 직원별·소속별 실적 (전체 팀 기준) */
+  function staffStats() {
+    const ym = U.today().slice(0, 7);
+    const row = name => {
+      const b = state.businesses.filter(x => x.staff === name);
+      return {
+        biz: b.length,
+        active: b.filter(x => D.ACTIVE_STAGES.includes(x.stage)).length,
+        placedBiz: b.filter(x => x.stage === '채용연계').length,
+        placed: b.reduce((s, x) => s + (Number(x.placements) || 0), 0),
+        net: state.networks.filter(x => x.staff === name).length,
+        actsMonth: state.activities.filter(a => a.staff === name && a.date.startsWith(ym)).length,
+      };
+    };
+    const people = staff().map(s => ({ ...s, ...row(s.name) }));
+    const sum = list => list.reduce((t, r) => { for (const k of ['biz', 'active', 'placedBiz', 'placed', 'net', 'actsMonth']) t[k] = (t[k] || 0) + r[k]; return t; }, {});
+    const groups = [...D.PROGRAMS.map(p => p.key), ''].map(key => ({ key, people: people.filter(p => (p.program || '') === key) })).filter(g => g.people.length).map(g => ({ ...g, total: sum(g.people) }));
+    const known = new Set(staff().map(s => s.name));
+    const orphan = state.businesses.filter(b => !known.has(b.staff)).length;
+    return { groups, total: sum(people), orphan };
   }
 
   /** 최근 12개월: 신규 발굴 수, 채용연계 활동 수 */
-  function monthly() {
+  function monthly(v = view()) {
     const T = U.parse(U.today());
     const months = [];
     for (let i = 11; i >= 0; i--) {
@@ -1723,66 +1997,52 @@ window.S = (() => {
       months.push({ key: `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`, label: `${d.getMonth() + 1}월`, discovered: 0, placed: 0 });
     }
     const idx = Object.fromEntries(months.map((m, i) => [m.key, i]));
-    state.businesses.forEach(b => { const i = idx[(b.discoveredAt || '').slice(0, 7)]; if (i != null) months[i].discovered++; });
-    state.activities.forEach(a => { if (a.type === '채용연계') { const i = idx[a.date.slice(0, 7)]; if (i != null) months[i].placed++; } });
+    v.businesses.forEach(b => { const i = idx[(b.discoveredAt || '').slice(0, 7)]; if (i != null) months[i].discovered++; });
+    v.activities.forEach(a => { if (a.type === '채용연계') { const i = idx[a.date.slice(0, 7)]; if (i != null) months[i].placed++; } });
     return months;
   }
 
   /** 오늘 확인할 일: 지난 미완료 일정, 7일 내 일정, 연락 공백이 긴 진행 중 사업체 */
-  function priorities() {
+  function priorities(v = view()) {
     const T = U.today();
     const out = [];
-    state.events.filter(e => !e.done && U.diffDays(T, e.date) <= 7).forEach(e => {
+    v.events.filter(e => !e.done && U.diffDays(T, e.date) <= 7).forEach(e => {
       const t = targetOf(e);
-      out.push({ kind: 'ev', id: e.id, date: e.date, name: t ? t.name : e.title, why: t ? `${e.type}${e.time ? ' · ' + e.time : ''}` : e.type, target: t ? { kind: e.targetType, id: t.id } : null, sort: U.diffDays(T, e.date) });
+      out.push({ kind: 'ev', id: e.id, date: e.date, name: t ? t.name : e.title, why: t ? `${e.type}${e.time ? ' · ' + e.time : ''}` : e.type, staff: t?.staff || '', target: t ? { kind: e.targetType, id: t.id } : null, sort: U.diffDays(T, e.date) });
     });
-    state.businesses.filter(b => D.ACTIVE_STAGES.includes(b.stage) && !nextEvent('biz', b.id)).forEach(b => {
+    v.businesses.filter(b => D.ACTIVE_STAGES.includes(b.stage) && !nextEvent('biz', b.id)).forEach(b => {
       const la = lastAct('biz', b.id);
       const gap = la ? U.diffDays(la.date, T) : 999;
-      if (gap >= 21) out.push({ kind: 'gap', id: b.id, date: la?.date, name: b.name, why: `${b.stage} 단계 · 마지막 연락 ${gap}일 전`, gap, target: { kind: 'biz', id: b.id }, sort: 8 + (60 - Math.min(gap, 60)) / 100 });
+      if (gap >= 21) out.push({ kind: 'gap', id: b.id, date: la?.date, name: b.name, why: `${b.stage} 단계 · 마지막 연락 ${gap}일 전`, staff: b.staff, gap, target: { kind: 'biz', id: b.id }, sort: 8 + (60 - Math.min(gap, 60)) / 100 });
     });
     return out.sort((a, b) => a.sort - b.sort);
   }
 
-  function recentActs(n = 8) {
-    return [...state.activities].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, n);
+  function recentActs(n = 8, v = view()) {
+    return [...v.activities].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).slice(0, n);
   }
 
-  /* ---------- 검색 ---------- */
+  /* ---------- 검색 (보기 범위와 관계없이 팀 전체) ---------- */
   function search(q) {
     const nq = U.norm(q);
     if (!nq) return { biz: [], net: [], card: [] };
     const hit = (...vals) => vals.some(v => U.norm(v).includes(nq));
-    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
-    const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
     const card = state.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
     return { biz: biz.slice(0, 8), net: net.slice(0, 6), card: card.slice(0, 8) };
   }
 
   /* ---------- 엑셀 ---------- */
-  const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모']]],
-    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모']]],
-    cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원']]],
-    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
-  };
-  const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date']);
-  const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng']);
-
   function exportXlsx() {
     const wb = XLSX.utils.book_new();
-    for (const [col, [sheet, cols]] of Object.entries(SHEETS)) {
-      const rows = state[col].map(x => Object.fromEntries(cols.map(([k, h]) => {
-        let v = x[k];
-        if (k === 'tags') v = (v || []).join(', ');
-        if (k === 'done') v = v ? 'Y' : 'N';
-        return [h, v ?? ''];
-      })));
-      const ws = XLSX.utils.json_to_sheet(rows, { header: cols.map(c => c[1]) });
+    for (const col of COLS) {
+      const [sheet, cols] = SHEETS[col];
+      const ws = XLSX.utils.json_to_sheet(state[col].map(x => toRow(col, x)), { header: cols.map(c => c[1]) });
       ws['!cols'] = cols.map(([k]) => ({ wch: ['name', 'address', 'memo', 'content', 'relation', 'jobs', 'accessibility', 'title', 'org'].includes(k) ? 28 : 13 }));
       XLSX.utils.book_append_sheet(wb, ws, sheet);
     }
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(state.settings.staff.map(s => ({ '이름': s.name, '소속 사업': s.program })), { header: ['이름', '소속 사업'] }), STAFF_SHEET[0]);
     XLSX.writeFile(wb, `아르딤_취업지원_${U.today()}.xlsx`);
   }
 
@@ -1791,55 +2051,48 @@ window.S = (() => {
     const next = D.empty();
     next.settings = { ...state.settings };
     const found = [];
-    for (const [col, [sheet, cols]] of Object.entries(SHEETS)) {
-      const ws = wb.Sheets[sheet];
+    for (const col of COLS) {
+      const ws = wb.Sheets[SHEETS[col][0]];
       if (!ws) continue;
-      found.push(sheet);
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      next[col] = rows.map(r => {
-        const o = {};
-        for (const [k, h] of cols) {
-          let v = r[h];
-          if (DATE_KEYS.has(k)) v = U.toDateStr(v);
-          else if (NUM_KEYS.has(k)) v = v === '' ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
-          else if (k === 'tags') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
-          else if (k === 'done') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
-          else v = v == null ? '' : String(v).trim();
-          o[k] = v;
-        }
-        if (!o.id) o.id = U.uid(col[0].toUpperCase());
-        return o;
-      }).filter(o => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : o.name));
+      found.push(SHEETS[col][0]);
+      next[col] = XLSX.utils.sheet_to_json(ws, { defval: '' }).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     }
-    next.businesses.forEach(b => {
-      if (!D.STAGE[b.stage]) b.stage = '발굴';
-      if ((b.lat == null || isNaN(b.lat)) && D.AREA_BY_NAME[b.area]) { b.lat = D.AREA_BY_NAME[b.area].lat; b.lng = D.AREA_BY_NAME[b.area].lng; b.approx = true; }
-    });
-    next.networks.forEach(n => {
-      if (!D.NET_STATUS.includes(n.status)) n.status = '보통';
-      if ((n.lat == null || isNaN(n.lat)) && D.AREA_BY_NAME[n.area]) { n.lat = D.AREA_BY_NAME[n.area].lat; n.lng = D.AREA_BY_NAME[n.area].lng; n.approx = true; }
-    });
-    return { next, found };
+    const sw = wb.Sheets[STAFF_SHEET[0]];
+    if (sw) {
+      const list = XLSX.utils.sheet_to_json(sw, { defval: '' }).map(r => ({ name: String(r['이름'] || '').trim(), program: String(r['소속 사업'] || '').trim() })).filter(s => s.name);
+      if (list.length) { next.settings.staff = list; found.push(STAFF_SHEET[0]); }
+    }
+    // 사진은 엑셀에 없으므로 같은 ID의 기존 사진을 유지
+    const old = Object.fromEntries(state.cards.filter(c => c.photo).map(c => [c.id, c.photo]));
+    next.cards.forEach(c => { c.photo = old[c.id] || null; });
+    return { next: normalize(next), found };
   }
 
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+  function download(name, blob) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `아르딤_취업지원_백업_${U.today()}.json`;
+    a.download = name;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
-
+  function exportJson() {
+    const copy = { ...state, cards: state.cards.map(c => ({ ...c, photo: photo(c) || (REMOTE ? null : c.photo) })) };
+    download(`아르딤_취업지원_백업_${U.today()}.json`, new Blob([JSON.stringify(copy)], { type: 'application/json' }));
+  }
   function templateXlsx() {
     const wb = XLSX.utils.book_new();
-    for (const [, [sheet, cols]] of Object.entries(SHEETS)) {
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([cols.map(c => c[1])]), sheet);
-    }
+    for (const col of COLS) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([SHEETS[col][1].map(c => c[1])]), SHEETS[col][0]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['이름', '소속 사업']]), STAFF_SHEET[0]);
     XLSX.writeFile(wb, '아르딤_취업지원_엑셀양식.xlsx');
   }
 
-  return { init, get, commit, subscribe, replace, find, upsert, remove, actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, monthly, priorities, recentActs, search, exportXlsx, parseXlsx, exportJson, templateXlsx, SHEETS, get saveError() { return saveError; } };
+  return {
+    REMOTE, init, get, commit, subscribe, replace, saveSettings, find, upsert, remove, photo,
+    staff, programOf, getScope, setScope, scopeLabel, me, setMe, view,
+    actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
+    exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
+    sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
+  };
 })();
 
 </script>
@@ -1954,6 +2207,9 @@ window.V = (() => {
 
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
+  const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(p.key)}">${e(p.short)}</span>` : ''; };
+  const staffTag = name => name ? `<span class="staff-tag">${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
+  const scopeNote = () => S.getScope() === 'all' ? '' : ` · <b>${e(S.scopeLabel())}</b> 기준`;
   const ddayBadge = date => { const d = U.dday(date); return `<span class="badge ${d.tone} num">${d.label}</span>`; };
   const primaryContact = (kind, id) => S.cardsOf(kind, id)[0] || null;
   const tel = c => c ? (c.mobile || c.phone || '') : '';
@@ -1968,7 +2224,7 @@ window.V = (() => {
     const org = S.get().settings.orgName;
     const kpi = (label, value, unit, foot, href) => `<a class="kpi" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
-      <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
       <section class="panel kpis" aria-label="주요 현황">
         ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz')}
         ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz')}
@@ -1983,10 +2239,11 @@ window.V = (() => {
             ${pr.length ? `<ul class="prio">${pr.map(p => `
               <li data-act="${p.target ? 'open' : 'go'}" data-kind="${p.target?.kind || ''}" data-id="${p.target?.id || ''}" data-href="#/schedule">
                 <span class="dday">${p.kind === 'gap' ? '<span class="badge warn">연락 필요</span>' : ddayBadge(p.date)}</span>
-                <span style="min-width:0"><span class="who">${e(p.name)}</span> <span class="why">· ${e(p.why)}</span></span>
+                <span style="min-width:0"><span class="who">${e(p.name)}</span> <span class="why">· ${e(p.why)}</span>${p.staff && S.getScope() === 'all' ? ` <span class="why">· ${e(p.staff)}</span>` : ''}</span>
                 <span class="when">${p.kind === 'gap' ? '' : e(U.dateKo(p.date))}</span>
               </li>`).join('')}</ul>` : emptyState('오늘 확인할 일이 없습니다', '다가오는 일정이나 연락이 필요한 사업체가 생기면 여기에 표시됩니다.')}
           </section>
+          ${staffPanel()}
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">월별 발굴 · 채용연계</h2>
               <div class="legend"><span><i style="--c:var(--accent)"></i>신규 발굴 사업체</span><span><i style="--c:var(--success)"></i>채용연계 건수</span></div></div>
@@ -2014,6 +2271,22 @@ window.V = (() => {
       </div>`;
   }
 
+  function staffPanel() {
+    const ss = S.staffStats();
+    const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
+    return `<section class="panel panel-pad">
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">팀 전체 · 행을 누르면 그 범위로 봅니다</span></div>
+      <div class="table-wrap"><table class="tbl staff-tbl">
+        <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
+        <tbody>${ss.groups.map(g => `
+          ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
+          ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
+          ${row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
+        </tbody></table></div>
+      ${ss.orphan ? `<p class="sub" style="margin:10px 0 0">담당 직원이 직원 목록에 없는 사업체 ${ss.orphan}곳은 위 표에 들어가지 않습니다. 데이터 관리에서 직원 목록을 확인하세요.</p>` : ''}
+    </section>`;
+  }
+
   function chart(months) {
     const W = 640, H = 210, L = 30, R = 8, T = 16, B = 26;
     const max = Math.max(1, ...months.map(m => Math.max(m.discovered, m.placed)));
@@ -2036,12 +2309,12 @@ window.V = (() => {
   /* ================= 사업체 개발 ================= */
   function bizPage() {
     const f = ui.biz;
-    const all = S.get().businesses;
+    const all = S.view().businesses;
     const count = k => k === '전체' ? all.length : all.filter(b => b.stage === k).length;
     const areas = [...new Set(all.map(b => b.area).filter(Boolean))].sort();
     return `
       <div class="page-head">
-        <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.</div></div>
+        <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.${scopeNote()}</div></div>
         <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
@@ -2064,13 +2337,13 @@ window.V = (() => {
   function bizFiltered() {
     const f = ui.biz;
     const nq = U.norm(f.q);
-    let list = S.get().businesses.filter(b => {
+    let list = S.view().businesses.filter(b => {
       if (f.stage !== '전체' && b.stage !== f.stage) return false;
       if (f.area && b.area !== f.area) return false;
       if (f.industry && b.industry !== f.industry) return false;
       if (f.mandatory && !D.mandatoryCount(b.employees)) return false;
       if (nq) {
-        const hay = [b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|');
+        const hay = [b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|');
         if (!hay.includes(nq)) return false;
       }
       return true;
@@ -2094,17 +2367,18 @@ window.V = (() => {
     if (f.mandatory) applied.push(['mandatory', '의무고용 대상']);
     if (f.stage !== '전체') applied.push(['stage', f.stage]);
     const chipsHtml = applied.length ? `<div class="chips" style="margin-bottom:10px">${applied.map(([k, l]) => `<button type="button" class="chip chip-applied" data-act="biz-unfilter" data-k="${k}">${e(l)} ✕</button>`).join('')}<button type="button" class="btn btn-ghost btn-sm" data-act="biz-reset">전체 초기화</button></div>` : '';
-    if (!S.get().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
+    if (!S.view().businesses.length) return `<div class="panel">${emptyState('등록된 사업체가 없습니다', '발굴한 사업체를 등록하면 지도와 대시보드에 함께 표시됩니다.', 'new-biz', '+ 사업체 발굴 등록')}</div>`;
     if (!rows.length) return chipsHtml + `<div class="panel"><div class="empty"><strong>조건에 맞는 사업체가 없습니다</strong>검색어나 필터를 바꿔 보세요.<div><button class="btn" type="button" data-act="biz-reset">필터 초기화</button></div></div></div>`;
     return chipsHtml + `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
-        <thead><tr><th>사업체</th><th>단계</th><th>가능 직무</th><th>담당자</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
+        <thead><tr><th>사업체</th><th>단계</th><th>가능 직무</th><th>사업체 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th><th class="r">상시근로자</th><th class="r">채용</th></tr></thead>
         <tbody>${rows.map(({ b, la, ne, pc }) => `
           <tr data-act="open" data-kind="biz" data-id="${b.id}">
             <td><div class="name">${U.hl(b.name, f.q)}</div><div class="meta">${e(b.industry)} · ${e(b.area || '지역 미지정')}</div></td>
             <td>${stageBadge(b.stage)}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td class="nowrap">${staffTag(b.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '<span class="meta">-</span>'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
             <td class="r">${b.employees ? U.num(b.employees) + '명' : '-'}${D.mandatoryCount(b.employees) ? `<div class="meta">의무 ${D.mandatoryCount(b.employees)}명</div>` : ''}</td>
@@ -2115,20 +2389,21 @@ window.V = (() => {
         <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
           <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
           <div class="meta">${e(b.industry)} · ${e(b.area || '')}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
+          <div class="meta">${staffTag(b.staff)}</div>
           <div class="meta">${la ? `최근 ${e(la.type)} ${U.ago(la.date)}` : ''}${ne ? ` · 다음 ${e(ne.type)} ${U.dday(ne.date).label}` : ''}</div>
         </div>`).join('')}</div>
-      <div class="list-count num">${rows.length}곳 표시 · 전체 ${S.get().businesses.length}곳</div>
+      <div class="list-count num">${rows.length}곳 표시 · ${e(S.scopeLabel())} ${S.view().businesses.length}곳</div>
     </div>`;
   }
 
   /* ================= 네트워크 ================= */
   function netPage() {
     const f = ui.net;
-    const all = S.get().networks;
+    const all = S.view().networks;
     const count = k => k === '전체' ? all.length : all.filter(n => n.category === k).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">네트워크</h1><div class="page-desc">복지관 홍보와 협력을 위한 지역 기관을 관리합니다.</div></div>
+        <div><h1 class="page-title">네트워크</h1><div class="page-desc">복지관 홍보와 협력을 위한 지역 기관을 관리합니다.${scopeNote()}</div></div>
         <div class="inline"><a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px">${['전체', ...D.NET_CATEGORIES].map(k => `<button type="button" class="chip ${f.cat === k ? 'on' : ''}" data-act="net-cat" data-cat="${k}">${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
@@ -2141,7 +2416,7 @@ window.V = (() => {
   function netResults() {
     const f = ui.net;
     const nq = U.norm(f.q);
-    const all = S.get().networks;
+    const all = S.view().networks;
     if (!all.length) return `<div class="panel">${emptyState('등록된 기관이 없습니다', '협력·홍보 기관을 등록하면 지도에 함께 표시됩니다.', 'new-net', '+ 기관 등록')}</div>`;
     const rows = all.filter(n => (f.cat === '전체' || n.category === f.cat) && (!f.status || n.status === f.status) &&
       (!nq || [n.name, n.relation, n.promo, n.memo, n.address, ...S.cardsOf('net', n.id).flatMap(c => [c.name, c.mobile, c.phone])].map(U.norm).join('|').includes(nq)))
@@ -2150,13 +2425,14 @@ window.V = (() => {
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>조건에 맞는 기관이 없습니다</strong>검색어나 분류를 바꿔 보세요.</div></div>`;
     return `<div class="panel">
       <div class="table-wrap has-mobile"><table class="tbl">
-        <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>담당자</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
+        <thead><tr><th>기관</th><th>관계</th><th>협력 내용</th><th>기관 담당자</th><th>우리 담당</th><th>최근 활동</th><th>다음 일정</th></tr></thead>
         <tbody>${rows.map(({ n, la, ne, pc }) => `
           <tr data-act="open" data-kind="net" data-id="${n.id}">
             <td><div class="name">${U.hl(n.name, f.q)}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
             <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td class="nowrap">${staffTag(n.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '-'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
           </tr>`).join('')}</tbody></table></div>
@@ -2166,14 +2442,14 @@ window.V = (() => {
           <div class="meta">${e(n.category)} · ${e(n.relation || '')}</div>
           <div class="meta">${pc ? `${e(pc.name)} ${e(tel(pc))}` : ''}${la ? ` · 최근 ${U.ago(la.date)}` : ''}</div>
         </div>`).join('')}</div>
-      <div class="list-count num">${rows.length}곳 표시 · 전체 ${all.length}곳</div>
+      <div class="list-count num">${rows.length}곳 표시 · ${e(S.scopeLabel())} ${all.length}곳</div>
     </div>`;
   }
 
   /* ================= 명함 ================= */
   function cardsPage() {
     const f = ui.cards;
-    const all = S.get().cards;
+    const all = S.view().cards;
     const cnt = k => all.filter(c => k === 'all' ? true : k === 'none' ? !c.linkType : c.linkType === k).length;
     return `
       <div class="page-head">
@@ -2195,7 +2471,7 @@ window.V = (() => {
   function cardResults() {
     const f = ui.cards;
     const nq = U.norm(f.q);
-    const all = S.get().cards;
+    const all = S.view().cards;
     if (!all.length) return `<div class="panel">${emptyState('등록된 명함이 없습니다', '명함 사진과 연락처를 등록해 보세요.', 'new-card', '+ 명함 등록')}</div>`;
     const rows = all.filter(c => (f.link === 'all' || (f.link === 'none' ? !c.linkType : c.linkType === f.link)) &&
       (!nq || [c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo].map(U.norm).join('|').includes(nq)))
@@ -2215,19 +2491,19 @@ window.V = (() => {
           ${c.phone ? `<div>T ${U.hl(c.phone, f.q)}</div>` : ''}
           ${c.email ? `<div>${e(c.email)}</div>` : ''}
         </div>
-        ${c.photo ? '<span class="tagline photo-flag">사진 있음</span>' : ''}
+        ${c.photo ? '<span class="tagline photo-flag">사진 있음</span>' : ''}${link && link.staff ? `<span class="card-staff">우리 담당 ${e(link.staff)}</span>` : ''}
       </article>`;
-    }).join('')}</div><p class="sub num" style="margin-top:12px">${rows.length}장 표시 · 전체 ${all.length}장</p>`;
+    }).join('')}</div><p class="sub num" style="margin-top:12px">${rows.length}장 표시 · ${e(S.scopeLabel())} ${all.length}장</p>`;
   }
 
   /* ================= 지도 ================= */
   function mapPage() {
     const f = ui.map;
-    const st = S.get();
+    const st = S.view();
     const noPos = st.businesses.filter(b => !M.hasPos(b)).length + st.networks.filter(n => !M.hasPos(n)).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">발굴 사업체는 진행 단계별 색상 원, 네트워크 기관은 남색 마름모로 표시합니다.</div></div>
+        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">발굴 사업체는 진행 단계별 색상 원, 네트워크 기관은 남색 마름모로 표시합니다.${scopeNote()}</div></div>
         <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
       <div class="chips" style="margin-bottom:12px" role="tablist">
@@ -2265,7 +2541,7 @@ window.V = (() => {
   function mapItems() {
     const f = ui.map;
     const nq = U.norm(f.q);
-    const st = S.get();
+    const st = S.view();
     const items = [];
     if (f.biz) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     if (f.net) st.networks.forEach(n => items.push({ kind: 'net', x: n }));
@@ -2306,7 +2582,7 @@ window.V = (() => {
   function evList() {
     const f = ui.sched;
     const T = U.today();
-    let evs = [...S.get().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    let evs = [...S.view().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     if (f.sel) evs = evs.filter(x => x.date === f.sel);
     const groups = f.sel ? [[U.dateKo(f.sel), evs.filter(x => f.showDone || !x.done)]] : [
       ['지난 일정 (완료 안 됨)', evs.filter(x => !x.done && x.date < T)],
@@ -2328,7 +2604,7 @@ window.V = (() => {
     const start = new Date(y, m - 1, 1 - first.getDay());
     const T = U.today();
     const byDate = {};
-    S.get().events.forEach(x => { (byDate[x.date] ||= []).push(x); });
+    S.view().events.forEach(x => { (byDate[x.date] ||= []).push(x); });
     let cells = '';
     for (let i = 0; i < 42; i++) {
       const d = new Date(start); d.setDate(start.getDate() + i);
@@ -2345,7 +2621,7 @@ window.V = (() => {
   function dataPage() {
     const st = S.get();
     return `
-      <div class="page-head"><div><h1 class="page-title">데이터 관리</h1><div class="page-desc">데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">데이터 관리</h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
       <div class="data-grid">
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
@@ -2369,10 +2645,16 @@ window.V = (() => {
           <input type="file" id="jsonFile" accept=".json,application/json" hidden>
           <div class="inline"><button class="btn" type="button" data-act="json-export">백업 파일 받기</button><button class="btn" type="button" data-act="json-import">백업에서 복원</button></div>
         </section>
+        <section class="panel panel-pad staff-editor">
+          <h2 class="section-title">담당 직원과 소속 사업</h2>
+          <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
+          <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
+          <div class="inline"><button class="btn btn-sm" type="button" data-act="staff-add">+ 직원 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-staff">저장</button></div>
+        </section>
         <section class="panel panel-pad">
-          <h2 class="section-title">담당 직원</h2>
-          <p>활동 기록과 사업체 담당자 선택에 쓰는 직원 이름입니다. 쉼표로 구분하세요.</p>
-          <div class="inline" style="width:100%"><input class="input" id="staffInput" value="${e(st.settings.staff.join(', '))}"><button class="btn" type="button" data-act="save-staff">저장</button></div>
+          <h2 class="section-title">이 PC를 쓰는 사람</h2>
+          <p>활동 기록을 남길 때 기록한 사람으로 저장됩니다. PC마다 따로 기억합니다.</p>
+          <div class="inline" style="width:100%"><select class="select" id="meSel" data-act-change="me-set">${st.settings.staff.map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
         </section>
         <section class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
@@ -2386,6 +2668,8 @@ window.V = (() => {
         </section>
       </div>`;
   }
+
+  const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option ${p.key === s.program ? 'selected' : ''}>${e(p.key)}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
 
   /* ================= 상세 Drawer ================= */
   function drHead(title, badges, actions, canBack) {
@@ -2415,16 +2699,15 @@ window.V = (() => {
   };
   const actsSec = (kind, id) => {
     const acts = S.actsOf(kind, id);
-    const staff = S.get().settings.staff;
     return `<section class="dr-sec"><h3>활동 기록</h3>
       <form class="quick-log" data-form="quick-log" data-kind="${kind}" data-id="${id}">
         <input class="input" type="date" name="date" value="${U.today()}" aria-label="날짜" required>
         <select class="select" name="type" aria-label="유형">${opts(D.ACT_TYPES.filter(t => t !== '발굴'), '전화')}</select>
         <input class="input grow" name="content" id="quickLogContent" placeholder="예: 인사팀장 통화, 다음 주 방문 약속" aria-label="내용" required>
         <button class="btn btn-primary" type="submit">기록</button>
-        <input type="hidden" name="staff" value="${e(staff[0] || '')}">
+        <input type="hidden" name="staff" value="${e(S.me())}">
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>` : ''}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
@@ -2439,7 +2722,7 @@ window.V = (() => {
     const steps = D.STAGES.filter(s => s.key !== '보류');
     return {
       html: drHead(e(b.name),
-        `${stageBadge(b.stage)}<span class="badge outline">${e(b.industry || '업종 미입력')}</span><span class="badge outline">${e(b.area || '지역 미지정')}</span>${mand ? '<span class="badge navy">의무고용 대상</span>' : ''}`,
+        `${stageBadge(b.stage)}<span class="badge outline">${e(b.industry || '업종 미입력')}</span><span class="badge outline">${e(b.area || '지역 미지정')}</span>${mand ? '<span class="badge navy">의무고용 대상</span>' : ''}${b.staff ? `<span class="badge outline">담당 ${e(b.staff)}</span>${progBadge(S.programOf(b.staff))}` : ''}`,
         `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="biz:${b.id}">일정 추가</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="biz" data-id="${b.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           <section class="dr-sec"><h3>진행 단계 <button class="btn btn-ghost btn-sm" type="button" data-act="stage-set" data-id="${b.id}" data-stage="${b.stage === '보류' ? '접촉' : '보류'}">${b.stage === '보류' ? '보류 해제' : '보류로 변경'}</button></h3>
@@ -2458,7 +2741,7 @@ window.V = (() => {
           ${actsSec('biz', b.id)}
           <section class="dr-sec"><h3>채용 정보</h3>${kv([['가능 직무', e(b.jobs)], ['근무 조건', e(b.workConditions)], ['편의시설·고려사항', e(b.accessibility)]])}</section>
           ${locSec(b)}
-          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', e(b.staff)]])}</section>
+          <section class="dr-sec"><h3>기본 정보</h3>${kv([['사업자등록번호', e(b.bizNo)], ['대표자', e(b.ceo)], ['주소', e(b.address)], ['발굴 경로', e(b.source)], ['발굴일', U.dateDot(b.discoveredAt)], ['담당 직원', staffTag(b.staff)]])}</section>
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="biz" data-id="${b.id}" style="color:var(--danger)">이 사업체 삭제</button></div>
         </div>`,
       after: () => miniMap(b, 'biz'),
@@ -2469,7 +2752,7 @@ window.V = (() => {
     const la = S.lastAct('net', n.id);
     const pc = primaryContact('net', n.id);
     return {
-      html: drHead(e(n.name), `<span class="badge navy">${e(n.category)}</span>${statusBadge(n.status)}<span class="badge outline">${e(n.area || '지역 미지정')}</span>`,
+      html: drHead(e(n.name), `<span class="badge navy">${e(n.category)}</span>${statusBadge(n.status)}<span class="badge outline">${e(n.area || '지역 미지정')}</span>${n.staff ? `<span class="badge outline">담당 ${e(n.staff)}</span>${progBadge(S.programOf(n.staff))}` : ''}`,
         `${callBtn(pc)}<button class="btn btn-sm" type="button" data-act="focus-log">활동 기록</button><button class="btn btn-sm" type="button" data-act="new-event" data-target="net:${n.id}">일정 추가</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="net" data-id="${n.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
           <div class="summary">
@@ -2479,7 +2762,7 @@ window.V = (() => {
             <div><div class="l">담당자 명함</div><div class="v">${S.cardsOf('net', n.id).length}<small>장</small></div></div>
           </div>
           ${n.memo ? `<div class="memo-box">${e(n.memo)}</div>` : ''}
-          <section class="dr-sec"><h3>협력 · 홍보</h3>${kv([['협력 내용', e(n.relation)], ['홍보 방식', e(n.promo)], ['관계 상태', e(n.status)], ['담당 직원', e(n.staff)]])}</section>
+          <section class="dr-sec"><h3>협력 · 홍보</h3>${kv([['협력 내용', e(n.relation)], ['홍보 방식', e(n.promo)], ['관계 상태', e(n.status)], ['담당 직원', staffTag(n.staff)]])}</section>
           ${people('net', n.id)}
           ${eventsSec('net', n.id)}
           ${actsSec('net', n.id)}
@@ -2498,7 +2781,7 @@ window.V = (() => {
         `${c.linkType === 'biz' && link ? stageBadge(link.stage) : ''}${c.linkType === 'net' ? '<span class="badge navy">네트워크 기관</span>' : ''}${(c.tags || []).map(t => `<span class="badge outline">${e(t)}</span>`).join('')}`,
         `${tel(c) ? `<a class="btn btn-sm btn-primary" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}">${I.phone}전화</a>` : ''}${c.mobile ? `<a class="btn btn-sm" href="sms:${e(c.mobile.replace(/[^0-9+]/g, ''))}">문자</a>` : ''}${c.email ? `<a class="btn btn-sm" href="mailto:${e(c.email)}">${I.mail}이메일</a>` : ''}<button class="btn btn-sm" type="button" data-act="vcard" data-id="${c.id}">연락처 파일(vcf)</button><button class="btn btn-sm" type="button" data-act="edit" data-kind="card" data-id="${c.id}">${I.edit}수정</button>`, canBack) +
         `<div class="dr-body">
-          ${c.photo ? `<img class="card-photo" src="${c.photo}" alt="${e(c.name)} 명함 사진">` : ''}
+          ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
           <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : '<p class="sub" style="margin:0">연결된 사업체나 기관이 없습니다. 수정에서 연결할 수 있어요.</p>'}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>
@@ -2526,7 +2809,7 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
 
 </script>
@@ -2537,6 +2820,7 @@ window.F = (() => {
   const field = (label, input, opt = {}) => `<div class="field ${opt.full ? 'full' : ''}" data-f="${opt.name || ''}"><label ${opt.for ? `for="${opt.for}"` : ''}>${label}${opt.req ? ' <span class="req">*</span>' : ''}</label>${input}${opt.hint ? `<span class="hint">${opt.hint}</span>` : ''}</div>`;
   const inp = (name, v, attrs = '') => `<input class="input" id="f_${name}" name="${name}" value="${e(v ?? '')}" ${attrs}>`;
   const ta = (name, v, attrs = '') => `<textarea class="textarea" id="f_${name}" name="${name}" ${attrs}>${e(v ?? '')}</textarea>`;
+  const staffSel = v => `<select class="select" id="f_staff" name="staff"><option value="">선택</option>${S.staff().map(st => `<option value="${e(st.name)}" ${st.name === v ? 'selected' : ''}>${e(st.name)}${st.program ? ' · ' + e(st.program) : ''}</option>`).join('')}${v && !S.staff().some(st => st.name === v) ? `<option selected>${e(v)}</option>` : ''}</select>`;
   const sel = (name, list, v, blank) => `<select class="select" id="f_${name}" name="${name}">${V.opts(list, v, blank)}</select>`;
   const foot = (label) => `<div class="dr-foot"><button class="btn" type="button" data-act="dr-cancel">취소</button><button class="btn btn-primary" type="submit" form="entityForm">${label}</button></div>`;
   const head = (title) => `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${title}</h2><button class="icon-btn" type="button" data-act="dr-cancel" aria-label="닫기">${V.I.close}</button></div></div>`;
@@ -2587,7 +2871,7 @@ window.F = (() => {
 
   /* ---------- 사업체 ---------- */
   function biz(b) {
-    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.get().settings.staff[0] || '', source: '현장 발굴', placements: 0 };
+    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0 };
     return {
       html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" novalidate>
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
@@ -2608,7 +2892,7 @@ window.F = (() => {
         <div class="fsec"><h3>운영 정보</h3><div class="frow">
           ${field('발굴 경로', sel('source', D.SOURCES, x.source, '선택'), { for: 'f_source' })}
           ${field('발굴일', inp('discoveredAt', x.discoveredAt, 'type="date"'), { for: 'f_discoveredAt' })}
-          ${field('담당 직원', sel('staff', S.get().settings.staff, x.staff, '선택'), { for: 'f_staff' })}
+          ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 인사팀장 통화는 오후 2시 이후"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(b ? '저장' : '등록'),
@@ -2618,7 +2902,7 @@ window.F = (() => {
 
   /* ---------- 네트워크 ---------- */
   function net(n) {
-    const x = n || { category: '복지기관', status: '활발', since: U.today(), staff: S.get().settings.staff[0] || '' };
+    const x = n || { category: '복지기관', status: '활발', since: U.today(), staff: S.me() };
     return {
       html: head(n ? '기관 정보 수정' : '네트워크 기관 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="net" data-id="${n ? n.id : ''}" novalidate>
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
@@ -2631,7 +2915,7 @@ window.F = (() => {
           ${field('협력 내용', ta('relation', x.relation, 'rows="2" placeholder="예: 구직 장애인 의뢰, 채용박람회 공동 개최"'), { full: true, for: 'f_relation' })}
           ${field('홍보 방식', inp('promo', x.promo, 'placeholder="예: 리플릿 비치, 소식지 게재, SNS 공동 홍보"'), { full: true, for: 'f_promo' })}
           ${field('협력 시작일', inp('since', x.since, 'type="date"'), { for: 'f_since' })}
-          ${field('담당 직원', sel('staff', S.get().settings.staff, x.staff, '선택'), { for: 'f_staff' })}
+          ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
           ${field('메모', ta('memo', x.memo, 'rows="3"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(n ? '저장' : '등록'),
@@ -2647,7 +2931,7 @@ window.F = (() => {
       html: head(c ? '명함 수정' : '명함 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="card" data-id="${c ? c.id : ''}" novalidate>
         <div class="fsec"><h3>명함 사진</h3>
           <div class="photo-drop" id="photoDrop">
-            <img id="photoPreview" ${x.photo ? `src="${x.photo}"` : 'hidden'} alt="명함 사진 미리보기">
+            <img id="photoPreview" ${S.photo(x) ? `src="${S.photo(x)}"` : 'hidden'} alt="명함 사진 미리보기">
             <span id="photoHint">${x.photo ? '' : '명함을 찍은 사진을 올려 두면 원본을 다시 확인할 수 있어요.'}</span>
             <div class="inline"><label class="btn btn-sm" for="f_photoFile">사진 선택</label>${x.photo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="photo-clear">사진 삭제</button>' : ''}</div>
             <input type="file" id="f_photoFile" accept="image/*" capture="environment" hidden>
@@ -2675,7 +2959,7 @@ window.F = (() => {
         </div></div>
       </form></div>` + foot(c ? '저장' : '등록'),
       after: form => {
-        form.elements.photo.value = x.photo || '';
+        form.elements.photo.value = 'keep';
         const file = form.querySelector('#f_photoFile');
         const prev = form.querySelector('#photoPreview');
         file.addEventListener('change', async () => {
@@ -2754,7 +3038,7 @@ window.F = (() => {
     } else if (kind === 'card') {
       need('name', '이름을 입력하세요.');
       const [lt, li] = (fd.link || '').split(':');
-      obj = { name: fd.name.trim(), title: fd.title.trim(), org: fd.org.trim(), dept: fd.dept.trim(), mobile: fd.mobile.trim(), phone: fd.phone.trim(), email: fd.email.trim(), address: fd.address.trim(), linkType: lt || '', linkId: li || '', metAt: fd.metAt, metWhere: fd.metWhere.trim(), tags: fd.tags.split(',').map(t => t.trim()).filter(Boolean), memo: fd.memo.trim(), photo: fd.photo || null };
+      obj = { name: fd.name.trim(), title: fd.title.trim(), org: fd.org.trim(), dept: fd.dept.trim(), mobile: fd.mobile.trim(), phone: fd.phone.trim(), email: fd.email.trim(), address: fd.address.trim(), linkType: lt || '', linkId: li || '', metAt: fd.metAt, metWhere: fd.metWhere.trim(), tags: fd.tags.split(',').map(t => t.trim()).filter(Boolean), memo: fd.memo.trim(), photo: fd.photo === 'keep' ? undefined : (fd.photo || null) };
     } else if (kind === 'ev') {
       need('date', '날짜를 입력하세요.');
       const [lt, li] = (fd.link || '').split(':');
@@ -2825,8 +3109,34 @@ window.App = (() => {
     const moreActive = ['network', 'schedule', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
-    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>데이터는 이 브라우저에 저장됩니다.`;
+    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br>사용자: <b>${U.esc(S.me())}</b>`;
     $('#demoBanner').hidden = !S.get().isDemo;
+    renderScope();
+  }
+
+  /* ---------- 보기 범위 · 동기화 상태 ---------- */
+  function renderScope() {
+    const sel = $('#scopeSel');
+    const staff = S.staff();
+    const cur = S.getScope();
+    const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key));
+    sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
+      progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
+      `<optgroup label="직원별">${staff.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>`;
+    sel.value = cur;
+    if (sel.value !== cur) { sel.value = 'all'; }
+    sel.classList.toggle('scoped', cur !== 'all');
+  }
+  function renderSync(sync) {
+    const el = $('#syncState');
+    if (!S.REMOTE) { el.hidden = true; return; }
+    el.hidden = false;
+    const t = sync.at ? `${U.pad(sync.at.getHours())}:${U.pad(sync.at.getMinutes())}` : '';
+    const map = { loading: ['불러오는 중', ''], saving: ['저장 중…', 'busy'], saved: [`저장됨 ${t}`, 'ok'], error: ['저장 오류', 'err'] };
+    const [label, cls] = map[sync.status] || ['', ''];
+    el.className = 'sync ' + cls;
+    el.textContent = label;
+    el.title = sync.status === 'error' ? '구글 시트와 연결되지 않았습니다. 새로고침해 보세요.' : '팀원이 바꾼 내용은 1분마다, 또는 이 창으로 돌아올 때 반영됩니다.';
   }
 
   /* ---------- Pages ---------- */
@@ -2914,10 +3224,8 @@ window.App = (() => {
         if (!found.length) { toast('알맞은 시트를 찾지 못했습니다. 시트 이름이 사업체·네트워크·명함·활동기록·일정인지 확인하세요.', 'error'); return; }
         const ok = await confirmBox('엑셀 데이터로 교체할까요?', `${found.join(', ')} 시트에서 사업체 ${next.businesses.length}곳, 기관 ${next.networks.length}곳, 명함 ${next.cards.length}장, 활동 ${next.activities.length}건, 일정 ${next.events.length}건을 읽었습니다. 지금 데이터는 모두 교체됩니다.`, '교체');
         if (!ok) return;
-        // 사진은 엑셀에 없으므로 같은 ID의 기존 사진을 유지
-        const photos = Object.fromEntries(S.get().cards.filter(c => c.photo).map(c => [c.id, c.photo]));
-        next.cards.forEach(c => { c.photo = photos[c.id] || null; });
-        S.replace(next);
+        next.isDemo = false;
+        await S.replace(next);
         toast('엑셀 데이터를 불러왔습니다.');
       } catch (err) { console.error(err); toast('엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
     };
@@ -2929,10 +3237,12 @@ window.App = (() => {
         const next = JSON.parse(await file.text());
         if (!next.version || !Array.isArray(next.businesses)) throw new Error('형식 오류');
         if (!(await confirmBox('백업 파일로 복원할까요?', `사업체 ${next.businesses.length}곳, 명함 ${next.cards.length}장이 들어 있습니다. 지금 데이터는 모두 교체됩니다.`, '복원'))) return;
-        S.replace(next);
+        next.isDemo = false;
+        await S.replace(next);
         toast('백업에서 복원했습니다.');
       } catch { toast('백업 파일을 읽지 못했습니다. 이 프로그램에서 받은 JSON 파일인지 확인하세요.', 'error'); }
     };
+    $('#meSel').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다.`); };
   }
 
   /* ---------- Drawer ---------- */
@@ -2987,7 +3297,7 @@ window.App = (() => {
     const id = form.dataset.id;
     if (id) obj.id = id;
     const saved = S.upsert(kind, obj);
-    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff });
+    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
     toast(id ? '저장했습니다.' : '등록했습니다.');
     stack.pop();
     if (!id && kind !== 'ev' && !stack.length) stack.push({ type: 'detail', kind, id: saved.id });
@@ -3084,7 +3394,7 @@ window.App = (() => {
       const to = el.dataset.stage;
       if (!b || b.stage === to) return;
       const from = b.stage;
-      S.upsert('act', { targetType: 'biz', targetId: b.id, date: U.today(), type: '기타', content: `진행 단계 변경: ${from} → ${to}`, staff: S.get().settings.staff[0] || '' });
+      S.upsert('act', { targetType: 'biz', targetId: b.id, date: U.today(), type: '기타', content: `진행 단계 변경: ${from} → ${to}`, staff: S.me() });
       S.upsert('biz', { id: b.id, stage: to });
       toast(`${b.name}: ${to} 단계로 변경했습니다.${to === '채용연계' && !Number(b.placements) ? ' 채용 인원은 수정에서 입력하세요.' : ''}`);
     },
@@ -3140,26 +3450,31 @@ window.App = (() => {
     'xlsx-import': () => $('#xlsxFile').click(),
     'json-export': () => { S.exportJson(); toast('백업 파일을 내려받았습니다.'); },
     'json-import': () => $('#jsonFile').click(),
-    'save-staff': () => {
-      const list = $('#staffInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    'save-staff': async () => {
+      const list = [...document.querySelectorAll('#staffRows .staff-row')].map(r => ({ name: r.querySelector('[name=staffName]').value.trim(), program: r.querySelector('[name=staffProg]').value })).filter(s => s.name);
       if (!list.length) return toast('직원 이름을 한 명 이상 입력하세요.', 'error');
-      S.get().settings.staff = list; S.commit(); toast('담당 직원 목록을 저장했습니다.');
+      if (new Set(list.map(s => s.name)).size !== list.length) return toast('같은 이름이 두 번 있습니다. 동명이인은 "김정배A"처럼 구분해 주세요.', 'error');
+      await S.saveSettings({ staff: list });
+      toast('직원 목록을 저장했습니다.');
     },
+    'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
+    'staff-del': el => el.closest('.staff-row').remove(),
+    'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
     'save-citymap': () => {
       const v = $('#cityMapInput').value.trim();
       if (v && !/^https?:\/\//.test(v)) return toast('http:// 또는 https:// 로 시작하는 주소를 입력하세요.', 'error');
-      S.get().settings.cityMapUrl = v; S.commit(); toast('화성시 대시보드 주소를 저장했습니다.');
+      S.saveSettings({ cityMapUrl: v }); toast('화성시 대시보드 주소를 저장했습니다.');
     },
     'data-clear': async () => {
       if (!(await confirmBox('모든 데이터를 지울까요?', '사업체, 명함, 기관, 활동 기록, 일정이 모두 삭제됩니다. 되돌릴 수 없으니 먼저 엑셀이나 백업 파일로 저장해 두세요.', '모두 지우기'))) return;
       const next = D.empty();
-      next.settings = { ...S.get().settings, staff: S.get().settings.staff };
-      S.replace(next);
+      next.settings = { ...S.get().settings };
+      await S.replace(next);
       toast('모든 데이터를 지웠습니다. 새로 등록을 시작하세요.');
     },
     'data-demo': async () => {
       if (!(await confirmBox('예시 데이터를 불러올까요?', '지금 데이터가 예시 데이터로 교체됩니다.', '불러오기'))) return;
-      S.replace(D.demo());
+      await S.replace(D.demo());
       toast('예시 데이터를 불러왔습니다.');
     },
   };
@@ -3186,6 +3501,9 @@ window.App = (() => {
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
     });
     $('#searchTrigger').onclick = openSearch;
+    $('#scopeSel').onchange = ev => S.setScope(ev.target.value);
+    S.onSync(renderSync);
+    renderSync(S.sync);
     $('#searchLayer').addEventListener('click', ev => { if (ev.target.id === 'searchLayer') closeSearch(); });
     $('#searchInput').addEventListener('input', ev => { srIndex = 0; drawSearch(ev.target.value); });
     $('#searchInput').addEventListener('keydown', ev => {
@@ -3211,7 +3529,7 @@ window.App = (() => {
         toast('활동을 기록했습니다.');
       }
     });
-    window.addEventListener('hashchange', () => { render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
+    window.addEventListener('hashchange', () => { if (drawerOpen()) closeDrawer(); render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
     S.subscribe(() => {
       if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
