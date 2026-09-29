@@ -407,6 +407,28 @@ window.S = (() => {
     return keep.id;
   }
 
+  /** 명함 소속과 이름이 겹치는 사업체·기관 (예: '화성시정신건강복지센터 화성시자살예방센터' ↔ '화성시정신건강복지센터') */
+  function matchPlaces(c) {
+    const words = String(c.org || '').split(/[\s,/·]+/).map(orgKey).filter(w => w.length >= 2);
+    const whole = orgKey(c.org);
+    if (!whole) return [];
+    const hit = n => { const k = orgKey(n); return k.length >= 2 && (k === whole || whole.includes(k) || k.includes(whole) || words.includes(k)); };
+    const all = [...state.businesses.filter(b => hit(b.name)).map(x => ({ kind: 'biz', x })), ...state.networks.filter(n => hit(n.name)).map(x => ({ kind: 'net', x }))];
+    // 같은 종류·같은 이름이 중복 등록돼 있으면 하나(먼저 등록한 것)만 보여 준다. 나중에 합치면 명함 연결도 같이 옮겨진다
+    const seen = new Set();
+    return all.filter(m => { const k = m.kind + orgKey(m.x.name); if (seen.has(k)) return false; seen.add(k); return true; });
+  }
+  /** 명함을 사업체·기관에 연결. 그곳에 위치가 없고 명함에 있으면 명함 위치를 가져온다 */
+  function linkCard(cardId, kind, id) {
+    const c = find('card', cardId), x = find(kind, id);
+    if (!c || !x) return null;
+    upsert('card', { id: c.id, linkType: kind, linkId: x.id });
+    const hasP = o => o.lat != null && o.lng != null && o.lat !== '' && !isNaN(o.lat);
+    if (!hasP(x) && hasP(c)) upsert(kind, { id: x.id, lat: c.lat, lng: c.lng, approx: !!c.approx, area: x.area || c.area || '', address: x.address || c.address || '' });
+    else if (!x.address && c.address) upsert(kind, { id: x.id, address: c.address });
+    return x;
+  }
+
   /** 명함 사진: 로컬 모드는 data URL, 공유 모드는 필요할 때 시트에서 불러온다 */
   const photoLoading = new Set();
   function photo(c) {
@@ -666,7 +688,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

@@ -966,7 +966,7 @@ label.field .textarea { width: 100%; }
 .nodel-biz [data-act="delete"][data-kind="biz"], .nodel-biz [data-act="merge"][data-kind="biz"], .nodel-biz [data-act="sv-job-del"],
 .ro-network [data-act="new-net"], .ro-network [data-act="home-add"], .ro-network [data-act="edit"][data-kind="net"], .ro-network [data-act="edit-loc"][data-kind="net"], .ro-network [data-act="triage"][data-to="net"], .ro-network form.quick-log[data-kind="net"],
 .nodel-network [data-act="delete"][data-kind="net"], .nodel-network [data-act="merge"][data-kind="net"],
-.ro-cards [data-act="new-card"], .ro-cards [data-act="card-photo"], .ro-cards [data-act="edit"][data-kind="card"], .ro-cards [data-act="triage"], .ro-cards [data-act="photo-clear"],
+.ro-cards [data-act="new-card"], .ro-cards [data-act="card-link-to"], .ro-cards [data-act="card-autolink"], .ro-cards [data-act="card-photo"], .ro-cards [data-act="edit"][data-kind="card"], .ro-cards [data-act="triage"], .ro-cards [data-act="photo-clear"],
 .nodel-cards [data-act="delete"][data-kind="card"], .nodel-cards [data-act="merge"][data-kind="card"],
 .ro-schedule [data-act="new-event"], .ro-schedule [data-act="edit-event"], .nodel-schedule [data-act="delete"][data-kind="ev"],
 .ro-contacts form[data-form="ct-add"], .ro-contacts [data-act="ct-paste"], .ro-contacts [data-act="ct-url"], .ro-contacts .url-in,
@@ -986,3 +986,5 @@ label.field .textarea { width: 100%; }
 .perm-cell.lv-view { border-left-color: #F59E0B; }
 .perm-cell.lv-none { border-left-color: #B42318; background: #FEF3F2; }
 .perm-cell .select.sm { width: auto; }
+.btn-link-to { background: var(--k-card-soft); border-color: #99D8CF; color: var(--k-card-ink); font-weight: 700; }
+.link-bar { border-color: #99D8CF; border-left-color: var(--k-card); background: var(--k-card-soft); color: var(--k-card-ink); }

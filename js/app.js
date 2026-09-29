@@ -52,7 +52,7 @@ window.App = (() => {
     'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
-    'new-card': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
+    'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]],
@@ -446,6 +446,15 @@ window.App = (() => {
   /** 명함으로 네트워크 기관·사업체를 새로 만들고 명함을 연결한다. 위치를 못 정하면 바로 위치 입력 창을 연다 */
   async function registerFromCard(c, to, name, category, fromDrawer) {
     name = name || c.org || c.name;
+    // 같은 곳이 이미 있으면 새로 만들지 말고 연결할지 먼저 묻는다
+    const same = S.dupesOf(to, { name, phone: c.phone || '' })[0] || S.matchPlaces({ org: name }).find(m => m.kind === to);
+    const ex = same && (same.x || same);
+    if (ex && ex.id && (await confirmBox('이미 등록된 곳이 있어요', `${to === 'biz' ? '사업체 개발' : '네트워크'}에 '${ex.name}'이(가) 있어요. 새로 만들지 않고 여기에 명함을 연결할까요?`, '기존 곳에 연결'))) {
+      S.linkCard(c.id, to, ex.id);
+      toast(`명함을 '${ex.name}'에 연결했어요.`);
+      openDetail(to, ex.id, fromDrawer);
+      return ex;
+    }
     const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
     const rec = to === 'biz'
       ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
@@ -755,6 +764,21 @@ window.App = (() => {
       V.ui.biz.period = 'all';
       if (route() !== 'biz') location.hash = '#/biz';
       toast(`사업체 ${r.biz}곳을 등록했습니다${r.cards ? ` (담당자 명함 ${r.cards}장 포함)` : ''}. 주소로 지도 위치를 찾는 중입니다.`);
+    },
+    'card-link-to': el => {
+      const { id, kind, target } = el.dataset;
+      const x = S.linkCard(id, kind, target);
+      if (!x) return;
+      bigMap?.closePopup();
+      toast(`명함을 '${x.name}'에 연결했어요.${M.hasPos(S.find(kind, target)) ? '' : ' 그곳에 위치가 없어 지도에는 아직 안 나와요. 위치를 지정해 주세요.'}`);
+      if (drawerOpen()) renderDrawer(true);
+    },
+    'card-autolink': async () => {
+      const list = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).map(c => [c, S.matchPlaces(c)]).filter(([, m]) => m.length === 1);
+      if (!list.length) return;
+      if (!(await confirmBox(`명함 ${list.length}장을 연결할까요?`, list.slice(0, 6).map(([c, [m]]) => `${c.org} → ${m.x.name}(${m.kind === 'biz' ? '사업체' : '네트워크'})`).join(', ') + (list.length > 6 ? ` 외 ${list.length - 6}장` : '') + '. 그곳에 위치가 없으면 명함의 위치를 가져와요.', '연결'))) return;
+      list.forEach(([c, [m]]) => S.linkCard(c.id, m.kind, m.x.id));
+      toast(`명함 ${list.length}장을 연결했어요.`);
     },
     triage: (el, fd) => {
       const c = S.find('card', el.dataset.id);

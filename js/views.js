@@ -344,7 +344,9 @@ window.V = (() => {
       ${list.length > limit ? `<a class="sub" href="#/cards" data-act="card-link-none">나머지 ${list.length - limit}장 보기</a>` : ''}
     </section>`;
   }
-  const triageButtons = c => `<button class="btn btn-sm" type="button" data-act="triage" data-to="biz" data-id="${c.id}">사업체로</button><button class="btn btn-sm" type="button" data-act="triage" data-to="net" data-id="${c.id}">네트워크로</button><button class="btn btn-ghost btn-sm" type="button" data-act="triage" data-to="personal" data-id="${c.id}" title="개인 연락처로 두고 이 목록에서 뺍니다">개인</button>`;
+  /** 연결 안 된 명함: 소속이 같은 곳이 있으면 '연결'을 먼저, 없으면 새로 등록 */
+  const triageButtons = c => S.matchPlaces(c).slice(0, 2).map(m => `<button class="btn btn-sm btn-link-to ${m.kind}" type="button" data-act="card-link-to" data-id="${c.id}" data-kind="${m.kind}" data-target="${m.x.id}" title="${m.kind === 'biz' ? '사업체' : '네트워크'}에 이미 있어요">🔗 ${e(m.x.name)}에 연결</button>`).join('') + triageNew(c);
+  const triageNew = c => `<button class="btn btn-sm" type="button" data-act="triage" data-to="biz" data-id="${c.id}">사업체로</button><button class="btn btn-sm" type="button" data-act="triage" data-to="net" data-id="${c.id}">네트워크로</button><button class="btn btn-ghost btn-sm" type="button" data-act="triage" data-to="personal" data-id="${c.id}" title="개인 연락처로 두고 이 목록에서 뺍니다">개인</button>`;
   function netResults() {
     const f = ui.net;
     const nq = U.norm(f.q);
@@ -420,7 +422,9 @@ window.V = (() => {
     const ofChip = f.of ? `<div class="chips" style="margin-bottom:10px"><button type="button" class="chip chip-applied" data-act="cards-of-clear">${e(f.of.name)}의 명함만 ✕</button></div>` : '';
     if (!rows.length && f.of) return ofChip + `<div class="panel"><div class="empty"><strong>${e(f.of.name)}에 연결된 명함이 없습니다</strong>명함을 등록할 때 이곳과 연결하면 여기에 모입니다.</div></div>`;
     if (!rows.length) return `<div class="panel"><div class="empty"><strong>검색 결과가 없습니다</strong>이름 일부, 전화번호 뒷자리, 초성(ㄱㅈㅂ)으로도 찾을 수 있어요.${f.idx ? '<div><button class="btn" type="button" data-act="card-idx" data-idx="">색인 해제</button></div>' : ''}</div></div>`;
-    return ofChip + dupBar('card', dup.size, f.dup) + `<div class="card-grid">${rows.map(c => {
+    const linkable = all.filter(c => !c.linkType && !(c.tags || []).includes('개인') && S.matchPlaces(c).length === 1).length;
+    const linkBar = linkable ? `<div class="dup-bar link-bar"><span>🔗 소속이 같은 사업체·기관이 이미 있는데 <b>연결 안 된 명함 ${linkable}장</b>이 있어요. 연결하면 지도와 상세 화면에 같이 나와요.</span><button class="btn btn-sm btn-primary" type="button" data-act="card-autolink">한꺼번에 연결</button></div>` : '';
+    return ofChip + linkBar + dupBar('card', dup.size, f.dup) + `<div class="card-grid">${rows.map(c => {
       const link = S.linkOf(c);
       const tone = c.linkType === 'biz' ? 'k-' + S.bizTone(link) : c.linkType === 'net' ? (link && S.isHome(link) ? 'k-home' : 'k-net') : 'k-none';
       return `<article class="bcard ${tone}" data-act="open" data-kind="card" data-id="${c.id}" tabindex="0">
@@ -852,7 +856,7 @@ window.V = (() => {
       ${cs.length ? `<div class="people">${cs.map(c => `<div class="person"><div style="min-width:0"><div class="pn" data-act="open" data-kind="card" data-id="${c.id}">${e(c.name)} <span class="pm">${e([c.dept, c.title].filter(Boolean).join(' · '))}</span></div>
         <div class="pm">${[c.mobile && `휴대 ${e(c.mobile)}`, c.phone && `사무실 ${e(c.phone)}`, c.email && e(c.email)].filter(Boolean).join(' · ')}</div></div>
         <div class="inline">${tel(c) ? `<a class="icon-btn" href="tel:${e(tel(c).replace(/[^0-9+]/g, ''))}" aria-label="전화">${I.phone}</a>` : ''}${c.email ? `<a class="icon-btn" href="mailto:${e(c.email)}" aria-label="이메일">${I.mail}</a>` : ''}</div></div>`).join('')}</div>`
-        : '<p class="sub" style="margin:0">연결된 명함이 없습니다. 담당자 명함을 등록하면 여기서 바로 전화할 수 있어요.</p>'}</section>`;
+        : (() => { const x = S.find(kind, id); const sug = x ? S.get().cards.filter(c => !c.linkType && S.matchPlaces(c).some(m => m.x.id === id)) : []; return sug.length ? `<p class="sub" style="margin:0 0 6px">소속이 같은데 연결 안 된 명함이 있어요.</p><div class="people">${sug.map(c => `<div class="person"><div style="min-width:0"><div class="pn" data-act="open" data-kind="card" data-id="${c.id}">${e(c.name)} <span class="pm">${e(c.title || '')}</span></div><div class="pm">${e(c.org || '')}</div></div><button class="btn btn-sm btn-primary" type="button" data-act="card-link-to" data-id="${c.id}" data-kind="${kind}" data-target="${id}">🔗 연결</button></div>`).join('')}</div>` : '<p class="sub" style="margin:0">연결된 명함이 없습니다. 담당자 명함을 등록하면 여기서 바로 전화할 수 있어요.</p>'; })()}</section>`;
   };
   const eventsSec = (kind, id) => {
     const evs = S.eventsOf(kind, id).filter(x => !x.done);
@@ -982,7 +986,7 @@ window.V = (() => {
           ${c.photo ? (S.photo(c) ? `<img class="card-photo" src="${S.photo(c)}" alt="${e(c.name)} 명함 사진">` : '<div class="skel" style="height:180px"></div>') : ''}
           ${dupSec('card', c)}
           <section class="dr-sec"><h3>연락처</h3>${kv([['소속', e(c.org)], ['부서', e(c.dept)], ['휴대전화', copy(c.mobile)], ['사무실 전화', copy(c.phone)], ['이메일', copy(c.email)], ['주소', e(c.address)]])}</section>
-          <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : `<p class="sub" style="margin:0 0 8px">연결된 사업체나 기관이 없습니다. 아래 버튼을 누르면 소속(${e(c.org || c.name)})으로 새로 등록하고 연결합니다.</p><div class="inline">${triageButtons(c)}</div>`}</section>
+          <section class="dr-sec"><h3>연결된 곳</h3>${link ? `<div class="people"><div class="person"><div><div class="pn" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">${e(link.name)}</div><div class="pm">${c.linkType === 'biz' ? `사업체 개발 · ${e(link.stage)}` : `네트워크 · ${e(link.category)}`}</div></div><button class="btn btn-sm" type="button" data-act="open" data-kind="${c.linkType}" data-id="${link.id}">열기</button></div></div>` : `<p class="sub" style="margin:0 0 8px">연결된 사업체나 기관이 없습니다. ${S.matchPlaces(c).length ? '소속이 같은 곳이 이미 있어요. <b>🔗 연결</b>을 누르면 그곳의 담당자 명함이 되고 지도에도 같이 나와요.' : `아래 버튼을 누르면 소속(${e(c.org || c.name)})으로 새로 등록하고 연결합니다.`}</p><div class="inline">${triageButtons(c)}</div>`}</section>
           <section class="dr-sec"><h3>받은 정보</h3>${kv([['받은 날', U.dateDot(c.metAt)], ['받은 곳', e(c.metWhere)]])}</section>
           ${c.memo ? `<section class="dr-sec"><h3>메모</h3><div class="memo-box">${e(c.memo)}</div></section>` : ''}
           <div><button class="btn btn-ghost btn-sm" type="button" data-act="delete" data-kind="card" data-id="${c.id}" style="color:var(--danger)">이 명함 삭제</button></div>
