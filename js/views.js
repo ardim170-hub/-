@@ -262,6 +262,7 @@ window.V = (() => {
       <div class="mlist">${rows.map(({ b, la, ne, pc }) => `
         <div class="mrow" data-act="open" data-kind="biz" data-id="${b.id}">
           <div class="mrow-top"><span class="name">${U.hl(b.name, f.q)}</span>${stageBadge(b.stage)}</div>
+          ${b.jobs ? `<div class="meta">가능 직무: ${e(b.jobs)}</div>` : ''}
           <div class="meta">${e(b.industry)} · ${e(b.area || '')} · ${b.discoveredAt ? U.dateDot(b.discoveredAt) + ' 발굴' : ''}${pc ? ` · ${e(pc.name)} ${e(tel(pc))}` : ''}</div>
           <div class="meta">${staffTag(b.staff)}</div>
           <div class="meta">${la ? `최근 ${e(la.type)} ${U.ago(la.date)}` : ''}${ne ? ` · 다음 ${e(ne.type)} ${U.dday(ne.date).label}` : ''}</div>

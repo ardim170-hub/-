@@ -34,7 +34,7 @@ window.F = (() => {
     const lat = form.elements.lat, lng = form.elements.lng, approx = form.elements.approx;
     const label = form.querySelector('#posLabel');
     const show = () => { label.textContent = lat.value ? `${lat.value}, ${lng.value}${approx.value ? ' (대략)' : ''}` : '지도를 클릭해 지정'; };
-    const pk = M.picker(form.querySelector('#pickMap'), lat.value ? { lat: +lat.value, lng: +lng.value } : null, (a, b) => { lat.value = a; lng.value = b; approx.value = ''; show(); });
+    const pk = M.picker(form.querySelector('#pickMap'), lat.value ? { lat: +lat.value, lng: +lng.value } : null, (a, b) => { lat.value = a; lng.value = b; approx.value = ''; const ar = D.areaAt(a, b); if (ar) form.elements.area.value = ar; show(); });
     form.elements.area.addEventListener('change', () => {
       const a = D.AREA_BY_NAME[form.elements.area.value];
       if (a && (!lat.value || approx.value) && pk) { pk.set(a.lat, a.lng, 14); approx.value = '1'; show(); }

@@ -59,7 +59,17 @@ window.D = (() => {
     { label: '한국장애인개발원', url: 'https://www.koddi.or.kr' },
     { label: '화성시아르딤복지관', url: '' },
   ];
+  // 실제 행정동 경계가 있으면 이름 표시 위치(경계 안쪽 중심)를 기준 좌표로 쓴다
+  const BOUNDS = (window.HWASEONG && window.HWASEONG.areas) || [];
+  BOUNDS.forEach(b => { const a = AREAS.find(x => x.name === b.name); if (a) { a.lat = b.c[0]; a.lng = b.c[1]; } });
   const AREA_BY_NAME = Object.fromEntries(AREAS.map(a => [a.name, a]));
+  /** 좌표가 속한 읍·면·동 (경계 데이터로 판정, 화성시 밖이면 '') */
+  function areaAt(lat, lng) {
+    if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return '';
+    const inRing = r => { let ins = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > lat) !== (yj > lat) && lng < (xj - xi) * (lat - yi) / (yj - yi) + xi) ins = !ins; } return ins; };
+    const hit = BOUNDS.find(b => b.p.some(inRing));
+    return hit ? hit.name : '';
+  }
   const CITY_CENTER = [37.175, 126.905];
   /** 화성시 통합 대시보드 공유 링크 (지도 화면 '화성시 대시보드' 탭) */
   const CITY_DASHBOARD_URL = 'https://total.hscity.go.kr/web2/dashboard-main/shares/415bf387db01b77eb8d2f6ae700b8934';
@@ -133,7 +143,13 @@ window.D = (() => {
     };
     const place = () => {
       const a = pick(AREAS);
-      return { area: a.name, lat: +(a.lat + (rnd() - .5) * .022).toFixed(5), lng: +(a.lng + (rnd() - .5) * .022).toFixed(5), address: `경기도 화성시 ${a.name} ${pick(['산단로', '공단로', '중앙로', '시청로', '삼성로', '효행로', '상신하길로', '남양로'])} ${int(10, 480)}` };
+      // 실제 경계 안에 들어오는 점을 고른다 (경계 데이터가 없으면 중심 근처)
+      let lat = a.lat, lng = a.lng;
+      for (let t = 0; t < 30; t++) {
+        const la = +(a.lat + (rnd() - .5) * .03).toFixed(5), ln = +(a.lng + (rnd() - .5) * .03).toFixed(5);
+        if (!BOUNDS.length || areaAt(la, ln) === a.name) { lat = la; lng = ln; break; }
+      }
+      return { area: a.name, lat, lng, address: `경기도 화성시 ${a.name} ${pick(['산단로', '공단로', '중앙로', '시청로', '삼성로', '효행로', '상신하길로', '남양로'])} ${int(10, 480)}` };
     };
 
     const businesses = [], networks = [], cards = [], activities = [], events = [];
@@ -283,5 +299,5 @@ window.D = (() => {
     };
   }
 
-  return { GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

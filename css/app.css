@@ -44,7 +44,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 14.5px;
+  font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -486,8 +486,6 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
   .kpi:last-child:nth-child(odd) { grid-column: 1 / -1; border-right: 0; }
   .prio li { grid-template-columns: 70px minmax(0, 1fr); }
   .prio .when { display: none; }
-  .table-wrap.has-mobile { display: none; }
-  .mlist { display: block; }
   .toolbar .input { max-width: none; flex: 1 1 100%; }
   .toolbar .select { flex: 1 1 40%; }
   .map-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: 55vh auto; height: auto; }
@@ -582,3 +580,34 @@ mark { background: #FFF1B8; color: inherit; border-radius: 2px; }
 .bulk-tbl td { font-size: 13px; padding: 8px 10px; }
 .bulk-tbl tr.dup td { opacity: .5; }
 .bulk-tbl tbody tr { cursor: default; }
+
+/* ---------- 행정동 경계 이름 · 배경 지도 없을 때 ---------- */
+.area-label { pointer-events: none; }
+.area-label span { display: none; transform: translate(-50%, -50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; color: #3B4556; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; font-family: var(--font); position: absolute; }
+.show-labels .area-label span { display: block; }
+.leaflet-container.offline { background: #F3F5F8; }
+.map-note { background: rgba(255,255,255,.94); border: 1px solid var(--line-strong); border-radius: 6px; padding: 6px 10px; font-size: 12px; color: var(--text-2); max-width: 280px; font-family: var(--font); line-height: 1.45; }
+
+/* ---------- 중간 폭 화면(노트북·작은 모니터): 표 대신 카드 목록, 메뉴는 아이콘만 ---------- */
+.mrow .name { font-size: 15.5px; }
+.mrow .meta { font-size: 13.5px; line-height: 1.5; }
+@media (max-width: 1360px) {
+  .table-wrap.has-mobile { display: none; }
+  .mlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; padding: 12px; background: var(--bg); }
+  .mlist .mrow { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .mlist .mrow:hover { border-color: var(--accent); }
+}
+@media (max-width: 1360px) and (min-width: 861px) {
+  :root { --sidebar: 76px; }
+  .sidebar { padding: 16px 10px; }
+  .brand { justify-content: center; padding: 4px 0 16px; }
+  .brand > div:last-child, .side-foot { display: none; }
+  .side-nav a { justify-content: center; padding: 11px 0; flex-direction: column; gap: 3px; font-size: 11px; }
+  .side-nav a span { display: block; text-align: center; line-height: 1.2; }
+  .side-nav a .count { display: none; }
+  .side-nav a svg { width: 22px; height: 22px; }
+}
+@media (max-width: 860px) {
+  .mlist { display: block; padding: 0; background: none; }
+  .mlist .mrow { border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+}

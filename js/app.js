@@ -175,7 +175,8 @@ window.App = (() => {
     markerGroup.addTo(bigMap);
     if (fit) {
       const gu = V.ui.map.gu;
-      if (gu) bigMap.fitBounds(L.latLngBounds(D.GU[gu].areas.map(a => [D.AREA_BY_NAME[a].lat, D.AREA_BY_NAME[a].lng])).pad(0.25), { maxZoom: 14 });
+      const gb = M.guBounds(gu);
+      if (gb) bigMap.fitBounds(gb, { padding: [20, 20] });
       else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     }
   }

@@ -1,10 +1,31 @@
-/* 지도: Leaflet + CARTO 기본지도 (인터넷 연결 필요) */
+/* 지도: Leaflet + CARTO 기본지도 + 화성시 행정동 경계
+   배경 지도(도로·건물)는 인터넷에서 받아오고, 행정동 경계·이름은 앱 안에 들어 있어 인터넷이 막혀도 보인다. */
 window.M = (() => {
   const TILE = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
-  const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a>';
+  const ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · 행정동 경계: 통계청 SGIS, <a href="https://github.com/vuski/admdongkor" target="_blank" rel="noopener">admdongkor</a> (CC BY 4.0)';
   const maps = new Map();
-  let warned = false;
+  let tilesOk = null; // null: 모름, true: 배경 지도 받아옴, false: 못 받아옴
   const pin = () => L.divIcon({ className: '', html: '<div class="pick-pin"></div>', iconSize: [22, 22], iconAnchor: [11, 26] });
+
+  /** 행정동 경계와 이름 */
+  function boundaryLayer(map) {
+    const polys = [], labels = [];
+    D.BOUNDS.forEach(b => {
+      const color = (D.GU[b.gu] || {}).color || '#667085';
+      polys.push(L.polygon(b.p.map(r => r.map(([x, y]) => [y, x])), { color, weight: 1, opacity: .7, fillColor: color, fillOpacity: .05, interactive: false }));
+      labels.push(L.marker(b.c, { interactive: false, keyboard: false, icon: L.divIcon({ className: 'area-label', html: `<span>${b.name}</span>`, iconSize: null }) }));
+    });
+    const group = L.layerGroup([...polys, ...labels]).addTo(map);
+    const style = () => {
+      const off = tilesOk === false;
+      polys.forEach(p => p.setStyle({ fillOpacity: off ? .16 : .05, weight: off ? 1.3 : 1 }));
+      map.getContainer().classList.toggle('offline', off);
+      map.getContainer().classList.toggle('show-labels', off || map.getZoom() >= 12);
+    };
+    map.on('zoomend', style);
+    style();
+    return { group, style };
+  }
 
   function create(el, opts = {}) {
     if (!window.L) { el.innerHTML = '<div class="empty"><strong>지도를 불러오지 못했습니다</strong>페이지를 새로고침해 보세요.</div>'; return null; }
@@ -12,11 +33,31 @@ window.M = (() => {
     if (old) old.remove();
     const map = L.map(el, { zoomControl: opts.zoomControl !== false, scrollWheelZoom: opts.scroll !== false, attributionControl: true })
       .setView(opts.center || D.CITY_CENTER, opts.zoom || 11);
+    const bl = boundaryLayer(map);
+    const note = L.control({ position: 'bottomleft' });
+    note.onAdd = () => { const d = L.DomUtil.create('div', 'map-note'); d.textContent = '배경 지도(도로·건물)를 불러오지 못해 행정구역 경계만 표시합니다. 인터넷 연결이나 PC 보안 설정을 확인하세요.'; return d; };
+    const setOk = ok => {
+      if (tilesOk === ok) return;
+      tilesOk = ok;
+      maps.forEach(m => { m._arBoundary && m._arBoundary.style(); m._arNote && (ok ? m._arNote.remove() : m._arNote.addTo(m)); });
+    };
+    let loaded = 0, failed = 0;
     const layer = L.tileLayer(TILE, { attribution: ATTR, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
-    layer.on('tileerror', () => { if (!warned) { warned = true; App.toast('지도 배경을 불러오지 못했습니다. 인터넷 연결을 확인하세요.', 'error'); } });
+    layer.on('tileload', () => { loaded++; setOk(true); });
+    layer.on('tileerror', () => { failed++; if (!loaded && failed >= 2) setOk(false); });
+    setTimeout(() => { if (!loaded) setOk(false); }, 6000);
+    map._arBoundary = bl;
+    map._arNote = note;
+    if (tilesOk === false) note.addTo(map);
     maps.set(el, map);
     setTimeout(() => map.invalidateSize(), 60);
     return map;
+  }
+
+  /** 구(또는 화성시 전체) 경계에 맞춰 보기 */
+  function guBounds(gu) {
+    const pts = D.BOUNDS.filter(b => !gu || b.gu === gu).flatMap(b => b.p.flat().map(([x, y]) => [y, x]));
+    return pts.length ? L.latLngBounds(pts) : null;
   }
 
   /** hot: 이번 달 발굴처럼 강조할 곳이면 크게, 진한 테두리 */
@@ -82,5 +123,5 @@ window.M = (() => {
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { create, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { create, guBounds, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();

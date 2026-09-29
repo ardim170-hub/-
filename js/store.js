@@ -65,6 +65,7 @@ window.S = (() => {
   /** 좌표가 없으면 주소에서 읍·면·동을 찾아 그 중심에 대략 표시 */
   function place(x) {
     const has = x.lat != null && x.lng != null && x.lat !== '' && !isNaN(x.lat) && !isNaN(x.lng);
+    if (!x.area && has) x.area = D.areaAt(+x.lat, +x.lng);
     if (!x.area && x.address) x.area = D.detectArea(x.address);
     if (!has && D.AREA_BY_NAME[x.area]) { x.lat = D.AREA_BY_NAME[x.area].lat; x.lng = D.AREA_BY_NAME[x.area].lng; x.approx = true; }
     return x;
@@ -249,7 +250,7 @@ window.S = (() => {
       const r = await M.geocode(x.address);
       if (!r || r.lat < 36.9 || r.lat > 37.4 || r.lng < 126.5 || r.lng > 127.25) return; // 화성시 밖이면 무시
       const cur = find(kind, id);
-      if (cur && (cur.approx || cur.lat == null)) upsert(kind, { id, lat: r.lat, lng: r.lng, approx: false, area: cur.area || '' });
+      if (cur && (cur.approx || cur.lat == null)) upsert(kind, { id, lat: r.lat, lng: r.lng, approx: false, area: D.areaAt(r.lat, r.lng) || cur.area || '' });
     } catch { /* 오프라인 등 */ }
   }
 
