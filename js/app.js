@@ -1486,12 +1486,12 @@ window.App = (() => {
           if (id && fd) $(`#atPeople [data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
         }, 0);
         // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
-        if (route() === 'orders' && R.ui.orders.kind === '여비') setTimeout(() => {
+        if (route() === 'orders') setTimeout(() => {
           // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
           const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
-          const y = window.scrollY, wrap = $('.tv-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
+          const y = window.scrollY, wrap = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
           $('#odResults').innerHTML = R.ordersResults();
-          const w2 = $('.tv-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
+          const w2 = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
           window.scrollTo(0, y);
           if (id && fd) $(`[data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
         }, 0);

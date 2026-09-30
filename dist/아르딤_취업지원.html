@@ -1964,6 +1964,7 @@ label.field .textarea { width: 100%; }
 .gl-base h3 { margin: 0 0 6px; font-size: 14px; }
 .gl-btbl tr.how td { white-space: normal; font-size: 11.5px; color: var(--text-2); text-align: left; min-width: 110px; }
 .glc { padding-top: 24px; }
+.od-tbl td.od-meal .input { width: 84px; min-width: 84px; text-align: right; }
 
 </style>
 </head>
@@ -2046,7 +2047,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.30 16:14";</script>
+<script>window.APP_VERSION = "2026.09.30 16:30";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -5850,14 +5851,16 @@ window.R = (() => {
     const list = f.who ? all.filter(t => (t.staff || '(담당자 없음)') === f.who) : all;
     // 여비: 담당자·날짜별 하루 계산을 줄마다 붙인다 (하루 첫 줄에 그날 합계)
     const trip0 = f.kind === '출장';
-    const tvDays = trip0 ? TV.days(all) : [];
+    const tvDays = trip0 ? TV.days(all) : TV.otDays(all);
     const tvRow = {}, tvStaff = {};
-    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[r.t.id] = { d, r, first: i === 0 }; }); });
+    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
     const won = n => Math.round(n).toLocaleString('ko-KR');
+    const mealIn = t => `<td class="od-meal"><input class="input sm num" data-chg="trip-field" data-id="${t.id}" data-field="meal" value="${e(t.meal || '')}" placeholder="0" inputmode="numeric" aria-label="식비"></td>`;
     const tvCell = t => {
       const x = tvRow[t.id]; if (!x) return '<td></td>';
       const { d, r, first } = x;
-      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
+      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (2만원까지)' : ''}` : ''}</small></td>`;
+      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
     const staffBar = staffManager(all);
@@ -5879,12 +5882,12 @@ window.R = (() => {
       ${list.length ? `<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${trip && tvStaff[s] != null ? ` <span class="od-tv-sum" title="규정집 기준 여비 합계">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근 식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>` : ''}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
-        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
-        : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th></th>'}</tr></thead><tbody>
+        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>식비</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
+        : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th>식비</th><th>여비(식비)</th><th></th>'}</tr></thead><tbody>
         ${list.map(t => `<tr>
           <td>${cell(t, 'date', 'type="date"')}</td>
           <td><select class="select sm" data-chg="trip-field" data-id="${t.id}" data-field="staff">${staffOpts(t.staff)}</select></td>
@@ -5892,11 +5895,11 @@ window.R = (() => {
             <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
             <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
             <td class="nowrap">${D.TRIP_REPORTS.map(r => `<label class="check"><input type="checkbox" data-chg="trip-report" data-id="${t.id}" value="${r}" ${(t.report || []).includes(r) ? 'checked' : ''}>${r}</label>`).join(' ')}</td>
-            <td>${cell(t, 'note')}</td>${tvCell(t)}`
-          : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>`}
+            <td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`
+          : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`}
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
-      </tbody>${trip && tvDays.length ? `<tfoot><tr><th colspan="8" class="r">${f.who ? e(f.who) + ' ' : ''}여비 합계 <span class="sub">(규정집 2026 기준 · 시간·방법·영수증 금액으로 자동 계산)</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
+      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근 식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : '적은 식비를 날마다 2만원까지 더함'})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
       : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
   }
@@ -6066,7 +6069,7 @@ window.TV = (() => {
   const RULE = {
     daily: { long: { car: 10000, nocar: 20000 }, short: { car: 5000, nocar: 10000 } }, // 관내 일비: 4시간 이상/미만 × 차량배치 유/무
     outDaily: 20000, // 관외 일비 1일 상한
-    meal: 20000, // 관외 식비 1일 상한
+    meal: 20000, // 식비 1일 상한 (관외는 안 적으면 상한으로 잡음, 관내·특근은 적은 금액을 같이 계산)
     lodge: { 특별시: 70000, 광역시: 60000, '그 외': 50000 }, // 숙박비 1박 상한
   };
   const LODGE_REGIONS = Object.keys(RULE.lodge);
@@ -6156,12 +6159,24 @@ window.TV = (() => {
         why = `${min ? hm(min) : '시간 미입력'} · 차량배치 ${car ? '유' : '무'}`;
       }
       // 식비는 관외 출장일에만. 적은 금액이 없으면 상한(2만원)으로 잡는다
-      const mealIn = rows.map(r => r.t.meal).find(v => String(v ?? '').trim() !== '');
-      const meal = out ? Math.min(RULE.meal, mealIn == null ? RULE.meal : num(mealIn)) : 0;
+      // 식비: 그날 줄마다 적은 금액을 더해 1일 2만원까지. 관외인데 아무것도 안 적었으면 2만원
+      const mealTyped = rows.some(r => String(r.t.meal ?? '').trim() !== '');
+      const mealSum = rows.reduce((a, r) => a + num(r.t.meal), 0);
+      const meal = Math.min(RULE.meal, mealTyped ? mealSum : out ? RULE.meal : 0);
       const sum = k => rows.reduce((s, r) => s + r.c[k], 0);
       const actual = sum('fuel') + sum('toll') + sum('parking') + sum('fare') + sum('lodge');
       return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows, out, min, car, daily, why, meal, actual, total: daily + meal + actual, noTime: !out && !min };
     }).sort((a, b) => (a.staff).localeCompare(b.staff) || (a.date || '').localeCompare(b.date || ''));
+  }
+  /** 특근: 담당자·날짜별 식비 (적은 금액, 1일 2만원까지) */
+  function otDays(list) {
+    const map = new Map();
+    list.forEach(t => { const k = `${t.staff || ''}|${t.date || ''}`; if (!map.has(k)) map.set(k, []); map.get(k).push(t); });
+    return [...map.values()].map(g => {
+      const sum = g.reduce((a, t) => a + num(t.meal), 0);
+      const meal = Math.min(RULE.meal, sum);
+      return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, over: sum > RULE.meal, total: meal, min: g.reduce((a, t) => a + minutesOf(t.time), 0) };
+    });
   }
   const monthTrips = month => S.view().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
 
@@ -6214,7 +6229,7 @@ window.TV = (() => {
           <td><div class="tv-stack"><select class="select sm tv-in" data-chg="trip-field" data-id="${t.id}" data-field="method">${[...new Set([...D.TRIP_METHODS, t.method].filter(Boolean))].map(m => `<option ${t.method === m ? 'selected' : ''}>${e(m)}</option>`).join('')}</select>${sel(t, 'zone', ['관내', '관외'], zoneOf({ ...t, zone: '' }))}</div></td>
           <td>${ownCar(t) ? `<div class="tv-stack">${lab('왕복', inp(t, 'km', c.km ? `${c.km}${c.est ? ' 어림' : ''}` : 'km', 70, 'num'))}${lab('유가', inp(t, 'fuelPrice', priceOf(t) ? String(priceOf(t)) : '원/L', 70, 'num'))}${lab('연비', inp(t, 'fuelEff', effOf(t) ? String(effOf(t)) : 'km/L', 70, 'num'))}</div>` : '<span class="sub">-</span>'}</td>
           <td><div class="tv-stack">${lab('통행', inp(t, 'toll', '0', 70, 'num'))}${lab('주차', inp(t, 'parking', '0', 70, 'num'))}</div></td>
-          <td>${c.zone === '관외' ? `<div class="tv-stack">${lab('운임', inp(t, 'fare', '0', 76, 'num'))}${lab('숙박', inp(t, 'lodging', '0', 76, 'num'))}${lab('지역', sel(t, 'lodgeRegion', LODGE_REGIONS, regionOf({ ...t, lodgeRegion: '' })))}${c.lodgeOver ? `<div class="tv-over">숙박 상한 ${won(c.lodgeCap)}원까지</div>` : ''}${i === 0 ? lab('식비', inp(t, 'meal', won(RULE.meal), 76, 'num')) : ''}</div>` : '<span class="sub">관내 없음</span>'}</td>
+          <td>${c.zone === '관외' ? `<div class="tv-stack">${lab('운임', inp(t, 'fare', '0', 76, 'num'))}${lab('숙박', inp(t, 'lodging', '0', 76, 'num'))}${lab('지역', sel(t, 'lodgeRegion', LODGE_REGIONS, regionOf({ ...t, lodgeRegion: '' })))}${c.lodgeOver ? `<div class="tv-over">숙박 상한 ${won(c.lodgeCap)}원까지</div>` : ''}${lab('식비', inp(t, 'meal', i === 0 && d.out ? won(RULE.meal) : '0', 76, 'num'))}</div>` : `<div class="tv-stack">${lab('식비', inp(t, 'meal', '0', 76, 'num'))}</div>`}</td>
           <td class="tv-c num">${c.fuel ? won(c.fuel) : ownCar(t) && c.need.length ? `<span class="tv-over">${c.need.join('·')}<br>필요</span>` : '-'}</td>
           ${i === 0 ? `<td rowspan="${n}" class="tv-c"><b class="num">${won(d.daily)}</b><div class="sub tv-h">${e(d.why)}</div>${d.meal ? `<div class="sub tv-h">식비 ${won(d.meal)}</div>` : ''}</td><td rowspan="${n}" class="tv-c tv-total num">${won(d.total)}</td>` : ''}
         </tr>`; }).join('')).join('')}
@@ -6257,7 +6272,7 @@ window.TV = (() => {
   }
   const staffOf = month => [...new Set(days(monthTrips(month)).map(d => d.staff))];
 
-  return { RULE, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
+  return { RULE, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
 })();
 
 </script>
@@ -8674,12 +8689,12 @@ window.App = (() => {
           if (id && fd) $(`#atPeople [data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
         }, 0);
         // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
-        if (route() === 'orders' && R.ui.orders.kind === '여비') setTimeout(() => {
+        if (route() === 'orders') setTimeout(() => {
           // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
           const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
-          const y = window.scrollY, wrap = $('.tv-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
+          const y = window.scrollY, wrap = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
           $('#odResults').innerHTML = R.ordersResults();
-          const w2 = $('.tv-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
+          const w2 = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
           window.scrollTo(0, y);
           if (id && fd) $(`[data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
         }, 0);

@@ -8,7 +8,7 @@ window.TV = (() => {
   const RULE = {
     daily: { long: { car: 10000, nocar: 20000 }, short: { car: 5000, nocar: 10000 } }, // 관내 일비: 4시간 이상/미만 × 차량배치 유/무
     outDaily: 20000, // 관외 일비 1일 상한
-    meal: 20000, // 관외 식비 1일 상한
+    meal: 20000, // 식비 1일 상한 (관외는 안 적으면 상한으로 잡음, 관내·특근은 적은 금액을 같이 계산)
     lodge: { 특별시: 70000, 광역시: 60000, '그 외': 50000 }, // 숙박비 1박 상한
   };
   const LODGE_REGIONS = Object.keys(RULE.lodge);
@@ -98,12 +98,24 @@ window.TV = (() => {
         why = `${min ? hm(min) : '시간 미입력'} · 차량배치 ${car ? '유' : '무'}`;
       }
       // 식비는 관외 출장일에만. 적은 금액이 없으면 상한(2만원)으로 잡는다
-      const mealIn = rows.map(r => r.t.meal).find(v => String(v ?? '').trim() !== '');
-      const meal = out ? Math.min(RULE.meal, mealIn == null ? RULE.meal : num(mealIn)) : 0;
+      // 식비: 그날 줄마다 적은 금액을 더해 1일 2만원까지. 관외인데 아무것도 안 적었으면 2만원
+      const mealTyped = rows.some(r => String(r.t.meal ?? '').trim() !== '');
+      const mealSum = rows.reduce((a, r) => a + num(r.t.meal), 0);
+      const meal = Math.min(RULE.meal, mealTyped ? mealSum : out ? RULE.meal : 0);
       const sum = k => rows.reduce((s, r) => s + r.c[k], 0);
       const actual = sum('fuel') + sum('toll') + sum('parking') + sum('fare') + sum('lodge');
       return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows, out, min, car, daily, why, meal, actual, total: daily + meal + actual, noTime: !out && !min };
     }).sort((a, b) => (a.staff).localeCompare(b.staff) || (a.date || '').localeCompare(b.date || ''));
+  }
+  /** 특근: 담당자·날짜별 식비 (적은 금액, 1일 2만원까지) */
+  function otDays(list) {
+    const map = new Map();
+    list.forEach(t => { const k = `${t.staff || ''}|${t.date || ''}`; if (!map.has(k)) map.set(k, []); map.get(k).push(t); });
+    return [...map.values()].map(g => {
+      const sum = g.reduce((a, t) => a + num(t.meal), 0);
+      const meal = Math.min(RULE.meal, sum);
+      return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, over: sum > RULE.meal, total: meal, min: g.reduce((a, t) => a + minutesOf(t.time), 0) };
+    });
   }
   const monthTrips = month => S.view().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
 
@@ -156,7 +168,7 @@ window.TV = (() => {
           <td><div class="tv-stack"><select class="select sm tv-in" data-chg="trip-field" data-id="${t.id}" data-field="method">${[...new Set([...D.TRIP_METHODS, t.method].filter(Boolean))].map(m => `<option ${t.method === m ? 'selected' : ''}>${e(m)}</option>`).join('')}</select>${sel(t, 'zone', ['관내', '관외'], zoneOf({ ...t, zone: '' }))}</div></td>
           <td>${ownCar(t) ? `<div class="tv-stack">${lab('왕복', inp(t, 'km', c.km ? `${c.km}${c.est ? ' 어림' : ''}` : 'km', 70, 'num'))}${lab('유가', inp(t, 'fuelPrice', priceOf(t) ? String(priceOf(t)) : '원/L', 70, 'num'))}${lab('연비', inp(t, 'fuelEff', effOf(t) ? String(effOf(t)) : 'km/L', 70, 'num'))}</div>` : '<span class="sub">-</span>'}</td>
           <td><div class="tv-stack">${lab('통행', inp(t, 'toll', '0', 70, 'num'))}${lab('주차', inp(t, 'parking', '0', 70, 'num'))}</div></td>
-          <td>${c.zone === '관외' ? `<div class="tv-stack">${lab('운임', inp(t, 'fare', '0', 76, 'num'))}${lab('숙박', inp(t, 'lodging', '0', 76, 'num'))}${lab('지역', sel(t, 'lodgeRegion', LODGE_REGIONS, regionOf({ ...t, lodgeRegion: '' })))}${c.lodgeOver ? `<div class="tv-over">숙박 상한 ${won(c.lodgeCap)}원까지</div>` : ''}${i === 0 ? lab('식비', inp(t, 'meal', won(RULE.meal), 76, 'num')) : ''}</div>` : '<span class="sub">관내 없음</span>'}</td>
+          <td>${c.zone === '관외' ? `<div class="tv-stack">${lab('운임', inp(t, 'fare', '0', 76, 'num'))}${lab('숙박', inp(t, 'lodging', '0', 76, 'num'))}${lab('지역', sel(t, 'lodgeRegion', LODGE_REGIONS, regionOf({ ...t, lodgeRegion: '' })))}${c.lodgeOver ? `<div class="tv-over">숙박 상한 ${won(c.lodgeCap)}원까지</div>` : ''}${lab('식비', inp(t, 'meal', i === 0 && d.out ? won(RULE.meal) : '0', 76, 'num'))}</div>` : `<div class="tv-stack">${lab('식비', inp(t, 'meal', '0', 76, 'num'))}</div>`}</td>
           <td class="tv-c num">${c.fuel ? won(c.fuel) : ownCar(t) && c.need.length ? `<span class="tv-over">${c.need.join('·')}<br>필요</span>` : '-'}</td>
           ${i === 0 ? `<td rowspan="${n}" class="tv-c"><b class="num">${won(d.daily)}</b><div class="sub tv-h">${e(d.why)}</div>${d.meal ? `<div class="sub tv-h">식비 ${won(d.meal)}</div>` : ''}</td><td rowspan="${n}" class="tv-c tv-total num">${won(d.total)}</td>` : ''}
         </tr>`; }).join('')).join('')}
@@ -199,5 +211,5 @@ window.TV = (() => {
   }
   const staffOf = month => [...new Set(days(monthTrips(month)).map(d => d.staff))];
 
-  return { RULE, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
+  return { RULE, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
 })();

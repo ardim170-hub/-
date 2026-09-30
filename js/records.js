@@ -218,14 +218,16 @@ window.R = (() => {
     const list = f.who ? all.filter(t => (t.staff || '(담당자 없음)') === f.who) : all;
     // 여비: 담당자·날짜별 하루 계산을 줄마다 붙인다 (하루 첫 줄에 그날 합계)
     const trip0 = f.kind === '출장';
-    const tvDays = trip0 ? TV.days(all) : [];
+    const tvDays = trip0 ? TV.days(all) : TV.otDays(all);
     const tvRow = {}, tvStaff = {};
-    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[r.t.id] = { d, r, first: i === 0 }; }); });
+    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
     const won = n => Math.round(n).toLocaleString('ko-KR');
+    const mealIn = t => `<td class="od-meal"><input class="input sm num" data-chg="trip-field" data-id="${t.id}" data-field="meal" value="${e(t.meal || '')}" placeholder="0" inputmode="numeric" aria-label="식비"></td>`;
     const tvCell = t => {
       const x = tvRow[t.id]; if (!x) return '<td></td>';
       const { d, r, first } = x;
-      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
+      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (2만원까지)' : ''}` : ''}</small></td>`;
+      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
     const staffBar = staffManager(all);
@@ -247,12 +249,12 @@ window.R = (() => {
       ${list.length ? `<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${trip && tvStaff[s] != null ? ` <span class="od-tv-sum" title="규정집 기준 여비 합계">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근 식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>` : ''}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
-        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
-        : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th></th>'}</tr></thead><tbody>
+        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>식비</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
+        : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th>식비</th><th>여비(식비)</th><th></th>'}</tr></thead><tbody>
         ${list.map(t => `<tr>
           <td>${cell(t, 'date', 'type="date"')}</td>
           <td><select class="select sm" data-chg="trip-field" data-id="${t.id}" data-field="staff">${staffOpts(t.staff)}</select></td>
@@ -260,11 +262,11 @@ window.R = (() => {
             <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
             <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
             <td class="nowrap">${D.TRIP_REPORTS.map(r => `<label class="check"><input type="checkbox" data-chg="trip-report" data-id="${t.id}" value="${r}" ${(t.report || []).includes(r) ? 'checked' : ''}>${r}</label>`).join(' ')}</td>
-            <td>${cell(t, 'note')}</td>${tvCell(t)}`
-          : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>`}
+            <td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`
+          : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`}
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
-      </tbody>${trip && tvDays.length ? `<tfoot><tr><th colspan="8" class="r">${f.who ? e(f.who) + ' ' : ''}여비 합계 <span class="sub">(규정집 2026 기준 · 시간·방법·영수증 금액으로 자동 계산)</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
+      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근 식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : '적은 식비를 날마다 2만원까지 더함'})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
       : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
   }
