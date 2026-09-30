@@ -208,7 +208,7 @@ window.R = (() => {
         <div><h1 class="page-title">출장·특근 명령부</h1><div class="page-desc">현장중심센터 월별 관내출장 명령부와 특근 명령부를 만들고, 한글 서식 모양으로 인쇄합니다.</div></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('od-month', f.month)}
-        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 계산</button></div>
+        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 정산</button></div>
       </div>
       <div id="odResults"></div>`;
   }
@@ -221,13 +221,17 @@ window.R = (() => {
     const trip0 = f.kind === '출장';
     const tvDays = trip0 ? TV.days(all) : TV.otDays(all);
     const tvRow = {}, tvStaff = {};
-    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
+    // 담당자 합계·특근 식비는 정산(출장·특근 식비 합쳐 하루 2만원)과 같은 숫자를 쓴다
+    const stl = TV.settle(f.month);
+    stl.people.forEach(p => { tvStaff[p.name] = trip0 ? p.inTotal + p.outTotal : p.otTotal; });
+    const otMeal = {}; stl.people.forEach(p => p.ot.forEach(r => { otMeal[`${p.name}|${r.date}`] = r; }));
+    tvDays.forEach(d => { if (!trip0) { const r = otMeal[`${d.staff}|${d.date}`]; if (r) { d.meal = r.meal; d.total = r.total; d.over = r.capped; } } d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
     const won = n => Math.round(n).toLocaleString('ko-KR');
     const mealIn = t => `<td class="od-meal"><input class="input sm num" data-chg="trip-field" data-id="${t.id}" data-field="meal" value="${e(t.meal || '')}" placeholder="0" inputmode="numeric" aria-label="식비"></td>`;
     const tvCell = t => {
       const x = tvRow[t.id]; if (!x) return '<td></td>';
       const { d, r, first } = x;
-      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (2만원까지)' : ''}` : ''}</small></td>`;
+      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
       const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
@@ -360,10 +364,8 @@ window.R = (() => {
     const rows = b.staff.map(name => {
       const per = months.map(m => {
         const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
-        const tv = TV.days(tr).reduce((a, d) => a + d.total, 0);
-        const od = TV.otDays(ot);
-        const meal = od.reduce((a, d) => a + d.total, 0), otMin = od.reduce((a, d) => a + d.min, 0);
-        return { m, trips: tr.length, tv, ots: ot.length, meal, otMin, noTime: TV.days(tr).filter(d => d.noTime).length, total: tv + meal };
+        const p = TV.settle(m).people.find(x => x.name === name) || { in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
+        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
       });
       return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
     });
@@ -386,7 +388,7 @@ window.R = (() => {
         <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
       </div>
       ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>출장 ${x.trips}건 ${won(x.tv)}원${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
+        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
         <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
       </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
       <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>

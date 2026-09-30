@@ -1328,3 +1328,22 @@ label.field .textarea { width: 100%; }
 .btn-sync { white-space: nowrap; font-weight: 700; }
 .btn-sync.spinning { opacity: .7; cursor: progress; }
 @media (max-width: 860px) { .btn-sync { padding-inline: 10px; font-size: 13px; } }
+/* 여비 정산 */
+.tv-settle { padding: 14px 16px; border-bottom: 1px solid var(--line); background: #FFFBF3; display: flex; flex-direction: column; gap: 8px; }
+.tv-settle-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.tv-settle-head h3 { margin: 0; font-size: 16px; }
+.tv-settle-total { font-size: 14px; }
+.tv-settle-total b { font-size: 22px; color: #9A3412; margin-left: 6px; }
+.tv-settle-tbl th small { display: block; font-weight: 400; color: var(--text-2); font-size: 11px; }
+.tv-settle-tbl td b { display: block; }
+.tv-settle-tbl td small { display: block; color: var(--text-2); font-size: 11.5px; }
+.tv-settle-tbl .tot { background: #FFF1E0; }
+.tv-settle-tbl td.tot b { font-size: 15px; color: #9A3412; }
+.tv-settle-tbl tr.tot th, .tv-settle-tbl tr.tot td { background: #FFE8CC; }
+.tv-settle-tbl td .btn + .btn { margin-left: 4px; }
+.tv-detail-h { margin: 10px 16px 6px; font-size: 14px; }
+.order-doc .tv-doc-sec { font-size: 11pt; margin: 4mm 0 1.5mm; text-align: left; }
+.order-doc .tv-grand { margin-top: 4mm; width: 100%; border-collapse: collapse; }
+.order-doc .tv-grand th, .order-doc .tv-grand td { border: 1.5px solid #000; padding: 2mm 3mm; font-size: 12pt; }
+.order-doc .tv-grand th { background: #eee; text-align: left; }
+.order-doc .doc-tbl th.r, .order-doc .doc-tbl td.r { text-align: right; }

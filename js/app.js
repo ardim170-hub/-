@@ -431,6 +431,21 @@ window.App = (() => {
     box.remove();
     return html;
   }
+  /** 아무 문서나 A4 세로 한 쪽에 맞추기: make(scale) → html */
+  function fitA4(make) {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
+    document.body.appendChild(box);
+    const limit = 272 * 96 / 25.4;
+    let html = '';
+    for (const scale of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52]) {
+      html = make(scale); box.innerHTML = html;
+      const art = box.querySelector('.order-doc'); art.classList.add('measure');
+      if (art.getBoundingClientRect().height <= limit) break;
+    }
+    box.remove();
+    return html;
+  }
   /** 여비 명세도 명령부와 같이 A4 한 쪽에 맞춘다 */
   function fitTravel(staff) {
     const box = document.createElement('div');
@@ -1250,6 +1265,9 @@ window.App = (() => {
       toast(`유류비 기본값을 저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L`);
     },
     'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
+    'tv-print-part': el => { const m = R.ui.orders.month; printHtml(fitA4(sc => TV.settleDoc(m, el.dataset.staff, el.dataset.part, sc))); },
+    'tv-print-sum': () => printHtml(TV.settleSumDoc(R.ui.orders.month)),
+    'tv-print-all': () => { const m = R.ui.orders.month; printHtml(TV.settle(m).people.map(p => fitA4(sc => TV.settleDoc(m, p.name, 'all', sc))).join('') + TV.settleSumDoc(m)); },
     'tv-print': () => { const list = TV.staffOf(R.ui.orders.month); if (list.length) printHtml(list.map(fitTravel).join('')); },
     'tv-road': async () => {
       // 개인 차량으로 간 줄 중 거리를 안 적은 곳: 복지관 ↔ 출장지 도로 거리 × 2(왕복)를 채운다

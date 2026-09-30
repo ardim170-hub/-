@@ -1337,6 +1337,25 @@ label.field .textarea { width: 100%; }
 .btn-sync { white-space: nowrap; font-weight: 700; }
 .btn-sync.spinning { opacity: .7; cursor: progress; }
 @media (max-width: 860px) { .btn-sync { padding-inline: 10px; font-size: 13px; } }
+/* 여비 정산 */
+.tv-settle { padding: 14px 16px; border-bottom: 1px solid var(--line); background: #FFFBF3; display: flex; flex-direction: column; gap: 8px; }
+.tv-settle-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+.tv-settle-head h3 { margin: 0; font-size: 16px; }
+.tv-settle-total { font-size: 14px; }
+.tv-settle-total b { font-size: 22px; color: #9A3412; margin-left: 6px; }
+.tv-settle-tbl th small { display: block; font-weight: 400; color: var(--text-2); font-size: 11px; }
+.tv-settle-tbl td b { display: block; }
+.tv-settle-tbl td small { display: block; color: var(--text-2); font-size: 11.5px; }
+.tv-settle-tbl .tot { background: #FFF1E0; }
+.tv-settle-tbl td.tot b { font-size: 15px; color: #9A3412; }
+.tv-settle-tbl tr.tot th, .tv-settle-tbl tr.tot td { background: #FFE8CC; }
+.tv-settle-tbl td .btn + .btn { margin-left: 4px; }
+.tv-detail-h { margin: 10px 16px 6px; font-size: 14px; }
+.order-doc .tv-doc-sec { font-size: 11pt; margin: 4mm 0 1.5mm; text-align: left; }
+.order-doc .tv-grand { margin-top: 4mm; width: 100%; border-collapse: collapse; }
+.order-doc .tv-grand th, .order-doc .tv-grand td { border: 1.5px solid #000; padding: 2mm 3mm; font-size: 12pt; }
+.order-doc .tv-grand th { background: #eee; text-align: left; }
+.order-doc .doc-tbl th.r, .order-doc .doc-tbl td.r { text-align: right; }
 
 </style>
 </head>
@@ -1420,7 +1439,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.30 17:12";</script>
+<script>window.APP_VERSION = "2026.09.30 17:30";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -5198,7 +5217,7 @@ window.R = (() => {
         <div><h1 class="page-title">출장·특근 명령부</h1><div class="page-desc">현장중심센터 월별 관내출장 명령부와 특근 명령부를 만들고, 한글 서식 모양으로 인쇄합니다.</div></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('od-month', f.month)}
-        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 계산</button></div>
+        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 정산</button></div>
       </div>
       <div id="odResults"></div>`;
   }
@@ -5211,13 +5230,17 @@ window.R = (() => {
     const trip0 = f.kind === '출장';
     const tvDays = trip0 ? TV.days(all) : TV.otDays(all);
     const tvRow = {}, tvStaff = {};
-    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
+    // 담당자 합계·특근 식비는 정산(출장·특근 식비 합쳐 하루 2만원)과 같은 숫자를 쓴다
+    const stl = TV.settle(f.month);
+    stl.people.forEach(p => { tvStaff[p.name] = trip0 ? p.inTotal + p.outTotal : p.otTotal; });
+    const otMeal = {}; stl.people.forEach(p => p.ot.forEach(r => { otMeal[`${p.name}|${r.date}`] = r; }));
+    tvDays.forEach(d => { if (!trip0) { const r = otMeal[`${d.staff}|${d.date}`]; if (r) { d.meal = r.meal; d.total = r.total; d.over = r.capped; } } d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
     const won = n => Math.round(n).toLocaleString('ko-KR');
     const mealIn = t => `<td class="od-meal"><input class="input sm num" data-chg="trip-field" data-id="${t.id}" data-field="meal" value="${e(t.meal || '')}" placeholder="0" inputmode="numeric" aria-label="식비"></td>`;
     const tvCell = t => {
       const x = tvRow[t.id]; if (!x) return '<td></td>';
       const { d, r, first } = x;
-      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (2만원까지)' : ''}` : ''}</small></td>`;
+      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
       const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
@@ -5350,10 +5373,8 @@ window.R = (() => {
     const rows = b.staff.map(name => {
       const per = months.map(m => {
         const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
-        const tv = TV.days(tr).reduce((a, d) => a + d.total, 0);
-        const od = TV.otDays(ot);
-        const meal = od.reduce((a, d) => a + d.total, 0), otMin = od.reduce((a, d) => a + d.min, 0);
-        return { m, trips: tr.length, tv, ots: ot.length, meal, otMin, noTime: TV.days(tr).filter(d => d.noTime).length, total: tv + meal };
+        const p = TV.settle(m).people.find(x => x.name === name) || { in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
+        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
       });
       return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
     });
@@ -5376,7 +5397,7 @@ window.R = (() => {
         <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
       </div>
       ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>출장 ${x.trips}건 ${won(x.tv)}원${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
+        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
         <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
       </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
       <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>
@@ -5508,15 +5529,16 @@ window.R = (() => {
 
 </script>
 <script>
-/* 출장 여비 계산 (중증장애인직업재활지원사업 규정집 2026 여비 기준)
-   - 근무지 내(관내): 일비(출장시간 4시간 기준 · 차량배치 유무로 차등) + 유류비 + 통행료 + 주차료
+/* 출장 여비 계산 (중증장애인직업재활지원사업 규정집 2026 여비 기준 + 복지관 정산 기준)
+   - 근무지 내(관내, 화성시 안): 일비 4시간 미만 5천원 · 4시간 이상 1만원 (기관차량·자차 같음) + 유류비 + 통행료 + 주차료
+   - 식비: 한 사람 하루 최대 2만원 (출장·특근 식비를 합쳐서)
    - 근무지 외(관외): 운임 + 숙박비(상한) + 식비(1일 2만원 이내) + 일비(1일 2만원 이내)
    - 하루에 여러 번 나가면 출장시간을 모두 더해 계산하되 1일 기준 금액을 넘지 않는다
    - 하루에 관내·관외를 같이 가면 관외 기준으로 준다 */
 window.TV = (() => {
   const e = U.esc;
   const RULE = {
-    daily: { long: { car: 10000, nocar: 20000 }, short: { car: 5000, nocar: 10000 } }, // 관내 일비: 4시간 이상/미만 × 차량배치 유/무
+    daily: { long: { car: 10000, nocar: 10000 }, short: { car: 5000, nocar: 5000 } }, // 관내 일비: 4시간 이상 1만원 / 미만 5천원 (복지관 정산 기준: 기관차량·자차 같음)
     outDaily: 20000, // 관외 일비 1일 상한
     meal: 20000, // 식비 1일 상한 (관외는 안 적으면 상한으로 잡음, 관내·특근은 적은 금액을 같이 계산)
     lodge: { 특별시: 70000, 광역시: 60000, '그 외': 50000 }, // 숙박비 1박 상한
@@ -5605,7 +5627,7 @@ window.TV = (() => {
       if (out) { daily = RULE.outDaily; why = '관외 1일 정액'; } else {
         const long = min >= 240;
         daily = RULE.daily[long ? 'long' : 'short'][car ? 'car' : 'nocar'];
-        why = `${min ? hm(min) : '시간 미입력'} · 차량배치 ${car ? '유' : '무'}`;
+        why = `관내 ${min ? hm(min) : '시간 미입력'}${min ? (long ? ' (4시간 이상)' : ' (4시간 미만)') : ''}`;
       }
       // 식비는 관외 출장일에만. 적은 금액이 없으면 상한(2만원)으로 잡는다
       // 식비: 그날 줄마다 적은 금액을 더해 1일 2만원까지. 관외인데 아무것도 안 적었으면 2만원
@@ -5627,6 +5649,100 @@ window.TV = (() => {
       return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, over: sum > RULE.meal, total: meal, min: g.reduce((a, t) => a + minutesOf(t.time), 0) };
     });
   }
+  /** 한 달 정산: 사람마다 관내 출장 · 관외 출장 · 특근(식비) 묶음. 식비는 출장·특근 합쳐 하루 2만원까지 */
+  function settle(month) {
+    const ds = days(monthTrips(month));
+    const ots = S.get().trips.filter(t => t.kind === '특근' && (t.date || '').startsWith(month));
+    const people = new Map();
+    const P = name => { if (!people.has(name)) people.set(name, { name, in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 }); return people.get(name); };
+    const tripMeal = new Map();
+    ds.forEach(d => {
+      const p = P(d.staff);
+      const c = k => d.rows.reduce((a, r) => a + r.c[k], 0);
+      const row = { date: d.date, where: d.rows.map(r => r.t.place).filter(Boolean).join(', '), time: d.rows.map(r => r.t.time).filter(Boolean).join(', '), min: d.min, why: d.why, daily: d.daily, fuel: c('fuel'), tollPark: c('toll') + c('parking'), fareLodge: c('fare') + c('lodge'), meal: d.meal, total: d.total, noTime: d.noTime };
+      (d.out ? p.out : p.in).push(row);
+      tripMeal.set(`${d.staff}|${d.date}`, d.meal);
+    });
+    otDays(ots).forEach(o => {
+      const p = P(o.staff);
+      const left = Math.max(0, RULE.meal - (tripMeal.get(`${o.staff}|${o.date}`) || 0));
+      const typed = o.rows.reduce((a, t) => a + num(t.meal), 0);
+      const meal = Math.min(typed, left);
+      p.ot.push({ date: o.date, where: o.rows.map(t => t.purpose).filter(Boolean).join(', '), time: o.rows.map(t => t.time).filter(Boolean).join(', '), min: o.min, meal, typed, capped: typed > meal, total: meal, ids: o.rows.map(t => t.id) });
+    });
+    const byDate = (a, b) => (a.date || '').localeCompare(b.date || '');
+    const list = [...people.values()].map(p => {
+      p.in.sort(byDate); p.out.sort(byDate); p.ot.sort(byDate);
+      p.inTotal = p.in.reduce((a, r) => a + r.total, 0); p.outTotal = p.out.reduce((a, r) => a + r.total, 0); p.otTotal = p.ot.reduce((a, r) => a + r.total, 0);
+      p.total = p.inTotal + p.outTotal + p.otTotal;
+      return p;
+    });
+    const order = S.staff().map(x => x.name);
+    list.sort((a, b) => ((order.indexOf(a.name) + 1) || 99) - ((order.indexOf(b.name) + 1) || 99));
+    const sum = k => list.reduce((a, p) => a + p[k], 0);
+    return { month, people: list, inTotal: sum('inTotal'), outTotal: sum('outTotal'), otTotal: sum('otTotal'), total: sum('total') };
+  }
+  const PART = { in: '관내 출장', out: '관외 출장', ot: '특근 (식비)', all: '전체 정산' };
+  /** 정산 판: 월 전체 합계 + 사람마다 관내·관외·특근 금액과 인쇄 버튼 */
+  function settlePanel(month) {
+    const st = settle(month);
+    if (!st.people.length) return '';
+    const cell = (rows, total) => rows.length ? `<b class="num">${won(total)}원</b><small>${rows.length}일</small>` : '<span class="sub">-</span>';
+    const pbtn = (name, part, n) => `<button class="btn btn-sm" type="button" data-act="tv-print-part" data-staff="${e(name)}" data-part="${part}" ${n ? '' : 'disabled'}>${PART[part].replace(' (식비)', '')}</button>`;
+    return `<div class="tv-settle">
+      <div class="tv-settle-head"><h3>📋 ${V.monthLabel(month)} 현장중심센터 여비 정산</h3><span class="tv-settle-total">전 직원 합계 <b class="num">${won(st.total)}원</b></span></div>
+      <div class="table-wrap"><table class="tbl tv-settle-tbl"><thead><tr><th>담당자</th><th>관내 출장<small>(화성시 안)</small></th><th>관외 출장<small>(화성시 밖)</small></th><th>특근 식비</th><th class="tot">정산 받을 금액</th><th>인쇄</th></tr></thead><tbody>
+        ${st.people.map(p => `<tr><th>${e(p.name)}</th><td>${cell(p.in, p.inTotal)}</td><td>${cell(p.out, p.outTotal)}</td><td>${cell(p.ot, p.otTotal)}${p.ot.some(r => r.capped) ? '<small class="tv-over">하루 2만원까지만</small>' : ''}</td><td class="tot"><b class="num">${won(p.total)}원</b></td>
+          <td class="nowrap">${pbtn(p.name, 'in', p.in.length)}${pbtn(p.name, 'out', p.out.length)}${pbtn(p.name, 'ot', p.ot.length)}<button class="btn btn-sm btn-primary" type="button" data-act="tv-print-part" data-staff="${e(p.name)}" data-part="all">전체</button></td></tr>`).join('')}
+        <tr class="tot"><th>전 직원 합계</th><td><b class="num">${won(st.inTotal)}원</b></td><td><b class="num">${won(st.outTotal)}원</b></td><td><b class="num">${won(st.otTotal)}원</b></td><td class="tot"><b class="num">${won(st.total)}원</b></td>
+          <td class="nowrap"><button class="btn btn-sm" type="button" data-act="tv-print-sum">전체 요약 인쇄</button><button class="btn btn-sm btn-primary" type="button" data-act="tv-print-all">전원 정산서 인쇄</button></td></tr>
+      </tbody></table></div>
+      <p class="sub" style="margin:4px 0 0">관내: 4시간 미만 5천원 · 4시간 이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외: 일비 2만원 + 운임·숙박비 / 하루에 관내·관외를 같이 가면 관외 / 식비는 출장·특근 합쳐 한 사람 하루 최대 2만원. 특근 식비는 특근 명령부의 식비 칸에서 적어요.</p>
+    </div>`;
+  }
+  /** 정산서 한 장: part = in | out | ot | all */
+  function settleDoc(month, name, part, scale = 1) {
+    const p = settle(month).people.find(x => x.name === name) || { name, in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
+    const parts = part === 'all' ? ['in', 'out', 'ot'] : [part];
+    const rowsOf = k => p[k];
+    const nRows = parts.reduce((a, k) => a + Math.max(3, rowsOf(k).length) + 2, 0);
+    const rowMm = +(Math.min(9, 190 / Math.max(14, nRows)) * scale).toFixed(2);
+    const fs = +((rowMm >= 8 ? 10 : rowMm >= 6.5 ? 9 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
+    const COLS = { in: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['유류·통행·주차', 14], ['식비', 11], ['합계', 16]], out: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['운임·숙박', 14], ['식비', 11], ['합계', 16]], ot: [['날짜', 9], ['특근 업무', 36], ['특근시간', 17], ['식비', 18], ['합계', 20]] };
+    const sec = k => {
+      const rows = rowsOf(k), cols = COLS[k];
+      const body = rows.map(r => `<tr style="height:${rowMm}mm"><td>${U.md(r.date)}</td><td class="l">${e(r.where)}</td><td>${e(r.time)}</td>${k === 'ot' ? `<td class="r">${won(r.meal)}${r.capped ? '*' : ''}</td>` : `<td class="r">${won(r.daily)}</td><td class="r">${won(k === 'in' ? r.fuel + r.tollPark : r.fareLodge + r.fuel + r.tollPark)}</td><td class="r">${won(r.meal)}</td>`}<td class="r"><b>${won(r.total)}</b></td></tr>`);
+      while (body.length < 3) body.push(`<tr style="height:${rowMm}mm">${cols.map(() => '<td>&nbsp;</td>').join('')}</tr>`);
+      return `<h2 class="tv-doc-sec">${PART[k]}</h2><table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${cols.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
+        <thead><tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.join('')}
+        <tr class="tv-doc-total"><th colspan="${cols.length - 1}">${PART[k]} 소계 (${rows.length}일)</th><th class="r">${won(p[k + 'Total'])}</th></tr></tbody></table>`;
+    };
+    const total = parts.reduce((a, k) => a + p[k + 'Total'], 0);
+    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
+    return `<article class="doc order-doc tv-settle-doc" style="font-size:${fs}pt">
+      <div class="order-head">${sign}</div>
+      <h1>${part === 'all' ? '여비 정산서' : `${PART[part]} 정산서`}</h1>
+      <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터) · <b>${e(name)}</b></p>
+      ${parts.map(sec).join('')}
+      <table class="doc-tbl tv-grand"><tr><th>정산 받을 금액${part === 'all' ? ' (관내 + 관외 + 특근)' : ''}</th><td class="r"><b>${won(total)}원</b></td></tr></table>
+      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음), 관외 일비 2만원, 하루에 관내·관외를 같이 가면 관외. 식비는 출장·특근 합쳐 1인 1일 2만원 이내${p.ot.some(r => r.capped) ? ' (*표시: 상한 적용)' : ''}. 유류비·통행료·주차료·운임·숙박비는 영수증 첨부.</p>
+    </article>`;
+  }
+  /** 전 직원 월 합계 한 장 */
+  function settleSumDoc(month) {
+    const st = settle(month);
+    return `<article class="doc order-doc" style="font-size:10pt">
+      <div class="order-head"><table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table></div>
+      <h1>여비 정산 총괄표</h1>
+      <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)</p>
+      <table class="doc-tbl order-tbl"><colgroup><col style="width:16%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:12%"><col style="width:14%"></colgroup>
+        <thead><tr><th>담당자</th><th>관내 일수</th><th>관내 금액</th><th>관외 일수</th><th>관외 금액</th><th>특근 일수</th><th>특근 식비</th><th>정산 금액</th></tr></thead><tbody>
+        ${st.people.map(p => `<tr style="height:10mm"><td><b>${e(p.name)}</b></td><td>${p.in.length}</td><td class="r">${won(p.inTotal)}</td><td>${p.out.length}</td><td class="r">${won(p.outTotal)}</td><td>${p.ot.length}</td><td class="r">${won(p.otTotal)}</td><td class="r"><b>${won(p.total)}</b></td></tr>`).join('')}
+        <tr class="tv-doc-total" style="height:11mm"><th>합계</th><th></th><th class="r">${won(st.inTotal)}</th><th></th><th class="r">${won(st.outTotal)}</th><th></th><th class="r">${won(st.otTotal)}</th><th class="r">${won(st.total)}원</th></tr>
+      </tbody></table>
+      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외 일비 2만원 + 운임·숙박비 / 식비 1인 1일 2만원 이내(출장·특근 합산).</p>
+    </article>`;
+  }
   const monthTrips = month => S.get().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
 
   /* ---------- 화면 ---------- */
@@ -5642,16 +5758,18 @@ window.TV = (() => {
     const warn = ds.filter(d => d.noTime).length;
     const fuelNeed = ds.reduce((n, d) => n + d.rows.filter(r => r.c.need.length).length, 0);
     return `<section class="panel">
+      ${settlePanel(month)}
       <div class="panel-pad tv-top">
         <details class="tv-rule"><summary><b>여비 지급 기준</b> <span class="sub">규정집 2026 · 누르면 펼쳐져요</span></summary>
           <div class="tv-rule-body">
-            <table class="tbl tv-rule-tbl"><thead><tr><th>근무지 내 일비</th><th>차량배치 유</th><th>차량배치 무</th></tr></thead>
-              <tbody><tr><td>4시간 이상</td><td>${won(RULE.daily.long.car)}원</td><td>${won(RULE.daily.long.nocar)}원</td></tr><tr><td>4시간 미만</td><td>${won(RULE.daily.short.car)}원</td><td>${won(RULE.daily.short.nocar)}원</td></tr></tbody></table>
+            <table class="tbl tv-rule-tbl"><thead><tr><th>구분</th><th>일비</th></tr></thead>
+              <tbody><tr><td>근무지 내 (화성시 안) 4시간 미만</td><td>${won(RULE.daily.short.car)}원</td></tr><tr><td>근무지 내 4시간 이상</td><td>${won(RULE.daily.long.car)}원</td></tr><tr><td>근무지 외 (화성시 밖)</td><td>${won(RULE.outDaily)}원</td></tr><tr><td>식비 (출장·특근 합쳐 1인 1일)</td><td>최대 ${won(RULE.meal)}원</td></tr></tbody></table>
             <ul class="sub">
               <li><b>근무지 내(화성시 안)</b>: 일비 + 유류비(출장거리 × 유가 ÷ 연비, 개인 차량일 때) + 통행료 + 주차료(영수증)</li>
               <li><b>근무지 외</b>: 운임(실비) + 숙박비(1박 상한 특별시 7만 · 광역시 6만 · 그 외 5만원) + 식비(1일 2만원 이내) + 일비(1일 2만원 이내)</li>
               <li>하루에 여러 번 나가면 <b>출장시간을 모두 더해</b> 계산하고, 1일 기준 금액을 넘지 않아요. 하루에 관내·관외를 같이 가면 <b>관외 기준</b>으로 줘요.</li>
-              <li>방법이 <b>복지관 차량</b>이면 차량배치 유, 대중교통·도보·개인 차량이면 차량배치 무로 계산해요.</li>
+              <li>관내 일비는 <b>기관차량·자차 상관없이</b> 4시간 미만 5천원, 4시간 이상 1만원이에요. 자차는 유류비를 따로 더해요.</li>
+              <li>식비는 출장 식비와 특근 식비를 합쳐 <b>한 사람 하루 최대 2만원</b>이에요.</li>
             </ul>
           </div>
         </details>
@@ -5667,7 +5785,7 @@ window.TV = (() => {
         </div>
         ${warn || fuelNeed ? `<p class="tv-warn">${warn ? `⏰ 출장시간이 없는 날 <b>${warn}</b>일은 4시간 미만으로 계산했어요. 시간 칸에 <b>9~12시</b>처럼 적어 주세요. ` : ''}${fuelNeed ? `⛽ 개인 차량 <b>${fuelNeed}</b>건은 거리·유가·연비가 모자라 유류비가 0원이에요.` : ''}</p>` : ''}
       </div>
-      ${list.length ? `<div class="tv-sum">${staffs.map(s => `<div class="tv-sum-item"><span>${e(s)}</span><b class="num">${won(staffTotal(s))}원</b><span class="sub">${ds.filter(d => d.staff === s).length}일</span></div>`).join('')}<div class="tv-sum-item all"><span>이 달 합계</span><b class="num">${won(ds.reduce((a, d) => a + d.total, 0))}원</b></div></div>
+      ${list.length ? `<h3 class="tv-detail-h">출장 날짜별 계산 <span class="sub">시간·방법·영수증 금액을 여기서 고치면 위 정산에 바로 반영돼요</span></h3>
       <div class="table-wrap"><table class="tbl tv-tbl"><thead><tr>
         <th>날짜·성명</th><th>출장지</th><th>출장시간</th><th>방법 · 구분</th><th>유류비 계산<small>개인 차량</small></th><th>통행료 · 주차료</th><th>관외 비용<small>운임·숙박·식비</small></th>
         <th class="tv-c">유류비</th><th class="tv-c">일비<small>(하루)</small></th><th class="tv-c">하루 합계</th></tr></thead><tbody>
@@ -5721,7 +5839,7 @@ window.TV = (() => {
   }
   const staffOf = month => [...new Set(days(monthTrips(month)).map(d => d.staff))];
 
-  return { RULE, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
+  return { RULE, settle, settleDoc, settleSumDoc, PART, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
 })();
 
 </script>
@@ -7119,6 +7237,21 @@ window.App = (() => {
     box.remove();
     return html;
   }
+  /** 아무 문서나 A4 세로 한 쪽에 맞추기: make(scale) → html */
+  function fitA4(make) {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
+    document.body.appendChild(box);
+    const limit = 272 * 96 / 25.4;
+    let html = '';
+    for (const scale of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52]) {
+      html = make(scale); box.innerHTML = html;
+      const art = box.querySelector('.order-doc'); art.classList.add('measure');
+      if (art.getBoundingClientRect().height <= limit) break;
+    }
+    box.remove();
+    return html;
+  }
   /** 여비 명세도 명령부와 같이 A4 한 쪽에 맞춘다 */
   function fitTravel(staff) {
     const box = document.createElement('div');
@@ -7938,6 +8071,9 @@ window.App = (() => {
       toast(`유류비 기본값을 저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L`);
     },
     'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
+    'tv-print-part': el => { const m = R.ui.orders.month; printHtml(fitA4(sc => TV.settleDoc(m, el.dataset.staff, el.dataset.part, sc))); },
+    'tv-print-sum': () => printHtml(TV.settleSumDoc(R.ui.orders.month)),
+    'tv-print-all': () => { const m = R.ui.orders.month; printHtml(TV.settle(m).people.map(p => fitA4(sc => TV.settleDoc(m, p.name, 'all', sc))).join('') + TV.settleSumDoc(m)); },
     'tv-print': () => { const list = TV.staffOf(R.ui.orders.month); if (list.length) printHtml(list.map(fitTravel).join('')); },
     'tv-road': async () => {
       // 개인 차량으로 간 줄 중 거리를 안 적은 곳: 복지관 ↔ 출장지 도로 거리 × 2(왕복)를 채운다
