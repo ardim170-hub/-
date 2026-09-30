@@ -17,7 +17,7 @@ window.S = (() => {
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
-  SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID']]];
+  SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
@@ -162,7 +162,7 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', fuelEff: s.settings.fuelEff || '', fuelPrice: s.settings.fuelPrice || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
   }
   /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
   let access = { me: '', owner: '', admin: true, perms: {} };

@@ -55,7 +55,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -364,6 +364,23 @@ window.App = (() => {
     let html = '';
     for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
       html = R.orderDoc(staff, scale);
+      box.innerHTML = html;
+      const art = box.querySelector('.order-doc');
+      art.classList.add('measure');
+      if (art.getBoundingClientRect().height <= limit) break;
+    }
+    box.remove();
+    return html;
+  }
+  /** 여비 명세도 명령부와 같이 A4 한 쪽에 맞춘다 */
+  function fitTravel(staff) {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
+    document.body.appendChild(box);
+    const limit = 272 * 96 / 25.4;
+    let html = '';
+    for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
+      html = TV.doc(R.ui.orders.month, staff, scale);
       box.innerHTML = html;
       const art = box.querySelector('.order-doc');
       art.classList.add('measure');
@@ -1016,6 +1033,32 @@ window.App = (() => {
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
+    'tv-save-set': async () => {
+      const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
+      await S.saveSettings({ fuelEff: eff, fuelPrice: price });
+      toast(`유류비 기본값을 저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L`);
+    },
+    'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
+    'tv-print': () => { const list = TV.staffOf(R.ui.orders.month); if (list.length) printHtml(list.map(fitTravel).join('')); },
+    'tv-road': async () => {
+      // 개인 차량으로 간 줄 중 거리를 안 적은 곳: 복지관 ↔ 출장지 도로 거리 × 2(왕복)를 채운다
+      const home = TV.homeOf();
+      if (!home) return toast('복지관 위치가 없어 거리를 잴 수 없어요. 지도에서 ★ 복지관 위치를 먼저 등록해 주세요.', 'error');
+      const list = TV.monthTrips(R.ui.orders.month).filter(t => TV.ownCar(t) && !Number(t.km));
+      if (!list.length) return toast('거리를 채울 개인 차량 출장이 없어요. (방법이 "개인 차량"인 줄만 채워요)');
+      let ok = 0, miss = 0;
+      const patch = [];
+      for (const t of list) {
+        const p = TV.placeOf(t);
+        if (!p || !M.hasPos(p)) { miss++; continue; }
+        const road = await M.roadRoute(home, p);
+        const km = road ? road.km * 2 : M.distKm(home, p) * 1.35 * 2;
+        patch.push({ id: t.id, km: String(Math.round(km * 10) / 10) });
+        ok++;
+      }
+      patch.forEach(p => S.upsert('trip', p));
+      toast(`${ok}건의 왕복 거리를 채웠어요.${miss ? ` ${miss}건은 출장지를 지도에서 못 찾아 직접 적어 주세요.` : ''}`);
+    },
     'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
     'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
     'od-dup': el => { const t = S.find('trip', el.dataset.id); if (!t) return; const other = S.staff().map(s => s.name).find(n => n !== t.staff) || t.staff; S.upsert('trip', { ...t, id: undefined, staff: other, actId: '' }); toast(`${other} 동행 줄을 추가했습니다. 성명을 확인하세요.`); },
@@ -1266,7 +1309,21 @@ window.App = (() => {
     window.addEventListener('hashchange', () => { if (drawerOpen()) closeDrawer(); render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
     S.subscribe(() => {
       // 표 안에서 칸을 고칠 때는 화면 전체를 다시 그리지 않아 입력 위치가 유지되게 한다
-      if (inlineEdit) { inlineEdit = false; if (route() === 'contacts') $('#ctResults').innerHTML = R.contactsResults(); return; }
+      if (inlineEdit) {
+        inlineEdit = false;
+        if (route() === 'contacts') $('#ctResults').innerHTML = R.contactsResults();
+        // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
+        if (route() === 'orders' && R.ui.orders.kind === '여비') setTimeout(() => {
+          // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
+          const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
+          const y = window.scrollY, wrap = $('.tv-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
+          $('#odResults').innerHTML = R.ordersResults();
+          const w2 = $('.tv-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
+          window.scrollTo(0, y);
+          if (id && fd) $(`[data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
+        }, 0);
+        return;
+      }
       if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
     });

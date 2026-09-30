@@ -207,12 +207,13 @@ window.R = (() => {
         <div><h1 class="page-title">출장·특근 명령부</h1><div class="page-desc">현장중심센터 월별 관내출장 명령부와 특근 명령부를 만들고, 한글 서식 모양으로 인쇄합니다.</div></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('od-month', f.month)}
-        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button></div>
+        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 계산</button></div>
       </div>
       <div id="odResults"></div>`;
   }
   function ordersResults() {
     const f = ui.orders;
+    if (f.kind === '여비') return TV.page(f.month);
     const list = trips(f.month, f.kind);
     const staffOpts = sel => opts([...new Set([...S.staff().map(s => s.name), sel].filter(Boolean))], sel);
     const cell = (t, k, attrs = '') => `<input class="input sm" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] || '')}" ${attrs}>`;
