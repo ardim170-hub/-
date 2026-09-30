@@ -1208,3 +1208,18 @@ label.field .textarea { width: 100%; }
 .at-doc-legend span { padding: 0 2mm; border: .6px solid #555; }
 @media print { .at-dtbl * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 #printRoot .at-doc + .at-doc { page-break-before: always; break-before: page; }
+.at-bar { flex-wrap: wrap; gap: 8px 14px; }
+.at-months { display: flex; gap: 4px; flex-wrap: wrap; }
+.at-months .am { display: flex; flex-direction: column; align-items: center; min-width: 58px; padding: 4px 6px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; font: inherit; line-height: 1.2; }
+.at-months .am small { font-size: 10.5px; color: var(--text-2); white-space: nowrap; }
+.at-months .am.has { border-color: color-mix(in srgb, var(--pc, #C2410C) 45%, var(--line)); background: var(--ps, #FFF1E8); }
+.at-months .am.now b { text-decoration: underline; text-underline-offset: 3px; }
+.at-months .am.on { background: var(--pc, #C2410C); border-color: var(--pc, #C2410C); color: #fff; }
+.at-months .am.on small { color: #fff; }
+.at-tbl tr.ft.pl th { background: #FFF6E0; }
+.at-ytbl td { min-width: 58px; line-height: 1.1; padding: 3px 4px; }
+.at-ytbl td b { display: block; font-size: 13px; }
+.at-ytbl td small { color: var(--text-2); font-size: 10.5px; }
+.at-ytbl td.nil { color: #C0C5CE; }
+.at-ytbl td.tot { background: #FFF7ED; }
+.at-imp textarea { width: 100%; margin-top: 6px; font-family: ui-monospace, monospace; font-size: 12px; }

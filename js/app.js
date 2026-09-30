@@ -57,7 +57,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -1123,6 +1123,15 @@ window.App = (() => {
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'at-month': el => { const [y, m] = AT.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); AT.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'at-year': el => { const y = +AT.ui.month.slice(0, 4) + +el.dataset.d; AT.ui.month = `${y}-${AT.ui.month.slice(5, 7)}`; render(); },
+    'at-goto': el => { AT.ui.month = el.dataset.m; AT.ui.view = 'month'; render(); },
+    'at-view': el => { AT.ui.view = el.dataset.v; render(); },
+    'at-pastetbl': () => { AT.ui.pasteTbl = !AT.ui.pasteTbl; bindAttend(); $('#atTblText')?.focus(); },
+    'at-pastetbl-read': () => {
+      const found = AT.parsePaste($('#atTblText').value);
+      if (!found.length) return toast('표를 찾지 못했어요. "성명"과 "9월", "1일 2일 …" 머리줄까지 함께 복사해 주세요.', 'error');
+      AT.ui.pasteTbl = false; AT.ui.imp = { file: '붙여넣은 표', found }; bindAttend();
+    },
     'at-brush': el => { AT.ui.brush = el.dataset.brush; bindAttend(); },
     'at-group': el => { AT.ui.group = el.dataset.g; bindAttend(); },
     'at-fill': async () => {

@@ -22,7 +22,7 @@ window.AT = (() => {
     '2026-09': [24, 25], '2026-10': [5, 9], '2026-12': [25],
     '2027-01': [1], '2027-02': [8, 9], '2027-03': [1], '2027-05': [5, 13], '2027-06': [7], '2027-08': [16], '2027-09': [14, 15, 16], '2027-10': [4, 11], '2027-12': [27],
   };
-  const ui = { month: U.today().slice(0, 7), brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
+  const ui = { month: U.today().slice(0, 7), view: 'month', pasteTbl: false, brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
 
   /* ---------- 데이터 ---------- */
   const people = () => [...S.get().jobPeople].sort((a, b) => TYPES.indexOf(a.type) - TYPES.indexOf(b.type) || SUBS.indexOf(a.sub) - SUBS.indexOf(b.sub) || (Number(a.no) || 999) - (Number(b.no) || 999) || (a.name || '').localeCompare(b.name || ''));
@@ -77,8 +77,9 @@ window.AT = (() => {
     const out = {};
     for (let d = 1; d <= dim(m); d++) {
       let work = 0, use = 0;
-      list.forEach(p => { const c = cell(all[p.id][d]); if (c.empty) return; work++; if (c.off || c.st) use++; });
-      out[d] = { work, use, real: work - use };
+      const place = {};
+      list.forEach(p => { const c = cell(all[p.id][d]); if (c.empty) return; work++; if (c.off || c.st) use++; else if (p.place) place[p.place] = (place[p.place] || 0) + 1; });
+      out[d] = { work, use, real: work - use, place };
     }
     return out;
   }
@@ -88,15 +89,46 @@ window.AT = (() => {
     return `
       <div class="page-head">
         <div><h1 class="page-title">출석부 <span class="sub">장애인일자리</span></h1><div class="page-desc">참여자 근태를 달력처럼 칠해서 기록하고, 시간·실적건수·실근무 일수를 자동으로 셉니다. 인쇄하면 A4 가로 한 장이에요.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="at-import">엑셀 출석부 불러오기</button><button class="btn btn-primary" type="button" data-act="at-print">🖨 인쇄</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="at-import">엑셀 파일 불러오기</button><button class="btn" type="button" data-act="at-pastetbl">표 붙여넣기</button><button class="btn btn-primary" type="button" data-act="at-print" ${ui.view === 'year' ? 'disabled' : ''}>🖨 인쇄</button></div>
       </div>
-      <div class="toolbar perf-bar">
-        <div class="month-nav"><button class="icon-btn" type="button" data-act="at-month" data-d="-1" aria-label="이전 달">${V.I.back}</button><b class="num">${V.monthLabel(ui.month)}</b><button class="icon-btn" type="button" data-act="at-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${V.I.back}</button></div>
+      <div class="toolbar perf-bar at-bar">
+        <div class="month-nav"><button class="icon-btn" type="button" data-act="at-year" data-d="-1" aria-label="이전 해">${V.I.back}</button><b class="num">${ui.month.slice(0, 4)}년</b><button class="icon-btn" type="button" data-act="at-year" data-d="1" aria-label="다음 해" style="transform:scaleX(-1)">${V.I.back}</button></div>
+        <div class="at-months" role="tablist" aria-label="달 고르기">${monthStrip()}</div>
       </div>
       <div id="atResults"></div>`;
   }
 
+  /** 1~12월 버튼: 기록이 있는 달은 인원·시간을 보여 준다 */
+  function monthStrip() {
+    const y = ui.month.slice(0, 4);
+    const ppl = S.get().jobPeople;
+    return `<button type="button" class="am ${ui.view === 'year' ? 'on' : ''}" data-act="at-view" data-v="year"><b>연간</b><small>요약</small></button>` + Array.from({ length: 12 }, (_, i) => {
+      const m = `${y}-${U.pad(i + 1)}`;
+      const recs = S.get().attends.filter(a => a.month === m && a.pid !== '_' && a.days && a.days !== '{}');
+      const hours = recs.reduce((t, r) => { const p = ppl.find(x => x.id === r.pid); return t + (p ? sums(p, m, parseDays(r)).hours : 0); }, 0);
+      const on = ui.view === 'month' && ui.month === m;
+      return `<button type="button" role="tab" aria-selected="${on}" class="am ${on ? 'on' : ''} ${recs.length ? 'has' : ''} ${m === U.today().slice(0, 7) ? 'now' : ''}" data-act="at-goto" data-m="${m}"><b>${i + 1}월</b><small>${recs.length ? `${recs.length}명 · ${hours}h` : '-'}</small></button>`;
+    }).join('');
+  }
+  /** 연간 요약: 참여자 × 월 (실근무 일수 / 시간) */
+  function yearTable() {
+    const y = ui.month.slice(0, 4);
+    const months = Array.from({ length: 12 }, (_, i) => `${y}-${U.pad(i + 1)}`);
+    const ppl = people().filter(p => months.some(m => recOf(p.id, m)));
+    if (!ppl.length) return `<div class="empty"><strong>${y}년 출석 기록이 없어요</strong>달을 골라 기록하거나 엑셀을 불러오세요.</div>`;
+    const mts = Object.fromEntries(months.map(m => [m, meta(m)]));
+    const colT = months.map(() => ({ h: 0, r: 0, n: 0 }));
+    const rows = ppl.map((p, i) => {
+      let th = 0, tr = 0;
+      const tds = months.map((m, k) => { const r = recOf(p.id, m); if (!r) return '<td class="nil">-</td>'; const s = sums(p, m, parseDays(r), mts[m]); th += s.hours; tr += s.real; colT[k].h += s.hours; colT[k].r += s.real; colT[k].n++; return `<td class="num" title="${s.hours}시간 · 실적 ${s.cnt}일 · 근태 ${s.gt} · 휴무 ${s.off}"><b>${s.real}</b><small>${s.hours}h</small></td>`; }).join('');
+      return `<tr><td class="num">${i + 1}</td><th class="nm">${e(p.name)}</th><td class="sub">${e([p.type, p.sub].filter(Boolean).join(' '))}</td>${tds}<td class="num tot"><b>${tr}</b><small>${th}h</small></td></tr>`;
+    }).join('');
+    return `<div class="at-wrap"><table class="at-tbl at-ytbl"><thead><tr><th>번호</th><th class="nm">성명</th><th>구분</th>${months.map((m, k) => `<th><button type="button" class="linklike" data-act="at-goto" data-m="${m}">${k + 1}월</button></th>`).join('')}<th>합계</th></tr></thead>
+      <tbody>${rows}<tr class="tot"><th colspan="3">합계 · 인원</th>${colT.map(c => `<td class="num">${c.n ? `<b>${c.r}</b><small>${c.h}h · ${c.n}명</small>` : ''}</td>`).join('')}<td class="num"><b>${colT.reduce((a, c) => a + c.r, 0)}</b><small>${colT.reduce((a, c) => a + c.h, 0)}h</small></td></tr></tbody></table></div>
+      <p class="sub" style="margin:8px 16px 0">칸의 굵은 숫자 = 실근무 일수, 작은 숫자 = 근무 시간. 달 이름을 누르면 그 달 출석부로 가요.</p>`;
+  }
   function results() {
+    if (ui.view === 'year') return `<section class="panel at">${ui.imp ? importPanel() : ''}${ui.pasteTbl ? pastePanel() : ''}${yearTable()}</section>`;
     const m = ui.month, mt = meta(m);
     const all = people();
     const list = all.filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group));
@@ -153,7 +185,7 @@ window.AT = (() => {
         ${groups.length > 1 ? `<span class="chips at-groups"><button type="button" class="chip ${!ui.group ? 'on' : ''}" data-act="at-group" data-g="">전체</button>${groups.map(g => `<button type="button" class="chip ${ui.group === g ? 'on' : ''}" data-act="at-group" data-g="${e(g)}">${e(g)}</button>`).join('')}</span>` : ''}
         <span class="sub at-help">도구를 고른 뒤 칸을 누르거나 끌면 칠해져요. 같은 칸을 다시 칠하면 지워져요. 공휴일은 채우기 때 공가로 들어가요.</span>
       </div>
-      ${ui.imp ? importPanel() : ''}
+      ${ui.imp ? importPanel() : ''}${ui.pasteTbl ? pastePanel() : ''}
       ${list.length ? `<div class="at-wrap" id="atWrap"><table class="at-tbl" id="atTbl"><thead>
         <tr><th rowspan="2" class="grp">구분</th><th rowspan="2" class="no">번호</th><th rowspan="2" class="nm">성명</th><th colspan="${n + tailCols}">${+m.slice(5, 7)}월</th><th colspan="9" class="s-head">${mt.base}일 기준</th></tr>
         <tr>${Array.from({ length: n }, (_, k) => { const d = k + 1, w = wd(m, d); return `<th class="d ${dayCls(d)}">${d}<small>${U.WD[w]}</small></th>`; }).join('')}${tailCols ? '<th class="d sat">계</th>' : ''}
@@ -162,13 +194,21 @@ window.AT = (() => {
           <tr class="tot"><th colspan="3">합계 (${list.length}명)</th><td colspan="${n + tailCols}"></td><td class="s num">${tot.hours}시간</td><td class="s num">${tot.cnt}일</td><td class="s num">${tot.real}일</td><td colspan="6"></td></tr>
           ${foot('근무 인원', 'work')}<td colspan="9"></td></tr>
           ${foot('병가·공가 사용 인원', 'use')}<td colspan="9"></td></tr>
-          ${foot('실 근무 인원', 'real')}<td class="s num" colspan="3">${realSum}</td><td colspan="6"></td></tr>
+          ${foot('실 근무 인원 (실인원)', 'real')}<td class="s num" colspan="3">${realSum}</td><td colspan="6"></td></tr>
+          ${places(list).map(pl => `<tr class="ft pl"><th colspan="3">${e(pl)} 인원</th>${Array.from({ length: n }, (_, k) => { const d = k + 1, cls = dayCls(d); return cls === 'sat' || cls === 'sun' ? `<td class="${cls === 'sat' ? 'wk' : 'sun'}"></td>` : `<td class="num ${cls}">${dl[d].place[pl] || ''}</td>`; }).join('')}${tailCols ? '<td class="wk"></td>' : ''}<td colspan="9"></td></tr>`).join('')}
         </tbody></table></div>`
       : `<div class="empty"><strong>${V.monthLabel(m)}에 참여 중인 사람이 없어요</strong>아래 참여자 명단에서 추가하거나, 지금 쓰는 엑셀 출석부를 불러오세요.</div>`}
       ${peoplePanel(all)}
     </section>`;
   }
 
+  const places = list => [...new Set(list.map(p => p.place).filter(Boolean))].sort();
+  function pastePanel() {
+    return `<div class="at-imp"><b>엑셀 표 붙여넣기</b> <span class="sub">엑셀에서 "구분 … 성명 … 1일 2일 …"부터 맨 아래 줄까지 드래그해 복사(Ctrl+C)한 뒤 아래에 붙여넣으세요(Ctrl+V).</span>
+      <textarea class="textarea" id="atTblText" rows="6" placeholder="구분	성명	9월 …"></textarea>
+      <p class="sub" style="margin:4px 0">붙여넣은 글에는 칸 색이 없어서, 오른쪽 요약 칸을 보고 <b>공휴일 = 공가</b>, <b>결근 수만큼 빈 평일 = 결근</b>으로 채워요. 병가·특휴는 날짜를 알 수 없어서 불러온 뒤 칠하기로 표시해 주세요. 색까지 가져오려면 <b>엑셀 파일 불러오기</b>가 정확해요.</p>
+      <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="at-pastetbl-read">표 읽기</button><button class="btn btn-sm" type="button" data-act="at-pastetbl">닫기</button></div></div>`;
+  }
   function peoplePanel(all) {
     const inp = (p, k, w, ph = '', type = 'text') => `<input class="input sm" style="width:${w}px" data-chg="jp-field" data-id="${p.id}" data-field="${k}" value="${e(p[k] || '')}" placeholder="${ph}" ${type === 'date' ? 'type="date"' : ''}>`;
     const sel = (p, k, list) => `<select class="select sm" data-chg="jp-field" data-id="${p.id}" data-field="${k}">${list.map(v => `<option ${p[k] === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
@@ -285,6 +325,69 @@ window.AT = (() => {
 
   /* ---------- 엑셀 출석부 불러오기 ---------- */
   const FILL = { '92D050': '공', '00B0F0': '특', '36A0F8': '특', B850D8: '병', BC8FDD: '병', '7030A0': '병', '000000': '결' };
+  /** 표(엑셀 시트 또는 붙여넣은 글)에서 출석부를 찾는다.
+   *  G = { r0, r1, c0, c1, txt(r,c), fill(r,c), top(r,c) } — top은 합쳐진 칸(구분)의 값 */
+  function parseGrid(G, year, sheet, hol) {
+    const found = [];
+    for (let r = G.r0; r <= G.r1; r++) {
+      let nameCol = -1;
+      for (let c = G.c0; c <= Math.min(G.c1, 15); c++) if (G.txt(r, c).replace(/\s/g, '') === '성명') { nameCol = c; break; }
+      if (nameCol < 0) continue;
+      // 머리줄: 이 줄 또는 다음 줄에 "1일".."31일", 이 줄에 "9월". 요약 칸(결근·병가 등)도 찾아 둔다
+      const head = {}; let month = 0;
+      for (const rr of [r, r + 1]) for (let c = nameCol; c <= G.c1; c++) {
+        const t = G.txt(rr, c).replace(/\s/g, '');
+        if (rr === r && /^\d{1,2}월$/.test(t)) month = +t.replace('월', '');
+        if (/생년/.test(t)) head.birth = c; if (/시작/.test(t)) head.start = c; if (/종료|포기/.test(t)) head.end = c;
+        if (ST_BY_LABEL[t]) head[ST_BY_LABEL[t]] = c;
+      }
+      const dayCol = {};
+      for (const rr of [r, r + 1]) for (let c = nameCol; c <= G.c1; c++) { const k = G.txt(rr, c).replace(/\s/g, '').match(/^(\d{1,2})일$/); if (k) dayCol[+k[1]] = c; }
+      if (!month || !Object.keys(dayCol).length) continue;
+      const m = `${year}-${U.pad(month)}`;
+      const holSet = new Set((hol ? hol(m) : HOLIDAYS[m] || []).map(Number));
+      const rows = [];
+      let colorless = 0, guessed = 0;
+      for (let rr = r + 2; rr <= G.r1; rr++) {
+        const nm = G.txt(rr, nameCol);
+        if (!nm) { if (/인원|합계/.test(G.txt(rr, G.c0) + G.txt(rr, nameCol - 3) + G.txt(rr, nameCol - 1))) break; continue; }
+        if (nm.replace(/\s/g, '') === '성명' || /인원/.test(nm)) break;
+        const days = {};
+        let anyColor = false;
+        Object.entries(dayCol).forEach(([d, c]) => {
+          const w = new Date(year, month - 1, +d).getDay(); if (w === 0 || w === 6) return;
+          const v = G.txt(rr, c);
+          const st = FILL[G.fill(rr, c)] || '';
+          if (st) anyColor = true;
+          if (/휴/.test(v)) days[d] = '휴';
+          else if (st === '결') days[d] = `${v && !isNaN(+v) ? +v : ''}|결`;
+          else if (v !== '' && !isNaN(+v)) days[d] = st ? `${+v}|${st}` : String(+v);
+          else if (st) days[d] = `|${st}`;
+        });
+        // 색이 없는 표(붙여넣기): 오른쪽 요약 칸 숫자로 채울 수 있는 것은 채운다
+        //  - 공휴일에 시간이 적힌 날 = 공가, - 결근 수만큼의 빈 평일 = 결근
+        if (!anyColor) {
+          const want = k => (head[k] != null ? Number(String(G.txt(rr, head[k])).replace(/[^0-9]/g, '')) || 0 : 0);
+          holSet.forEach(d => { const c = cell(days[d]); if (c.h != null && !c.st && want('공') > 0) days[d] = `${c.h}|공`; });
+          const blanks = Object.keys(dayCol).map(Number).filter(d => { const w = new Date(year, month - 1, d).getDay(); return w > 0 && w < 6 && !days[d]; });
+          if (want('결') && blanks.length === want('결')) blanks.forEach(d => { days[d] = '|결'; });
+          const got = k => Object.values(days).filter(v => cell(v).st === k).length;
+          if (want('병') > got('병') || want('특') > got('특')) colorless++;
+          if (want('결') || want('공')) guessed++;
+        }
+        // 요일별 기본 시간: 요일마다 가장 많이 나온 시간
+        const pat = [1, 2, 3, 4, 5].map(w => { const cnt = {}; Object.entries(days).forEach(([d, v]) => { const c = cell(v); if (c.h != null && new Date(year, month - 1, +d).getDay() === w) cnt[c.h] = (cnt[c.h] || 0) + 1; }); const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; return best ? best[0] : ''; });
+        rows.push({ name: nm, type: G.top(rr, nameCol - 3), sub: G.top(rr, nameCol - 2), birth: head.birth != null ? normDate(G.txt(rr, head.birth)) : '', start: head.start != null ? normDate(G.txt(rr, head.start)) : '', end: head.end != null ? normDate(G.txt(rr, head.end)) : '', days, pattern: pat.every(Boolean) ? pat.join(',') : '' });
+      }
+      if (rows.length) {
+        const t = rows[0].type || '', s0 = rows[0].sub || '';
+        found.push({ sheet, month: m, label: `${[t, s0].filter(Boolean).join(' ') || '구분 없음'} ${rows.length}명`, rows, on: true, colorless });
+      }
+      r += 2;
+    }
+    return found;
+  }
+  const ST_BY_LABEL = { 공가: '공', 특휴: '특', 병가: '병', 결근: '결' };
   /** 지금 쓰는 엑셀 양식(구분·성명·생년월일·참여시작일·참여종료일·1일~31일)을 읽는다 */
   function parseWorkbook(wb, fileName) {
     const found = [];
@@ -294,60 +397,28 @@ window.AT = (() => {
       const rg = XLSX.utils.decode_range(ws['!ref']);
       const at = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
       const txt = (r, c) => { const x = at(r, c); return x && x.v != null ? String(x.w ?? x.v).trim() : ''; };
-      const mergedTop = (r, c) => { const mg = (ws['!merges'] || []).find(g => r >= g.s.r && r <= g.e.r && c >= g.s.c && c <= g.e.c); return mg ? txt(mg.s.r, mg.s.c) : txt(r, c); };
-      // 해: 제목 "2026년 ..." 또는 파일 이름
+      const top = (r, c) => { const mg = (ws['!merges'] || []).find(g => r >= g.s.r && r <= g.e.r && c >= g.s.c && c <= g.e.c); return mg ? txt(mg.s.r, mg.s.c) : txt(r, c); };
+      const fill = (r, c) => { const x = at(r, c); return x && x.s && x.s.fgColor && x.s.fgColor.rgb ? String(x.s.fgColor.rgb).toUpperCase().slice(-6) : ''; };
       let year = 0;
       for (let r = rg.s.r; r <= Math.min(rg.e.r, 3) && !year; r++) for (let c = rg.s.c; c <= Math.min(rg.e.c, 20); c++) { const k = txt(r, c).match(/(20\d{2})\s*년/); if (k) { year = +k[1]; break; } }
-      if (!year) { const k = String(fileName || '').match(/(20\d{2})/); year = k ? +k[1] : +U.today().slice(0, 4); }
-      for (let r = rg.s.r; r <= rg.e.r; r++) {
-        let nameCol = -1;
-        for (let c = rg.s.c; c <= Math.min(rg.e.c, 15); c++) if (txt(r, c).replace(/\s/g, '') === '성명') { nameCol = c; break; }
-        if (nameCol < 0) continue;
-        // 머리줄: 이 줄 또는 다음 줄에 "1일".."31일", 이 줄에 "9월"
-        const head = {}; let month = 0;
-        for (let c = nameCol; c <= rg.e.c; c++) {
-          const t = txt(r, c).replace(/\s/g, '');
-          if (/^\d{1,2}월$/.test(t)) month = +t.replace('월', '');
-          if (/생년/.test(t)) head.birth = c; if (/시작/.test(t)) head.start = c; if (/종료|포기/.test(t)) head.end = c;
-        }
-        const dayCol = {};
-        for (const rr of [r, r + 1]) for (let c = nameCol; c <= rg.e.c; c++) { const k = txt(rr, c).replace(/\s/g, '').match(/^(\d{1,2})일$/); if (k) dayCol[+k[1]] = c; }
-        if (!month || !Object.keys(dayCol).length) continue;
-        const m = `${year}-${U.pad(month)}`;
-        const rows = [];
-        for (let rr = r + 2; rr <= rg.e.r; rr++) {
-          const nm = txt(rr, nameCol);
-          if (!nm) { if (/인원|합계/.test(mergedTop(rr, rg.s.c + 2) + txt(rr, rg.s.c))) break; continue; }
-          if (nm.replace(/\s/g, '') === '성명' || /인원/.test(nm)) break;
-          const days = {};
-          Object.entries(dayCol).forEach(([d, c]) => {
-            const w = new Date(year, month - 1, +d).getDay(); if (w === 0 || w === 6) return;
-            const x = at(rr, c);
-            const v = x && x.v != null ? String(x.v).trim() : '';
-            const fill = x && x.s && x.s.fgColor && x.s.fgColor.rgb ? String(x.s.fgColor.rgb).toUpperCase().slice(-6) : '';
-            const st = FILL[fill] || '';
-            if (/휴/.test(v)) days[d] = '휴';
-            else if (st === '결') days[d] = `${v && !isNaN(+v) ? +v : ''}|결`;
-            else if (v !== '' && !isNaN(+v)) days[d] = st ? `${+v}|${st}` : String(+v);
-            else if (st) days[d] = `|${st}`;
-          });
-          // 요일별 기본 시간: 요일마다 가장 많이 나온 시간
-          const pat = [1, 2, 3, 4, 5].map(w => { const cnt = {}; Object.entries(days).forEach(([d, v]) => { const c = cell(v); if (c.h != null && new Date(year, month - 1, +d).getDay() === w) cnt[c.h] = (cnt[c.h] || 0) + 1; }); const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; return best ? best[0] : ''; });
-          rows.push({ name: nm, type: mergedTop(rr, rg.s.c + 2) || mergedTop(rr, nameCol - 3), sub: mergedTop(rr, nameCol - 2), birth: head.birth != null ? normDate(txt(rr, head.birth)) : '', start: head.start != null ? normDate(txt(rr, head.start)) : '', end: head.end != null ? normDate(txt(rr, head.end)) : '', days, pattern: pat.every(Boolean) ? pat.join(',') : '' });
-        }
-        if (rows.length) {
-          const t = rows[0].type || '', s = rows[0].sub || '';
-          found.push({ sheet: name, month: m, label: `${[t, s].filter(Boolean).join(' ') || '구분 없음'} ${rows.length}명`, rows, on: true });
-        }
-        r += 2;
-      }
+      if (!year) { const k = String(fileName || '').match(/(20\d{2})/); year = k ? +k[1] : +ui.month.slice(0, 4); }
+      found.push(...parseGrid({ r0: rg.s.r, r1: rg.e.r, c0: rg.s.c, c1: rg.e.c, txt, fill, top }, year, name, m => meta(m).holidays));
     }
     return found;
+  }
+  /** 엑셀에서 복사해 붙여넣은 글(탭으로 나뉜 표). 색은 없으므로 요약 칸으로 공가·결근을 채운다 */
+  function parsePaste(text) {
+    const lines = String(text || '').replace(/\r/g, '').split('\n').map(l => l.split('\t'));
+    const c1 = Math.max(0, ...lines.map(l => l.length - 1));
+    const txt = (r, c) => String((lines[r] || [])[c] ?? '').trim();
+    // 합쳐진 칸(구분)은 위쪽의 마지막 값
+    const top = (r, c) => { for (let k = r; k >= 0; k--) { const v = txt(k, c); if (v) return /구분|성명/.test(v) ? '' : v; } return ''; };
+    return parseGrid({ r0: 0, r1: lines.length - 1, c0: 0, c1, txt, fill: () => '', top }, +ui.month.slice(0, 4), '붙여넣기', m => meta(m).holidays);
   }
   function importPanel() {
     const g = ui.imp;
     return `<div class="at-imp"><b>엑셀에서 찾은 명단</b> <span class="sub">${e(g.file)}</span>
-      <div class="at-imp-list">${g.found.map((x, i) => `<label class="check"><input type="checkbox" data-act="at-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}>${e(V.monthLabel(x.month))} · ${e(x.label)}</label>`).join('')}</div>
+      <div class="at-imp-list">${g.found.map((x, i) => `<label class="check"><input type="checkbox" data-act="at-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}>${e(V.monthLabel(x.month))} · ${e(x.label)}${x.colorless ? ` <span class="tv-over">· 병가·특휴 날짜 확인 필요 ${x.colorless}명</span>` : ''}</label>`).join('')}</div>
       <p class="sub" style="margin:4px 0">같은 이름·생년월일인 참여자는 새로 만들지 않고 그 달 기록만 덮어써요. 칸 색(공가 초록·특휴 파랑·병가 보라·결근 검정)도 읽어요.</p>
       <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="at-imp-commit">불러오기</button><button class="btn btn-sm" type="button" data-act="at-imp-cancel">취소</button></div></div>`;
   }
@@ -412,6 +483,7 @@ window.AT = (() => {
         <tbody>${body}
           <tr style="height:${rowMm}mm" class="ft"><td colspan="3">합계 (${list.length}명)</td><td colspan="${n + (tail ? 1 : 0)}"></td><td>${tot.hours}</td><td>${tot.cnt}</td><td>${tot.real}</td><td colspan="6"></td></tr>
           ${foot('근무 인원', 'work')}<td colspan="9"></td></tr>${foot('병가·공가 사용 인원', 'use')}<td colspan="9"></td></tr>${foot('실 근무 인원', 'real')}<td colspan="9"></td></tr>
+          ${places(list).map(pl => `<tr style="height:${rowMm}mm" class="ft"><td colspan="3">${e(pl)} 인원</td>${Array.from({ length: n }, (_, k) => { const d = k + 1, c0 = cls(d); return c0 === 'sat' ? '<td class="wk"></td>' : c0 === 'sun' ? '<td class="sun"></td>' : `<td>${dl[d].place[pl] || ''}</td>`; }).join('')}${tail ? '<td class="wk"></td>' : ''}<td colspan="9"></td></tr>`).join('')}
         </tbody></table>
       <p class="at-doc-legend"><span class="st-공">공가</span><span class="st-특">특휴</span><span class="st-병">병가</span><span class="st-결">결근</span> 토요일 칸은 주간 시간 합계</p>
     </article>`;
@@ -429,5 +501,5 @@ window.AT = (() => {
     XLSX.writeFile(wb, `${V.monthLabel(m)} 장애인일자리 출석부.xlsx`);
   }
 
-  return { ui, ST, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
+  return { ui, ST, parsePaste, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
 })();
