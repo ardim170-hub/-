@@ -1172,10 +1172,31 @@ window.App = (() => {
     'at-imp-cancel': () => { AT.ui.imp = null; bindAttend(); },
     'at-imp-commit': () => { const r = AT.commitImport(); toast(`참여자 ${r.people}명 추가, 출석 기록 ${r.recs}건을 불러왔어요.`); render(); },
     'gl-mode': el => { V.ui.perf.glMode = el.dataset.mode; render(); },
+    'gl-year': el => { V.ui.perf.glYear = +el.dataset.year; render(); },
     'gl-save': async () => {
       const g = GL.readEditor();
       await S.saveSettings({ perfGoal: JSON.stringify(g) });
       toast(`실적 목표 기준을 저장했어요 (${g.baseYear}년 ${g.months}개월 기준 · 인원 ${g.staffNow}/${g.staffNeed}명).`);
+    },
+    'od-who': el => { R.ui.orders.who = el.dataset.who; $('#odResults').innerHTML = R.ordersResults(); },
+    'od-staff-add': async () => {
+      if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
+      const name = ($('#odStaffNew').value || '').trim();
+      if (!name) return $('#odStaffNew').focus();
+      if (S.staff().some(s => s.name === name)) return toast(`${name}은(는) 이미 담당자 목록에 있어요.`, 'error');
+      await S.saveSettings({ staff: [...S.staff(), { name, program: $('#odStaffProg').value }] });
+      toast(`담당자 ${name}을(를) 추가했어요. 일정·실적·지도 등 모든 화면의 담당자 목록에 같이 들어가요.`);
+    },
+    'od-staff-del': async el => {
+      const name = el.dataset.name;
+      if (!S.isAdmin()) return toast('담당자 삭제는 관리자만 할 수 있어요.', 'error');
+      if (S.staff().length <= 1) return toast('담당자가 한 명은 있어야 해요.', 'error');
+      const n = S.get().trips.filter(t => t.staff === name).length;
+      if (!(await confirmBox(`담당자 ${name}을(를) 목록에서 뺄까요?`, `담당자 목록에서만 빠지고, 이미 적힌 명령부${n ? ` ${n}건` : ''}·일정·사업체 기록은 그대로 남아요.`, '빼기'))) return;
+      const before = S.staff().map(s => ({ ...s }));
+      await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
+      if (R.ui.orders.who === name) R.ui.orders.who = '';
+      toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
     },
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'tv-save-set': async () => {
@@ -1205,7 +1226,7 @@ window.App = (() => {
       toast(`${ok}건의 왕복 거리를 채웠어요.${miss ? ` ${miss}건은 출장지를 지도에서 못 찾아 직접 적어 주세요.` : ''}`);
     },
     'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
-    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
+    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: f.who || S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
     'od-dup': el => { const t = S.find('trip', el.dataset.id); if (!t) return; const other = S.staff().map(s => s.name).find(n => n !== t.staff) || t.staff; S.upsert('trip', { ...t, id: undefined, staff: other, actId: '' }); toast(`${other} 동행 줄을 추가했습니다. 성명을 확인하세요.`); },
     'od-del': el => { const undo = S.remove('trip', el.dataset.id); if (undo) toast('한 줄을 삭제했습니다.', '', { undo }); },
     'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
@@ -1346,6 +1367,7 @@ window.App = (() => {
         if (drawerOpen()) return (stack.length > 1 ? A['dr-back']() : closeDrawer());
       }
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
+      if (ev.key === 'Enter' && ev.target.id === 'odStaffNew' && !ev.isComposing) { ev.preventDefault(); A['od-staff-add'](); }
     });
     $('#searchTrigger').onclick = openSearch;
     $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };

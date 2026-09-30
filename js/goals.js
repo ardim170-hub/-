@@ -67,35 +67,67 @@ window.GL = (() => {
   const pct = (a, t) => (t ? Math.round(a / t * 1000) / 10 : null);
   const fmt = n => Math.round(n).toLocaleString('ko-KR');
 
-  function bar(a, t, pace) {
-    const p = pct(a, t);
-    if (p == null) return '<span class="sub">해당 없음</span>';
-    const tone = p >= 100 ? 'done' : pace == null || p >= pace - 5 ? 'ok' : p >= pace - 20 ? 'warn' : 'low';
-    return `<div class="gl-bar ${tone}" title="${fmt(a)} / ${fmt(t)}"><i style="width:${Math.min(100, p)}%"></i>${pace != null && pace > 0 && pace < 100 ? `<u style="left:${pace}%"></u>` : ''}</div>
-      <div class="gl-num"><b class="num">${p}%</b> <span class="sub num">${fmt(a)} / ${fmt(t)}</span></div>`;
+  const tone = (p, pace) => (p >= 100 ? 'done' : pace == null || p >= pace - 5 ? 'ok' : p >= pace - 20 ? 'warn' : 'low');
+  /** 운영 기간 중 지난 비율(%): 기준 연도는 기준 개월 수(예: 7~12월), 그 다음 해부터는 1~12월 */
+  function paceOf(year, g) {
+    const T = U.today(), y = +T.slice(0, 4), mo = +T.slice(5, 7) - 1 + (+T.slice(8, 10)) / 31;
+    const months = year === g.baseYear ? (Number(g.months) || 12) : 12;
+    const start = 12 - months; // 시작 전 지난 달 수
+    if (year < y) return 100;
+    if (year > y) return 0;
+    return Math.max(0, Math.min(100, Math.round((mo - start) / months * 1000) / 10));
   }
+  const ALIAS = { '직업상담(현장중심)': '직업상담', '취업알선(현장중심)': '취업알선', '현장중심 직업훈련': '직업훈련', '취업후적응지도': '적응지도' };
 
-  function panel(month, mode) {
+  function panel(month, mode, pickYear) {
     const g = goal();
-    const year = yearOf(month, g);
-    const f = factor(g);
+    const year = pickYear || yearOf(month, g);
+    const isBase = year === g.baseYear;
+    const f = isBase ? 1 : factor(g);
     const act = actual(year);
-    const el = elapsed(year);
-    const pace = Math.round(el / 12 * 1000) / 10;
-    const left = Math.max(0, 12 - el);
+    const pace = paceOf(year, g);
+    const monthsLeft = Math.max(0, (isBase ? (Number(g.months) || 12) : 12) * (1 - pace / 100));
     const now = Math.max(1, Number(g.staffNow) || 1), need = Number(g.staffNeed) || now;
     const items = D.PERF_SETS[SET].items;
     const tgt = (i, k) => { const v = (g.rows[i] || [])[k]; return v == null || v === '' ? null : Math.round(Number(v) * f); };
     const dev = mode === 'dev';
-    // 전체 달성률: 항목별 달성률(최대 100%)의 평균
-    const parts = items.flatMap(i => dev ? [[act[i].sil, tgt(i, 1)], [act[i].yeon, tgt(i, 0)]] : [[act[i].cnt, tgt(i, 2)]]).filter(([, t]) => t);
-    const overall = parts.length ? Math.round(parts.reduce((s, [a, t]) => s + Math.min(1, a / t), 0) / parts.length * 1000) / 10 : 0;
-    const perMonth = (a, t) => (t && left > 0 && a < t ? `월 ${fmt(Math.ceil((t - a) / left))}` : t && a >= t ? '달성' : '');
+    // 지표: 복지관 = 건수 1개, 개발원 = 실인원·연인원 2개
+    const metrics = dev ? [['sil', 1, '실인원'], ['yeon', 0, '연인원']] : [['cnt', 2, '건수']];
+    const parts = items.flatMap(i => metrics.map(([k, ix]) => [act[i][k], tgt(i, ix)])).filter(([, t]) => t);
+    const overall = parts.length ? Math.round(parts.reduce((a, [x, t]) => a + Math.min(1, x / t), 0) / parts.length * 1000) / 10 : 0;
+    const fmtN = n => (n == null ? '-' : fmt(n));
+    const perMonth = (a, t) => (t == null ? '-' : a >= t ? '달성' : monthsLeft > 0 ? `월 ${fmt(Math.ceil((t - a) / monthsLeft))}` : `${fmt(t - a)} 부족`);
+    const years = [g.baseYear, g.baseYear + 1];
+    // 막대그래프: 세부사업마다 막대(개발원은 실·연 두 개), 높이 = 달성률(100%까지), 가로 점선 = 오늘까지 가야 할 선
+    const chart = `<div class="glc" role="img" aria-label="${year}년 세부사업별 달성률 그래프">
+      <div class="glc-axis"><span>100%</span><span>50%</span><span>0</span></div>
+      <div class="glc-plot">
+        ${pace > 0 && pace < 100 ? `<div class="glc-pace" style="bottom:${pace}%"><span>오늘 기준 ${pace}%</span></div>` : ''}
+        ${items.map(i => `<div class="glc-col">${metrics.map(([k, ix, l]) => { const t = tgt(i, ix); const p = pct(act[i][k], t); return `<div class="glc-bar-wrap" title="${e(i)} ${l}: ${fmt(act[i][k])} / ${fmtN(t)}">${p == null ? '<div class="glc-na">해당<br>없음</div>' : `<div class="glc-bar ${tone(p, pace || null)}" style="height:${Math.max(1.5, Math.min(100, p))}%"><b>${p}%</b></div>`}${dev ? `<small>${l.slice(0, 1)}</small>` : ''}</div>`; }).join('')}</div>`).join('')}
+      </div>
+      <div class="glc-names">${items.map(i => `<span>${e(ALIAS[i] || i)}</span>`).join('')}</div>
+    </div>`;
+    const row = (label, cellFn, cls = '') => `<tr class="${cls}"><th>${label}</th>${items.map(i => `<td>${cellFn(i)}</td>`).join('')}</tr>`;
+    const body = metrics.map(([k, ix, l]) => `
+      ${row(`${dev ? l + ' ' : ''}목표`, i => `<span class="num">${fmtN(tgt(i, ix))}</span>`, 'g-t')}
+      ${row(`${dev ? l + ' ' : ''}실적`, i => `<b class="num">${tgt(i, ix) == null ? '-' : fmt(act[i][k])}</b>`)}
+      ${row(`${dev ? l + ' ' : ''}달성률`, i => { const p = pct(act[i][k], tgt(i, ix)); return p == null ? '<span class="sub">해당 없음</span>' : `<span class="gl-pill ${tone(p, pace || null)}">${p}%</span>`; }, 'g-p')}
+      ${row('남은 기간 필요', i => `<span class="sub">${perMonth(act[i][k], tgt(i, ix))}</span>`)}
+      ${row(`1인당 목표 <small>(${now}명)</small>`, i => { const t = tgt(i, ix); return `<span class="sub num">${t == null ? '-' : fmt(t / now)}</span>`; })}`).join('<tr class="gap"><td colspan="' + (items.length + 1) + '"></td></tr>');
+    const baseTbl = `<div class="gl-base">
+      <h3>기준 실적 <span class="sub">${g.baseYear}년 ${g.months}개월 · 보내 주신 표 · ${isBase ? `${year}년 목표 = 이 숫자 그대로` : `${year}년 목표 = 이 숫자 × ${f % 1 ? f.toFixed(1) : f}`}</span></h3>
+      <div class="table-wrap"><table class="tbl gl-htbl gl-btbl"><thead><tr><th>구분</th>${items.map(i => `<th>${e(ALIAS[i] || i)}</th>`).join('')}</tr></thead><tbody>
+        <tr><th>개발원 연인원</th>${items.map(i => `<td class="num">${fmtN((g.rows[i] || [])[0])}</td>`).join('')}</tr>
+        <tr><th>개발원 실인원</th>${items.map(i => `<td class="num">${fmtN((g.rows[i] || [])[1])}</td>`).join('')}</tr>
+        <tr><th>복지관 건수</th>${items.map(i => `<td class="num">${fmtN((g.rows[i] || [])[2])}</td>`).join('')}</tr>
+        <tr class="how"><th>개발원 세는 법</th>${items.map(i => { const h = HOW[i] || []; return `<td>${h[0] ? `<div>실: ${e(h[0])}</div>` : ''}${h[1] ? `<div>연: ${e(h[1])}</div>` : ''}${!h[0] && !h[1] ? '<span class="sub">복지관 기준만</span>' : ''}</td>`; }).join('')}</tr>
+      </tbody></table></div></div>`;
     return `<section class="panel gl">
       <div class="gl-head">
         <div>
-          <h2 class="section-title">📈 ${year}년 목표 달성률 <span class="sub">현장중심직업재활센터</span></h2>
-          <p class="sub gl-desc">목표 = ${g.baseYear}년 ${g.months}개월 실적 × ${f % 1 ? f.toFixed(1) : f}배 (12개월 기준). ${el > 0 && el < 12 ? `오늘은 한 해의 <b>${pace}%</b> 지점이에요 (막대의 세로선).` : el === 0 ? '아직 시작 전인 해예요. 실적이 쌓이면 여기 채워져요.' : ''}</p>
+          <h2 class="section-title">📈 목표 달성률 <span class="sub">현장중심직업재활센터</span></h2>
+          <div class="gl-years" role="tablist">${years.map(y => `<button type="button" role="tab" class="chip ${y === year ? 'on' : ''}" data-act="gl-year" data-year="${y}">${y}년${y === g.baseYear ? ` <small>(${g.months}개월)</small>` : ' <small>(12개월)</small>'}</button>`).join('')}</div>
+          <p class="sub gl-desc">${isBase ? `${year}년은 기준 실적(${g.months}개월)을 목표로 봐요.` : `${year}년 목표 = ${g.baseYear}년 ${g.months}개월 실적 × ${f % 1 ? f.toFixed(1) : f}배.`} ${pace > 0 && pace < 100 ? `오늘은 운영 기간의 <b>${pace}%</b> 지점이에요 (그래프의 점선).` : pace === 0 ? '아직 시작 전인 기간이에요.' : ''}</p>
         </div>
         <div class="gl-overall"><span class="sub">${dev ? '개발원' : '복지관'} 기준 전체</span><b class="num">${overall}%</b></div>
       </div>
@@ -103,23 +135,10 @@ window.GL = (() => {
         <div class="seg" role="group" aria-label="실적 세는 법"><button type="button" class="${dev ? '' : 'on'}" data-act="gl-mode" data-mode="hall">① 복지관 기준 (건수)</button><button type="button" class="${dev ? 'on' : ''}" data-act="gl-mode" data-mode="dev">② 장애인개발원 기준 (실인원·연인원)</button></div>
         <span class="gl-staff ${now < need ? 'short' : ''}">👥 전문인력 <b>${now}</b> / ${need}명${now < need ? ` · ${need - now}명 부족 → 1인당 목표 ${Math.round(need / now * 100)}%` : ''}</span>
       </div>
-      <div class="table-wrap"><table class="tbl gl-tbl"><thead><tr><th>세부사업</th>
-        ${dev ? '<th>실인원</th><th class="r">남은 기간 필요</th><th>연인원</th><th class="r">남은 기간 필요</th>' : '<th>건수</th><th class="r">남은 기간 필요</th>'}
-        <th class="r">1인당 목표<small>(${now}명)</small></th></tr></thead><tbody>
-        ${items.map(i => {
-          const h = HOW[i] || [];
-          if (dev) {
-            const ts = tgt(i, 1), ty = tgt(i, 0);
-            return `<tr><td><b>${e(i)}</b>${h[0] || h[1] ? `<div class="sub gl-how">${[h[0] && `실: ${e(h[0])}`, h[1] && `연: ${e(h[1])}`].filter(Boolean).join(' · ')}</div>` : ''}</td>
-              <td class="gl-cell">${ts == null ? '<span class="sub">해당 없음 (복지관 기준만)</span>' : bar(act[i].sil, ts, el ? pace : null)}</td><td class="r sub">${perMonth(act[i].sil, ts)}</td>
-              <td class="gl-cell">${ty == null ? '<span class="sub">해당 없음</span>' : bar(act[i].yeon, ty, el ? pace : null)}</td><td class="r sub">${perMonth(act[i].yeon, ty)}</td>
-              <td class="r sub num">${ts == null && ty == null ? '-' : [ts != null && `실 ${fmt(ts / now)}`, ty != null && `연 ${fmt(ty / now)}`].filter(Boolean).join(' · ')}</td></tr>`;
-          }
-          const t = tgt(i, 2);
-          return `<tr><td><b>${e(i)}</b></td><td class="gl-cell">${t == null ? '<span class="sub">해당 없음</span>' : bar(act[i].cnt, t, el ? pace : null)}</td><td class="r sub">${perMonth(act[i].cnt, t)}</td><td class="r sub num">${t == null ? '-' : fmt(t / now)}</td></tr>`;
-        }).join('')}
-      </tbody></table></div>
-      <p class="sub gl-note">${dev ? '개발원 기준: <b>실인원</b>은 실적 입력의 <b>참여인원(신규)</b>, <b>연인원</b>은 <b>참여인원</b>을 더해서 세요. 같은 사람이 여러 번 오면 두 번째부터는 신규 칸을 비우세요. 증빙서류(초기면접지·상담기록지·근로계약서 등)가 있어야 인정돼요.' : '복지관 기준: 실적 입력 한 줄 = 1건, 사업체·기관 활동 기록(방문·전화 등)도 자동으로 1건씩 셉니다.'} 팀 전체(모든 직원) 실적으로 계산해요.</p>
+      ${chart}
+      <div class="table-wrap"><table class="tbl gl-htbl"><thead><tr><th>${year}년</th>${items.map(i => `<th>${e(ALIAS[i] || i)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+      ${baseTbl}
+      <p class="sub gl-note">${dev ? '개발원 기준: <b>실인원</b>은 실적 입력의 <b>참여인원(신규)</b>, <b>연인원</b>은 <b>참여인원</b>을 더해서 세요. 증빙서류(초기면접지·상담기록지·근로계약서 등)가 있어야 인정돼요.' : '복지관 기준: 실적 입력 한 줄 = 1건, 사업체·기관 활동 기록(방문·전화 등)도 자동으로 1건씩 셉니다.'} 팀 전체 실적으로 계산해요.</p>
       ${S.isAdmin() ? editor(g) : ''}
     </section>`;
   }

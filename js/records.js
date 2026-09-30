@@ -4,7 +4,7 @@ window.R = (() => {
   const e = U.esc;
   const ui = {
     contacts: { month: U.today().slice(0, 7), tab: 'log', q: '' },
-    orders: { month: U.today().slice(0, 7), kind: '출장' },
+    orders: { month: U.today().slice(0, 7), kind: '출장', who: '' },
   };
   const CONTACT_TYPES = ['전화', '방문', '이메일', '미팅'];
   const md = d => { if (!U.isDate(d)) return d || ''; const x = U.parse(d); return `${x.getMonth() + 1}월 ${x.getDate()}일`; };
@@ -214,13 +214,28 @@ window.R = (() => {
   function ordersResults() {
     const f = ui.orders;
     if (f.kind === '여비') return TV.page(f.month);
-    const list = trips(f.month, f.kind);
+    const all = trips(f.month, f.kind);
+    const list = f.who ? all.filter(t => (t.staff || '(담당자 없음)') === f.who) : all;
+    // 여비: 담당자·날짜별 하루 계산을 줄마다 붙인다 (하루 첫 줄에 그날 합계)
+    const trip0 = f.kind === '출장';
+    const tvDays = trip0 ? TV.days(all) : [];
+    const tvRow = {}, tvStaff = {};
+    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[r.t.id] = { d, r, first: i === 0 }; }); });
+    const won = n => Math.round(n).toLocaleString('ko-KR');
+    const tvCell = t => {
+      const x = tvRow[t.id]; if (!x) return '<td></td>';
+      const { d, r, first } = x;
+      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
+      return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
+    };
+    const staffBar = staffManager(all);
     const staffOpts = sel => opts([...new Set([...S.staff().map(s => s.name), sel].filter(Boolean))], sel);
     const cell = (t, k, attrs = '') => `<input class="input sm" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] || '')}" ${attrs}>`;
     const trip = f.kind === '출장';
     const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
     const visitsLeft = trip ? S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id)).length : 0;
     return `<section class="panel">
+      ${staffBar}
       <div class="panel-pad perf-actions">
         <div class="inline">
           ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
@@ -232,11 +247,11 @@ window.R = (() => {
       ${list.length ? `<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = list.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span></span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${trip && tvStaff[s] != null ? ` <span class="od-tv-sum" title="규정집 기준 여비 합계">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>` : ''}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
-        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th></th>'
+        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
         : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th></th>'}</tr></thead><tbody>
         ${list.map(t => `<tr>
           <td>${cell(t, 'date', 'type="date"')}</td>
@@ -245,13 +260,26 @@ window.R = (() => {
             <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
             <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
             <td class="nowrap">${D.TRIP_REPORTS.map(r => `<label class="check"><input type="checkbox" data-chg="trip-report" data-id="${t.id}" value="${r}" ${(t.report || []).includes(r) ? 'checked' : ''}>${r}</label>`).join(' ')}</td>
-            <td>${cell(t, 'note')}</td>`
+            <td>${cell(t, 'note')}</td>${tvCell(t)}`
           : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>`}
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
-      </tbody></table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
+      </tbody>${trip && tvDays.length ? `<tfoot><tr><th colspan="8" class="r">${f.who ? e(f.who) + ' ' : ''}여비 합계 <span class="sub">(규정집 2026 기준 · 시간·방법·영수증 금액으로 자동 계산)</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
       : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
+  }
+  /** 담당자 추가·삭제 (직원 목록은 모든 화면이 같이 쓴다). 이름을 누르면 그 사람 줄만 보기 */
+  function staffManager(all) {
+    const f = ui.orders;
+    const admin = S.isAdmin();
+    const staff = S.staff();
+    const cnt = n => all.filter(t => (t.staff || '(담당자 없음)') === n).length;
+    return `<div class="panel-pad od-staff">
+      <b>담당자</b>
+      <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
+      ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
+      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option>${e(p.key)}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
+    </div>`;
   }
   function importVisits() {
     const f = ui.orders;

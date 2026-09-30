@@ -700,7 +700,7 @@ window.V = (() => {
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <div class="chips">${sets.map(k => `<button type="button" class="chip ${f.set === k ? 'on' : ''}" data-act="perf-set" data-set="${e(k)}">${e(k)}</button>`).join('')}</div>
       </div>
-      ${f.set === GL.SET ? GL.panel(f.month, f.glMode) : ''}
+      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)}</span></h2>
         <form class="perf-form" data-form="perf-add">

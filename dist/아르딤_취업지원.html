@@ -1919,6 +1919,51 @@ label.field .textarea { width: 100%; }
 .at-src-list li:first-child { border-top: 0; }
 .btn-danger-ghost { color: var(--danger); border-color: #F5C2C2; }
 .btn-danger-ghost:hover { background: #FEF2F2; }
+/* 출장·특근: 담당자·여비 */
+.od-staff { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; border-bottom: 1px solid var(--line); padding-block: 12px; }
+.od-staff > b { margin-right: 4px; }
+.od-staff .chip { margin: 0; }
+.od-staff-chip { display: inline-flex; align-items: center; position: relative; }
+.od-staff-del { margin-left: -6px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: #FEE2E2; color: #B91C1C; font-weight: 800; line-height: 20px; padding: 0; cursor: pointer; opacity: .55; }
+.od-staff-chip:hover .od-staff-del { opacity: 1; }
+.od-staff-add { display: inline-flex; gap: 4px; align-items: center; margin-left: 6px; }
+.od-tbl td.od-tv, .od-tbl th.od-tv { min-width: 120px; text-align: right; background: #FFFBEB; white-space: normal; }
+.od-tbl td.od-tv b { display: block; color: #92400E; }
+.od-tbl td.od-tv small { display: block; font-size: 11px; color: var(--text-2); line-height: 1.35; }
+.od-tbl td.od-tv.same { background: #FFFDF5; }
+.od-tbl tfoot th { padding: 8px; font-size: 13px; }
+.od-tv-sum { margin-left: 8px; font-size: 12.5px; font-weight: 700; color: #92400E; background: #FEF3C7; border-radius: 999px; padding: 1px 8px; }
+/* 목표 달성률: 가로 표 + 막대그래프 */
+.gl-years { display: flex; gap: 6px; margin: 6px 0 4px; }
+.gl-years .chip small { font-weight: 400; opacity: .8; }
+.glc { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: 200px auto; gap: 4px 6px; padding: 6px 4px 0; }
+.glc-axis { display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; color: var(--text-2); text-align: right; }
+.glc-plot { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; border-left: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); background: repeating-linear-gradient(to top, transparent 0 calc(25% - 1px), var(--line) calc(25% - 1px) 25%); padding: 0 8px; }
+.glc-col { display: flex; align-items: flex-end; justify-content: center; gap: 6px; height: 100%; }
+.glc-bar-wrap { position: relative; height: 100%; width: min(46px, 100%); display: flex; flex-direction: column; justify-content: flex-end; align-items: center; }
+.glc-bar-wrap small { position: absolute; bottom: -16px; font-size: 10px; color: var(--text-2); }
+.glc-bar { width: 100%; border-radius: 6px 6px 0 0; background: #2F9E62; position: relative; min-height: 3px; transition: height .3s; }
+.glc-bar b { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11.5px; white-space: nowrap; color: var(--text); }
+.glc-bar.warn { background: #F5A300; }
+.glc-bar.low { background: #E5383B; }
+.glc-bar.done { background: #1D4ED8; }
+.glc-na { font-size: 10.5px; color: var(--text-2); text-align: center; margin-bottom: 6px; }
+.glc-pace { position: absolute; left: 0; right: 0; border-top: 2px dashed #172033; z-index: 1; pointer-events: none; }
+.glc-pace span { position: absolute; right: 4px; top: -18px; font-size: 10.5px; background: #172033; color: #fff; border-radius: 999px; padding: 0 6px; }
+.glc-names { grid-column: 2; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; padding: 16px 8px 0; font-size: 12px; font-weight: 700; text-align: center; }
+.gl-htbl { font-size: 13px; }
+.gl-htbl th, .gl-htbl td { text-align: center; padding: 6px 8px; white-space: nowrap; }
+.gl-htbl tbody th { text-align: left; background: var(--surface-2); font-weight: 700; }
+.gl-htbl tr.g-p td { background: #FAFAFF; }
+.gl-htbl tr.gap td { padding: 2px; background: var(--line); }
+.gl-pill { display: inline-block; min-width: 58px; border-radius: 999px; padding: 2px 8px; font-weight: 800; color: #fff; background: #2F9E62; }
+.gl-pill.warn { background: #F5A300; }
+.gl-pill.low { background: #E5383B; }
+.gl-pill.done { background: #1D4ED8; }
+.gl-base { border-top: 1px dashed var(--line-strong); padding-top: 10px; }
+.gl-base h3 { margin: 0 0 6px; font-size: 14px; }
+.gl-btbl tr.how td { white-space: normal; font-size: 11.5px; color: var(--text-2); text-align: left; min-width: 110px; }
+.glc { padding-top: 24px; }
 
 </style>
 </head>
@@ -2001,7 +2046,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.30 15:54";</script>
+<script>window.APP_VERSION = "2026.09.30 16:14";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -4319,7 +4364,7 @@ window.V = (() => {
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <div class="chips">${sets.map(k => `<button type="button" class="chip ${f.set === k ? 'on' : ''}" data-act="perf-set" data-set="${e(k)}">${e(k)}</button>`).join('')}</div>
       </div>
-      ${f.set === GL.SET ? GL.panel(f.month, f.glMode) : ''}
+      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)}</span></h2>
         <form class="perf-form" data-form="perf-add">
@@ -5591,7 +5636,7 @@ window.R = (() => {
   const e = U.esc;
   const ui = {
     contacts: { month: U.today().slice(0, 7), tab: 'log', q: '' },
-    orders: { month: U.today().slice(0, 7), kind: '출장' },
+    orders: { month: U.today().slice(0, 7), kind: '출장', who: '' },
   };
   const CONTACT_TYPES = ['전화', '방문', '이메일', '미팅'];
   const md = d => { if (!U.isDate(d)) return d || ''; const x = U.parse(d); return `${x.getMonth() + 1}월 ${x.getDate()}일`; };
@@ -5801,13 +5846,28 @@ window.R = (() => {
   function ordersResults() {
     const f = ui.orders;
     if (f.kind === '여비') return TV.page(f.month);
-    const list = trips(f.month, f.kind);
+    const all = trips(f.month, f.kind);
+    const list = f.who ? all.filter(t => (t.staff || '(담당자 없음)') === f.who) : all;
+    // 여비: 담당자·날짜별 하루 계산을 줄마다 붙인다 (하루 첫 줄에 그날 합계)
+    const trip0 = f.kind === '출장';
+    const tvDays = trip0 ? TV.days(all) : [];
+    const tvRow = {}, tvStaff = {};
+    tvDays.forEach(d => { tvStaff[d.staff] = (tvStaff[d.staff] || 0) + d.total; d.rows.forEach((r, i) => { tvRow[r.t.id] = { d, r, first: i === 0 }; }); });
+    const won = n => Math.round(n).toLocaleString('ko-KR');
+    const tvCell = t => {
+      const x = tvRow[t.id]; if (!x) return '<td></td>';
+      const { d, r, first } = x;
+      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
+      return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
+    };
+    const staffBar = staffManager(all);
     const staffOpts = sel => opts([...new Set([...S.staff().map(s => s.name), sel].filter(Boolean))], sel);
     const cell = (t, k, attrs = '') => `<input class="input sm" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] || '')}" ${attrs}>`;
     const trip = f.kind === '출장';
     const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
     const visitsLeft = trip ? S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id)).length : 0;
     return `<section class="panel">
+      ${staffBar}
       <div class="panel-pad perf-actions">
         <div class="inline">
           ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
@@ -5819,11 +5879,11 @@ window.R = (() => {
       ${list.length ? `<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = list.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span></span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${trip && tvStaff[s] != null ? ` <span class="od-tv-sum" title="규정집 기준 여비 합계">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>` : ''}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
-        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th></th>'
+        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
         : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th></th>'}</tr></thead><tbody>
         ${list.map(t => `<tr>
           <td>${cell(t, 'date', 'type="date"')}</td>
@@ -5832,13 +5892,26 @@ window.R = (() => {
             <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
             <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
             <td class="nowrap">${D.TRIP_REPORTS.map(r => `<label class="check"><input type="checkbox" data-chg="trip-report" data-id="${t.id}" value="${r}" ${(t.report || []).includes(r) ? 'checked' : ''}>${r}</label>`).join(' ')}</td>
-            <td>${cell(t, 'note')}</td>`
+            <td>${cell(t, 'note')}</td>${tvCell(t)}`
           : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>`}
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
-      </tbody></table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
+      </tbody>${trip && tvDays.length ? `<tfoot><tr><th colspan="8" class="r">${f.who ? e(f.who) + ' ' : ''}여비 합계 <span class="sub">(규정집 2026 기준 · 시간·방법·영수증 금액으로 자동 계산)</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
       : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
+  }
+  /** 담당자 추가·삭제 (직원 목록은 모든 화면이 같이 쓴다). 이름을 누르면 그 사람 줄만 보기 */
+  function staffManager(all) {
+    const f = ui.orders;
+    const admin = S.isAdmin();
+    const staff = S.staff();
+    const cnt = n => all.filter(t => (t.staff || '(담당자 없음)') === n).length;
+    return `<div class="panel-pad od-staff">
+      <b>담당자</b>
+      <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
+      ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
+      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option>${e(p.key)}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
+    </div>`;
   }
   function importVisits() {
     const f = ui.orders;
@@ -6258,35 +6331,67 @@ window.GL = (() => {
   const pct = (a, t) => (t ? Math.round(a / t * 1000) / 10 : null);
   const fmt = n => Math.round(n).toLocaleString('ko-KR');
 
-  function bar(a, t, pace) {
-    const p = pct(a, t);
-    if (p == null) return '<span class="sub">해당 없음</span>';
-    const tone = p >= 100 ? 'done' : pace == null || p >= pace - 5 ? 'ok' : p >= pace - 20 ? 'warn' : 'low';
-    return `<div class="gl-bar ${tone}" title="${fmt(a)} / ${fmt(t)}"><i style="width:${Math.min(100, p)}%"></i>${pace != null && pace > 0 && pace < 100 ? `<u style="left:${pace}%"></u>` : ''}</div>
-      <div class="gl-num"><b class="num">${p}%</b> <span class="sub num">${fmt(a)} / ${fmt(t)}</span></div>`;
+  const tone = (p, pace) => (p >= 100 ? 'done' : pace == null || p >= pace - 5 ? 'ok' : p >= pace - 20 ? 'warn' : 'low');
+  /** 운영 기간 중 지난 비율(%): 기준 연도는 기준 개월 수(예: 7~12월), 그 다음 해부터는 1~12월 */
+  function paceOf(year, g) {
+    const T = U.today(), y = +T.slice(0, 4), mo = +T.slice(5, 7) - 1 + (+T.slice(8, 10)) / 31;
+    const months = year === g.baseYear ? (Number(g.months) || 12) : 12;
+    const start = 12 - months; // 시작 전 지난 달 수
+    if (year < y) return 100;
+    if (year > y) return 0;
+    return Math.max(0, Math.min(100, Math.round((mo - start) / months * 1000) / 10));
   }
+  const ALIAS = { '직업상담(현장중심)': '직업상담', '취업알선(현장중심)': '취업알선', '현장중심 직업훈련': '직업훈련', '취업후적응지도': '적응지도' };
 
-  function panel(month, mode) {
+  function panel(month, mode, pickYear) {
     const g = goal();
-    const year = yearOf(month, g);
-    const f = factor(g);
+    const year = pickYear || yearOf(month, g);
+    const isBase = year === g.baseYear;
+    const f = isBase ? 1 : factor(g);
     const act = actual(year);
-    const el = elapsed(year);
-    const pace = Math.round(el / 12 * 1000) / 10;
-    const left = Math.max(0, 12 - el);
+    const pace = paceOf(year, g);
+    const monthsLeft = Math.max(0, (isBase ? (Number(g.months) || 12) : 12) * (1 - pace / 100));
     const now = Math.max(1, Number(g.staffNow) || 1), need = Number(g.staffNeed) || now;
     const items = D.PERF_SETS[SET].items;
     const tgt = (i, k) => { const v = (g.rows[i] || [])[k]; return v == null || v === '' ? null : Math.round(Number(v) * f); };
     const dev = mode === 'dev';
-    // 전체 달성률: 항목별 달성률(최대 100%)의 평균
-    const parts = items.flatMap(i => dev ? [[act[i].sil, tgt(i, 1)], [act[i].yeon, tgt(i, 0)]] : [[act[i].cnt, tgt(i, 2)]]).filter(([, t]) => t);
-    const overall = parts.length ? Math.round(parts.reduce((s, [a, t]) => s + Math.min(1, a / t), 0) / parts.length * 1000) / 10 : 0;
-    const perMonth = (a, t) => (t && left > 0 && a < t ? `월 ${fmt(Math.ceil((t - a) / left))}` : t && a >= t ? '달성' : '');
+    // 지표: 복지관 = 건수 1개, 개발원 = 실인원·연인원 2개
+    const metrics = dev ? [['sil', 1, '실인원'], ['yeon', 0, '연인원']] : [['cnt', 2, '건수']];
+    const parts = items.flatMap(i => metrics.map(([k, ix]) => [act[i][k], tgt(i, ix)])).filter(([, t]) => t);
+    const overall = parts.length ? Math.round(parts.reduce((a, [x, t]) => a + Math.min(1, x / t), 0) / parts.length * 1000) / 10 : 0;
+    const fmtN = n => (n == null ? '-' : fmt(n));
+    const perMonth = (a, t) => (t == null ? '-' : a >= t ? '달성' : monthsLeft > 0 ? `월 ${fmt(Math.ceil((t - a) / monthsLeft))}` : `${fmt(t - a)} 부족`);
+    const years = [g.baseYear, g.baseYear + 1];
+    // 막대그래프: 세부사업마다 막대(개발원은 실·연 두 개), 높이 = 달성률(100%까지), 가로 점선 = 오늘까지 가야 할 선
+    const chart = `<div class="glc" role="img" aria-label="${year}년 세부사업별 달성률 그래프">
+      <div class="glc-axis"><span>100%</span><span>50%</span><span>0</span></div>
+      <div class="glc-plot">
+        ${pace > 0 && pace < 100 ? `<div class="glc-pace" style="bottom:${pace}%"><span>오늘 기준 ${pace}%</span></div>` : ''}
+        ${items.map(i => `<div class="glc-col">${metrics.map(([k, ix, l]) => { const t = tgt(i, ix); const p = pct(act[i][k], t); return `<div class="glc-bar-wrap" title="${e(i)} ${l}: ${fmt(act[i][k])} / ${fmtN(t)}">${p == null ? '<div class="glc-na">해당<br>없음</div>' : `<div class="glc-bar ${tone(p, pace || null)}" style="height:${Math.max(1.5, Math.min(100, p))}%"><b>${p}%</b></div>`}${dev ? `<small>${l.slice(0, 1)}</small>` : ''}</div>`; }).join('')}</div>`).join('')}
+      </div>
+      <div class="glc-names">${items.map(i => `<span>${e(ALIAS[i] || i)}</span>`).join('')}</div>
+    </div>`;
+    const row = (label, cellFn, cls = '') => `<tr class="${cls}"><th>${label}</th>${items.map(i => `<td>${cellFn(i)}</td>`).join('')}</tr>`;
+    const body = metrics.map(([k, ix, l]) => `
+      ${row(`${dev ? l + ' ' : ''}목표`, i => `<span class="num">${fmtN(tgt(i, ix))}</span>`, 'g-t')}
+      ${row(`${dev ? l + ' ' : ''}실적`, i => `<b class="num">${tgt(i, ix) == null ? '-' : fmt(act[i][k])}</b>`)}
+      ${row(`${dev ? l + ' ' : ''}달성률`, i => { const p = pct(act[i][k], tgt(i, ix)); return p == null ? '<span class="sub">해당 없음</span>' : `<span class="gl-pill ${tone(p, pace || null)}">${p}%</span>`; }, 'g-p')}
+      ${row('남은 기간 필요', i => `<span class="sub">${perMonth(act[i][k], tgt(i, ix))}</span>`)}
+      ${row(`1인당 목표 <small>(${now}명)</small>`, i => { const t = tgt(i, ix); return `<span class="sub num">${t == null ? '-' : fmt(t / now)}</span>`; })}`).join('<tr class="gap"><td colspan="' + (items.length + 1) + '"></td></tr>');
+    const baseTbl = `<div class="gl-base">
+      <h3>기준 실적 <span class="sub">${g.baseYear}년 ${g.months}개월 · 보내 주신 표 · ${isBase ? `${year}년 목표 = 이 숫자 그대로` : `${year}년 목표 = 이 숫자 × ${f % 1 ? f.toFixed(1) : f}`}</span></h3>
+      <div class="table-wrap"><table class="tbl gl-htbl gl-btbl"><thead><tr><th>구분</th>${items.map(i => `<th>${e(ALIAS[i] || i)}</th>`).join('')}</tr></thead><tbody>
+        <tr><th>개발원 연인원</th>${items.map(i => `<td class="num">${fmtN((g.rows[i] || [])[0])}</td>`).join('')}</tr>
+        <tr><th>개발원 실인원</th>${items.map(i => `<td class="num">${fmtN((g.rows[i] || [])[1])}</td>`).join('')}</tr>
+        <tr><th>복지관 건수</th>${items.map(i => `<td class="num">${fmtN((g.rows[i] || [])[2])}</td>`).join('')}</tr>
+        <tr class="how"><th>개발원 세는 법</th>${items.map(i => { const h = HOW[i] || []; return `<td>${h[0] ? `<div>실: ${e(h[0])}</div>` : ''}${h[1] ? `<div>연: ${e(h[1])}</div>` : ''}${!h[0] && !h[1] ? '<span class="sub">복지관 기준만</span>' : ''}</td>`; }).join('')}</tr>
+      </tbody></table></div></div>`;
     return `<section class="panel gl">
       <div class="gl-head">
         <div>
-          <h2 class="section-title">📈 ${year}년 목표 달성률 <span class="sub">현장중심직업재활센터</span></h2>
-          <p class="sub gl-desc">목표 = ${g.baseYear}년 ${g.months}개월 실적 × ${f % 1 ? f.toFixed(1) : f}배 (12개월 기준). ${el > 0 && el < 12 ? `오늘은 한 해의 <b>${pace}%</b> 지점이에요 (막대의 세로선).` : el === 0 ? '아직 시작 전인 해예요. 실적이 쌓이면 여기 채워져요.' : ''}</p>
+          <h2 class="section-title">📈 목표 달성률 <span class="sub">현장중심직업재활센터</span></h2>
+          <div class="gl-years" role="tablist">${years.map(y => `<button type="button" role="tab" class="chip ${y === year ? 'on' : ''}" data-act="gl-year" data-year="${y}">${y}년${y === g.baseYear ? ` <small>(${g.months}개월)</small>` : ' <small>(12개월)</small>'}</button>`).join('')}</div>
+          <p class="sub gl-desc">${isBase ? `${year}년은 기준 실적(${g.months}개월)을 목표로 봐요.` : `${year}년 목표 = ${g.baseYear}년 ${g.months}개월 실적 × ${f % 1 ? f.toFixed(1) : f}배.`} ${pace > 0 && pace < 100 ? `오늘은 운영 기간의 <b>${pace}%</b> 지점이에요 (그래프의 점선).` : pace === 0 ? '아직 시작 전인 기간이에요.' : ''}</p>
         </div>
         <div class="gl-overall"><span class="sub">${dev ? '개발원' : '복지관'} 기준 전체</span><b class="num">${overall}%</b></div>
       </div>
@@ -6294,23 +6399,10 @@ window.GL = (() => {
         <div class="seg" role="group" aria-label="실적 세는 법"><button type="button" class="${dev ? '' : 'on'}" data-act="gl-mode" data-mode="hall">① 복지관 기준 (건수)</button><button type="button" class="${dev ? 'on' : ''}" data-act="gl-mode" data-mode="dev">② 장애인개발원 기준 (실인원·연인원)</button></div>
         <span class="gl-staff ${now < need ? 'short' : ''}">👥 전문인력 <b>${now}</b> / ${need}명${now < need ? ` · ${need - now}명 부족 → 1인당 목표 ${Math.round(need / now * 100)}%` : ''}</span>
       </div>
-      <div class="table-wrap"><table class="tbl gl-tbl"><thead><tr><th>세부사업</th>
-        ${dev ? '<th>실인원</th><th class="r">남은 기간 필요</th><th>연인원</th><th class="r">남은 기간 필요</th>' : '<th>건수</th><th class="r">남은 기간 필요</th>'}
-        <th class="r">1인당 목표<small>(${now}명)</small></th></tr></thead><tbody>
-        ${items.map(i => {
-          const h = HOW[i] || [];
-          if (dev) {
-            const ts = tgt(i, 1), ty = tgt(i, 0);
-            return `<tr><td><b>${e(i)}</b>${h[0] || h[1] ? `<div class="sub gl-how">${[h[0] && `실: ${e(h[0])}`, h[1] && `연: ${e(h[1])}`].filter(Boolean).join(' · ')}</div>` : ''}</td>
-              <td class="gl-cell">${ts == null ? '<span class="sub">해당 없음 (복지관 기준만)</span>' : bar(act[i].sil, ts, el ? pace : null)}</td><td class="r sub">${perMonth(act[i].sil, ts)}</td>
-              <td class="gl-cell">${ty == null ? '<span class="sub">해당 없음</span>' : bar(act[i].yeon, ty, el ? pace : null)}</td><td class="r sub">${perMonth(act[i].yeon, ty)}</td>
-              <td class="r sub num">${ts == null && ty == null ? '-' : [ts != null && `실 ${fmt(ts / now)}`, ty != null && `연 ${fmt(ty / now)}`].filter(Boolean).join(' · ')}</td></tr>`;
-          }
-          const t = tgt(i, 2);
-          return `<tr><td><b>${e(i)}</b></td><td class="gl-cell">${t == null ? '<span class="sub">해당 없음</span>' : bar(act[i].cnt, t, el ? pace : null)}</td><td class="r sub">${perMonth(act[i].cnt, t)}</td><td class="r sub num">${t == null ? '-' : fmt(t / now)}</td></tr>`;
-        }).join('')}
-      </tbody></table></div>
-      <p class="sub gl-note">${dev ? '개발원 기준: <b>실인원</b>은 실적 입력의 <b>참여인원(신규)</b>, <b>연인원</b>은 <b>참여인원</b>을 더해서 세요. 같은 사람이 여러 번 오면 두 번째부터는 신규 칸을 비우세요. 증빙서류(초기면접지·상담기록지·근로계약서 등)가 있어야 인정돼요.' : '복지관 기준: 실적 입력 한 줄 = 1건, 사업체·기관 활동 기록(방문·전화 등)도 자동으로 1건씩 셉니다.'} 팀 전체(모든 직원) 실적으로 계산해요.</p>
+      ${chart}
+      <div class="table-wrap"><table class="tbl gl-htbl"><thead><tr><th>${year}년</th>${items.map(i => `<th>${e(ALIAS[i] || i)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+      ${baseTbl}
+      <p class="sub gl-note">${dev ? '개발원 기준: <b>실인원</b>은 실적 입력의 <b>참여인원(신규)</b>, <b>연인원</b>은 <b>참여인원</b>을 더해서 세요. 증빙서류(초기면접지·상담기록지·근로계약서 등)가 있어야 인정돼요.' : '복지관 기준: 실적 입력 한 줄 = 1건, 사업체·기관 활동 기록(방문·전화 등)도 자동으로 1건씩 셉니다.'} 팀 전체 실적으로 계산해요.</p>
       ${S.isAdmin() ? editor(g) : ''}
     </section>`;
   }
@@ -8268,10 +8360,31 @@ window.App = (() => {
     'at-imp-cancel': () => { AT.ui.imp = null; bindAttend(); },
     'at-imp-commit': () => { const r = AT.commitImport(); toast(`참여자 ${r.people}명 추가, 출석 기록 ${r.recs}건을 불러왔어요.`); render(); },
     'gl-mode': el => { V.ui.perf.glMode = el.dataset.mode; render(); },
+    'gl-year': el => { V.ui.perf.glYear = +el.dataset.year; render(); },
     'gl-save': async () => {
       const g = GL.readEditor();
       await S.saveSettings({ perfGoal: JSON.stringify(g) });
       toast(`실적 목표 기준을 저장했어요 (${g.baseYear}년 ${g.months}개월 기준 · 인원 ${g.staffNow}/${g.staffNeed}명).`);
+    },
+    'od-who': el => { R.ui.orders.who = el.dataset.who; $('#odResults').innerHTML = R.ordersResults(); },
+    'od-staff-add': async () => {
+      if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
+      const name = ($('#odStaffNew').value || '').trim();
+      if (!name) return $('#odStaffNew').focus();
+      if (S.staff().some(s => s.name === name)) return toast(`${name}은(는) 이미 담당자 목록에 있어요.`, 'error');
+      await S.saveSettings({ staff: [...S.staff(), { name, program: $('#odStaffProg').value }] });
+      toast(`담당자 ${name}을(를) 추가했어요. 일정·실적·지도 등 모든 화면의 담당자 목록에 같이 들어가요.`);
+    },
+    'od-staff-del': async el => {
+      const name = el.dataset.name;
+      if (!S.isAdmin()) return toast('담당자 삭제는 관리자만 할 수 있어요.', 'error');
+      if (S.staff().length <= 1) return toast('담당자가 한 명은 있어야 해요.', 'error');
+      const n = S.get().trips.filter(t => t.staff === name).length;
+      if (!(await confirmBox(`담당자 ${name}을(를) 목록에서 뺄까요?`, `담당자 목록에서만 빠지고, 이미 적힌 명령부${n ? ` ${n}건` : ''}·일정·사업체 기록은 그대로 남아요.`, '빼기'))) return;
+      const before = S.staff().map(s => ({ ...s }));
+      await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
+      if (R.ui.orders.who === name) R.ui.orders.who = '';
+      toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
     },
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'tv-save-set': async () => {
@@ -8301,7 +8414,7 @@ window.App = (() => {
       toast(`${ok}건의 왕복 거리를 채웠어요.${miss ? ` ${miss}건은 출장지를 지도에서 못 찾아 직접 적어 주세요.` : ''}`);
     },
     'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
-    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
+    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: f.who || S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
     'od-dup': el => { const t = S.find('trip', el.dataset.id); if (!t) return; const other = S.staff().map(s => s.name).find(n => n !== t.staff) || t.staff; S.upsert('trip', { ...t, id: undefined, staff: other, actId: '' }); toast(`${other} 동행 줄을 추가했습니다. 성명을 확인하세요.`); },
     'od-del': el => { const undo = S.remove('trip', el.dataset.id); if (undo) toast('한 줄을 삭제했습니다.', '', { undo }); },
     'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
@@ -8442,6 +8555,7 @@ window.App = (() => {
         if (drawerOpen()) return (stack.length > 1 ? A['dr-back']() : closeDrawer());
       }
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
+      if (ev.key === 'Enter' && ev.target.id === 'odStaffNew' && !ev.isComposing) { ev.preventDefault(); A['od-staff-add'](); }
     });
     $('#searchTrigger').onclick = openSearch;
     $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };
