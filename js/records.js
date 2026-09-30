@@ -271,29 +271,44 @@ window.R = (() => {
   const orderStaff = () => { const f = ui.orders; return [...new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)'))]; };
   const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
   /** staff를 주면 그 담당자 줄만 모아 결재란이 따로 있는 한 장을 만든다. 없으면 전체 */
-  function orderDoc(staff) {
+  /* 명령부 양식: 칸 너비는 늘 같은 비율(%)로 고정하고, 표는 최소 MIN_ROWS 줄(빈 줄 채움)로 매달 같은 모양.
+   * 줄이 많으면 줄 높이·글자 크기를 줄여 A4 세로 한 쪽에 담는다. scale은 인쇄 전에 실제 크기를 재서 더 줄일 때 쓴다 */
+  const MIN_ROWS = 14;
+  const COLS_TRIP = [['출장일', 10], ['성명', 8], ['출장지', 17], ['출장용무', 12], ['방 법', 10], ['출장시간', 10], ['출장복명', 13], ['비고', 20]];
+  const COLS_OT = [['특근일자', 12], ['특근자 성명', 12], ['부서명', 10], ['특근시간', 14], ['특 근 업 무 내 용', 52]];
+  function orderDoc(staff, scale = 1) {
     const f = ui.orders;
+    if (staff === undefined || staff === '') staff = null;
     const list = trips(f.month, f.kind).filter(t => staff == null || (t.staff || '(담당자 없음)') === staff);
     const trip = f.kind === '출장';
+    const cols = trip ? COLS_TRIP : COLS_OT;
+    const n = Math.max(MIN_ROWS, list.length);
+    // 표 본문에 쓸 수 있는 높이 약 205mm (A4 297 − 여백 20 − 결재란·제목 약 60 − 머리줄 12)
+    const rowMm = +(Math.min(13, 205 / n) * scale).toFixed(2);
+    const fs = +((rowMm >= 11 ? 10 : rowMm >= 9 ? 9.5 : rowMm >= 7.5 ? 8.5 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
+    const cell = (v, cls = '') => `<td${cls ? ` class="${cls}"` : ''}>${v}</td>`;
+    const rep = t => `<span class="rep">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</span>`;
+    const rows = list.map(t => trip
+      ? cell(e(md(t.date))) + cell(e(t.staff)) + cell(e(t.place), 'l') + cell(e(t.purpose)) + cell(e(t.method)) + cell(e(t.time)) + cell(rep(t)) + cell(e(t.note), 'l')
+      : cell(e(md(t.date))) + cell(e(t.staff)) + cell(e(t.dept || '직업')) + cell(e(t.time)) + cell(`${e(t.purpose)}${t.note ? `<br>${e(t.note)}` : ''}`, 'l'));
+    while (rows.length < n) rows.push(cols.map(([h]) => cell(h === '출장복명' ? rep({}) : '&nbsp;')).join(''));
     const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
-    return `<article class="doc order-doc">
+    return `<article class="doc order-doc" style="font-size:${fs}pt">
       <div class="order-head">${sign}</div>
       <h1>${orderTitle(f.kind)}</h1>
       <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)${staff != null ? ` · <b>${trip ? '출장자' : '특근자'}: ${e(staff)}</b>` : ''}</p>
-      <table class="doc-tbl"><thead><tr>${trip ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방 법</th><th>출장시간</th><th>출장복명</th><th>비고</th>' : '<th>특근일자</th><th>특근자 성명</th><th>부서명</th><th>특근시간</th><th>특 근 업 무 내 용</th>'}</tr></thead><tbody>
-      ${list.map(t => trip
-        ? `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.place)}</td><td>${e(t.purpose)}</td><td>${e(t.method)}</td><td>${e(t.time)}</td><td class="nowrap">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</td><td>${e(t.note)}</td></tr>`
-        : `<tr><td>${e(md(t.date))}</td><td>${e(t.staff)}</td><td>${e(t.dept || '직업')}</td><td>${e(t.time)}</td><td>${e(t.purpose)}${t.note ? `<br>${e(t.note)}` : ''}</td></tr>`).join('')}
-      </tbody></table>
+      <table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${cols.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
+        <thead><tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r => `<tr style="height:${rowMm}mm">${r}</tr>`).join('')}</tbody></table>
     </article>`;
   }
-  /** 담당자마다 한 장씩, 페이지를 나눠 이어 붙인다 */
-  const orderDocsEach = () => orderStaff().map(orderDoc).join('');
+  /** 담당자마다 한 장씩, 페이지를 나눠 이어 붙인다 (fit: 인쇄 전에 한 쪽에 맞추는 함수) */
+  const orderDocsEach = (fit = s => orderDoc(s)) => orderStaff().map(s => fit(s)).join('');
   /** 한글에서 열 수 있는 워드 호환 문서(.doc)로 저장 */
-  function orderFile(staff) {
+  function orderFile(staff, fit = s => orderDoc(s)) {
     const f = ui.orders;
-    const css = 'body{font-family:"맑은 고딕",sans-serif;font-size:10pt}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:6pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:60pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center}.doc-tbl{width:100%;border-collapse:collapse}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:3pt;text-align:center}.doc-tbl th{background:#eee}';
-    const body = staff == null ? orderDocsEach().replace(/<\/article><article/g, '</article><br style="page-break-before:always"><article') : orderDoc(staff);
+    const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl th{background:#eee}.rep{font-size:90%}';
+    const body = staff == null ? orderDocsEach(fit).replace(/<\/article>\s*<article/g, '</article><br style="page-break-before:always"><article') : fit(staff);
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${orderTitle(f.kind)}</title><style>${css}</style></head><body>${body}</body></html>`;
     const name = `${V.monthLabel(f.month)} ${orderTitle(f.kind)}${staff != null ? '_' + staff : '_담당자별'}.doc`.replace(/[\\/:*?"<>|]/g, '');
     return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };

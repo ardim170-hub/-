@@ -286,6 +286,23 @@ window.App = (() => {
     rows.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
     push({ type: 'hwp', state: { files: files.map(f => f.name), rows: R.markDup(rows), errors } });
   }
+  /** 명령부를 A4 세로 한 쪽에 맞춘다: 화면 밖에서 실제 크기(190mm 폭)를 재고, 넘치면 줄 높이·글자를 조금씩 줄여 다시 그린다 */
+  function fitOrder(staff) {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
+    document.body.appendChild(box);
+    const limit = 272 * 96 / 25.4; // A4 297mm − 위아래 여백 20mm − 여유 5mm
+    let html = '';
+    for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
+      html = R.orderDoc(staff, scale);
+      box.innerHTML = html;
+      const art = box.querySelector('.order-doc');
+      art.classList.add('measure');
+      if (art.getBoundingClientRect().height <= limit) break;
+    }
+    box.remove();
+    return html;
+  }
   function printHtml(html) {
     const root = $('#printRoot');
     root.innerHTML = html;
@@ -894,11 +911,11 @@ window.App = (() => {
     },
     'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
     'sv-print': () => printHtml($('#svDoc').innerHTML),
-    'od-print': el => printHtml(R.orderDoc(el.dataset.staff)),
+    'od-print': el => printHtml(fitOrder(el.dataset.staff || null)),
     'od-hwp': () => $('#hwpFile').click(),
     'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
-    'od-print-each': () => printHtml(R.orderDocsEach()),
-    'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
+    'od-print-each': () => printHtml(R.orderDocsEach(fitOrder)),
+    'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
