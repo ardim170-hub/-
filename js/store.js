@@ -191,6 +191,21 @@ window.S = (() => {
     } catch (err) { setSync('error', err); }
   }
 
+  /** 보내는 중인 저장이 모두 끝날 때까지 기다린다 (최대 20초) */
+  async function whenSaved() {
+    for (let i = 0; i < 200 && pending > 0; i++) await new Promise(r => setTimeout(r, 100));
+    return pending === 0;
+  }
+  /** 저장·새로고침 버튼: 내 저장을 끝낸 뒤 구글 시트에서 최신 내용을 다시 받아 화면을 새로 그린다 */
+  async function reload() {
+    if (!REMOTE) { persistLocal(); notify(); return { remote: false, saved: true }; }
+    const saved = await whenSaved();
+    lastSig = '';
+    await refresh();
+    if (sync.status === 'error') throw sync.error || new Error('불러오지 못했습니다');
+    return { remote: true, saved };
+  }
+
   /* ---------- 초기화 ---------- */
   async function init() {
     if (REMOTE) {
@@ -720,7 +735,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

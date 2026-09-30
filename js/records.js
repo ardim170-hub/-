@@ -239,13 +239,14 @@ window.R = (() => {
     const visitsLeft = trip ? S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id)).length : 0;
     return `<section class="panel">
       ${staffBar}
+      ${f.bulk ? bulkPanel() : ''}
       <div class="panel-pad perf-actions">
         <div class="inline">
           ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
           <button class="btn" type="button" data-act="od-add">+ 줄 추가</button>
           <button class="btn" type="button" data-act="od-hwp">한글 명령부 불러오기</button>
         </div>
-        <div class="inline"><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="od-bulk">🗂 여러 달 한꺼번에 인쇄</button><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
       </div>
       ${`<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
@@ -339,6 +340,94 @@ window.R = (() => {
   // 전원 인쇄·파일은 이 달 기록이 있는 사람만 (빈 양식은 사람별 버튼으로)
   const orderDocsEach = (fit = s => orderDoc(s)) => { const f = ui.orders, have = new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')); return orderStaff().filter(s => have.has(s)).map(s => fit(s)).join(''); };
   /** 한글에서 열 수 있는 워드 호환 문서(.doc)로 저장 */
+  /* ---------- 여러 달 한꺼번에 (사람 → 달 → 출장·특근 순서) ---------- */
+  const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while ((y < y2 || (y === y2 && m <= m2)) && out.length < 24) { out.push(`${y}-${U.pad(m)}`); m++; if (m > 12) { m = 1; y++; } } return out; };
+  /** 직원 목록 + 명령부에 적힌 이름 (목록에 없는 사람도 고를 수 있게) */
+  const bulkNames = () => [...new Set([...S.staff().map(x => x.name), ...S.get().trips.map(t => t.staff).filter(Boolean)])];
+  function bulkState() {
+    const f = ui.orders;
+    if (!f.bulk) {
+      const to = f.month, [y, m] = to.split('-').map(Number), d = new Date(y, m - 4, 1);
+      const from = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`;
+      const have = new Set(S.get().trips.filter(t => t.date >= from && t.date <= to + '-31').map(t => t.staff));
+      f.bulk = { from, to, staff: bulkNames().filter(n => have.has(n)), kinds: ['출장', '특근'], empty: false, summary: true };
+    }
+    return f.bulk;
+  }
+  /** 사람·달별 금액: 출장 여비(규정집 기준) + 특근 식비 */
+  function bulkSummary(b = bulkState()) {
+    const months = monthsBetween(b.from, b.to);
+    const rows = b.staff.map(name => {
+      const per = months.map(m => {
+        const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
+        const tv = TV.days(tr).reduce((a, d) => a + d.total, 0);
+        const od = TV.otDays(ot);
+        const meal = od.reduce((a, d) => a + d.total, 0), otMin = od.reduce((a, d) => a + d.min, 0);
+        return { m, trips: tr.length, tv, ots: ot.length, meal, otMin, noTime: TV.days(tr).filter(d => d.noTime).length, total: tv + meal };
+      });
+      return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
+    });
+    return { months, rows, total: rows.reduce((a, r) => a + r.total, 0) };
+  }
+  const won = n => Math.round(n).toLocaleString('ko-KR');
+  const hrs = min => (min ? `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}` : '-');
+  function bulkPanel() {
+    const b = bulkState();
+    const sm = bulkSummary(b);
+    const pages = b.staff.length * sm.months.length * b.kinds.length;
+    const realPages = b.staff.reduce((a, n) => a + sm.months.reduce((c, m) => c + b.kinds.filter(k => b.empty || trips(m, k).some(t => t.staff === n)).length, 0), 0);
+    return `<div class="panel-pad od-bulk" id="odBulk">
+      <div class="od-bulk-head"><b>🗂 여러 달 한꺼번에 인쇄</b><span class="sub">사람마다 달별로 출장 → 특근 순서로 이어서 인쇄해요.</span><button class="icon-btn" type="button" data-act="od-bulk" aria-label="닫기">${V.I.close}</button></div>
+      <div class="od-bulk-form">
+        <label>기간 <input class="input sm" type="month" data-bulk="from" value="${b.from}"> ~ <input class="input sm" type="month" data-bulk="to" value="${b.to}"></label>
+        <span class="od-bulk-grp"><span class="sub">담당자</span>${bulkNames().map(n => `<label class="check"><input type="checkbox" data-bulk="staff" value="${e(n)}" ${b.staff.includes(n) ? 'checked' : ''}>${e(n)}</label>`).join('')}</span>
+        <span class="od-bulk-grp"><span class="sub">명령부</span>${['출장', '특근'].map(k => `<label class="check"><input type="checkbox" data-bulk="kinds" value="${k}" ${b.kinds.includes(k) ? 'checked' : ''}>${k === '출장' ? '관내출장' : '특근'}</label>`).join('')}</span>
+        <label class="check"><input type="checkbox" data-bulk="empty" ${b.empty ? 'checked' : ''}>기록 없는 달도 빈 양식으로</label>
+        <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
+      </div>
+      ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
+        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>출장 ${x.trips}건 ${won(x.tv)}원${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
+        <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
+      </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
+      <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>
+        <span class="sub">출장 여비 = 규정집 2026 기준(일비·유류비·통행료·주차료·식비 등), 특근 = 적은 식비(하루 2만원까지). ${pages > realPages ? `기록 없는 ${pages - realPages}장은 빠져요.` : ''}</span></div>
+    </div>`;
+  }
+  /** 인쇄할 문서들: fit(staff) 은 지금 ui.orders 의 달·종류로 한 장을 만든다 */
+  function bulkDocs(fit) {
+    const b = bulkState(), f = ui.orders, keep = { month: f.month, kind: f.kind };
+    const months = monthsBetween(b.from, b.to);
+    let html = '';
+    try {
+      b.staff.forEach(name => months.forEach(m => b.kinds.forEach(k => {
+        if (!b.empty && !trips(m, k).some(t => t.staff === name)) return;
+        f.month = m; f.kind = k;
+        html += fit(name);
+      })));
+    } finally { f.month = keep.month; f.kind = keep.kind; }
+    if (b.summary && html) html += bulkSummaryDoc();
+    return html;
+  }
+  function bulkSummaryDoc() {
+    const sm = bulkSummary();
+    return `<article class="doc order-doc" style="font-size:10pt">
+      <h1>출장 여비 · 특근 식비 요약</h1>
+      <p class="order-sub">${V.monthLabel(sm.months[0])} ~ ${V.monthLabel(sm.months[sm.months.length - 1])} · 화성시아르딤복지관 직업지원팀</p>
+      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
+        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="6">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
+        <tr class="tv-doc-total" style="height:9mm"><th colspan="7">총 합계</th><th class="r">${won(sm.total)}</th></tr>
+      </tbody></table>
+      <p class="order-sub tv-doc-note">출장 여비: 중증장애인직업재활지원사업 규정집 2026 여비 기준(근무지 내 일비 4시간 기준·차량배치 유무, 유류비, 통행료, 주차료, 식비). 특근: 명령부에 적은 식비(1일 2만원 이내).</p>
+    </article>`;
+  }
+  function bulkFile(fit) {
+    const b = bulkState();
+    const body = bulkDocs(fit).replace(/<\/article>\s*<article/g, '</article><br style="page-break-before:always"><article');
+    const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl td.r,.doc-tbl th.r{text-align:right}.doc-tbl th{background:#eee}.rep{font-size:90%}';
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>출장·특근 명령부</title><style>${css}</style></head><body>${body}</body></html>`;
+    const name = `${V.monthLabel(b.from)}~${+b.to.slice(5)}월 출장·특근 명령부_${b.staff.join('·')}.doc`.replace(/[\\/:*?"<>|]/g, '');
+    return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
+  }
   function orderFile(staff, fit = s => orderDoc(s)) {
     const f = ui.orders;
     const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl th{background:#eee}.rep{font-size:90%}';
@@ -424,5 +513,5 @@ window.R = (() => {
     }));
   }
 
-  return { ui, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();

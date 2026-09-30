@@ -1312,3 +1312,19 @@ label.field .textarea { width: 100%; }
 .at-tbl tr:hover th.nm .at-rbtns { display: inline-flex; }
 .at-tbl th.nm .at-rfill { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #DBEAFE; color: #1D4ED8; font-weight: 800; line-height: 18px; padding: 0; cursor: pointer; }
 .od-each-item.empty { opacity: .8; background: var(--surface-2); }
+/* 여러 달 한꺼번에 인쇄 */
+.od-bulk { border-bottom: 1px solid var(--line); background: #F8FAFF; display: flex; flex-direction: column; gap: 10px; }
+.od-bulk-head { display: flex; align-items: center; gap: 10px; }
+.od-bulk-head .icon-btn { margin-left: auto; }
+.od-bulk-form { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 13.5px; }
+.od-bulk-form label { display: inline-flex; align-items: center; gap: 4px; }
+.od-bulk-grp { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.od-bulk-tbl td { vertical-align: top; min-width: 150px; }
+.od-bulk-tbl td b { display: block; font-size: 14px; }
+.od-bulk-tbl td small { display: block; color: var(--text-2); font-size: 11.5px; }
+.od-bulk-tbl .tot, .od-bulk-tbl tr.tot td, .od-bulk-tbl tr.tot th { background: #FFF7ED; }
+.od-bulk-tbl td.tot b { color: #9A3412; font-size: 15px; }
+.od-bulk-acts { gap: 8px 12px; flex-wrap: wrap; align-items: center; }
+.btn-sync { white-space: nowrap; font-weight: 700; }
+.btn-sync.spinning { opacity: .7; cursor: progress; }
+@media (max-width: 860px) { .btn-sync { padding-inline: 10px; font-size: 13px; } }

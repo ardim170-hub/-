@@ -23,6 +23,12 @@ window.App = (() => {
     const el = document.createElement('div');
     el.className = 'toast ' + type;
     el.innerHTML = `<span>${U.esc(msg)}</span>`;
+    if (opt.action) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = opt.action.label;
+      b.onclick = () => { el.remove(); opt.action.run(); };
+      el.appendChild(b);
+    }
     if (opt.undo) {
       const b = document.createElement('button');
       b.type = 'button'; b.textContent = '되돌리기';
@@ -30,7 +36,7 @@ window.App = (() => {
       el.appendChild(b);
     }
     $('#toasts').appendChild(el);
-    setTimeout(() => el.remove(), opt.undo ? 6000 : type === 'error' ? 5000 : 2600);
+    setTimeout(() => el.remove(), opt.undo || opt.action ? 6500 : type === 'error' ? 5000 : 2600);
   }
   function confirmBox(title, body, ok = '확인') {
     return new Promise(res => {
@@ -114,6 +120,8 @@ window.App = (() => {
     sel.classList.toggle('scoped', cur !== 'all');
   }
   function renderSync(sync) {
+    const btn = $('#syncBtn');
+    if (btn && !btn.disabled) btn.textContent = S.isAdmin() ? '💾 저장·새로고침' : '⟳ 새로고침';
     const el = $('#syncState');
     if (!S.REMOTE) { el.hidden = true; return; }
     el.hidden = false;
@@ -154,6 +162,7 @@ window.App = (() => {
       view.innerHTML = `<div class="panel"><div class="empty"><strong>화면을 그리는 중 문제가 생겼습니다</strong>${U.esc(err.message)}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
     }
     renderNav();
+    renderSync(S.sync);
   }
 
   function bindList(inputId, target, fn, setter) {
@@ -632,6 +641,20 @@ window.App = (() => {
     openDetail(to, rec.id, fromDrawer);
     return rec;
   }
+  /** 저장 알림 + 지도 연결: 위치가 있으면 "지도에서 보기", 없으면 "위치 정하기" */
+  function mapToast(kind, rec, msg) {
+    if (!['biz', 'net', 'card'].includes(kind)) return toast(msg);
+    if (kind === 'card' && rec.linkType) {
+      const t = S.find(rec.linkType, rec.linkId);
+      return toast(`${msg} ${t ? `'${t.name}'에 연결된 명함이라 지도에서 그곳을 누르면 보여요.` : ''}`, '', t && M.hasPos(t) ? { action: { label: '📍 지도에서 보기', run: () => A['map-show']({ dataset: { kind: rec.linkType, id: t.id } }) } } : {});
+    }
+    const run = () => A['map-show']({ dataset: { kind, id: rec.id } });
+    // 주소로 위치를 찾는 중이면 잠시 뒤 다시 확인한다
+    const cur = S.find(kind, rec.id) || rec;
+    if (M.hasPos(cur)) return toast(`${msg} 지도에도 ${cur.approx ? '대략적인 위치로 ' : ''}표시돼요.`, '', { action: { label: '📍 지도에서 보기', run } });
+    if (kind === 'card') return toast(`${msg} 명함에 주소가 없어 지도에는 안 나와요. 사업체·기관에 연결하면 그곳 위치로 보여요.`);
+    toast(`${msg} 주소가 없어 아직 지도에 안 나와요.`, 'error', { action: { label: '위치 정하기', run: () => push({ type: 'form', kind, id: rec.id, focus: 'address' }, true) } });
+  }
   async function onSubmit(form) {
     const res = F.collect(form);
     if (!res) return;
@@ -650,7 +673,7 @@ window.App = (() => {
       return;
     }
     if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
-    toast(id ? '저장했습니다.' : '등록했습니다.');
+    mapToast(kind, saved, id ? '저장했습니다.' : '등록했습니다.');
     stack.pop();
     if (!id && kind !== 'ev' && !stack.length) stack.push({ type: 'detail', kind, id: saved.id });
     renderDrawer();
@@ -920,7 +943,7 @@ window.App = (() => {
     },
     'map-show': el => {
       // 지도로 가서 그곳을 바로 보여 준다 (필터는 풀어서 반드시 보이게)
-      Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', biz: true, net: true, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), solo: { kind: el.dataset.kind, id: el.dataset.id }, focus: { kind: el.dataset.kind, id: el.dataset.id } });
+      Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', prog: '', biz: true, net: true, card: el.dataset.kind === 'card' ? true : V.ui.map.card, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), solo: { kind: el.dataset.kind, id: el.dataset.id }, focus: { kind: el.dataset.kind, id: el.dataset.id } });
       closeDrawer();
       if (location.hash === '#/map') render(); else location.hash = '#/map';
     },
@@ -1119,7 +1142,26 @@ window.App = (() => {
     'od-print': el => printHtml(fitOrder(el.dataset.staff || null)),
     'od-hwp': () => $('#hwpFile').click(),
     'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
+    'sync-now': async el => {
+      const btn = el || $('#syncBtn');
+      if (btn.disabled) return;
+      // 입력 중인 칸이 있으면 먼저 확정(저장)한다
+      const a = document.activeElement;
+      if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'searchInput') { a.dispatchEvent(new Event('change', { bubbles: true })); a.blur(); }
+      btn.disabled = true; btn.classList.add('spinning');
+      try {
+        const r = await S.reload();
+        render();
+        const t = new Date(), hm = `${U.pad(t.getHours())}:${U.pad(t.getMinutes())}`;
+        toast(r.remote ? `${r.saved ? '저장 완료 · ' : ''}팀원이 바꾼 최신 내용까지 불러왔어요 (${hm})` : `이 컴퓨터에 저장했어요 (${hm}). 팀과 함께 보려면 공유 사이트 주소로 여세요.`);
+      } catch (err) {
+        toast('새로 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. (' + (err && err.message || err) + ')', 'error');
+      } finally { btn.disabled = false; btn.classList.remove('spinning'); }
+    },
     'od-print-each': () => printHtml(R.orderDocsEach(fitOrder)),
+    'od-bulk': () => { const f = R.ui.orders; if (f.bulk && f.bulkOpen) { f.bulkOpen = false; f.bulk = null; } else { f.bulkOpen = true; R.bulkState(); } $('#odResults').innerHTML = R.ordersResults(); },
+    'od-bulk-print': () => { const html = R.bulkDocs(fitOrder); if (html) printHtml(html); },
+    'od-bulk-file': () => { const { name, blob } = R.bulkFile(fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았어요. 한글 또는 워드로 열 수 있어요.`); },
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'at-month': el => { const [y, m] = AT.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); AT.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
@@ -1364,6 +1406,7 @@ window.App = (() => {
     });
     document.addEventListener('keydown', ev => {
       if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'k') { ev.preventDefault(); openSearch(); return; }
+      if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') { ev.preventDefault(); A['sync-now']($('#syncBtn')); return; }
       if (ev.key === 'Escape') {
         if (!$('#confirmLayer').hidden) return $('#confirmCancel').click();
         if (!$('#searchLayer').hidden) return closeSearch();
@@ -1394,6 +1437,16 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
+      const bk = ev.target.closest('#odBulk [data-bulk]');
+      if (bk) {
+        const b = R.bulkState(), k = bk.dataset.bulk, box = $('#odBulk');
+        if (k === 'from' || k === 'to') b[k] = bk.value || b[k];
+        else if (k === 'staff' || k === 'kinds') b[k] = [...box.querySelectorAll(`[data-bulk="${k}"]:checked`)].map(x => x.value);
+        else b[k] = bk.checked;
+        if (b.from > b.to) [b.from, b.to] = [b.to, b.from];
+        $('#odResults').innerHTML = R.ordersResults();
+        return;
+      }
       const el = ev.target.closest('[data-chg]');
       if (!el) return;
       const { id, field } = el.dataset;
