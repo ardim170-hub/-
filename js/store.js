@@ -162,7 +162,7 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', fuelEff: s.settings.fuelEff || '', fuelPrice: s.settings.fuelPrice || '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', fuelEff: s.settings.fuelEff || '', fuelPrice: s.settings.fuelPrice || '', perfGoal: typeof s.settings.perfGoal === 'string' ? s.settings.perfGoal : s.settings.perfGoal ? JSON.stringify(s.settings.perfGoal) : '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
   }
   /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
   let access = { me: '', owner: '', admin: true, perms: {} };

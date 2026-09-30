@@ -1067,3 +1067,33 @@ label.field .textarea { width: 100%; }
 .tv-f { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
 .tv-f > span { width: 26px; }
 .tv-tbl .tv-place { min-width: 100px; max-width: 170px; }
+
+/* 실적 목표 달성률 */
+.gl { padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; border-top: 4px solid var(--pc, #7C4DDB); }
+.gl-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.gl-head .section-title { margin: 0 0 4px; }
+.gl-desc { margin: 0; }
+.gl-overall { display: flex; flex-direction: column; align-items: flex-end; }
+.gl-overall b { font-size: 28px; color: var(--pi, #5B2FB5); line-height: 1.1; }
+.gl-tools { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; }
+.gl-staff { font-size: 13px; padding: 5px 12px; border-radius: 999px; background: var(--surface-2); }
+.gl-staff.short { background: #FFF0E6; color: #B03E05; }
+.gl-tbl td { vertical-align: middle; }
+.gl-tbl th small { font-weight: 400; color: var(--text-2); margin-left: 3px; }
+.gl-cell { min-width: 190px; }
+.gl-how { font-size: 11.5px; margin-top: 2px; }
+.gl-bar { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); overflow: visible; border: 1px solid var(--line); }
+.gl-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: #2F9E62; }
+.gl-bar.warn i { background: #F5A300; }
+.gl-bar.low i { background: #E5383B; }
+.gl-bar.done i { background: #1D4ED8; }
+.gl-bar u { position: absolute; top: -4px; bottom: -4px; width: 2px; background: #172033; text-decoration: none; }
+.gl-num { margin-top: 3px; font-size: 12.5px; }
+.gl-note { margin: 0; }
+.gl-edit { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 8px 12px; }
+.gl-edit summary { cursor: pointer; font-weight: 600; }
+.gl-edit-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; align-items: flex-start; }
+.gl-edit-top { gap: 8px 14px; flex-wrap: wrap; }
+.gl-edit-top label { display: inline-flex; gap: 4px; align-items: center; font-size: 13px; }
+.gl-edit-tbl { width: auto; }
+.gl-edit-tbl input { width: 80px; }
