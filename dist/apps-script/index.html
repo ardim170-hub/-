@@ -1302,6 +1302,24 @@ label.field .textarea { width: 100%; }
 .gl-btbl tr.how td { white-space: normal; font-size: 11.5px; color: var(--text-2); text-align: left; min-width: 110px; }
 .glc { padding-top: 24px; }
 .od-tbl td.od-meal .input { width: 84px; min-width: 84px; text-align: right; }
+/* 출석부: 목표시간 미만 판 · 줄 버튼 */
+.at-short { margin: 0 16px 10px; padding: 10px 14px; border: 1.5px solid #FCA5A5; border-radius: 12px; background: #FEF2F2; }
+.at-short.ok { border-color: #A7E3BF; background: #F0FAF4; }
+.at-short-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.at-short-head b { color: #B91C1C; }
+.at-short.ok .at-short-head b { color: #1E6B42; }
+.at-short-head .chip { margin: 0 0 0 auto; }
+.at-short-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 8px; max-height: 220px; overflow: auto; }
+.at-short-card { display: grid; grid-template-columns: 1fr auto; gap: 0 6px; text-align: left; padding: 6px 10px; border: 1px solid #FECACA; border-radius: 8px; background: #fff; cursor: pointer; font: inherit; font-size: 13px; }
+.at-short-card:hover { border-color: #EF4444; box-shadow: 0 2px 6px rgba(239,68,68,.15); }
+.at-short-card .gap { color: #B91C1C; font-weight: 800; text-align: right; }
+.at-short-card small { grid-column: 1 / -1; color: var(--text-2); font-size: 11px; }
+.at-tbl td.hours.short { background: #FECACA; color: #991B1B; font-style: normal; }
+.at-short-dot { position: absolute; left: 1px; top: 1px; font-size: 8px; color: #DC2626; }
+.at-tbl th.nm .at-rdel { position: static; transform: none; display: inline-block; }
+.at-tbl th.nm .at-rbtns { display: none; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); gap: 2px; }
+.at-tbl tr:hover th.nm .at-rbtns { display: inline-flex; }
+.at-tbl th.nm .at-rfill { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #DBEAFE; color: #1D4ED8; font-weight: 800; line-height: 18px; padding: 0; cursor: pointer; }
 
 </style>
 </head>
@@ -1384,7 +1402,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.30 16:30";</script>
+<script>window.APP_VERSION = "2026.09.30 16:54";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -5780,13 +5798,14 @@ window.AT = (() => {
   const SUBS = ['참여형', '시간제', '전일제'];
   const DEFAULT_PATTERN = { 참여형: '3,3,3,3,2', 시간제: '4,4,4,4,4', 전일제: '8,8,8,8,8' };
   const OFF_LIMIT = 3; // 한 달 휴무 사용 기준
+  const GOAL_HOURS = 56; // 한 달 목표 훈련시간 (달마다 바꿀 수 있음)
   // 공휴일 (대체공휴일 포함). 달마다 출석부 화면에서 고칠 수 있다
   const HOLIDAYS = {
     '2026-01': [1], '2026-02': [16, 17, 18], '2026-03': [2], '2026-05': [5, 25], '2026-06': [3], '2026-08': [17],
     '2026-09': [24, 25], '2026-10': [5, 9], '2026-12': [25],
     '2027-01': [1], '2027-02': [8, 9], '2027-03': [1], '2027-05': [5, 13], '2027-06': [7], '2027-08': [16], '2027-09': [14, 15, 16], '2027-10': [4, 11], '2027-12': [27],
   };
-  const ui = { month: U.today().slice(0, 7), showSrc: false, view: 'month', pasteTbl: false, brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
+  const ui = { month: U.today().slice(0, 7), shortOnly: false, showSrc: false, view: 'month', pasteTbl: false, brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
 
   /* ---------- 데이터 ---------- */
   const people = () => [...S.get().jobPeople].sort((a, b) => TYPES.indexOf(a.type) - TYPES.indexOf(b.type) || SUBS.indexOf(a.sub) - SUBS.indexOf(b.sub) || (Number(a.no) || 999) - (Number(b.no) || 999) || (a.name || '').localeCompare(b.name || ''));
@@ -5803,13 +5822,21 @@ window.AT = (() => {
     const s = normDate(p.start), en = normDate(p.end);
     return (!s || !/^\d{4}-/.test(s) || s <= dstr(m, dim(m))) && (!en || !/^\d{4}-/.test(en) || en >= dstr(m, 1));
   };
-  const parseDays = r => { if (!r || !r.days) return {}; try { return typeof r.days === 'string' ? JSON.parse(r.days) : { ...r.days }; } catch { return {}; } };
+  // 같은 글자는 한 번만 풀어 둔다 (표를 다시 그릴 때 빠르게). 고칠 수 있게 늘 복사본을 돌려준다
+  const dayCache = new Map();
+  const parseDays = r => {
+    if (!r || !r.days) return {};
+    if (typeof r.days !== 'string') return { ...r.days };
+    let o = dayCache.get(r.days);
+    if (!o) { try { o = JSON.parse(r.days); } catch { o = {}; } if (dayCache.size > 3000) dayCache.clear(); dayCache.set(r.days, o); }
+    return { ...o };
+  };
   const daysOf = (pid, m) => parseDays(recOf(pid, m));
   function meta(m) {
     const d = daysOf('_', m);
     const holidays = Array.isArray(d.holidays) ? d.holidays : (HOLIDAYS[m] || []);
     let weekdays = 0; for (let i = 1; i <= dim(m); i++) { const w = wd(m, i); if (w > 0 && w < 6) weekdays++; }
-    return { holidays, base: Number(d.base) || weekdays, weekdays };
+    return { holidays, base: Number(d.base) || weekdays, weekdays, goal: Number(d.goal) || GOAL_HOURS };
   }
   /** 요일별 기본 시간 (월~금) */
   const patternOf = p => { const arr = String(p.pattern || DEFAULT_PATTERN[p.sub] || DEFAULT_PATTERN.참여형).split(/[,\s/]+/).map(Number).filter(n => !isNaN(n)); while (arr.length < 5) arr.push(arr[arr.length - 1] || 0); return arr; };
@@ -5895,7 +5922,7 @@ window.AT = (() => {
     if (ui.view === 'year') return `<section class="panel at">${ui.imp ? importPanel() : ''}${ui.pasteTbl ? pastePanel() : ''}${yearTable()}</section>`;
     const m = ui.month, mt = meta(m);
     const all = people();
-    const list = all.filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group));
+    const list = gridList();
     const groups = [...new Set(all.filter(p => activeIn(p, m)).map(p => `${p.type}·${p.sub}`))];
     const days = Object.fromEntries(list.map(p => [p.id, daysOf(p.id, m)]));
     const n = dim(m);
@@ -5925,8 +5952,8 @@ window.AT = (() => {
       const lastW = wd(m, n);
       if (lastW > 0 && lastW < 6) tds += `<td class="wk num">${weekSum(p, n + 1) || ''}</td>`;
       rows.push(`<tr>${span ? `<th rowspan="${span}" class="grp"><span>${e(p.type || '')}</span><span>${e(p.sub || '')}</span></th>` : ''}
-        <td class="no num">${i + 1}</td><th class="nm c" data-r="${i}" data-d="0" title="${e(p.name)} (두 번 누르거나 글자를 치면 이름 고치기)">${e(p.name) || '<span class="sub">(이름)</span>'}<button type="button" class="at-rdel" data-act="at-pdel" data-id="${p.id}" aria-label="${e(p.name)} 삭제" title="이 참여자 삭제">×</button></th>${tds}
-        <td class="s hours num">${s.hours}시간</td><td class="s num">${s.cnt}일</td><td class="s num">${s.real}일</td>
+        <td class="no num">${i + 1}</td><th class="nm c" data-r="${i}" data-d="0" title="${e(p.name)} (두 번 누르거나 글자를 치면 이름 고치기)">${e(p.name) || '<span class="sub">(이름)</span>'}<span class="at-rbtns"><button type="button" class="at-rfill" data-act="at-fill-one" data-id="${p.id}" aria-label="${e(p.name)} 기본 시간 채우기" title="이 사람만 기본 시간으로 빈 칸 채우기">⤓</button><button type="button" class="at-rdel" data-act="at-pdel" data-id="${p.id}" aria-label="${e(p.name)} 삭제" title="이 참여자 삭제">×</button></span>${s.hours < mt.goal ? `<span class="at-short-dot" title="${mt.goal}시간 미만">▼</span>` : ''}</th>${tds}
+        <td class="s hours num ${s.hours < mt.goal ? 'short' : ''}" title="${s.hours < mt.goal ? `${mt.goal}시간까지 ${mt.goal - s.hours}시간 부족` : ''}">${s.hours}시간</td><td class="s num">${s.cnt}일</td><td class="s num">${s.real}일</td>
         <td class="s st-공 num">${s.공}</td><td class="s st-특 num">${s.특}</td><td class="s st-병 num">${s.병}</td><td class="s st-결 num">${s.결}</td><td class="s num">${s.gt + s.off}</td>
         <td class="s num ${s.off > OFF_LIMIT ? 'over' : 'offuse'}">${s.off}/${OFF_LIMIT}</td></tr>`);
     });
@@ -5945,6 +5972,7 @@ window.AT = (() => {
       <div class="at-meta">
         <label>공휴일 <input class="input sm" id="atHol" value="${e(mt.holidays.join(', '))}" style="width:110px" placeholder="예: 24, 25"> 일</label>
         <label>기준 일수 <input class="input sm" id="atBase" value="${mt.base}" style="width:48px" inputmode="numeric"> 일 <span class="sub">(평일 ${mt.weekdays}일)</span></label>
+        <label>목표 훈련시간 <input class="input sm" id="atGoal" value="${mt.goal}" style="width:52px" inputmode="numeric"> 시간</label>
         <button class="btn btn-sm" type="button" data-act="at-meta">저장</button>
         ${groups.length > 1 ? `<span class="chips at-groups"><button type="button" class="chip ${!ui.group ? 'on' : ''}" data-act="at-group" data-g="">전체</button>${groups.map(g => `<button type="button" class="chip ${ui.group === g ? 'on' : ''}" data-act="at-group" data-g="${e(g)}">${e(g)}</button>`).join('')}</span>` : ''}
         <details class="at-keys"><summary>⌨️ 엑셀처럼 쓰기 (단축키)</summary><div class="sub">
@@ -5954,6 +5982,7 @@ window.AT = (() => {
           성명 칸에서 이름을 치면 이름이 바뀌고, 맨 아래 <b>+ 새 참여자</b> 줄에 이름을 치면 한 줄이 생겨요. 이름 여러 개를 붙여넣어도 돼요.</div></details>
       </div>
       ${ui.imp ? importPanel() : ''}${ui.pasteTbl ? pastePanel() : ''}
+      ${shortBoard(m, mt)}
       ${`<div class="at-wrap" id="atWrap"><input class="at-ed" id="atEd" autocomplete="off" spellcheck="false" aria-label="출석부 칸 입력"><table class="at-tbl" id="atTbl"><thead>
         <tr><th rowspan="2" class="grp">구분</th><th rowspan="2" class="no">번호</th><th rowspan="2" class="nm">성명</th><th colspan="${n + tailCols}">${+m.slice(5, 7)}월</th><th colspan="9" class="s-head">${mt.base}일 기준</th></tr>
         <tr>${Array.from({ length: n }, (_, k) => { const d = k + 1, w = wd(m, d); return `<th class="d ${dayCls(d)}">${d}<small>${U.WD[w]}</small></th>`; }).join('')}${tailCols ? '<th class="d sat">계</th>' : ''}
@@ -6001,6 +6030,29 @@ window.AT = (() => {
     const ids = S.get().attends.filter(a => a.month === m && a.pid !== '_').map(a => a.id);
     return { n: ids.length, undo: ids.length ? S.removeMany('att', ids) : null };
   }
+  /** 목표 훈련시간(기본 56시간) 미만인 사람을 모아 보는 판 */
+  function shortBoard(m, mt) {
+    const base = people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group));
+    const short = base.map(p => ({ p, s: sums(p, m, daysOf(p.id, m), mt) })).filter(x => x.s.hours < mt.goal).sort((a, b) => a.s.hours - b.s.hours);
+    if (!base.length) return '';
+    const why = s => [s.off && `휴무 ${s.off}`, s.병 && `병가 ${s.병}`, s.특 && `특휴 ${s.특}`, s.공 && `공가 ${s.공}`, s.결 && `결근 ${s.결}`].filter(Boolean).join(' · ');
+    return `<div class="at-short ${short.length ? '' : 'ok'}">
+      <div class="at-short-head">
+        <b>${short.length ? `⚠ ${mt.goal}시간 미만 <span class="num">${short.length}</span>명` : `✅ 모두 ${mt.goal}시간 이상`}</b>
+        <span class="sub">${V.monthLabel(m)} · ${base.length}명 중</span>
+        ${short.length || ui.shortOnly ? `<button type="button" class="chip ${ui.shortOnly ? 'on' : ''}" data-act="at-shortonly">${ui.shortOnly ? '전체 다시 보기' : '표에서 이 사람들만 보기'}</button>` : ''}
+      </div>
+      ${short.length ? `<div class="at-short-list">${short.map(({ p, s }) => `<button type="button" class="at-short-card" data-act="at-find" data-id="${p.id}" title="표에서 이 사람 줄로 가기"><b>${e(p.name)}</b><span class="num"><b>${s.hours}</b>/${mt.goal}시간</span><span class="gap num">−${mt.goal - s.hours}시간</span><small>${why(s) || '기록 부족'}</small></button>`).join('')}</div>` : ''}
+    </div>`;
+  }
+  /** 표에서 그 사람 줄로 이동 */
+  function findRow(pid) {
+    let i = gridList().findIndex(p => p.id === pid);
+    if (i < 0) { ui.shortOnly = false; ui.group = ''; return -1; }
+    const m = ui.month; let d = 1; while (d <= dim(m) && !editable(m, d)) d++;
+    select(i, d);
+    return i;
+  }
   const places = list => [...new Set(list.map(p => p.place).filter(Boolean))].sort();
   function pastePanel() {
     return `<div class="at-imp"><b>엑셀 표 붙여넣기</b> <span class="sub">엑셀에서 "구분 … 성명 … 1일 2일 …"부터 맨 아래 줄까지 드래그해 복사(Ctrl+C)한 뒤 아래에 붙여넣으세요(Ctrl+V).</span>
@@ -6025,8 +6077,9 @@ window.AT = (() => {
 
   /* ---------- 엑셀처럼 칸 고르기·입력 ---------- */
   // sel: { r, d } 현재 칸, anc: 여러 칸을 고를 때 시작 칸. d=0 은 성명 칸
-  const G = { sel: null, anc: null, editing: false, active: false, undo: [] };
-  const gridList = () => { const m = ui.month; return people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group)); };
+  const G = { sel: null, anc: null, editing: false, active: false, down: false, undo: [] };
+  // 화면에 보이는 줄 목록 (구분 필터·목표시간 미만만 보기 반영). 칸 고르기와 표가 같은 목록을 쓴다
+  const gridList = () => { const m = ui.month, mt = meta(m); return people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group) && (!ui.shortOnly || sums(p, m, daysOf(p.id, m), mt).hours < mt.goal)); };
   const editable = (m, d) => { const w = wd(m, d); return d >= 1 && d <= dim(m) && w > 0 && w < 6; };
   const tdAt = (r, d) => document.querySelector(`#atTbl [data-r="${r}"][data-d="${d}"]`);
   function range() {
@@ -6247,17 +6300,16 @@ window.AT = (() => {
     if (toast) toastMsg = toast;
     const tbl = document.getElementById('atTbl'), ed = document.getElementById('atEd');
     if (!tbl || !ed) return;
-    let down = false;
     tbl.addEventListener('pointerdown', ev => {
       if (ev.button !== 0 || ev.target.closest('button')) return;
       const td = ev.target.closest('[data-r][data-d]'); if (!td) return;
       ev.preventDefault();
       if (G.editing) commitEdit(0, 0);
-      down = true;
+      G.down = true;
       select(+td.dataset.r, +td.dataset.d, ev.shiftKey);
     });
-    tbl.addEventListener('pointerover', ev => { if (!down) return; const td = ev.target.closest('[data-r][data-d]'); if (td && (+td.dataset.r !== G.sel.r || +td.dataset.d !== G.sel.d)) { if (!G.anc) G.anc = G.sel; G.sel = { r: +td.dataset.r, d: +td.dataset.d }; paintSel(); } });
-    window.addEventListener('pointerup', () => { down = false; focusEd(); }, { once: true });
+    // 누른 채로 끌 때만 여러 칸 (버튼을 떼면 끝)
+    tbl.addEventListener('pointerover', ev => { if (!G.down || !(ev.buttons & 1)) { G.down = false; return; } const td = ev.target.closest('[data-r][data-d]'); if (td && (+td.dataset.r !== G.sel.r || +td.dataset.d !== G.sel.d)) { if (!G.anc) G.anc = G.sel; G.sel = { r: +td.dataset.r, d: +td.dataset.d }; paintSel(); } });
     tbl.addEventListener('dblclick', ev => { const td = ev.target.closest('[data-r][data-d]'); if (td) startEdit(true); });
     ed.addEventListener('keydown', onKey);
     ed.addEventListener('input', () => { if (!G.editing && ed.value) { G.editing = true; ed.dataset.f2 = ''; placeEditor(); } });
@@ -6268,14 +6320,16 @@ window.AT = (() => {
     if (G.sel) { paintSel(); if (G.active) focusEd(); }
   }
   const releaseGrid = () => { G.active = false; };
+  window.addEventListener('pointerup', () => { if (G.down) { G.down = false; focusEd(); } });
+  window.addEventListener('pointercancel', () => { G.down = false; });
   window.addEventListener('pointerdown', ev => { if (!ev.target.closest('#atWrap, .at-brush')) G.active = false; }, true);
 
   /** 기본 시간으로 빈 칸 채우기 (참여 기간 안의 평일만, 공휴일은 공가) */
-  function fillMonth() {
+  function fillMonth(pids) {
     const m = ui.month, mt = meta(m), hol = new Set(mt.holidays.map(Number));
     const recs = [];
     let n = 0;
-    people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group)).forEach(p => {
+    (pids ? people().filter(p => pids.includes(p.id)) : gridList()).forEach(p => {
       const days = daysOf(p.id, m);
       const s = normDate(p.start), en = normDate(p.end);
       let changed = false;
@@ -6293,11 +6347,11 @@ window.AT = (() => {
     if (recs.length) S.putMany('att', recs);
     return n;
   }
-  function saveMeta(holText, base) {
+  function saveMeta(holText, base, goal) {
     const m = ui.month;
     const holidays = String(holText || '').split(/[,\s]+/).map(Number).filter(d => d >= 1 && d <= dim(m));
     const r = recOf('_', m);
-    S.putMany('att', [{ ...(r ? { id: r.id } : {}), pid: '_', month: m, days: JSON.stringify({ holidays, base: Number(base) || meta(m).weekdays }) }]);
+    S.putMany('att', [{ ...(r ? { id: r.id } : {}), pid: '_', month: m, days: JSON.stringify({ holidays, base: Number(base) || meta(m).weekdays, goal: Number(goal) || GOAL_HOURS }) }]);
   }
 
   /* ---------- 참여자 ---------- */
@@ -6502,7 +6556,7 @@ window.AT = (() => {
     XLSX.writeFile(wb, `${V.monthLabel(m)} 장애인일자리 출석부.xlsx`);
   }
 
-  return { ui, ST, srcList, removeSrc, clearMonth, parsePaste, parseInput, applyAll, undo, releaseGrid, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
+  return { ui, ST, findRow, srcList, removeSrc, clearMonth, parsePaste, parseInput, applyAll, undo, releaseGrid, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
 })();
 
 </script>
@@ -6566,7 +6620,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -7657,7 +7711,10 @@ window.App = (() => {
       if (!(await confirmBox('기본 시간으로 채울까요?', `${V.monthLabel(AT.ui.month)} 평일 중 비어 있는 칸만 참여자별 요일 시간으로 채워요. 공휴일은 공가로 들어가요. 이미 적힌 칸은 그대로 둬요.`, '채우기'))) return;
       const n = AT.fillMonth(); toast(n ? `${n}칸을 채웠어요. 휴무·병가 등은 칠하기로 바꾸세요.` : '채울 빈 칸이 없어요.');
     },
-    'at-meta': () => { AT.saveMeta($('#atHol').value, $('#atBase').value); toast('공휴일·기준 일수를 저장했어요.'); },
+    'at-meta': () => { AT.saveMeta($('#atHol').value, $('#atBase').value, $('#atGoal').value); toast('공휴일·기준 일수·목표 훈련시간을 저장했어요.'); },
+    'at-fill-one': el => { const p = S.find('jp', el.dataset.id); const n = AT.fillMonth([el.dataset.id]); toast(n ? `${p ? p.name : ''}: 빈 칸 ${n}개를 기본 시간으로 채웠어요.` : `${p ? p.name : ''}: 채울 빈 칸이 없어요.`); },
+    'at-shortonly': () => { AT.ui.shortOnly = !AT.ui.shortOnly; bindAttend(); },
+    'at-find': el => { if (AT.findRow(el.dataset.id) < 0) { bindAttend(); AT.findRow(el.dataset.id); } },
     'at-xlsx': () => AT.xlsx(),
     'at-print': () => printHtml(fitAttend()),
     'at-padd': () => { AT.addPerson(); toast('참여자 줄을 추가했어요. 이름과 날짜를 적어 주세요.'); setTimeout(() => { const i = [...document.querySelectorAll('#atPeople [data-field="name"]')].find(x => !x.value); i?.focus(); }, 50); },
