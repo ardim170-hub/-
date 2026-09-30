@@ -10,14 +10,17 @@ window.S = (() => {
 
   /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
   const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
-    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
+    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
+  // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
+  SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
+  SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
@@ -27,7 +30,7 @@ window.S = (() => {
   function toRow(col, x) {
     return Object.fromEntries(SHEETS[col][1].map(([k, h]) => {
       let v = x[k];
-      if (k === 'tags' || k === 'report' || k === 'support') v = (v || []).join(', ');
+      if (k === 'tags' || k === 'report' || k === 'support' || k === 'programs') v = (v || []).join(', ');
       else if (k === 'done' || k === 'approx') v = v ? 'Y' : (k === 'done' ? 'N' : '');
       else if (k === 'photo') v = v ? 'Y' : '';
       else if (JSON_KEYS.has(k)) v = v && (Array.isArray(v) ? v.length : Object.keys(v).length) ? JSON.stringify(v) : '';
@@ -41,7 +44,7 @@ window.S = (() => {
       if (v === undefined) continue;
       if (DATE_KEYS.has(k)) v = U.toDateStr(v);
       else if (NUM_KEYS.has(k)) v = v === '' || v == null ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
-      else if (k === 'tags' || k === 'report' || k === 'support') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
+      else if (k === 'tags' || k === 'report' || k === 'support' || k === 'programs') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
       else if (k === 'done' || k === 'approx') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
       else if (k === 'photo') v = /^y$/i.test(String(v).trim()) ? 'Y' : null;
       else if (JSON_KEYS.has(k)) { try { v = v ? JSON.parse(v) : (k === 'jobAnalyses' ? [] : null); } catch { v = k === 'jobAnalyses' ? [] : null; } }
@@ -51,7 +54,7 @@ window.S = (() => {
     if (!o.id) o.id = U.uid(col[0].toUpperCase());
     return o;
   }
-  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : col === 'trips' ? o.date : o.name);
+  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : col === 'trips' ? o.date : col === 'attends' ? o.pid && o.month : o.name);
   function normalize(next) {
     for (const k of COLS) next[k] ||= [];
     next.settings ||= {};
@@ -229,8 +232,8 @@ window.S = (() => {
   }
 
   /* ---------- CRUD ---------- */
-  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips' };
-  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T' };
+  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips', jp: 'jobPeople', att: 'attends' };
+  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T', jp: 'J', att: 'W' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
   const photoCache = new Map();
 
@@ -292,6 +295,33 @@ window.S = (() => {
     commit();
     if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
     return recs;
+  }
+
+  /** 여러 건을 한 번에 저장(있으면 고치고 없으면 추가). 출석부처럼 칸을 여러 개 바꿀 때 한 번만 보낸다 */
+  function putMany(kind, objs) {
+    const col = COL[kind];
+    const list = state[col];
+    const recs = objs.map(o => {
+      const id = o.id || U.uid(PREFIX[kind]);
+      const i = list.findIndex(x => x.id === id);
+      const rec = i >= 0 ? { ...list[i], ...o, id } : { ...o, id };
+      if (i >= 0) list[i] = rec; else list.push(rec);
+      return rec;
+    });
+    commit();
+    if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
+    return recs;
+  }
+  /** 여러 건 삭제 (되돌리기 가능) */
+  function removeMany(kind, ids) {
+    const col = COL[kind];
+    const set = new Set(ids);
+    const gone = state[col].filter(x => set.has(x.id));
+    if (!gone.length) return null;
+    state[col] = state[col].filter(x => !set.has(x.id));
+    commit();
+    if (REMOTE) send('api_apply', gone.map(x => opDel(col, x.id))).catch(() => {});
+    return () => putMany(kind, gone);
   }
 
   function remove(kind, id) {
@@ -446,6 +476,8 @@ window.S = (() => {
   /* ---------- 직원 · 소속 · 보기 범위 ---------- */
   const staff = () => state.settings.staff;
   const programOf = name => (staff().find(s => s.name === name) || {}).program || '';
+  /** 사업체·기관이 어느 사업 지도에 나오는지: 직접 고른 사업, 없으면 담당 직원의 소속 사업 */
+  const programsOf = x => ((x && x.programs && x.programs.length) ? x.programs : [programOf(x && x.staff)].filter(Boolean));
   const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 환경 */ } };
   let scope = lsGet('ardim.scope') || 'all';
@@ -476,7 +508,7 @@ window.S = (() => {
       businesses: biz, networks: net,
       cards: state.cards.filter(c => !c.linkType || ids.has(c.linkType + c.linkId)),
       activities: state.activities.filter(a => staffInScope(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
-      events: state.events.filter(inT),
+      events: state.events.filter(x => (x.staff ? staffInScope(x.staff) : inT(x))),
       perfs: state.perfs.filter(p => staffInScope(p.staff)),
       trips: state.trips.filter(t => staffInScope(t.staff)),
     };
@@ -688,9 +720,9 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },

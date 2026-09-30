@@ -130,6 +130,8 @@ window.M = (() => {
       ? '<button class="btn btn-ghost btn-sm" type="button" data-act="map-solo-off">전체 보기</button>'
       : `<button class="btn btn-ghost btn-sm" type="button" data-act="map-solo" data-kind="${kind}" data-id="${x.id}">이것만 보기</button>`;
   };
+  /** 이 곳이 들어가 있는 사업 지도 */
+  const progTags = x => { const ps = S.programsOf(x).map(k => D.PROGRAM[k]).filter(Boolean); return ps.length ? `<div class="pop-progs">${ps.map(p => `<span style="--c:${p.hex}">${U.esc(p.map)}</span>`).join('')}</div>` : ''; };
   function popupHtml(kind, x) {
     if (kind === 'card') {
       return `<div class="pop-name">${U.esc(x.org || x.name)}</div><div class="pop-meta">분류 대기 명함 · ${U.esc(x.name)} ${U.esc(x.title || '')}<br>${U.esc(x.address || '')}</div>
@@ -150,7 +152,9 @@ window.M = (() => {
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
-      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div></div>`;
+      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div>
+      <div class="inline pop-edit"><button class="linklike" type="button" data-act="edit" data-kind="${kind}" data-id="${x.id}">✏️ 수정</button><button class="linklike" type="button" data-act="map-move" data-kind="${kind}" data-id="${x.id}">📍 위치 옮기기</button>${S.isHome(x) ? '' : `<button class="linklike pop-del" type="button" data-act="delete" data-kind="${kind}" data-id="${x.id}">🗑 삭제</button>`}</div>
+      ${progTags(x)}</div>`;
   }
 
   /** 위치 지정용 지도: 클릭하면 핀 이동 */

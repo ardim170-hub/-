@@ -25,8 +25,8 @@ window.V = (() => {
     biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, prog: '', sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
-    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
-    sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
   };
@@ -446,14 +446,17 @@ window.V = (() => {
     const st = S.view();
     const noPos = st.businesses.filter(b => !M.hasPos(b)).length + st.networks.filter(n => !M.hasPos(n)).length;
     const pending = st.cards.filter(c => !c.linkType && M.hasPos(c) && !(c.tags || []).includes('개인')).length;
-    const guCount = g => st.businesses.filter(b => D.guOf(b.area) === g).length + st.networks.filter(n => D.guOf(n.area) === g).length;
+    const inProg = x => !f.prog || S.programsOf(x).includes(f.prog);
+    const guCount = g => st.businesses.filter(b => inProg(b) && D.guOf(b.area) === g).length + st.networks.filter(n => inProg(n) && D.guOf(n.area) === g).length;
+    const progCount = k => st.businesses.filter(b => S.programsOf(b).includes(k)).length + st.networks.filter(n => S.programsOf(n).includes(k) && !S.isHome(n)).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.${scopeNote()}</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
+        <div><h1 class="page-title">${f.prog && D.PROGRAM[f.prog] ? `${e(D.PROGRAM[f.prog].map)} 지도` : '화성시 지도'}</h1><div class="page-desc">${f.prog ? `${e(D.PROGRAM[f.prog].map)} 사업의 사업체·기관만 보여줍니다. 지도 위 <b>＋ 여기에 추가</b>로 바로 등록할 수 있어요.` : '모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.'}${scopeNote()}</div></div>
+        <div class="inline"><button class="btn" type="button" data-act="new-net" ${f.prog ? `data-programs="${e(f.prog)}"` : ''}>+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz" ${f.prog ? `data-programs="${e(f.prog)}"` : ''}>+ 사업체 발굴 등록</button></div>
       </div>
-      <div class="map-bar"><div class="chips" role="tablist">
-        <button type="button" role="tab" class="chip ${f.mode === 'ours' ? 'on' : ''}" data-act="map-mode" data-mode="ours" aria-selected="${f.mode === 'ours'}">사업체·네트워크 지도</button>
+      <div class="map-bar"><div class="chips map-progs" role="tablist" aria-label="사업별 지도">
+        <button type="button" role="tab" class="chip ${f.mode === 'ours' && !f.prog ? 'on' : ''}" data-act="map-prog" data-prog="" aria-selected="${f.mode === 'ours' && !f.prog}">전체 지도</button>
+        ${D.PROGRAMS.map(p => `<button type="button" role="tab" class="chip prog-tab ${f.mode === 'ours' && f.prog === p.key ? 'on' : ''}" data-act="map-prog" data-prog="${e(p.key)}" style="--c:${p.hex}" aria-selected="${f.mode === 'ours' && f.prog === p.key}"><span class="dot"></span>${e(p.map)} 지도 <span class="n">${progCount(p.key)}</span></button>`).join('')}
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
@@ -470,6 +473,7 @@ window.V = (() => {
             <details class="map-dd"><summary>단계 <b class="num">${f.stages.size}/${D.STAGES.length}</b></summary>
               <div class="map-dd-body">${D.STAGES.map(s => `<label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label>`).join('')}</div>
             </details>
+            <button type="button" class="btn btn-sm btn-add ${f.addMode ? 'on' : ''}" data-act="map-addmode" id="mapAddBtn" title="지도에서 자리를 찍어 새 사업체·기관 등록 (오른쪽 클릭도 돼요)">${f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'}</button>
             <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
           </div>
@@ -530,7 +534,7 @@ window.V = (() => {
     // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
     st.networks.forEach(n => { if ((f.net && S.can('network', 1)) || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
     if (f.card && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
-    return items.filter(({ x, home }) => home || ((!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
+    return items.filter(({ kind, x, home }) => home || ((!f.prog || kind === 'card' || S.programsOf(x).includes(f.prog)) && (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
   /** 이것만 보기 중이면 지도 위에 이름과 "전체 보기" 버튼 */
@@ -601,11 +605,24 @@ window.V = (() => {
   }
 
   /* ================= 일정 ================= */
+  /** 직원마다 고정 색 (일정 점·이름표) */
+  const STAFF_COLORS = ['#2563EB', '#E8590C', '#0E9384', '#7C4DDB', '#C2255C', '#2F9E62', '#B08800', '#475467'];
+  const staffColor = name => { const i = S.staff().findIndex(s => s.name === name); return i < 0 ? '#9AA3B2' : STAFF_COLORS[i % STAFF_COLORS.length]; };
+  /** 일정의 담당: 적어 둔 직원, 없으면 관련 사업체·기관 담당 */
+  const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
+    const f = ui.sched;
+    const all = S.view().events.filter(x => !x.done);
+    const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">일정</h1><div class="page-desc">사업체 방문, 면접 동행, 기관 행사 등 업무 일정을 관리합니다.</div></div>
+        <div><h1 class="page-title">일정</h1><div class="page-desc">직원별로 일정을 적고, 추가·수정·삭제합니다. 사업체 방문, 면접 동행, 기관 행사 등.</div></div>
         <button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button>
+      </div>
+      <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
+        <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
+        ${S.staff().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
+        <button type="button" class="chip ${f.who === '-' ? 'on' : ''}" data-act="sched-who" data-who="-">팀 공통 <span class="n">${n('-')}</span></button>
       </div>
       <div class="sched">
         <section class="panel" id="evList"></section>
@@ -615,18 +632,21 @@ window.V = (() => {
   function evRow(ev) {
     const t = S.targetOf(ev);
     const d = U.dday(ev.date);
-    return `<div class="ev ${ev.done ? 'done' : ''}">
+    const who = evStaff(ev);
+    return `<div class="ev ${ev.done ? 'done' : ''}" style="--c:${staffColor(who)}">
       <input type="checkbox" aria-label="완료 표시" data-act="ev-toggle" data-id="${ev.id}" ${ev.done ? 'checked' : ''}>
       <div class="ev-when">${U.md(ev.date)} ${e(ev.time || '')}</div>
-      <div style="min-width:0"><div class="ev-title">${e(ev.title)}</div>
+      <div style="min-width:0"><div class="ev-title"><span class="ev-who">${who ? e(who) : '팀 공통'}</span>${e(ev.title)}</div>
         <div class="ev-target">${t ? `<span data-act="open" data-kind="${ev.targetType}" data-id="${t.id}">${e(t.name)}</span> · ` : ''}${e(ev.type)}${ev.memo ? ' · ' + e(ev.memo) : ''}</div></div>
-      <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}<button class="icon-btn" type="button" aria-label="일정 수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button></div>
+      <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}<button class="icon-btn" type="button" aria-label="일정 수정" title="수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button><button class="icon-btn ev-del" type="button" aria-label="일정 삭제" title="삭제" data-act="ev-del" data-id="${ev.id}">${I.close}</button></div>
     </div>`;
   }
+  /** 일정 화면의 직원 칩으로 거른 일정 */
+  const schedEvents = () => { const w = ui.sched.who; return S.view().events.filter(x => (w === '' ? true : w === '-' ? !evStaff(x) : evStaff(x) === w)); };
   function evList() {
     const f = ui.sched;
     const T = U.today();
-    let evs = [...S.view().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    let evs = schedEvents().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     if (f.sel) evs = evs.filter(x => x.date === f.sel);
     const groups = f.sel ? [[U.dateKo(f.sel), evs.filter(x => f.showDone || !x.done)]] : [
       ['지난 일정 (완료 안 됨)', evs.filter(x => !x.done && x.date < T)],
@@ -637,8 +657,8 @@ window.V = (() => {
     ];
     const body = groups.filter(([, l]) => l.length).map(([h, l]) => `<div class="ev-group"><h3>${e(h)} <span class="num">${l.length}</span></h3>${l.map(evRow).join('')}</div>`).join('');
     return `<div class="panel-pad" style="padding-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h2 class="section-title">${f.sel ? e(U.dateKo(f.sel)) + ' 일정' : '다가오는 일정'}</h2>
-        <div class="inline">${f.sel ? '<button class="btn btn-sm" type="button" data-act="cal-clear">전체 일정 보기</button>' : ''}<label class="check"><input type="checkbox" data-act="ev-showdone" ${f.showDone ? 'checked' : ''}>완료 포함</label></div>
+        <h2 class="section-title">${f.who ? `${f.who === '-' ? '팀 공통' : e(f.who)} · ` : ''}${f.sel ? e(U.dateKo(f.sel)) + ' 일정' : '다가오는 일정'}</h2>
+        <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="new-event" data-date="${f.sel || ''}" ${f.who && f.who !== '-' ? `data-staff="${e(f.who)}"` : ''}>+ 추가</button>${f.sel ? '<button class="btn btn-sm" type="button" data-act="cal-clear">전체 일정 보기</button>' : ''}<label class="check"><input type="checkbox" data-act="ev-showdone" ${f.showDone ? 'checked' : ''}>완료 포함</label></div>
       </div>${body || `<div class="empty"><strong>${f.sel ? '이 날은 일정이 없습니다' : '예정된 일정이 없습니다'}</strong>사업체 방문이나 기관 행사를 등록해 보세요.<div><button class="btn btn-primary" type="button" data-act="new-event" data-date="${f.sel || ''}">+ 일정 등록</button></div></div>`}`;
   }
   /** 달력. f: {month, sel}, pick/move: 날짜 선택·달 이동 액션 이름 */
@@ -648,14 +668,14 @@ window.V = (() => {
     const start = new Date(y, m - 1, 1 - first.getDay());
     const T = U.today();
     const byDate = {};
-    S.view().events.forEach(x => { (byDate[x.date] ||= []).push(x); });
+    (f === ui.sched ? schedEvents() : S.view().events).forEach(x => { (byDate[x.date] ||= []).push(x); });
     let cells = '';
     for (let i = 0; i < 42; i++) {
       const d = new Date(start); d.setDate(start.getDate() + i);
       const s = U.fmt(d);
       const evs = (byDate[s] || []).filter(x => !x.done);
       cells += `<button type="button" class="cal-day ${d.getMonth() !== m - 1 ? 'out' : ''} ${s === T ? 'today' : ''} ${s === f.sel ? 'sel' : ''}" data-act="${pick}" data-date="${s}" aria-label="${U.dateKo(s)} 일정 ${evs.length}건">
-        ${d.getDate()}<span class="dots">${evs.slice(0, 3).map(x => `<i class="${x.date < T ? 'late' : ''}"></i>`).join('')}</span></button>`;
+        ${d.getDate()}<span class="dots">${evs.slice(0, 3).map(x => `<i class="${x.date < T ? 'late' : ''}" style="background:${staffColor(evStaff(x))}"></i>`).join('')}</span></button>`;
     }
     return `<div class="cal"><div class="cal-head"><button class="icon-btn" type="button" data-act="${move}" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${y}년 ${m}월</b><button class="icon-btn" type="button" data-act="${move}" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
       <div class="cal-grid">${U.WD.map(w => `<div class="cal-dow">${w}</div>`).join('')}${cells}</div></div>`;

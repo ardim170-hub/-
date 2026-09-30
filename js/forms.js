@@ -90,12 +90,16 @@ window.F = (() => {
           ${field('발굴 경로', sel('source', D.SOURCES, x.source, '선택'), { for: 'f_source' })}
           ${field('발굴일', inp('discoveredAt', x.discoveredAt, 'type="date"'), { for: 'f_discoveredAt' })}
           ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
+          ${progPick(x)}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 인사팀장 통화는 오후 2시 이후"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(b ? '저장' : '등록'),
       after: form => bindLocation(form),
     };
   }
+
+  /** 어느 사업 지도에 나올지 (여러 개 가능). 아무것도 안 고르면 담당 직원의 소속 사업을 따른다 */
+  const progPick = x => field('사업 구분 (지도)', `<div class="prog-pick">${D.PROGRAMS.map(p => `<label class="prog-opt" style="--c:${p.hex}"><input type="checkbox" name="programs" value="${U.esc(p.key)}" ${(x.programs || []).includes(p.key) ? 'checked' : ''}><span>${U.esc(p.map)}</span></label>`).join('')}</div>`, { full: true, hint: '고른 사업의 지도에 나와요. 비워 두면 담당 직원의 소속 사업 지도에 나와요.' });
 
   /* ---------- 네트워크 ---------- */
   function net(n, preset = {}) {
@@ -113,6 +117,7 @@ window.F = (() => {
           ${field('홍보 방식', inp('promo', x.promo, 'placeholder="예: 리플릿 비치, 소식지 게재, SNS 공동 홍보"'), { full: true, for: 'f_promo' })}
           ${field('협력 시작일', inp('since', x.since, 'type="date"'), { for: 'f_since' })}
           ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
+          ${progPick(x)}
           ${field('메모', ta('memo', x.memo, 'rows="3"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(n ? '저장' : '등록'),
@@ -222,14 +227,16 @@ window.F = (() => {
 
   /* ---------- 일정 ---------- */
   function event(ev, preset = {}) {
-    const x = ev || { date: U.today(), time: '', type: '방문', targetType: '', targetId: '', ...preset };
+    const x = ev || { date: U.today(), time: '', type: '방문', targetType: '', targetId: '', staff: S.me(), ...preset };
     const tval = x.targetType && x.targetId ? `${x.targetType}:${x.targetId}` : '';
+    const who = x.staff || (ev ? (S.targetOf(ev) || {}).staff || '' : S.me());
     return {
       html: head(ev ? '일정 수정' : '일정 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="ev" data-id="${ev ? ev.id : ''}" novalidate>
         <div class="fsec"><div class="frow">
           ${field('관련 사업체·기관', `<select class="select" id="f_link" name="link">${linkOptions(tval)}</select>`, { full: true, for: 'f_link' })}
+          ${field('담당 직원', `<select class="select" id="f_staff" name="staff"><option value="">팀 공통</option>${S.staff().map(s => `<option ${s.name === who ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select>`, { for: 'f_staff' })}
           ${field('유형', sel('type', D.EVENT_TYPES, x.type), { for: 'f_type' })}
-          ${field('제목', inp('title', x.title, 'placeholder="비워 두면 \'유형 - 사업체명\'으로 저장"'), { for: 'f_title' })}
+          ${field('제목', inp('title', x.title, 'placeholder="비워 두면 \'유형 - 사업체명\'으로 저장"'), { full: true, for: 'f_title' })}
           ${field('날짜', inp('date', x.date, 'type="date" required'), { req: true, name: 'date', for: 'f_date' })}
           ${field('시간', inp('time', x.time, 'type="time"'), { for: 'f_time' })}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 구직자 2명 동행, 이력서 지참"'), { full: true, for: 'f_memo' })}
@@ -250,10 +257,10 @@ window.F = (() => {
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
-      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');
-      obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim(), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value) };
     } else if (kind === 'card') {
       need('name', '이름을 입력하세요.');
       const [lt, li] = fd.regMode === 'link' ? (fd.link || '').split(':') : [];
@@ -263,7 +270,7 @@ window.F = (() => {
       need('date', '날짜를 입력하세요.');
       const [lt, li] = (fd.link || '').split(':');
       const t = lt ? S.find(lt, li) : null;
-      obj = { targetType: lt || '', targetId: li || '', type: fd.type, title: fd.title.trim() || (t ? `${fd.type} - ${t.name}` : fd.type), date: fd.date, time: fd.time, memo: fd.memo.trim() };
+      obj = { targetType: lt || '', targetId: li || '', type: fd.type, title: fd.title.trim() || (t ? `${fd.type} - ${t.name}` : fd.type), date: fd.date, time: fd.time, memo: fd.memo.trim(), staff: fd.staff || '' };
     }
     errs.forEach(([k, msg]) => {
       const f = form.querySelector(`[data-f="${k}"]`);

@@ -86,7 +86,7 @@ window.D = (() => {
 
   /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
   /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
-  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근']];
+  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근'], ['attend', '출석부']];
   const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
   const PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
@@ -106,8 +106,9 @@ window.D = (() => {
 
   /** 직원 소속 사업 (같은 업무라도 지원 기관별로 실적을 나눠 본다) */
   const PROGRAMS = [
-    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)' },
-    { key: '고용공단', short: '공단', color: 'var(--prog-b)' },
+    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
+    { key: '고용공단', short: '공단', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
+    { key: '장애인일자리', short: '일자리', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
   ];
   const PROGRAM = Object.fromEntries(PROGRAMS.map(p => [p.key, p]));
 

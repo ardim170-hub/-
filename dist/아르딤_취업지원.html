@@ -693,6 +693,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
   --prog-a: #0F7B7B;
   --prog-b: #6A4FB8;
+  --prog-c: #C2410C;
 
   --st-discover: #8A94A6;
   --st-contact: #6B9BEF;
@@ -987,6 +988,21 @@ body[data-route="map"] .page-head { margin-bottom: 12px; }
 .map-dd[open] > summary { border-color: var(--pc, #2F9E62); }
 .map-dd-body { position: absolute; top: calc(100% + 6px); left: 0; z-index: 1200; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(16,24,40,.16); display: grid; gap: 6px; min-width: 150px; }
 .btn-pick.on { background: #1D4ED8; border-color: #1D4ED8; color: #fff; }
+.btn-add { border-color: #2F9E62; color: #1E6B42; font-weight: 700; }
+.btn-add.on { background: #2F9E62; border-color: #2F9E62; color: #fff; }
+.map-box.adding, .map-box.adding .leaflet-interactive { cursor: copy !important; }
+.leaflet-marker-icon.moving { outline: 3px dashed #1D4ED8; outline-offset: 3px; border-radius: 50%; cursor: grab; }
+.pop-edit { gap: 12px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12.5px; }
+.pop-edit .linklike { font-size: 12.5px; }
+.pop-edit .pop-del { color: var(--danger); }
+.pop-progs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.pop-progs span { font-size: 11px; font-weight: 700; color: var(--c); border: 1px solid var(--c); border-radius: 999px; padding: 0 7px; }
+.map-progs .prog-tab.on { background: var(--c); border-color: var(--c); color: #fff; }
+.map-progs .prog-tab.on .dot { background: #fff; }
+.prog-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.prog-opt { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid var(--line-strong); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
+.prog-opt:has(input:checked) { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); font-weight: 700; }
+.prog-opt input { accent-color: var(--c); }
 .map-box.picking, .map-box.picking .leaflet-interactive { cursor: crosshair !important; }
 .route-dot { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-weight: 800; font-size: 13px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.35); }
 .route-dot.a { background: #172033; }
@@ -1073,7 +1089,12 @@ body[data-route="map"] .page-head { margin-bottom: 12px; }
 .cal-day.sel { background: var(--accent-soft); }
 .cal-day .dots { display: flex; gap: 2px; }
 .cal-day .dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
-.cal-day .dots i.late { background: var(--danger); }
+.cal-day .dots i.late { background: var(--danger); box-shadow: 0 0 0 1.5px var(--danger); }
+.cal-day .dots i { width: 6px; height: 6px; }
+.ev { border-left: 4px solid var(--c, transparent); }
+.ev-who { display: inline-block; font-size: 11.5px; font-weight: 700; color: #fff; background: var(--c, #9AA3B2); border-radius: 999px; padding: 1px 8px; margin-right: 6px; vertical-align: 1px; }
+.ev-del:hover { color: var(--danger); }
+.sched-who { margin-bottom: 12px; }
 
 /* ---------- Drawer ---------- */
 .scrim { position: fixed; inset: 0; background: rgba(16, 24, 40, .28); z-index: 1150; }
@@ -1770,6 +1791,96 @@ label.field .textarea { width: 100%; }
 .gl-edit-tbl { width: auto; }
 .gl-edit-tbl input { width: 80px; }
 
+/* ---------- 출석부 (장애인일자리) ---------- */
+.side-nav a[href="#/attend"], body[data-route="attend"] { --pc: #C2410C; --ps: #FFF1E8; --pi: #9A3412; --pn: #fff; }
+.at { padding-bottom: 12px; }
+.at-tools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 12px 16px 6px; }
+.at-brush { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.at-brush .br { border: 1.5px solid var(--line-strong); background: var(--surface); border-radius: 8px; padding: 5px 11px; font: inherit; font-size: 13px; cursor: pointer; }
+.at-brush .br.on { outline: 3px solid var(--pc, #C2410C); outline-offset: 1px; font-weight: 800; }
+.at-brush .br.st-공 { background: #92D050; border-color: #7CB53E; color: #1F3B06; }
+.at-brush .br.st-특 { background: #36A0F8; border-color: #1E88E5; color: #fff; }
+.at-brush .br.st-병 { background: #B850D8; border-color: #9C3BBD; color: #fff; }
+.at-brush .br.st-결 { background: #1B1F24; border-color: #1B1F24; color: #fff; }
+.at-brush .br-off { background: #F2F4F7; }
+.at-brush .br-clear { color: var(--danger); }
+.at-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 4px 16px 10px; font-size: 13px; }
+.at-meta label { display: inline-flex; align-items: center; gap: 4px; }
+.at-help { flex-basis: 100%; }
+.at-groups { margin: 0; }
+.at-wrap { overflow: auto; max-height: calc(100vh - 290px); min-height: 320px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.at-tbl { border-collapse: separate; border-spacing: 0; font-size: 12.5px; min-width: 100%; user-select: none; }
+.at-tbl th, .at-tbl td { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; padding: 0; height: 28px; white-space: nowrap; }
+.at-tbl thead th { position: sticky; top: 0; z-index: 3; background: #F4F5F7; font-weight: 700; font-size: 12px; }
+.at-tbl thead tr:nth-child(2) th { top: 28px; }
+.at-tbl th.d { width: 32px; min-width: 32px; line-height: 1.05; }
+.at-tbl th.d small { display: block; font-weight: 400; font-size: 10px; color: var(--text-2); }
+.at-tbl th.d.sun small, .at-tbl th.d.sun { color: #C92A2A; }
+.at-tbl th.d.sat small { color: #1D4ED8; }
+.at-tbl th.d.hol { background: #E4F4D4; color: #2B5A0C; }
+.at-tbl .grp { position: sticky; left: 0; z-index: 2; background: #FFE9A8; width: 40px; min-width: 40px; font-size: 11.5px; writing-mode: vertical-rl; letter-spacing: 2px; }
+.at-tbl thead .grp { z-index: 4; writing-mode: horizontal-tb; letter-spacing: 0; }
+.at-tbl .grp span { display: inline-block; margin: 2px; }
+.at-tbl .no { position: sticky; left: 40px; z-index: 2; background: var(--surface); width: 30px; min-width: 30px; color: var(--text-2); }
+.at-tbl thead .no { z-index: 4; background: #F4F5F7; }
+.at-tbl .nm { position: sticky; left: 70px; z-index: 2; background: var(--surface); min-width: 66px; max-width: 90px; overflow: hidden; text-overflow: ellipsis; padding: 0 6px; text-align: left; box-shadow: 2px 0 0 var(--line-strong); }
+.at-tbl thead .nm { z-index: 4; background: #F4F5F7; }
+.at-tbl td.c { cursor: cell; }
+.at-tbl td.c:hover { outline: 2px solid var(--pc, #C2410C); outline-offset: -2px; }
+.at-tbl td.hol { background: #F1F9EA; }
+.at-tbl td.wk { background: #B7BCC4; font-weight: 700; color: #1B1F24; }
+.at-tbl td.sun { background: #D5D9DF; }
+.at-tbl td.off { color: #475467; font-size: 11px; }
+.at-tbl .st-공 { background: #92D050; color: #1F3B06; }
+.at-tbl .st-특 { background: #36A0F8; color: #fff; }
+.at-tbl .st-병 { background: #B850D8; color: #fff; }
+.at-tbl .st-결 { background: #1B1F24; color: #fff; }
+.at-tbl td.s, .at-tbl th.s { padding: 0 6px; min-width: 44px; }
+.at-tbl td.hours, .at-tbl th.hours { background: #C9CEF5; font-weight: 700; font-style: italic; }
+.at-tbl td.offuse { background: #FFF2B8; }
+.at-tbl td.over { background: #FECACA; color: #991B1B; font-weight: 800; }
+.at-tbl tr.tot th, .at-tbl tr.tot td { background: #FFF7ED; font-weight: 800; color: #C2410C; }
+.at-tbl tr.ft th { position: sticky; left: 0; z-index: 2; background: #EEF0F3; font-size: 12px; text-align: left; padding-left: 8px; }
+.at-tbl tr.ft td { background: #F7F8FA; font-weight: 700; }
+.at-tbl tbody tr:hover .nm { background: var(--ps, #FFF1E8); }
+.at-people { margin: 12px 16px 0; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.at-people summary { cursor: pointer; }
+.at-people-body { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.at-ptbl td { padding: 4px 4px; }
+.at-ptbl tr.inactive td { opacity: .55; }
+.at-paste { display: flex; flex-direction: column; gap: 6px; }
+.at-imp { margin: 0 16px 10px; padding: 10px 14px; border: 2px dashed var(--pc, #C2410C); border-radius: 10px; background: var(--ps, #FFF1E8); }
+.at-imp-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+/* 인쇄: A4 가로 한 장 */
+.at-doc { page: attend; font-size: 7pt; color: #000; }
+@page attend { size: A4 landscape; margin: 8mm; }
+.at-doc.measure { padding: 0; border: 0; }
+.at-doc-head { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 2mm; }
+.at-doc-head h1 { margin: 0; font-size: 15pt; }
+.at-doc-head h1 span { font-size: 12pt; }
+.at-doc .sign { border-collapse: collapse; font-size: 8pt; }
+.at-doc .sign th, .at-doc .sign td { border: 1px solid #444; width: 16mm; text-align: center; padding: .6mm; }
+.at-doc .sign td { height: 10mm; }
+.at-doc .sign .sign-side { width: 6mm; }
+.at-dtbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.at-dtbl th, .at-dtbl td { border: .6px solid #555; text-align: center; padding: 0; white-space: nowrap; overflow: hidden; line-height: 1.1; }
+.at-dtbl th { background: #EDEFF2; font-weight: 700; }
+.at-dtbl .grp { background: #FFE9A8; font-weight: 700; white-space: normal; }
+.at-dtbl .nm { text-align: left; padding-left: .8mm; }
+.at-dtbl .wk { background: #B7BCC4; font-weight: 700; }
+.at-dtbl .sun { background: #D5D9DF; }
+.at-dtbl th.hol { background: #D9F0C4; }
+.at-dtbl .off { font-size: 85%; }
+.at-dtbl .st-공 { background: #92D050; }
+.at-dtbl .st-특 { background: #36A0F8; }
+.at-dtbl .st-병 { background: #B850D8; color: #fff; }
+.at-dtbl .st-결 { background: #1B1F24; color: #fff; }
+.at-dtbl .ft td { background: #F2F3F5; font-weight: 700; }
+.at-doc-legend { margin: 1.5mm 0 0; font-size: 7.5pt; display: flex; gap: 3mm; align-items: center; }
+.at-doc-legend span { padding: 0 2mm; border: .6px solid #555; }
+@media print { .at-dtbl * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+#printRoot .at-doc + .at-doc { page-break-before: always; break-before: page; }
+
 </style>
 </head>
 <body>
@@ -1851,7 +1962,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.09.30 12:59";</script>
+<script>window.APP_VERSION = "2026.09.30 15:26";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2073,7 +2184,7 @@ window.D = (() => {
 
   /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
   /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
-  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근']];
+  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근'], ['attend', '출석부']];
   const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
   const PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
@@ -2093,8 +2204,9 @@ window.D = (() => {
 
   /** 직원 소속 사업 (같은 업무라도 지원 기관별로 실적을 나눠 본다) */
   const PROGRAMS = [
-    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)' },
-    { key: '고용공단', short: '공단', color: 'var(--prog-b)' },
+    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
+    { key: '고용공단', short: '공단', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
+    { key: '장애인일자리', short: '일자리', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
   ];
   const PROGRAM = Object.fromEntries(PROGRAMS.map(p => [p.key, p]));
 
@@ -2343,14 +2455,17 @@ window.S = (() => {
 
   /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
   const SHEETS = {
-    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
+    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
-    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모']]],
+    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
+  // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
+  SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
+  SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
@@ -2360,7 +2475,7 @@ window.S = (() => {
   function toRow(col, x) {
     return Object.fromEntries(SHEETS[col][1].map(([k, h]) => {
       let v = x[k];
-      if (k === 'tags' || k === 'report' || k === 'support') v = (v || []).join(', ');
+      if (k === 'tags' || k === 'report' || k === 'support' || k === 'programs') v = (v || []).join(', ');
       else if (k === 'done' || k === 'approx') v = v ? 'Y' : (k === 'done' ? 'N' : '');
       else if (k === 'photo') v = v ? 'Y' : '';
       else if (JSON_KEYS.has(k)) v = v && (Array.isArray(v) ? v.length : Object.keys(v).length) ? JSON.stringify(v) : '';
@@ -2374,7 +2489,7 @@ window.S = (() => {
       if (v === undefined) continue;
       if (DATE_KEYS.has(k)) v = U.toDateStr(v);
       else if (NUM_KEYS.has(k)) v = v === '' || v == null ? (k === 'lat' || k === 'lng' ? null : 0) : Number(v);
-      else if (k === 'tags' || k === 'report' || k === 'support') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
+      else if (k === 'tags' || k === 'report' || k === 'support' || k === 'programs') v = String(v || '').split(',').map(t => t.trim()).filter(Boolean);
       else if (k === 'done' || k === 'approx') v = /^(y|yes|o|완료|true|1)$/i.test(String(v).trim());
       else if (k === 'photo') v = /^y$/i.test(String(v).trim()) ? 'Y' : null;
       else if (JSON_KEYS.has(k)) { try { v = v ? JSON.parse(v) : (k === 'jobAnalyses' ? [] : null); } catch { v = k === 'jobAnalyses' ? [] : null; } }
@@ -2384,7 +2499,7 @@ window.S = (() => {
     if (!o.id) o.id = U.uid(col[0].toUpperCase());
     return o;
   }
-  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : col === 'trips' ? o.date : o.name);
+  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : col === 'trips' ? o.date : col === 'attends' ? o.pid && o.month : o.name);
   function normalize(next) {
     for (const k of COLS) next[k] ||= [];
     next.settings ||= {};
@@ -2562,8 +2677,8 @@ window.S = (() => {
   }
 
   /* ---------- CRUD ---------- */
-  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips' };
-  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T' };
+  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips', jp: 'jobPeople', att: 'attends' };
+  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T', jp: 'J', att: 'W' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
   const photoCache = new Map();
 
@@ -2625,6 +2740,33 @@ window.S = (() => {
     commit();
     if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
     return recs;
+  }
+
+  /** 여러 건을 한 번에 저장(있으면 고치고 없으면 추가). 출석부처럼 칸을 여러 개 바꿀 때 한 번만 보낸다 */
+  function putMany(kind, objs) {
+    const col = COL[kind];
+    const list = state[col];
+    const recs = objs.map(o => {
+      const id = o.id || U.uid(PREFIX[kind]);
+      const i = list.findIndex(x => x.id === id);
+      const rec = i >= 0 ? { ...list[i], ...o, id } : { ...o, id };
+      if (i >= 0) list[i] = rec; else list.push(rec);
+      return rec;
+    });
+    commit();
+    if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
+    return recs;
+  }
+  /** 여러 건 삭제 (되돌리기 가능) */
+  function removeMany(kind, ids) {
+    const col = COL[kind];
+    const set = new Set(ids);
+    const gone = state[col].filter(x => set.has(x.id));
+    if (!gone.length) return null;
+    state[col] = state[col].filter(x => !set.has(x.id));
+    commit();
+    if (REMOTE) send('api_apply', gone.map(x => opDel(col, x.id))).catch(() => {});
+    return () => putMany(kind, gone);
   }
 
   function remove(kind, id) {
@@ -2779,6 +2921,8 @@ window.S = (() => {
   /* ---------- 직원 · 소속 · 보기 범위 ---------- */
   const staff = () => state.settings.staff;
   const programOf = name => (staff().find(s => s.name === name) || {}).program || '';
+  /** 사업체·기관이 어느 사업 지도에 나오는지: 직접 고른 사업, 없으면 담당 직원의 소속 사업 */
+  const programsOf = x => ((x && x.programs && x.programs.length) ? x.programs : [programOf(x && x.staff)].filter(Boolean));
   const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 환경 */ } };
   let scope = lsGet('ardim.scope') || 'all';
@@ -2809,7 +2953,7 @@ window.S = (() => {
       businesses: biz, networks: net,
       cards: state.cards.filter(c => !c.linkType || ids.has(c.linkType + c.linkId)),
       activities: state.activities.filter(a => staffInScope(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
-      events: state.events.filter(inT),
+      events: state.events.filter(x => (x.staff ? staffInScope(x.staff) : inT(x))),
       perfs: state.perfs.filter(p => staffInScope(p.staff)),
       trips: state.trips.filter(t => staffInScope(t.staff)),
     };
@@ -3021,9 +3165,9 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -3164,6 +3308,8 @@ window.M = (() => {
       ? '<button class="btn btn-ghost btn-sm" type="button" data-act="map-solo-off">전체 보기</button>'
       : `<button class="btn btn-ghost btn-sm" type="button" data-act="map-solo" data-kind="${kind}" data-id="${x.id}">이것만 보기</button>`;
   };
+  /** 이 곳이 들어가 있는 사업 지도 */
+  const progTags = x => { const ps = S.programsOf(x).map(k => D.PROGRAM[k]).filter(Boolean); return ps.length ? `<div class="pop-progs">${ps.map(p => `<span style="--c:${p.hex}">${U.esc(p.map)}</span>`).join('')}</div>` : ''; };
   function popupHtml(kind, x) {
     if (kind === 'card') {
       return `<div class="pop-name">${U.esc(x.org || x.name)}</div><div class="pop-meta">분류 대기 명함 · ${U.esc(x.name)} ${U.esc(x.title || '')}<br>${U.esc(x.address || '')}</div>
@@ -3184,7 +3330,9 @@ window.M = (() => {
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
-      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div></div>`;
+      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div>
+      <div class="inline pop-edit"><button class="linklike" type="button" data-act="edit" data-kind="${kind}" data-id="${x.id}">✏️ 수정</button><button class="linklike" type="button" data-act="map-move" data-kind="${kind}" data-id="${x.id}">📍 위치 옮기기</button>${S.isHome(x) ? '' : `<button class="linklike pop-del" type="button" data-act="delete" data-kind="${kind}" data-id="${x.id}">🗑 삭제</button>`}</div>
+      ${progTags(x)}</div>`;
   }
 
   /** 위치 지정용 지도: 클릭하면 핀 이동 */
@@ -3457,8 +3605,8 @@ window.V = (() => {
     biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, prog: '', sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
-    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
-    sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
   };
@@ -3878,14 +4026,17 @@ window.V = (() => {
     const st = S.view();
     const noPos = st.businesses.filter(b => !M.hasPos(b)).length + st.networks.filter(n => !M.hasPos(n)).length;
     const pending = st.cards.filter(c => !c.linkType && M.hasPos(c) && !(c.tags || []).includes('개인')).length;
-    const guCount = g => st.businesses.filter(b => D.guOf(b.area) === g).length + st.networks.filter(n => D.guOf(n.area) === g).length;
+    const inProg = x => !f.prog || S.programsOf(x).includes(f.prog);
+    const guCount = g => st.businesses.filter(b => inProg(b) && D.guOf(b.area) === g).length + st.networks.filter(n => inProg(n) && D.guOf(n.area) === g).length;
+    const progCount = k => st.businesses.filter(b => S.programsOf(b).includes(k)).length + st.networks.filter(n => S.programsOf(n).includes(k) && !S.isHome(n)).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.${scopeNote()}</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
+        <div><h1 class="page-title">${f.prog && D.PROGRAM[f.prog] ? `${e(D.PROGRAM[f.prog].map)} 지도` : '화성시 지도'}</h1><div class="page-desc">${f.prog ? `${e(D.PROGRAM[f.prog].map)} 사업의 사업체·기관만 보여줍니다. 지도 위 <b>＋ 여기에 추가</b>로 바로 등록할 수 있어요.` : '모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.'}${scopeNote()}</div></div>
+        <div class="inline"><button class="btn" type="button" data-act="new-net" ${f.prog ? `data-programs="${e(f.prog)}"` : ''}>+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz" ${f.prog ? `data-programs="${e(f.prog)}"` : ''}>+ 사업체 발굴 등록</button></div>
       </div>
-      <div class="map-bar"><div class="chips" role="tablist">
-        <button type="button" role="tab" class="chip ${f.mode === 'ours' ? 'on' : ''}" data-act="map-mode" data-mode="ours" aria-selected="${f.mode === 'ours'}">사업체·네트워크 지도</button>
+      <div class="map-bar"><div class="chips map-progs" role="tablist" aria-label="사업별 지도">
+        <button type="button" role="tab" class="chip ${f.mode === 'ours' && !f.prog ? 'on' : ''}" data-act="map-prog" data-prog="" aria-selected="${f.mode === 'ours' && !f.prog}">전체 지도</button>
+        ${D.PROGRAMS.map(p => `<button type="button" role="tab" class="chip prog-tab ${f.mode === 'ours' && f.prog === p.key ? 'on' : ''}" data-act="map-prog" data-prog="${e(p.key)}" style="--c:${p.hex}" aria-selected="${f.mode === 'ours' && f.prog === p.key}"><span class="dot"></span>${e(p.map)} 지도 <span class="n">${progCount(p.key)}</span></button>`).join('')}
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
@@ -3902,6 +4053,7 @@ window.V = (() => {
             <details class="map-dd"><summary>단계 <b class="num">${f.stages.size}/${D.STAGES.length}</b></summary>
               <div class="map-dd-body">${D.STAGES.map(s => `<label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label>`).join('')}</div>
             </details>
+            <button type="button" class="btn btn-sm btn-add ${f.addMode ? 'on' : ''}" data-act="map-addmode" id="mapAddBtn" title="지도에서 자리를 찍어 새 사업체·기관 등록 (오른쪽 클릭도 돼요)">${f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'}</button>
             <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
           </div>
@@ -3962,7 +4114,7 @@ window.V = (() => {
     // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
     st.networks.forEach(n => { if ((f.net && S.can('network', 1)) || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
     if (f.card && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
-    return items.filter(({ x, home }) => home || ((!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
+    return items.filter(({ kind, x, home }) => home || ((!f.prog || kind === 'card' || S.programsOf(x).includes(f.prog)) && (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
   /** 이것만 보기 중이면 지도 위에 이름과 "전체 보기" 버튼 */
@@ -4033,11 +4185,24 @@ window.V = (() => {
   }
 
   /* ================= 일정 ================= */
+  /** 직원마다 고정 색 (일정 점·이름표) */
+  const STAFF_COLORS = ['#2563EB', '#E8590C', '#0E9384', '#7C4DDB', '#C2255C', '#2F9E62', '#B08800', '#475467'];
+  const staffColor = name => { const i = S.staff().findIndex(s => s.name === name); return i < 0 ? '#9AA3B2' : STAFF_COLORS[i % STAFF_COLORS.length]; };
+  /** 일정의 담당: 적어 둔 직원, 없으면 관련 사업체·기관 담당 */
+  const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
+    const f = ui.sched;
+    const all = S.view().events.filter(x => !x.done);
+    const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
     return `
       <div class="page-head">
-        <div><h1 class="page-title">일정</h1><div class="page-desc">사업체 방문, 면접 동행, 기관 행사 등 업무 일정을 관리합니다.</div></div>
+        <div><h1 class="page-title">일정</h1><div class="page-desc">직원별로 일정을 적고, 추가·수정·삭제합니다. 사업체 방문, 면접 동행, 기관 행사 등.</div></div>
         <button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button>
+      </div>
+      <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
+        <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
+        ${S.staff().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
+        <button type="button" class="chip ${f.who === '-' ? 'on' : ''}" data-act="sched-who" data-who="-">팀 공통 <span class="n">${n('-')}</span></button>
       </div>
       <div class="sched">
         <section class="panel" id="evList"></section>
@@ -4047,18 +4212,21 @@ window.V = (() => {
   function evRow(ev) {
     const t = S.targetOf(ev);
     const d = U.dday(ev.date);
-    return `<div class="ev ${ev.done ? 'done' : ''}">
+    const who = evStaff(ev);
+    return `<div class="ev ${ev.done ? 'done' : ''}" style="--c:${staffColor(who)}">
       <input type="checkbox" aria-label="완료 표시" data-act="ev-toggle" data-id="${ev.id}" ${ev.done ? 'checked' : ''}>
       <div class="ev-when">${U.md(ev.date)} ${e(ev.time || '')}</div>
-      <div style="min-width:0"><div class="ev-title">${e(ev.title)}</div>
+      <div style="min-width:0"><div class="ev-title"><span class="ev-who">${who ? e(who) : '팀 공통'}</span>${e(ev.title)}</div>
         <div class="ev-target">${t ? `<span data-act="open" data-kind="${ev.targetType}" data-id="${t.id}">${e(t.name)}</span> · ` : ''}${e(ev.type)}${ev.memo ? ' · ' + e(ev.memo) : ''}</div></div>
-      <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}<button class="icon-btn" type="button" aria-label="일정 수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button></div>
+      <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}<button class="icon-btn" type="button" aria-label="일정 수정" title="수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button><button class="icon-btn ev-del" type="button" aria-label="일정 삭제" title="삭제" data-act="ev-del" data-id="${ev.id}">${I.close}</button></div>
     </div>`;
   }
+  /** 일정 화면의 직원 칩으로 거른 일정 */
+  const schedEvents = () => { const w = ui.sched.who; return S.view().events.filter(x => (w === '' ? true : w === '-' ? !evStaff(x) : evStaff(x) === w)); };
   function evList() {
     const f = ui.sched;
     const T = U.today();
-    let evs = [...S.view().events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+    let evs = schedEvents().sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
     if (f.sel) evs = evs.filter(x => x.date === f.sel);
     const groups = f.sel ? [[U.dateKo(f.sel), evs.filter(x => f.showDone || !x.done)]] : [
       ['지난 일정 (완료 안 됨)', evs.filter(x => !x.done && x.date < T)],
@@ -4069,8 +4237,8 @@ window.V = (() => {
     ];
     const body = groups.filter(([, l]) => l.length).map(([h, l]) => `<div class="ev-group"><h3>${e(h)} <span class="num">${l.length}</span></h3>${l.map(evRow).join('')}</div>`).join('');
     return `<div class="panel-pad" style="padding-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-        <h2 class="section-title">${f.sel ? e(U.dateKo(f.sel)) + ' 일정' : '다가오는 일정'}</h2>
-        <div class="inline">${f.sel ? '<button class="btn btn-sm" type="button" data-act="cal-clear">전체 일정 보기</button>' : ''}<label class="check"><input type="checkbox" data-act="ev-showdone" ${f.showDone ? 'checked' : ''}>완료 포함</label></div>
+        <h2 class="section-title">${f.who ? `${f.who === '-' ? '팀 공통' : e(f.who)} · ` : ''}${f.sel ? e(U.dateKo(f.sel)) + ' 일정' : '다가오는 일정'}</h2>
+        <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="new-event" data-date="${f.sel || ''}" ${f.who && f.who !== '-' ? `data-staff="${e(f.who)}"` : ''}>+ 추가</button>${f.sel ? '<button class="btn btn-sm" type="button" data-act="cal-clear">전체 일정 보기</button>' : ''}<label class="check"><input type="checkbox" data-act="ev-showdone" ${f.showDone ? 'checked' : ''}>완료 포함</label></div>
       </div>${body || `<div class="empty"><strong>${f.sel ? '이 날은 일정이 없습니다' : '예정된 일정이 없습니다'}</strong>사업체 방문이나 기관 행사를 등록해 보세요.<div><button class="btn btn-primary" type="button" data-act="new-event" data-date="${f.sel || ''}">+ 일정 등록</button></div></div>`}`;
   }
   /** 달력. f: {month, sel}, pick/move: 날짜 선택·달 이동 액션 이름 */
@@ -4080,14 +4248,14 @@ window.V = (() => {
     const start = new Date(y, m - 1, 1 - first.getDay());
     const T = U.today();
     const byDate = {};
-    S.view().events.forEach(x => { (byDate[x.date] ||= []).push(x); });
+    (f === ui.sched ? schedEvents() : S.view().events).forEach(x => { (byDate[x.date] ||= []).push(x); });
     let cells = '';
     for (let i = 0; i < 42; i++) {
       const d = new Date(start); d.setDate(start.getDate() + i);
       const s = U.fmt(d);
       const evs = (byDate[s] || []).filter(x => !x.done);
       cells += `<button type="button" class="cal-day ${d.getMonth() !== m - 1 ? 'out' : ''} ${s === T ? 'today' : ''} ${s === f.sel ? 'sel' : ''}" data-act="${pick}" data-date="${s}" aria-label="${U.dateKo(s)} 일정 ${evs.length}건">
-        ${d.getDate()}<span class="dots">${evs.slice(0, 3).map(x => `<i class="${x.date < T ? 'late' : ''}"></i>`).join('')}</span></button>`;
+        ${d.getDate()}<span class="dots">${evs.slice(0, 3).map(x => `<i class="${x.date < T ? 'late' : ''}" style="background:${staffColor(evStaff(x))}"></i>`).join('')}</span></button>`;
     }
     return `<div class="cal"><div class="cal-head"><button class="icon-btn" type="button" data-act="${move}" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${y}년 ${m}월</b><button class="icon-btn" type="button" data-act="${move}" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
       <div class="cal-grid">${U.WD.map(w => `<div class="cal-dow">${w}</div>`).join('')}${cells}</div></div>`;
@@ -4572,12 +4740,16 @@ window.F = (() => {
           ${field('발굴 경로', sel('source', D.SOURCES, x.source, '선택'), { for: 'f_source' })}
           ${field('발굴일', inp('discoveredAt', x.discoveredAt, 'type="date"'), { for: 'f_discoveredAt' })}
           ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
+          ${progPick(x)}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 인사팀장 통화는 오후 2시 이후"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(b ? '저장' : '등록'),
       after: form => bindLocation(form),
     };
   }
+
+  /** 어느 사업 지도에 나올지 (여러 개 가능). 아무것도 안 고르면 담당 직원의 소속 사업을 따른다 */
+  const progPick = x => field('사업 구분 (지도)', `<div class="prog-pick">${D.PROGRAMS.map(p => `<label class="prog-opt" style="--c:${p.hex}"><input type="checkbox" name="programs" value="${U.esc(p.key)}" ${(x.programs || []).includes(p.key) ? 'checked' : ''}><span>${U.esc(p.map)}</span></label>`).join('')}</div>`, { full: true, hint: '고른 사업의 지도에 나와요. 비워 두면 담당 직원의 소속 사업 지도에 나와요.' });
 
   /* ---------- 네트워크 ---------- */
   function net(n, preset = {}) {
@@ -4595,6 +4767,7 @@ window.F = (() => {
           ${field('홍보 방식', inp('promo', x.promo, 'placeholder="예: 리플릿 비치, 소식지 게재, SNS 공동 홍보"'), { full: true, for: 'f_promo' })}
           ${field('협력 시작일', inp('since', x.since, 'type="date"'), { for: 'f_since' })}
           ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
+          ${progPick(x)}
           ${field('메모', ta('memo', x.memo, 'rows="3"'), { full: true, for: 'f_memo' })}
         </div></div>
       </form></div>` + foot(n ? '저장' : '등록'),
@@ -4704,14 +4877,16 @@ window.F = (() => {
 
   /* ---------- 일정 ---------- */
   function event(ev, preset = {}) {
-    const x = ev || { date: U.today(), time: '', type: '방문', targetType: '', targetId: '', ...preset };
+    const x = ev || { date: U.today(), time: '', type: '방문', targetType: '', targetId: '', staff: S.me(), ...preset };
     const tval = x.targetType && x.targetId ? `${x.targetType}:${x.targetId}` : '';
+    const who = x.staff || (ev ? (S.targetOf(ev) || {}).staff || '' : S.me());
     return {
       html: head(ev ? '일정 수정' : '일정 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="ev" data-id="${ev ? ev.id : ''}" novalidate>
         <div class="fsec"><div class="frow">
           ${field('관련 사업체·기관', `<select class="select" id="f_link" name="link">${linkOptions(tval)}</select>`, { full: true, for: 'f_link' })}
+          ${field('담당 직원', `<select class="select" id="f_staff" name="staff"><option value="">팀 공통</option>${S.staff().map(s => `<option ${s.name === who ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select>`, { for: 'f_staff' })}
           ${field('유형', sel('type', D.EVENT_TYPES, x.type), { for: 'f_type' })}
-          ${field('제목', inp('title', x.title, 'placeholder="비워 두면 \'유형 - 사업체명\'으로 저장"'), { for: 'f_title' })}
+          ${field('제목', inp('title', x.title, 'placeholder="비워 두면 \'유형 - 사업체명\'으로 저장"'), { full: true, for: 'f_title' })}
           ${field('날짜', inp('date', x.date, 'type="date" required'), { req: true, name: 'date', for: 'f_date' })}
           ${field('시간', inp('time', x.time, 'type="time"'), { for: 'f_time' })}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 구직자 2명 동행, 이력서 지참"'), { full: true, for: 'f_memo' })}
@@ -4732,10 +4907,10 @@ window.F = (() => {
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
-      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');
-      obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim() };
+      obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim(), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value) };
     } else if (kind === 'card') {
       need('name', '이름을 입력하세요.');
       const [lt, li] = fd.regMode === 'link' ? (fd.link || '').split(':') : [];
@@ -4745,7 +4920,7 @@ window.F = (() => {
       need('date', '날짜를 입력하세요.');
       const [lt, li] = (fd.link || '').split(':');
       const t = lt ? S.find(lt, li) : null;
-      obj = { targetType: lt || '', targetId: li || '', type: fd.type, title: fd.title.trim() || (t ? `${fd.type} - ${t.name}` : fd.type), date: fd.date, time: fd.time, memo: fd.memo.trim() };
+      obj = { targetType: lt || '', targetId: li || '', type: fd.type, title: fd.title.trim() || (t ? `${fd.type} - ${t.name}` : fd.type), date: fd.date, time: fd.time, memo: fd.memo.trim(), staff: fd.staff || '' };
     }
     errs.forEach(([k, msg]) => {
       const f = form.querySelector(`[data-f="${k}"]`);
@@ -6135,6 +6310,442 @@ window.GL = (() => {
 
 </script>
 <script>
+/* 장애인일자리 출석부 (참여자 근태 현황)
+   - 칸 값: 근무 시간 숫자, '휴'(휴무), 또는 '시간|상태' (상태: 공=공가, 특=특휴, 병=병가, 결=결근)
+   - 토요일 칸은 그 주 시간 합계, 일요일은 비움 (기존 엑셀 양식과 같게)
+   - 실적건수 = 시간이 적힌 날 수, 실근무 일수 = 기준일수 − 근태(공가·특휴·병가·결근) − 휴무
+   - 아래 줄: 근무 인원(무엇이든 적힌 사람), 병가·공가 사용 인원(휴무·근태), 실 근무 인원 */
+window.AT = (() => {
+  const e = U.esc;
+  V.I.att = '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 2v4M16 2v4M4 9h16M8.5 14.5l2 2 4-4"/></svg>';
+  const ST = {
+    공: { label: '공가', color: '#92D050', ink: '#1F3B06' },
+    특: { label: '특휴', color: '#36A0F8', ink: '#fff' },
+    병: { label: '병가', color: '#B850D8', ink: '#fff' },
+    결: { label: '결근', color: '#1B1F24', ink: '#fff' },
+  };
+  const TYPES = ['복지형', '일반형'];
+  const SUBS = ['참여형', '시간제', '전일제'];
+  const DEFAULT_PATTERN = { 참여형: '3,3,3,3,2', 시간제: '4,4,4,4,4', 전일제: '8,8,8,8,8' };
+  const OFF_LIMIT = 3; // 한 달 휴무 사용 기준
+  // 공휴일 (대체공휴일 포함). 달마다 출석부 화면에서 고칠 수 있다
+  const HOLIDAYS = {
+    '2026-01': [1], '2026-02': [16, 17, 18], '2026-03': [2], '2026-05': [5, 25], '2026-06': [3], '2026-08': [17],
+    '2026-09': [24, 25], '2026-10': [5, 9], '2026-12': [25],
+    '2027-01': [1], '2027-02': [8, 9], '2027-03': [1], '2027-05': [5, 13], '2027-06': [7], '2027-08': [16], '2027-09': [14, 15, 16], '2027-10': [4, 11], '2027-12': [27],
+  };
+  const ui = { month: U.today().slice(0, 7), brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
+
+  /* ---------- 데이터 ---------- */
+  const people = () => [...S.get().jobPeople].sort((a, b) => TYPES.indexOf(a.type) - TYPES.indexOf(b.type) || SUBS.indexOf(a.sub) - SUBS.indexOf(b.sub) || (Number(a.no) || 999) - (Number(b.no) || 999) || (a.name || '').localeCompare(b.name || ''));
+  const dim = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
+  const wd = (m, d) => new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, d).getDay();
+  const dstr = (m, d) => `${m}-${U.pad(d)}`;
+  const normDate = v => { const s = String(v || '').trim().replace(/\.$/, ''); const k = s.match(/(\d{4})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/); return k ? `${k[1]}-${U.pad(+k[2])}-${U.pad(+k[3])}` : s; };
+  /** 그 달에 참여 중인 사람 (시작일 ≤ 말일, 종료일 ≥ 1일) */
+  const recOf = (pid, m) => S.get().attends.find(a => a.pid === pid && a.month === m) || null;
+  /** 그 달에 기록이 있거나 참여 기간 안인 사람 */
+  const activeIn = (p, m) => {
+    const r = recOf(p.id, m);
+    if (r && r.days && r.days !== '{}') return true;
+    const s = normDate(p.start), en = normDate(p.end);
+    return (!s || !/^\d{4}-/.test(s) || s <= dstr(m, dim(m))) && (!en || !/^\d{4}-/.test(en) || en >= dstr(m, 1));
+  };
+  const parseDays = r => { if (!r || !r.days) return {}; try { return typeof r.days === 'string' ? JSON.parse(r.days) : { ...r.days }; } catch { return {}; } };
+  const daysOf = (pid, m) => parseDays(recOf(pid, m));
+  function meta(m) {
+    const d = daysOf('_', m);
+    const holidays = Array.isArray(d.holidays) ? d.holidays : (HOLIDAYS[m] || []);
+    let weekdays = 0; for (let i = 1; i <= dim(m); i++) { const w = wd(m, i); if (w > 0 && w < 6) weekdays++; }
+    return { holidays, base: Number(d.base) || weekdays, weekdays };
+  }
+  /** 요일별 기본 시간 (월~금) */
+  const patternOf = p => { const arr = String(p.pattern || DEFAULT_PATTERN[p.sub] || DEFAULT_PATTERN.참여형).split(/[,\s/]+/).map(Number).filter(n => !isNaN(n)); while (arr.length < 5) arr.push(arr[arr.length - 1] || 0); return arr; };
+  const baseHours = (p, m, d) => { const w = wd(m, d); return w > 0 && w < 6 ? patternOf(p)[w - 1] : 0; };
+  function cell(v) {
+    const s = String(v ?? '');
+    if (!s) return { empty: true };
+    if (s === '휴' || s === '휴무') return { off: true };
+    const [h, st] = s.split('|');
+    return { h: h === '' || isNaN(+h) ? null : +h, st: ST[st] ? st : '' };
+  }
+
+  /** 한 사람의 한 달 합계 */
+  function sums(p, m, days = daysOf(p.id, m), mt = meta(m)) {
+    const o = { hours: 0, cnt: 0, 공: 0, 특: 0, 병: 0, 결: 0, off: 0 };
+    for (let d = 1; d <= dim(m); d++) {
+      const w = wd(m, d); if (w === 0 || w === 6) continue;
+      const c = cell(days[d]);
+      if (c.off) o.off++;
+      if (c.h != null) { o.hours += c.h; o.cnt++; }
+      if (c.st) o[c.st]++;
+    }
+    o.gt = o.공 + o.특 + o.병 + o.결;
+    o.real = Math.max(0, mt.base - o.gt - o.off);
+    return o;
+  }
+  /** 날짜별 인원 */
+  function daily(list, m, all) {
+    const out = {};
+    for (let d = 1; d <= dim(m); d++) {
+      let work = 0, use = 0;
+      list.forEach(p => { const c = cell(all[p.id][d]); if (c.empty) return; work++; if (c.off || c.st) use++; });
+      out[d] = { work, use, real: work - use };
+    }
+    return out;
+  }
+
+  /* ---------- 화면 ---------- */
+  function page() {
+    return `
+      <div class="page-head">
+        <div><h1 class="page-title">출석부 <span class="sub">장애인일자리</span></h1><div class="page-desc">참여자 근태를 달력처럼 칠해서 기록하고, 시간·실적건수·실근무 일수를 자동으로 셉니다. 인쇄하면 A4 가로 한 장이에요.</div></div>
+        <div class="inline"><button class="btn" type="button" data-act="at-import">엑셀 출석부 불러오기</button><button class="btn btn-primary" type="button" data-act="at-print">🖨 인쇄</button></div>
+      </div>
+      <div class="toolbar perf-bar">
+        <div class="month-nav"><button class="icon-btn" type="button" data-act="at-month" data-d="-1" aria-label="이전 달">${V.I.back}</button><b class="num">${V.monthLabel(ui.month)}</b><button class="icon-btn" type="button" data-act="at-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${V.I.back}</button></div>
+      </div>
+      <div id="atResults"></div>`;
+  }
+
+  function results() {
+    const m = ui.month, mt = meta(m);
+    const all = people();
+    const list = all.filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group));
+    const groups = [...new Set(all.filter(p => activeIn(p, m)).map(p => `${p.type}·${p.sub}`))];
+    const days = Object.fromEntries(list.map(p => [p.id, daysOf(p.id, m)]));
+    const n = dim(m);
+    const hol = new Set(mt.holidays.map(Number));
+    const dayCls = d => { const w = wd(m, d); return w === 6 ? 'sat' : w === 0 ? 'sun' : hol.has(d) ? 'hol' : ''; };
+    const brushes = [['base', '기본 시간'], ['num', '시간 직접'], ['휴', '휴무'], ...Object.entries(ST).map(([k, v]) => [k, v.label]), ['clear', '지우기']];
+    const tot = { hours: 0, cnt: 0, real: 0 };
+    const sm = Object.fromEntries(list.map(p => { const s = sums(p, m, days[p.id], mt); tot.hours += s.hours; tot.cnt += s.cnt; tot.real += s.real; return [p.id, s]; }));
+    const dl = daily(list, m, days);
+    const weekSum = (p, d) => { let s = 0; for (let k = d - 5; k < d; k++) if (k >= 1) { const c = cell(days[p.id][k]); if (c.h != null) s += c.h; } return s; };
+    const rows = [];
+    let lastG = null;
+    list.forEach((p, i) => {
+      const g = `${p.type}·${p.sub}`;
+      const span = g !== lastG ? list.filter(x => `${x.type}·${x.sub}` === g).length : 0;
+      lastG = g;
+      const s = sm[p.id];
+      let tds = '';
+      for (let d = 1; d <= n; d++) {
+        const cls = dayCls(d);
+        if (cls === 'sat') { tds += `<td class="wk num">${weekSum(p, d) || ''}</td>`; continue; }
+        if (cls === 'sun') { tds += '<td class="sun"></td>'; continue; }
+        const c = cell(days[p.id][d]);
+        tds += `<td class="c ${cls} ${c.st ? 'st-' + c.st : ''} ${c.off ? 'off' : ''}" data-p="${p.id}" data-d="${d}">${c.off ? '휴무' : c.h != null ? c.h : ''}</td>`;
+      }
+      // 마지막 주 (토요일이 없이 끝나는 달)
+      const lastW = wd(m, n);
+      if (lastW > 0 && lastW < 6) tds += `<td class="wk num">${weekSum(p, n + 1) || ''}</td>`;
+      rows.push(`<tr>${span ? `<th rowspan="${span}" class="grp"><span>${e(p.type || '')}</span><span>${e(p.sub || '')}</span></th>` : ''}
+        <td class="no num">${i + 1}</td><th class="nm" title="${e(p.name)}">${e(p.name)}</th>${tds}
+        <td class="s hours num">${s.hours}시간</td><td class="s num">${s.cnt}일</td><td class="s num">${s.real}일</td>
+        <td class="s st-공 num">${s.공}</td><td class="s st-특 num">${s.특}</td><td class="s st-병 num">${s.병}</td><td class="s st-결 num">${s.결}</td><td class="s num">${s.gt + s.off}</td>
+        <td class="s num ${s.off > OFF_LIMIT ? 'over' : 'offuse'}">${s.off}/${OFF_LIMIT}</td></tr>`);
+    });
+    const tailCols = (lastW => (lastW > 0 && lastW < 6 ? 1 : 0))(wd(m, n));
+    const foot = (label, key) => `<tr class="ft"><th colspan="3">${label}</th>${Array.from({ length: n }, (_, k) => { const d = k + 1, cls = dayCls(d); return cls === 'sat' || cls === 'sun' ? `<td class="${cls === 'sat' ? 'wk' : 'sun'}"></td>` : `<td class="num ${cls}">${hol.has(d) && key !== 'work' ? '' : dl[d][key] || ''}</td>`; }).join('')}${tailCols ? '<td class="wk"></td>' : ''}`;
+    const realSum = Object.entries(dl).filter(([d]) => { const c = dayCls(+d); return !c || c === ''; }).reduce((a, [, v]) => a + v.real, 0);
+    return `<section class="panel at">
+      <div class="at-tools">
+        <div class="at-brush" role="group" aria-label="칠하기 도구"><span class="sub">칠하기</span>${brushes.map(([k, l]) => `<button type="button" class="br ${ui.brush === k ? 'on' : ''} ${ST[k] ? 'st-' + k : ''} br-${k === '휴' ? 'off' : k}" data-act="at-brush" data-brush="${k}">${l}</button>`).join('')}
+          ${ui.brush === 'num' ? `<input class="input sm" id="atNum" value="${e(ui.num)}" style="width:52px" inputmode="decimal" aria-label="칠할 시간">` : ''}</div>
+        <div class="inline at-acts">
+          <button class="btn btn-sm" type="button" data-act="at-fill" ${list.length ? '' : 'disabled'}>📅 기본 시간으로 이 달 채우기</button>
+          <button class="btn btn-sm" type="button" data-act="at-xlsx" ${list.length ? '' : 'disabled'}>엑셀로 받기</button>
+        </div>
+      </div>
+      <div class="at-meta">
+        <label>공휴일 <input class="input sm" id="atHol" value="${e(mt.holidays.join(', '))}" style="width:110px" placeholder="예: 24, 25"> 일</label>
+        <label>기준 일수 <input class="input sm" id="atBase" value="${mt.base}" style="width:48px" inputmode="numeric"> 일 <span class="sub">(평일 ${mt.weekdays}일)</span></label>
+        <button class="btn btn-sm" type="button" data-act="at-meta">저장</button>
+        ${groups.length > 1 ? `<span class="chips at-groups"><button type="button" class="chip ${!ui.group ? 'on' : ''}" data-act="at-group" data-g="">전체</button>${groups.map(g => `<button type="button" class="chip ${ui.group === g ? 'on' : ''}" data-act="at-group" data-g="${e(g)}">${e(g)}</button>`).join('')}</span>` : ''}
+        <span class="sub at-help">도구를 고른 뒤 칸을 누르거나 끌면 칠해져요. 같은 칸을 다시 칠하면 지워져요. 공휴일은 채우기 때 공가로 들어가요.</span>
+      </div>
+      ${ui.imp ? importPanel() : ''}
+      ${list.length ? `<div class="at-wrap" id="atWrap"><table class="at-tbl" id="atTbl"><thead>
+        <tr><th rowspan="2" class="grp">구분</th><th rowspan="2" class="no">번호</th><th rowspan="2" class="nm">성명</th><th colspan="${n + tailCols}">${+m.slice(5, 7)}월</th><th colspan="9" class="s-head">${mt.base}일 기준</th></tr>
+        <tr>${Array.from({ length: n }, (_, k) => { const d = k + 1, w = wd(m, d); return `<th class="d ${dayCls(d)}">${d}<small>${U.WD[w]}</small></th>`; }).join('')}${tailCols ? '<th class="d sat">계</th>' : ''}
+          <th class="s hours">시간</th><th class="s">실적건수</th><th class="s">실근무 일수</th><th class="s st-공">공가</th><th class="s st-특">특휴</th><th class="s st-병">병가</th><th class="s st-결">결근</th><th class="s">근태</th><th class="s">휴무사용</th></tr></thead>
+        <tbody>${rows.join('')}
+          <tr class="tot"><th colspan="3">합계 (${list.length}명)</th><td colspan="${n + tailCols}"></td><td class="s num">${tot.hours}시간</td><td class="s num">${tot.cnt}일</td><td class="s num">${tot.real}일</td><td colspan="6"></td></tr>
+          ${foot('근무 인원', 'work')}<td colspan="9"></td></tr>
+          ${foot('병가·공가 사용 인원', 'use')}<td colspan="9"></td></tr>
+          ${foot('실 근무 인원', 'real')}<td class="s num" colspan="3">${realSum}</td><td colspan="6"></td></tr>
+        </tbody></table></div>`
+      : `<div class="empty"><strong>${V.monthLabel(m)}에 참여 중인 사람이 없어요</strong>아래 참여자 명단에서 추가하거나, 지금 쓰는 엑셀 출석부를 불러오세요.</div>`}
+      ${peoplePanel(all)}
+    </section>`;
+  }
+
+  function peoplePanel(all) {
+    const inp = (p, k, w, ph = '', type = 'text') => `<input class="input sm" style="width:${w}px" data-chg="jp-field" data-id="${p.id}" data-field="${k}" value="${e(p[k] || '')}" placeholder="${ph}" ${type === 'date' ? 'type="date"' : ''}>`;
+    const sel = (p, k, list) => `<select class="select sm" data-chg="jp-field" data-id="${p.id}" data-field="${k}">${list.map(v => `<option ${p[k] === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
+    return `<details class="at-people" ${ui.showPeople ? 'open' : ''} id="atPeople"><summary><b>참여자 명단</b> <span class="sub">${all.length}명 · 추가·수정·삭제</span></summary>
+      <div class="at-people-body">
+        <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="at-padd">+ 참여자 추가</button><button class="btn btn-sm" type="button" data-act="at-paste">이름 여러 명 붙여넣기</button></div>
+        ${ui.paste ? `<div class="at-paste"><textarea class="textarea" id="atPasteText" rows="5" placeholder="한 줄에 한 명: 성명 [탭] 생년월일 [탭] 참여시작일 [탭] 참여종료일 (엑셀에서 그대로 복사해 붙여넣어도 돼요)"></textarea><div class="inline"><select class="select sm" id="atPasteType">${TYPES.map(t => `<option>${t}</option>`).join('')}</select><select class="select sm" id="atPasteSub">${SUBS.map(t => `<option>${t}</option>`).join('')}</select><button class="btn btn-sm btn-primary" type="button" data-act="at-paste-commit">추가</button></div></div>` : ''}
+        ${all.length ? `<div class="table-wrap"><table class="tbl at-ptbl"><thead><tr><th>번호</th><th>구분</th><th>유형</th><th>성명</th><th>생년월일</th><th>참여시작일</th><th>참여종료일</th><th>요일별 시간 (월~금)</th><th>근무처</th><th></th></tr></thead><tbody>
+          ${all.map(p => `<tr class="${activeIn(p, ui.month) ? '' : 'inactive'}"><td>${inp(p, 'no', 44)}</td><td>${sel(p, 'type', TYPES)}</td><td>${sel(p, 'sub', SUBS)}</td><td>${inp(p, 'name', 84)}</td><td>${inp(p, 'birth', 104, 'YYYY-MM-DD')}</td><td>${inp(p, 'start', 104, 'YYYY-MM-DD')}</td><td>${inp(p, 'end', 104, '중도포기일')}</td><td>${inp(p, 'pattern', 96, DEFAULT_PATTERN[p.sub] || '3,3,3,3,2')}</td><td>${inp(p, 'place', 110, '예: 다다샵')}</td>
+            <td><button class="icon-btn" type="button" aria-label="참여자 삭제" data-act="at-pdel" data-id="${p.id}">${V.I.close}</button></td></tr>`).join('')}
+        </tbody></table></div>` : ''}
+        <p class="sub" style="margin:0">요일별 시간은 "기본 시간" 칠하기와 "이 달 채우기"에 쓰여요. 예: 월~목 3시간, 금 2시간 → 3,3,3,3,2</p>
+      </div></details>`;
+  }
+
+  /* ---------- 칠하기 ---------- */
+  let draft = null; // { pid: days } 끄는 동안 바뀐 것
+  let strokeErase = null;
+  function paint(td) {
+    const pid = td.dataset.p, d = +td.dataset.d, m = ui.month;
+    const p = S.get().jobPeople.find(x => x.id === pid);
+    if (!p) return;
+    draft ||= {};
+    const days = draft[pid] ||= daysOf(pid, m);
+    const cur = cell(days[d]);
+    const bh = baseHours(p, m, d);
+    const b = ui.brush;
+    const has = b === 'base' ? cur.h === bh && !cur.st : b === 'num' ? cur.h === +ui.num && !cur.st : b === '휴' ? cur.off : ST[b] ? cur.st === b : false;
+    if (strokeErase == null) strokeErase = has && b !== 'clear';
+    let v;
+    if (b === 'clear' || (strokeErase && b !== 'base' && b !== 'num' && b !== '휴' && !ST[b])) v = '';
+    else if (strokeErase) v = b === '휴' || b === 'base' || b === 'num' ? '' : b === '결' ? String(bh) : String(cur.h ?? bh);
+    else if (b === 'base') v = String(bh);
+    else if (b === 'num') v = String(+ui.num || 0);
+    else if (b === '휴') v = '휴';
+    else if (b === '결') v = '|결';
+    else v = `${cur.h ?? bh}|${b}`;
+    if (v) days[d] = v; else delete days[d];
+    const c = cell(v);
+    td.className = `c ${td.classList.contains('hol') ? 'hol' : ''} ${c.st ? 'st-' + c.st : ''} ${c.off ? 'off' : ''} painted`;
+    td.textContent = c.off ? '휴무' : c.h != null ? c.h : '';
+  }
+  function commit() {
+    if (!draft) return;
+    const m = ui.month;
+    const recs = Object.entries(draft).map(([pid, days]) => { const r = recOf(pid, m); return { ...(r ? { id: r.id } : {}), pid, month: m, days: JSON.stringify(days) }; });
+    draft = null; strokeErase = null;
+    S.putMany('att', recs);
+  }
+  let down = false;
+  window.addEventListener('pointerup', () => { if (!down) return; down = false; commit(); });
+  function bindGrid() {
+    const tbl = document.getElementById('atTbl');
+    if (!tbl) return;
+    tbl.addEventListener('pointerdown', ev => {
+      const td = ev.target.closest('td.c'); if (!td || ev.button !== 0) return;
+      if (!S.can('attend', 2)) return;
+      ev.preventDefault(); down = true; strokeErase = null; paint(td);
+    });
+    tbl.addEventListener('pointerover', ev => { if (!down) return; const td = ev.target.closest('td.c'); if (td && !td.classList.contains('painted')) paint(td); });
+  }
+
+  /** 기본 시간으로 빈 칸 채우기 (참여 기간 안의 평일만, 공휴일은 공가) */
+  function fillMonth() {
+    const m = ui.month, mt = meta(m), hol = new Set(mt.holidays.map(Number));
+    const recs = [];
+    let n = 0;
+    people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group)).forEach(p => {
+      const days = daysOf(p.id, m);
+      const s = normDate(p.start), en = normDate(p.end);
+      let changed = false;
+      for (let d = 1; d <= dim(m); d++) {
+        const w = wd(m, d); if (w === 0 || w === 6) continue;
+        const ds = dstr(m, d);
+        if ((s && /^\d{4}-/.test(s) && ds < s) || (en && /^\d{4}-/.test(en) && ds > en)) continue;
+        if (days[d]) continue;
+        const bh = baseHours(p, m, d);
+        days[d] = hol.has(d) ? `${bh}|공` : String(bh);
+        changed = true; n++;
+      }
+      if (changed) { const r = recOf(p.id, m); recs.push({ ...(r ? { id: r.id } : {}), pid: p.id, month: m, days: JSON.stringify(days) }); }
+    });
+    if (recs.length) S.putMany('att', recs);
+    return n;
+  }
+  function saveMeta(holText, base) {
+    const m = ui.month;
+    const holidays = String(holText || '').split(/[,\s]+/).map(Number).filter(d => d >= 1 && d <= dim(m));
+    const r = recOf('_', m);
+    S.putMany('att', [{ ...(r ? { id: r.id } : {}), pid: '_', month: m, days: JSON.stringify({ holidays, base: Number(base) || meta(m).weekdays }) }]);
+  }
+
+  /* ---------- 참여자 ---------- */
+  function addPerson() {
+    const m = ui.month;
+    const no = S.get().jobPeople.reduce((a, p) => Math.max(a, Number(p.no) || 0), 0) + 1;
+    ui.showPeople = true;
+    return S.upsert('jp', { no: String(no), name: '', type: '복지형', sub: '참여형', start: `${m}-01`, end: '', pattern: DEFAULT_PATTERN.참여형, staff: S.me() });
+  }
+  function pasteCommit(text, type, sub) {
+    const lines = String(text || '').split(/\r?\n/).map(l => l.split('\t').map(x => x.trim())).filter(l => l[0]);
+    let no = S.get().jobPeople.reduce((a, p) => Math.max(a, Number(p.no) || 0), 0);
+    const have = new Set(S.get().jobPeople.map(p => p.name + '|' + normDate(p.birth)));
+    const fresh = lines.filter(([name, birth]) => !have.has(name + '|' + normDate(birth))).map(([name, birth, start, end]) => ({ no: String(++no), name, type, sub, birth: normDate(birth), start: normDate(start) || `${ui.month}-01`, end: normDate(end), pattern: DEFAULT_PATTERN[sub], staff: S.me() }));
+    if (fresh.length) S.upsertMany('jp', fresh);
+    return { added: fresh.length, skipped: lines.length - fresh.length };
+  }
+  function removePerson(id) {
+    const undo1 = S.remove('jp', id);
+    const recs = S.get().attends.filter(a => a.pid === id).map(a => a.id);
+    const undo2 = recs.length ? S.removeMany('att', recs) : null;
+    return undo1 ? () => { undo1(); undo2 && undo2(); } : null;
+  }
+
+  /* ---------- 엑셀 출석부 불러오기 ---------- */
+  const FILL = { '92D050': '공', '00B0F0': '특', '36A0F8': '특', B850D8: '병', BC8FDD: '병', '7030A0': '병', '000000': '결' };
+  /** 지금 쓰는 엑셀 양식(구분·성명·생년월일·참여시작일·참여종료일·1일~31일)을 읽는다 */
+  function parseWorkbook(wb, fileName) {
+    const found = [];
+    for (const name of wb.SheetNames) {
+      const ws = wb.Sheets[name];
+      if (!ws['!ref']) continue;
+      const rg = XLSX.utils.decode_range(ws['!ref']);
+      const at = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
+      const txt = (r, c) => { const x = at(r, c); return x && x.v != null ? String(x.w ?? x.v).trim() : ''; };
+      const mergedTop = (r, c) => { const mg = (ws['!merges'] || []).find(g => r >= g.s.r && r <= g.e.r && c >= g.s.c && c <= g.e.c); return mg ? txt(mg.s.r, mg.s.c) : txt(r, c); };
+      // 해: 제목 "2026년 ..." 또는 파일 이름
+      let year = 0;
+      for (let r = rg.s.r; r <= Math.min(rg.e.r, 3) && !year; r++) for (let c = rg.s.c; c <= Math.min(rg.e.c, 20); c++) { const k = txt(r, c).match(/(20\d{2})\s*년/); if (k) { year = +k[1]; break; } }
+      if (!year) { const k = String(fileName || '').match(/(20\d{2})/); year = k ? +k[1] : +U.today().slice(0, 4); }
+      for (let r = rg.s.r; r <= rg.e.r; r++) {
+        let nameCol = -1;
+        for (let c = rg.s.c; c <= Math.min(rg.e.c, 15); c++) if (txt(r, c).replace(/\s/g, '') === '성명') { nameCol = c; break; }
+        if (nameCol < 0) continue;
+        // 머리줄: 이 줄 또는 다음 줄에 "1일".."31일", 이 줄에 "9월"
+        const head = {}; let month = 0;
+        for (let c = nameCol; c <= rg.e.c; c++) {
+          const t = txt(r, c).replace(/\s/g, '');
+          if (/^\d{1,2}월$/.test(t)) month = +t.replace('월', '');
+          if (/생년/.test(t)) head.birth = c; if (/시작/.test(t)) head.start = c; if (/종료|포기/.test(t)) head.end = c;
+        }
+        const dayCol = {};
+        for (const rr of [r, r + 1]) for (let c = nameCol; c <= rg.e.c; c++) { const k = txt(rr, c).replace(/\s/g, '').match(/^(\d{1,2})일$/); if (k) dayCol[+k[1]] = c; }
+        if (!month || !Object.keys(dayCol).length) continue;
+        const m = `${year}-${U.pad(month)}`;
+        const rows = [];
+        for (let rr = r + 2; rr <= rg.e.r; rr++) {
+          const nm = txt(rr, nameCol);
+          if (!nm) { if (/인원|합계/.test(mergedTop(rr, rg.s.c + 2) + txt(rr, rg.s.c))) break; continue; }
+          if (nm.replace(/\s/g, '') === '성명' || /인원/.test(nm)) break;
+          const days = {};
+          Object.entries(dayCol).forEach(([d, c]) => {
+            const w = new Date(year, month - 1, +d).getDay(); if (w === 0 || w === 6) return;
+            const x = at(rr, c);
+            const v = x && x.v != null ? String(x.v).trim() : '';
+            const fill = x && x.s && x.s.fgColor && x.s.fgColor.rgb ? String(x.s.fgColor.rgb).toUpperCase().slice(-6) : '';
+            const st = FILL[fill] || '';
+            if (/휴/.test(v)) days[d] = '휴';
+            else if (st === '결') days[d] = `${v && !isNaN(+v) ? +v : ''}|결`;
+            else if (v !== '' && !isNaN(+v)) days[d] = st ? `${+v}|${st}` : String(+v);
+            else if (st) days[d] = `|${st}`;
+          });
+          // 요일별 기본 시간: 요일마다 가장 많이 나온 시간
+          const pat = [1, 2, 3, 4, 5].map(w => { const cnt = {}; Object.entries(days).forEach(([d, v]) => { const c = cell(v); if (c.h != null && new Date(year, month - 1, +d).getDay() === w) cnt[c.h] = (cnt[c.h] || 0) + 1; }); const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; return best ? best[0] : ''; });
+          rows.push({ name: nm, type: mergedTop(rr, rg.s.c + 2) || mergedTop(rr, nameCol - 3), sub: mergedTop(rr, nameCol - 2), birth: head.birth != null ? normDate(txt(rr, head.birth)) : '', start: head.start != null ? normDate(txt(rr, head.start)) : '', end: head.end != null ? normDate(txt(rr, head.end)) : '', days, pattern: pat.every(Boolean) ? pat.join(',') : '' });
+        }
+        if (rows.length) {
+          const t = rows[0].type || '', s = rows[0].sub || '';
+          found.push({ sheet: name, month: m, label: `${[t, s].filter(Boolean).join(' ') || '구분 없음'} ${rows.length}명`, rows, on: true });
+        }
+        r += 2;
+      }
+    }
+    return found;
+  }
+  function importPanel() {
+    const g = ui.imp;
+    return `<div class="at-imp"><b>엑셀에서 찾은 명단</b> <span class="sub">${e(g.file)}</span>
+      <div class="at-imp-list">${g.found.map((x, i) => `<label class="check"><input type="checkbox" data-act="at-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}>${e(V.monthLabel(x.month))} · ${e(x.label)}</label>`).join('')}</div>
+      <p class="sub" style="margin:4px 0">같은 이름·생년월일인 참여자는 새로 만들지 않고 그 달 기록만 덮어써요. 칸 색(공가 초록·특휴 파랑·병가 보라·결근 검정)도 읽어요.</p>
+      <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="at-imp-commit">불러오기</button><button class="btn btn-sm" type="button" data-act="at-imp-cancel">취소</button></div></div>`;
+  }
+  function commitImport() {
+    const picked = ui.imp.found.filter(x => x.on);
+    const byKey = new Map(S.get().jobPeople.map(p => [p.name + '|' + normDate(p.birth), p]));
+    let no = S.get().jobPeople.reduce((a, p) => Math.max(a, Number(p.no) || 0), 0);
+    const newPeople = [], recs = [];
+    let months = new Set();
+    picked.forEach(g => g.rows.forEach(r => {
+      const key = r.name + '|' + r.birth;
+      let p = byKey.get(key) || [...byKey.values()].find(x => x.name === r.name && !r.birth);
+      const type = TYPES.find(t => (r.type || '').includes(t.slice(0, 2))) || '복지형';
+      const sub = SUBS.find(t => (r.sub || '').includes(t.slice(0, 2))) || '참여형';
+      if (!p) { p = { id: U.uid('J'), no: String(++no), name: r.name, type, sub, birth: r.birth, start: r.start, end: r.end, pattern: r.pattern || DEFAULT_PATTERN[sub], staff: S.me() }; newPeople.push(p); byKey.set(key, p); }
+      const old = recOf(p.id, g.month);
+      recs.push({ ...(old ? { id: old.id } : {}), pid: p.id, month: g.month, days: JSON.stringify(r.days) });
+      months.add(g.month);
+    }));
+    if (newPeople.length) S.putMany('jp', newPeople);
+    if (recs.length) S.putMany('att', recs);
+    ui.imp = null;
+    if (months.size) ui.month = [...months].sort().pop();
+    return { people: newPeople.length, recs: recs.length };
+  }
+
+  /* ---------- 인쇄 · 엑셀 ---------- */
+  function doc(scale = 1) {
+    const m = ui.month, mt = meta(m), n = dim(m);
+    const list = people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group));
+    const hol = new Set(mt.holidays.map(Number));
+    const all = Object.fromEntries(list.map(p => [p.id, daysOf(p.id, m)]));
+    const dl = daily(list, m, all);
+    const rowMm = +(Math.min(5.2, 165 / Math.max(20, list.length + 4)) * scale).toFixed(2);
+    const fs = +(Math.min(7.5, rowMm * 1.55) ).toFixed(2);
+    const cls = d => { const w = wd(m, d); return w === 6 ? 'sat' : w === 0 ? 'sun' : hol.has(d) ? 'hol' : ''; };
+    const weekSum = (pid, d) => { let s = 0; for (let k = d - 5; k < d; k++) if (k >= 1) { const c = cell(all[pid][k]); if (c.h != null) s += c.h; } return s; };
+    const tail = wd(m, n) > 0 && wd(m, n) < 6;
+    const tot = { hours: 0, cnt: 0, real: 0 };
+    let lastG = null;
+    const body = list.map((p, i) => {
+      const s = sums(p, m, all[p.id], mt); tot.hours += s.hours; tot.cnt += s.cnt; tot.real += s.real;
+      const g = `${p.type}·${p.sub}`; const span = g !== lastG ? list.filter(x => `${x.type}·${x.sub}` === g).length : 0; lastG = g;
+      let tds = '';
+      for (let d = 1; d <= n; d++) {
+        const c0 = cls(d);
+        if (c0 === 'sat') { tds += `<td class="wk">${weekSum(p.id, d) || ''}</td>`; continue; }
+        if (c0 === 'sun') { tds += '<td class="sun"></td>'; continue; }
+        const c = cell(all[p.id][d]);
+        tds += `<td class="${c.st ? 'st-' + c.st : ''} ${c.off ? 'off' : ''}">${c.off ? '휴무' : c.h != null ? c.h : ''}</td>`;
+      }
+      if (tail) tds += `<td class="wk">${weekSum(p.id, n + 1) || ''}</td>`;
+      return `<tr style="height:${rowMm}mm">${span ? `<td rowspan="${span}" class="grp">${e(p.type)}<br>${e(p.sub)}</td>` : ''}<td>${i + 1}</td><td class="nm">${e(p.name)}</td>${tds}<td>${s.hours}</td><td>${s.cnt}</td><td>${s.real}</td><td class="st-공">${s.공}</td><td class="st-특">${s.특}</td><td class="st-병">${s.병}</td><td class="st-결">${s.결}</td><td>${s.gt + s.off}</td><td>${s.off}/${OFF_LIMIT}</td></tr>`;
+    }).join('');
+    const foot = (label, key) => `<tr style="height:${rowMm}mm" class="ft"><td colspan="3">${label}</td>${Array.from({ length: n }, (_, k) => { const d = k + 1, c0 = cls(d); return c0 === 'sat' ? '<td class="wk"></td>' : c0 === 'sun' ? '<td class="sun"></td>' : `<td>${hol.has(d) && key !== 'work' ? '' : dl[d][key] || ''}</td>`; }).join('')}${tail ? '<td class="wk"></td>' : ''}`;
+    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
+    return `<article class="doc at-doc" style="font-size:${fs}pt">
+      <div class="at-doc-head"><h1>${m.slice(0, 4)}년 장애인일자리사업 참여자 근태 현황 <span>(${+m.slice(5, 7)}월)</span></h1>${sign}</div>
+      <table class="at-dtbl"><colgroup><col style="width:3.2%"><col style="width:2.2%"><col style="width:4.6%">${Array.from({ length: n + (tail ? 1 : 0) }, () => '<col>').join('')}<col style="width:3.6%"><col style="width:3%"><col style="width:3%"><col style="width:2.2%"><col style="width:2.2%"><col style="width:2.2%"><col style="width:2.2%"><col style="width:2.2%"><col style="width:2.8%"></colgroup>
+        <thead><tr><th rowspan="2">구분</th><th rowspan="2">번호</th><th rowspan="2">성명</th><th colspan="${n + (tail ? 1 : 0)}">${+m.slice(5, 7)}월</th><th colspan="9">기준 ${mt.base}일</th></tr>
+          <tr>${Array.from({ length: n }, (_, k) => `<th class="${cls(k + 1)}">${k + 1}</th>`).join('')}${tail ? '<th class="wk">계</th>' : ''}<th>시간</th><th>실적<br>건수</th><th>실근무<br>일수</th><th class="st-공">공가</th><th class="st-특">특휴</th><th class="st-병">병가</th><th class="st-결">결근</th><th>근태</th><th>휴무<br>사용</th></tr></thead>
+        <tbody>${body}
+          <tr style="height:${rowMm}mm" class="ft"><td colspan="3">합계 (${list.length}명)</td><td colspan="${n + (tail ? 1 : 0)}"></td><td>${tot.hours}</td><td>${tot.cnt}</td><td>${tot.real}</td><td colspan="6"></td></tr>
+          ${foot('근무 인원', 'work')}<td colspan="9"></td></tr>${foot('병가·공가 사용 인원', 'use')}<td colspan="9"></td></tr>${foot('실 근무 인원', 'real')}<td colspan="9"></td></tr>
+        </tbody></table>
+      <p class="at-doc-legend"><span class="st-공">공가</span><span class="st-특">특휴</span><span class="st-병">병가</span><span class="st-결">결근</span> 토요일 칸은 주간 시간 합계</p>
+    </article>`;
+  }
+  function xlsx() {
+    const m = ui.month, mt = meta(m), n = dim(m);
+    const list = people().filter(p => activeIn(p, m));
+    const head = ['구분', '유형', '번호', '성명', '생년월일', '참여시작일', '참여종료일', ...Array.from({ length: n }, (_, k) => `${k + 1}일(${U.WD[wd(m, k + 1)]})`), '시간', '실적건수', '실근무 일수', '공가', '특휴', '병가', '결근', '근태', '휴무사용'];
+    const rows = list.map((p, i) => {
+      const days = daysOf(p.id, m), s = sums(p, m, days, mt);
+      return [p.type, p.sub, i + 1, p.name, p.birth, p.start, p.end, ...Array.from({ length: n }, (_, k) => { const c = cell(days[k + 1]); return c.off ? '휴무' : c.st ? `${c.h ?? ''}(${ST[c.st].label})` : c.h ?? ''; }), s.hours, s.cnt, s.real, s.공, s.특, s.병, s.결, s.gt + s.off, `${s.off}/${OFF_LIMIT}`];
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([[`${m.slice(0, 4)}년 장애인일자리사업 참여자 근태 현황 (${+m.slice(5, 7)}월) · 기준 ${mt.base}일`], head, ...rows]), `${+m.slice(5, 7)}월`);
+    XLSX.writeFile(wb, `${V.monthLabel(m)} 장애인일자리 출석부.xlsx`);
+  }
+
+  return { ui, ST, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
+})();
+
+</script>
+<script>
 /* 앱 셸: 라우팅, Drawer, 검색, 액션 처리 */
 window.App = (() => {
   const $ = (s, r = document) => r.querySelector(s);
@@ -6149,6 +6760,7 @@ window.App = (() => {
     ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
     ['orders', '출장·특근', 'trip'],
+    ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
   ];
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
@@ -6190,13 +6802,15 @@ window.App = (() => {
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
-    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]],
+    'map-addmode': [['biz', 2]],
+    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
-    if (act === 'edit' || act === 'edit-loc') return [[KIND_MENU[d.kind], 2]];
+    if (act === 'edit' || act === 'edit-loc' || act === 'map-move') return [[KIND_MENU[d.kind], 2]];
+    if (act === 'map-add-here') return [[d.kind === 'net' ? 'network' : 'biz', 2]];
     if (act === 'delete' || act === 'merge') return [[KIND_MENU[d.kind], 3]];
     if (act === 'triage') return d.to === 'personal' ? [['cards', 2]] : [['cards', 2], [KIND_MENU[d.to], 2]];
     if (act === 'act-del') { const x = S.find('act', d.id); return [[x && x.targetType === 'net' ? 'network' : 'biz', 3]]; }
@@ -6205,7 +6819,7 @@ window.App = (() => {
     return GATES[act] || null;
   }
   const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const CHG_GATES = { 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -6275,6 +6889,7 @@ window.App = (() => {
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
+      attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
     let [html, after] = pages[r] || pages.dashboard;
@@ -6324,7 +6939,10 @@ window.App = (() => {
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
     // 두 곳 찍기 중에 빈 곳을 찍으면 그 자리를 출발·도착으로 쓴다
+    // 오른쪽 클릭(휴대폰은 길게 누르기)은 언제든 "여기에 추가"
+    bigMap.on('contextmenu', ev => { if (S.can('biz', 2) || S.can('network', 2)) addHerePopup(ev.latlng); });
     bigMap.on('click', ev => {
+      if (V.ui.map.addMode && !V.ui.map.pick) { addHerePopup(ev.latlng); A['map-addmode'](); return; }
       if (!V.ui.map.pick) return;
       const lat = +ev.latlng.lat.toFixed(6), lng = +ev.latlng.lng.toFixed(6);
       const r = V.ui.map.route;
@@ -6466,6 +7084,49 @@ window.App = (() => {
         drawRoute(false);
       });
     }
+  }
+  /** 새 사업체·기관 등록 때 미리 채울 값: 지도에서 찍은 위치, 보고 있는 사업 지도 */
+  function newPreset(el) {
+    const d = el.dataset || {};
+    const out = {};
+    if (d.lat && d.lng) { out.lat = +d.lat; out.lng = +d.lng; out.area = D.areaAt(+d.lat, +d.lng) || ''; }
+    const prog = d.programs || (route() === 'map' ? V.ui.map.prog : '');
+    if (prog) out.programs = [prog];
+    return out;
+  }
+  /** 지도 빈 곳을 찍었을 때 "여기에 추가" 말풍선 */
+  function addHerePopup(latlng) {
+    const lat = +latlng.lat.toFixed(6), lng = +latlng.lng.toFixed(6);
+    const area = D.areaAt(lat, lng);
+    const prog = V.ui.map.prog && D.PROGRAM[V.ui.map.prog];
+    L.popup({ className: 'add-pop' }).setLatLng(latlng).setContent(`<div class="pop"><div class="pop-kind">여기에 추가</div><div class="pop-name">${area ? U.esc(area) : '화성시 밖'}</div>${prog ? `<div class="pop-meta">${U.esc(prog.map)} 지도에 넣어요</div>` : ''}
+      <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="map-add-here" data-kind="biz" data-lat="${lat}" data-lng="${lng}">사업체 개발 등록</button><button class="btn btn-sm" type="button" data-act="map-add-here" data-kind="net" data-lat="${lat}" data-lng="${lng}">기관 등록</button></div></div>`).openOn(bigMap);
+  }
+  /** 출석부: 표를 다시 그려도 가로·세로 스크롤 자리를 지킨다 */
+  function bindAttend() {
+    const box = $('#atResults'); if (!box) return;
+    const w0 = $('#atWrap'), sx = w0 ? w0.scrollLeft : 0, sy = w0 ? w0.scrollTop : 0, y = window.scrollY;
+    box.innerHTML = AT.results();
+    AT.bindGrid();
+    const w = $('#atWrap'); if (w) { w.scrollLeft = sx; w.scrollTop = sy; }
+    window.scrollTo(0, y);
+    $('#atPeople')?.addEventListener('toggle', ev => { AT.ui.showPeople = ev.target.open; });
+    $('#atNum')?.addEventListener('input', ev => { AT.ui.num = ev.target.value.replace(/[^0-9.]/g, '') || '0'; });
+  }
+  /** 출석부 A4 가로 한 장에 맞추기 */
+  function fitAttend() {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:281mm;visibility:hidden';
+    document.body.appendChild(box);
+    const limit = 192 * 96 / 25.4;
+    let html = '';
+    for (const scale of [1, 0.92, 0.85, 0.78, 0.7, 0.62]) {
+      html = AT.doc(scale); box.innerHTML = html;
+      const art = box.querySelector('.at-doc'); art.classList.add('measure');
+      if (art.getBoundingClientRect().height <= limit) break;
+    }
+    box.remove();
+    return html;
   }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
@@ -6871,8 +7532,39 @@ window.App = (() => {
     open: (el, fromDrawer) => { closeSearch(); if (el.dataset.kind && el.dataset.id) openDetail(el.dataset.kind, el.dataset.id, fromDrawer); },
     'sr-open': el => { const [k, id] = srItems[+el.dataset.i]; closeSearch(); openDetail(k, id, false); },
     'close-search': closeSearch,
-    'new-biz': (el, fd) => push({ type: 'form', kind: 'biz' }, fd),
-    'new-net': (el, fd) => push({ type: 'form', kind: 'net' }, fd),
+    'new-biz': (el, fd) => push({ type: 'form', kind: 'biz', preset: newPreset(el) }, fd),
+    'new-net': (el, fd) => push({ type: 'form', kind: 'net', preset: newPreset(el) }, fd),
+    // 지도에서 찍은 자리에 바로 등록 (위치·읍면동·사업 구분이 미리 채워진다)
+    'map-add-here': el => {
+      bigMap?.closePopup();
+      A[el.dataset.kind === 'net' ? 'new-net' : 'new-biz'](el, false);
+    },
+    'map-addmode': () => {
+      const f = V.ui.map;
+      f.addMode = !f.addMode;
+      if (f.addMode && f.pick) A['route-pick']();
+      const b = $('#mapAddBtn');
+      if (b) { b.classList.toggle('on', f.addMode); b.textContent = f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'; }
+      $('#bigMap')?.classList.toggle('adding', f.addMode);
+      if (f.addMode) toast('지도에서 새로 등록할 자리를 누르세요. (오른쪽 클릭으로도 언제든 추가할 수 있어요)');
+    },
+    'map-move': el => {
+      const { kind, id } = el.dataset;
+      const m = markerIndex[kind + id];
+      const x = S.find(kind, id);
+      if (!m || !x) return;
+      bigMap.closePopup();
+      m.dragging.enable();
+      m.getElement()?.classList.add('moving');
+      toast(`'${x.name}' 핀을 원하는 자리로 끌어다 놓으세요.`);
+      m.once('dragend', () => {
+        const p = m.getLatLng();
+        const before = { lat: x.lat, lng: x.lng, area: x.area, approx: x.approx };
+        const lat = +p.lat.toFixed(6), lng = +p.lng.toFixed(6);
+        S.upsert(kind, { id, lat, lng, approx: false, area: D.areaAt(lat, lng) || x.area });
+        toast(`'${x.name}' 위치를 옮겼어요.`, '', { undo: () => S.upsert(kind, { id, ...before }) });
+      });
+    },
     'home-add': () => {
       const home = S.get().networks.find(S.isHome);
       if (home) return push({ type: 'form', kind: 'net', id: home.id });
@@ -6885,7 +7577,15 @@ window.App = (() => {
     },
     'new-event': (el, fd) => {
       const [lt, li] = (el.dataset.target || '').split(':');
-      push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}) } }, fd);
+      const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
+      push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
+    },
+    'sched-who': el => { V.ui.sched.who = el.dataset.who; render(); },
+    'ev-del': el => {
+      const ev = S.find('ev', el.dataset.id);
+      if (!ev) return;
+      const undo = S.remove('ev', ev.id);
+      if (undo) toast(`'${ev.title}' 일정을 삭제했어요.`, '', { undo });
     },
     edit: (el) => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id }, true),
     'edit-loc': el => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id, focus: 'address' }, !!el.closest('#drawer')),
@@ -7083,6 +7783,7 @@ window.App = (() => {
       refreshMap(false);
     },
     'map-mode': el => { V.ui.map.mode = el.dataset.mode; render(); },
+    'map-prog': el => { Object.assign(V.ui.map, { mode: 'ours', prog: el.dataset.prog, solo: null }); render(); },
     'map-net-only': () => { Object.assign(V.ui.map, { biz: false, net: true, mode: 'ours' }); },
     'route-to': el => { const r = V.ui.map.route; V.ui.map.route = { from: r && r.from ? r.from : null, to: { kind: el.dataset.kind, id: el.dataset.id } }; bigMap?.closePopup(); routeChanged(true); },
     'route-from': el => { const r = V.ui.map.route; V.ui.map.route = { from: { kind: el.dataset.kind, id: el.dataset.id }, to: r ? r.to : null }; bigMap?.closePopup(); if (r && r.to) routeChanged(true); else { drawRoute(false); toast('출발지를 정했어요. 이제 도착할 곳을 누르고 여기까지 길찾기를 누르세요.'); } },
@@ -7169,6 +7870,36 @@ window.App = (() => {
     'od-print-each': () => printHtml(R.orderDocsEach(fitOrder)),
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'at-month': el => { const [y, m] = AT.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); AT.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'at-brush': el => { AT.ui.brush = el.dataset.brush; bindAttend(); },
+    'at-group': el => { AT.ui.group = el.dataset.g; bindAttend(); },
+    'at-fill': async () => {
+      if (!(await confirmBox('기본 시간으로 채울까요?', `${V.monthLabel(AT.ui.month)} 평일 중 비어 있는 칸만 참여자별 요일 시간으로 채워요. 공휴일은 공가로 들어가요. 이미 적힌 칸은 그대로 둬요.`, '채우기'))) return;
+      const n = AT.fillMonth(); toast(n ? `${n}칸을 채웠어요. 휴무·병가 등은 칠하기로 바꾸세요.` : '채울 빈 칸이 없어요.');
+    },
+    'at-meta': () => { AT.saveMeta($('#atHol').value, $('#atBase').value); toast('공휴일·기준 일수를 저장했어요.'); },
+    'at-xlsx': () => AT.xlsx(),
+    'at-print': () => printHtml(fitAttend()),
+    'at-padd': () => { AT.addPerson(); toast('참여자 줄을 추가했어요. 이름과 날짜를 적어 주세요.'); setTimeout(() => { const i = [...document.querySelectorAll('#atPeople [data-field="name"]')].find(x => !x.value); i?.focus(); }, 50); },
+    'at-paste': () => { AT.ui.paste = !AT.ui.paste; AT.ui.showPeople = true; bindAttend(); $('#atPasteText')?.focus(); },
+    'at-paste-commit': () => { const r = AT.pasteCommit($('#atPasteText').value, $('#atPasteType').value, $('#atPasteSub').value); AT.ui.paste = false; toast(`${r.added}명을 추가했어요.${r.skipped ? ` (이미 있는 ${r.skipped}명은 건너뜀)` : ''}`); bindAttend(); },
+    'at-pdel': async el => { const p = S.find('jp', el.dataset.id); if (!p) return; if (!(await confirmBox('참여자를 삭제할까요?', `'${p.name || '이름 없음'}'과 이 사람의 출석 기록을 모두 지워요. 바로 되돌릴 수 있어요.`, '삭제'))) return; const undo = AT.removePerson(p.id); toast('참여자를 삭제했어요.', '', { undo }); },
+    'at-import': () => {
+      const f = document.createElement('input'); f.type = 'file'; f.accept = '.xlsx,.xls';
+      f.onchange = async () => {
+        const file = f.files[0]; if (!file) return;
+        try {
+          const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { cellStyles: true });
+          const found = AT.parseWorkbook(wb, file.name);
+          if (!found.length) return toast('출석부 표를 찾지 못했어요. "성명"과 "1일, 2일…" 머리줄이 있는 엑셀인지 확인하세요.', 'error');
+          AT.ui.imp = { file: file.name, found }; bindAttend();
+        } catch (err) { toast('엑셀을 읽지 못했어요: ' + err.message, 'error'); }
+      };
+      f.click();
+    },
+    'at-imp-toggle': el => { AT.ui.imp.found[+el.dataset.i].on = el.checked; },
+    'at-imp-cancel': () => { AT.ui.imp = null; bindAttend(); },
+    'at-imp-commit': () => { const r = AT.commitImport(); toast(`참여자 ${r.people}명 추가, 출석 기록 ${r.recs}건을 불러왔어요.`); render(); },
     'gl-mode': el => { V.ui.perf.glMode = el.dataset.mode; render(); },
     'gl-save': async () => {
       const g = GL.readEditor();
@@ -7392,6 +8123,7 @@ window.App = (() => {
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
       } else if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
       else if (el.dataset.chg === 'trip-field') S.upsert('trip', { id, [field]: el.value });
+      else if (el.dataset.chg === 'jp-field') S.upsert('jp', { id, [field]: el.value.trim() });
       else if (el.dataset.chg === 'trip-report') {
         const t = S.find('trip', id);
         const set = new Set(t.report || []);
@@ -7455,6 +8187,11 @@ window.App = (() => {
       if (inlineEdit) {
         inlineEdit = false;
         if (route() === 'contacts') $('#ctResults').innerHTML = R.contactsResults();
+        if (route() === 'attend') setTimeout(() => {
+          const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
+          bindAttend();
+          if (id && fd) $(`#atPeople [data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
+        }, 0);
         // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
         if (route() === 'orders' && R.ui.orders.kind === '여비') setTimeout(() => {
           // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
@@ -7467,7 +8204,8 @@ window.App = (() => {
         }, 0);
         return;
       }
-      if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
+      if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
+      else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
     });
   }

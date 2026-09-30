@@ -12,6 +12,7 @@ window.App = (() => {
     ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
     ['orders', '출장·특근', 'trip'],
+    ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
   ];
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
@@ -53,13 +54,15 @@ window.App = (() => {
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
-    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]],
+    'map-addmode': [['biz', 2]],
+    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
-    if (act === 'edit' || act === 'edit-loc') return [[KIND_MENU[d.kind], 2]];
+    if (act === 'edit' || act === 'edit-loc' || act === 'map-move') return [[KIND_MENU[d.kind], 2]];
+    if (act === 'map-add-here') return [[d.kind === 'net' ? 'network' : 'biz', 2]];
     if (act === 'delete' || act === 'merge') return [[KIND_MENU[d.kind], 3]];
     if (act === 'triage') return d.to === 'personal' ? [['cards', 2]] : [['cards', 2], [KIND_MENU[d.to], 2]];
     if (act === 'act-del') { const x = S.find('act', d.id); return [[x && x.targetType === 'net' ? 'network' : 'biz', 3]]; }
@@ -68,7 +71,7 @@ window.App = (() => {
     return GATES[act] || null;
   }
   const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const CHG_GATES = { 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -138,6 +141,7 @@ window.App = (() => {
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
+      attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
     let [html, after] = pages[r] || pages.dashboard;
@@ -187,7 +191,10 @@ window.App = (() => {
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
     // 두 곳 찍기 중에 빈 곳을 찍으면 그 자리를 출발·도착으로 쓴다
+    // 오른쪽 클릭(휴대폰은 길게 누르기)은 언제든 "여기에 추가"
+    bigMap.on('contextmenu', ev => { if (S.can('biz', 2) || S.can('network', 2)) addHerePopup(ev.latlng); });
     bigMap.on('click', ev => {
+      if (V.ui.map.addMode && !V.ui.map.pick) { addHerePopup(ev.latlng); A['map-addmode'](); return; }
       if (!V.ui.map.pick) return;
       const lat = +ev.latlng.lat.toFixed(6), lng = +ev.latlng.lng.toFixed(6);
       const r = V.ui.map.route;
@@ -329,6 +336,49 @@ window.App = (() => {
         drawRoute(false);
       });
     }
+  }
+  /** 새 사업체·기관 등록 때 미리 채울 값: 지도에서 찍은 위치, 보고 있는 사업 지도 */
+  function newPreset(el) {
+    const d = el.dataset || {};
+    const out = {};
+    if (d.lat && d.lng) { out.lat = +d.lat; out.lng = +d.lng; out.area = D.areaAt(+d.lat, +d.lng) || ''; }
+    const prog = d.programs || (route() === 'map' ? V.ui.map.prog : '');
+    if (prog) out.programs = [prog];
+    return out;
+  }
+  /** 지도 빈 곳을 찍었을 때 "여기에 추가" 말풍선 */
+  function addHerePopup(latlng) {
+    const lat = +latlng.lat.toFixed(6), lng = +latlng.lng.toFixed(6);
+    const area = D.areaAt(lat, lng);
+    const prog = V.ui.map.prog && D.PROGRAM[V.ui.map.prog];
+    L.popup({ className: 'add-pop' }).setLatLng(latlng).setContent(`<div class="pop"><div class="pop-kind">여기에 추가</div><div class="pop-name">${area ? U.esc(area) : '화성시 밖'}</div>${prog ? `<div class="pop-meta">${U.esc(prog.map)} 지도에 넣어요</div>` : ''}
+      <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="map-add-here" data-kind="biz" data-lat="${lat}" data-lng="${lng}">사업체 개발 등록</button><button class="btn btn-sm" type="button" data-act="map-add-here" data-kind="net" data-lat="${lat}" data-lng="${lng}">기관 등록</button></div></div>`).openOn(bigMap);
+  }
+  /** 출석부: 표를 다시 그려도 가로·세로 스크롤 자리를 지킨다 */
+  function bindAttend() {
+    const box = $('#atResults'); if (!box) return;
+    const w0 = $('#atWrap'), sx = w0 ? w0.scrollLeft : 0, sy = w0 ? w0.scrollTop : 0, y = window.scrollY;
+    box.innerHTML = AT.results();
+    AT.bindGrid();
+    const w = $('#atWrap'); if (w) { w.scrollLeft = sx; w.scrollTop = sy; }
+    window.scrollTo(0, y);
+    $('#atPeople')?.addEventListener('toggle', ev => { AT.ui.showPeople = ev.target.open; });
+    $('#atNum')?.addEventListener('input', ev => { AT.ui.num = ev.target.value.replace(/[^0-9.]/g, '') || '0'; });
+  }
+  /** 출석부 A4 가로 한 장에 맞추기 */
+  function fitAttend() {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:281mm;visibility:hidden';
+    document.body.appendChild(box);
+    const limit = 192 * 96 / 25.4;
+    let html = '';
+    for (const scale of [1, 0.92, 0.85, 0.78, 0.7, 0.62]) {
+      html = AT.doc(scale); box.innerHTML = html;
+      const art = box.querySelector('.at-doc'); art.classList.add('measure');
+      if (art.getBoundingClientRect().height <= limit) break;
+    }
+    box.remove();
+    return html;
   }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
@@ -734,8 +784,39 @@ window.App = (() => {
     open: (el, fromDrawer) => { closeSearch(); if (el.dataset.kind && el.dataset.id) openDetail(el.dataset.kind, el.dataset.id, fromDrawer); },
     'sr-open': el => { const [k, id] = srItems[+el.dataset.i]; closeSearch(); openDetail(k, id, false); },
     'close-search': closeSearch,
-    'new-biz': (el, fd) => push({ type: 'form', kind: 'biz' }, fd),
-    'new-net': (el, fd) => push({ type: 'form', kind: 'net' }, fd),
+    'new-biz': (el, fd) => push({ type: 'form', kind: 'biz', preset: newPreset(el) }, fd),
+    'new-net': (el, fd) => push({ type: 'form', kind: 'net', preset: newPreset(el) }, fd),
+    // 지도에서 찍은 자리에 바로 등록 (위치·읍면동·사업 구분이 미리 채워진다)
+    'map-add-here': el => {
+      bigMap?.closePopup();
+      A[el.dataset.kind === 'net' ? 'new-net' : 'new-biz'](el, false);
+    },
+    'map-addmode': () => {
+      const f = V.ui.map;
+      f.addMode = !f.addMode;
+      if (f.addMode && f.pick) A['route-pick']();
+      const b = $('#mapAddBtn');
+      if (b) { b.classList.toggle('on', f.addMode); b.textContent = f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'; }
+      $('#bigMap')?.classList.toggle('adding', f.addMode);
+      if (f.addMode) toast('지도에서 새로 등록할 자리를 누르세요. (오른쪽 클릭으로도 언제든 추가할 수 있어요)');
+    },
+    'map-move': el => {
+      const { kind, id } = el.dataset;
+      const m = markerIndex[kind + id];
+      const x = S.find(kind, id);
+      if (!m || !x) return;
+      bigMap.closePopup();
+      m.dragging.enable();
+      m.getElement()?.classList.add('moving');
+      toast(`'${x.name}' 핀을 원하는 자리로 끌어다 놓으세요.`);
+      m.once('dragend', () => {
+        const p = m.getLatLng();
+        const before = { lat: x.lat, lng: x.lng, area: x.area, approx: x.approx };
+        const lat = +p.lat.toFixed(6), lng = +p.lng.toFixed(6);
+        S.upsert(kind, { id, lat, lng, approx: false, area: D.areaAt(lat, lng) || x.area });
+        toast(`'${x.name}' 위치를 옮겼어요.`, '', { undo: () => S.upsert(kind, { id, ...before }) });
+      });
+    },
     'home-add': () => {
       const home = S.get().networks.find(S.isHome);
       if (home) return push({ type: 'form', kind: 'net', id: home.id });
@@ -748,7 +829,15 @@ window.App = (() => {
     },
     'new-event': (el, fd) => {
       const [lt, li] = (el.dataset.target || '').split(':');
-      push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}) } }, fd);
+      const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
+      push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
+    },
+    'sched-who': el => { V.ui.sched.who = el.dataset.who; render(); },
+    'ev-del': el => {
+      const ev = S.find('ev', el.dataset.id);
+      if (!ev) return;
+      const undo = S.remove('ev', ev.id);
+      if (undo) toast(`'${ev.title}' 일정을 삭제했어요.`, '', { undo });
     },
     edit: (el) => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id }, true),
     'edit-loc': el => push({ type: 'form', kind: el.dataset.kind, id: el.dataset.id, focus: 'address' }, !!el.closest('#drawer')),
@@ -946,6 +1035,7 @@ window.App = (() => {
       refreshMap(false);
     },
     'map-mode': el => { V.ui.map.mode = el.dataset.mode; render(); },
+    'map-prog': el => { Object.assign(V.ui.map, { mode: 'ours', prog: el.dataset.prog, solo: null }); render(); },
     'map-net-only': () => { Object.assign(V.ui.map, { biz: false, net: true, mode: 'ours' }); },
     'route-to': el => { const r = V.ui.map.route; V.ui.map.route = { from: r && r.from ? r.from : null, to: { kind: el.dataset.kind, id: el.dataset.id } }; bigMap?.closePopup(); routeChanged(true); },
     'route-from': el => { const r = V.ui.map.route; V.ui.map.route = { from: { kind: el.dataset.kind, id: el.dataset.id }, to: r ? r.to : null }; bigMap?.closePopup(); if (r && r.to) routeChanged(true); else { drawRoute(false); toast('출발지를 정했어요. 이제 도착할 곳을 누르고 여기까지 길찾기를 누르세요.'); } },
@@ -1032,6 +1122,36 @@ window.App = (() => {
     'od-print-each': () => printHtml(R.orderDocsEach(fitOrder)),
     'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
     'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'at-month': el => { const [y, m] = AT.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); AT.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
+    'at-brush': el => { AT.ui.brush = el.dataset.brush; bindAttend(); },
+    'at-group': el => { AT.ui.group = el.dataset.g; bindAttend(); },
+    'at-fill': async () => {
+      if (!(await confirmBox('기본 시간으로 채울까요?', `${V.monthLabel(AT.ui.month)} 평일 중 비어 있는 칸만 참여자별 요일 시간으로 채워요. 공휴일은 공가로 들어가요. 이미 적힌 칸은 그대로 둬요.`, '채우기'))) return;
+      const n = AT.fillMonth(); toast(n ? `${n}칸을 채웠어요. 휴무·병가 등은 칠하기로 바꾸세요.` : '채울 빈 칸이 없어요.');
+    },
+    'at-meta': () => { AT.saveMeta($('#atHol').value, $('#atBase').value); toast('공휴일·기준 일수를 저장했어요.'); },
+    'at-xlsx': () => AT.xlsx(),
+    'at-print': () => printHtml(fitAttend()),
+    'at-padd': () => { AT.addPerson(); toast('참여자 줄을 추가했어요. 이름과 날짜를 적어 주세요.'); setTimeout(() => { const i = [...document.querySelectorAll('#atPeople [data-field="name"]')].find(x => !x.value); i?.focus(); }, 50); },
+    'at-paste': () => { AT.ui.paste = !AT.ui.paste; AT.ui.showPeople = true; bindAttend(); $('#atPasteText')?.focus(); },
+    'at-paste-commit': () => { const r = AT.pasteCommit($('#atPasteText').value, $('#atPasteType').value, $('#atPasteSub').value); AT.ui.paste = false; toast(`${r.added}명을 추가했어요.${r.skipped ? ` (이미 있는 ${r.skipped}명은 건너뜀)` : ''}`); bindAttend(); },
+    'at-pdel': async el => { const p = S.find('jp', el.dataset.id); if (!p) return; if (!(await confirmBox('참여자를 삭제할까요?', `'${p.name || '이름 없음'}'과 이 사람의 출석 기록을 모두 지워요. 바로 되돌릴 수 있어요.`, '삭제'))) return; const undo = AT.removePerson(p.id); toast('참여자를 삭제했어요.', '', { undo }); },
+    'at-import': () => {
+      const f = document.createElement('input'); f.type = 'file'; f.accept = '.xlsx,.xls';
+      f.onchange = async () => {
+        const file = f.files[0]; if (!file) return;
+        try {
+          const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { cellStyles: true });
+          const found = AT.parseWorkbook(wb, file.name);
+          if (!found.length) return toast('출석부 표를 찾지 못했어요. "성명"과 "1일, 2일…" 머리줄이 있는 엑셀인지 확인하세요.', 'error');
+          AT.ui.imp = { file: file.name, found }; bindAttend();
+        } catch (err) { toast('엑셀을 읽지 못했어요: ' + err.message, 'error'); }
+      };
+      f.click();
+    },
+    'at-imp-toggle': el => { AT.ui.imp.found[+el.dataset.i].on = el.checked; },
+    'at-imp-cancel': () => { AT.ui.imp = null; bindAttend(); },
+    'at-imp-commit': () => { const r = AT.commitImport(); toast(`참여자 ${r.people}명 추가, 출석 기록 ${r.recs}건을 불러왔어요.`); render(); },
     'gl-mode': el => { V.ui.perf.glMode = el.dataset.mode; render(); },
     'gl-save': async () => {
       const g = GL.readEditor();
@@ -1255,6 +1375,7 @@ window.App = (() => {
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
       } else if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
       else if (el.dataset.chg === 'trip-field') S.upsert('trip', { id, [field]: el.value });
+      else if (el.dataset.chg === 'jp-field') S.upsert('jp', { id, [field]: el.value.trim() });
       else if (el.dataset.chg === 'trip-report') {
         const t = S.find('trip', id);
         const set = new Set(t.report || []);
@@ -1318,6 +1439,11 @@ window.App = (() => {
       if (inlineEdit) {
         inlineEdit = false;
         if (route() === 'contacts') $('#ctResults').innerHTML = R.contactsResults();
+        if (route() === 'attend') setTimeout(() => {
+          const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
+          bindAttend();
+          if (id && fd) $(`#atPeople [data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
+        }, 0);
         // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
         if (route() === 'orders' && R.ui.orders.kind === '여비') setTimeout(() => {
           // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
@@ -1330,7 +1456,8 @@ window.App = (() => {
         }, 0);
         return;
       }
-      if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
+      if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
+      else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
     });
   }
