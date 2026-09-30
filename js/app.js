@@ -181,11 +181,18 @@ window.App = (() => {
   function bindMap() {
     bigMap = null;
     if (V.ui.map.mode === 'city') return fitCity();
-    bigMap = M.create($('#bigMap'), { showLayers: true });
+    bigMap = M.create($('#bigMap'), { showLayers: false });
     refreshMap(true);
     const fx = V.ui.map.focus;
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
+    // 두 곳 찍기 중에 빈 곳을 찍으면 그 자리를 출발·도착으로 쓴다
+    bigMap.on('click', ev => {
+      if (!V.ui.map.pick) return;
+      const lat = +ev.latlng.lat.toFixed(6), lng = +ev.latlng.lng.toFixed(6);
+      const r = V.ui.map.route;
+      pickRoute({ kind: 'pt', lat, lng, name: !r || !r.from || r.to ? '찍은 출발지' : '찍은 도착지' });
+    });
   }
   /** 화성시 대시보드를 기준 화면 크기로 그린 뒤 칸 너비에 맞춰 축소 */
   let cityRO = null;
@@ -208,52 +215,114 @@ window.App = (() => {
     apply();
   }
   function refreshMap(fit) {
+    const f = V.ui.map;
     const items = V.mapItems();
     $('#mapList').innerHTML = V.mapList(items);
+    const bar = $('#mapSolo');
+    if (bar) { bar.innerHTML = V.soloBar(); bar.hidden = !bar.innerHTML; }
     if (!bigMap) return;
     if (markerGroup) markerGroup.remove();
     markerIndex = {};
     markerGroup = L.featureGroup();
     const label = (kind, x) => kind === 'card' ? (x.org || x.name) : x.name;
+    // 이것만 보기: 고른 곳(+ 길찾기 출발·도착)만 지도에 남긴다
+    const so = f.solo && S.find(f.solo.kind, f.solo.id) ? f.solo : (f.solo = null);
+    const r = f.route;
+    const keep = so ? new Set([so, r && r.from, r && r.to].filter(Boolean).map(k => k.kind + k.id)) : null;
+    let shown = items.filter(i => M.hasPos(i.x) && (!keep || keep.has(i.kind + i.x.id) || i.home));
+    if (so && !shown.some(i => i.kind === so.kind && i.x.id === so.id)) {
+      // 레이어·검색에 걸려 빠졌어도 고른 곳은 보여 준다
+      const x = S.find(so.kind, so.id);
+      if (M.hasPos(x)) shown.push({ kind: so.kind, x, home: so.kind === 'net' && S.isHome(x) });
+    }
     // 이 달 발굴은 맨 위에 그린다
-    items.filter(i => M.hasPos(i.x)).sort((a, b) => (a.month ? 1 : 0) - (b.month ? 1 : 0)).forEach(({ kind, x, month }) => {
+    shown.sort((a, b) => (a.month ? 1 : 0) - (b.month ? 1 : 0)).forEach(({ kind, x, month }) => {
       const m = (kind === 'biz' ? M.bizMarker(x, month) : kind === 'net' ? M.netMarker(x) : M.cardMarker(x))
-        .bindPopup(M.popupHtml(kind, x)).bindTooltip(label(kind, x), { direction: 'top', offset: [0, -6] });
+        .bindTooltip(label(kind, x), { direction: 'top', offset: [0, -6] });
+      // 두 곳 찍기 중에는 말풍선 대신 바로 출발·도착으로 고른다
+      if (f.pick) m.on('click', ev => { L.DomEvent.stop(ev); pickRoute({ kind, id: x.id }); });
+      else m.bindPopup(M.popupHtml(kind, x), { autoPanPaddingTopLeft: [20, 70] });
       m.addTo(markerGroup);
       markerIndex[kind + x.id] = m;
     });
     markerGroup.addTo(bigMap);
+    $('#bigMap')?.classList.toggle('picking', !!f.pick);
     drawRoute();
+    if (so) {
+      const m = markerIndex[so.kind + so.id];
+      if (m && fit !== false) bigMap.setView(m.getLatLng(), Math.max(bigMap.getZoom(), 15));
+      return;
+    }
     if (fit) {
-      const gu = V.ui.map.gu;
+      const gu = f.gu;
       const gb = M.guBounds(gu || '');
       if (gb) bigMap.fitBounds(gb, { padding: [12, 12] });
       else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     }
   }
-  /** 길찾기: 옆 칸을 다시 그리고, 지도에 출발→도착 점선과 거리를 표시 */
-  let routeLayer = null;
+  /** 지도에서 두 곳 찍기: 첫 번째 = 출발, 두 번째 = 도착, 세 번째부터는 새로 시작 */
+  function pickRoute(ref) {
+    const r = V.ui.map.route;
+    if (!r || !r.from || r.to) {
+      V.ui.map.route = { from: ref, to: null };
+      drawRoute(false);
+      toast('출발지를 찍었어요. 이제 도착할 곳을 찍으세요.');
+    } else {
+      V.ui.map.route = { from: r.from, to: ref };
+      routeChanged(true);
+    }
+  }
+  /** 출발·도착이 정해지면 경로를 그리고, 켜 두었으면 길찾기 창을 오른쪽에 띄운다 (누른 순간에 열어야 팝업이 막히지 않는다) */
+  function routeChanged(zoom) {
+    drawRoute(zoom);
+    if (V.ui.map.rauto) openRouteWin(true);
+  }
+  let routeWin = null;
+  function openRouteWin(auto) {
+    const f = V.ui.map, r = f.route;
+    const from = r && V.routeEnd(r.from, true), to = r && V.routeEnd(r.to);
+    if (!from || !to || !M.hasPos(from) || !M.hasPos(to)) { if (!auto) toast('출발과 도착을 먼저 골라 주세요.'); return; }
+    const url = f.rprov === 'kakao' ? M.kakaoRoute(from, to) : M.naverRoute(from, to, f.rmode);
+    // 같은 이름의 창을 다시 쓰므로, 새로 고를 때마다 그 창 내용만 바뀐다. 처음 열 때는 화면 오른쪽 절반에 붙인다
+    const W = Math.max(480, Math.round(screen.availWidth * 0.42)), H = screen.availHeight;
+    const left = (screen.availLeft || 0) + screen.availWidth - W, top = screen.availTop || 0;
+    try {
+      if (routeWin && !routeWin.closed) { routeWin.location.href = url; routeWin.focus(); return; }
+    } catch { /* 다른 사이트로 넘어간 창은 주소만 바꿀 수 있다 */ }
+    routeWin = window.open(url, 'ardimRoute', `popup=yes,width=${W},height=${H},left=${left},top=${top}`);
+    if (!routeWin) toast('길찾기 창이 팝업 차단으로 막혔어요. 주소창 오른쪽의 팝업 차단 아이콘에서 "항상 허용"을 눌러 주세요.');
+  }
+  /** 길찾기: 옆 칸을 다시 그리고, 지도에 출발→도착 경로를 표시 */
+  let routeLayer = null, routeDots = null;
   function drawRoute(zoom) {
     const box = $('#routeBox');
     if (box) box.innerHTML = V.routePanel();
     if (!bigMap) return;
     if (routeLayer) { routeLayer.remove(); routeLayer = null; }
+    if (routeDots) { routeDots.remove(); routeDots = null; }
     const r = V.ui.map.route;
     if (!r) return;
-    const from = r.from ? S.find(r.from.kind, r.from.id) : S.get().networks.find(n => S.isHome(n) && M.hasPos(n));
-    const to = r.to ? S.find(r.to.kind, r.to.id) : null;
+    const from = V.routeEnd(r.from, true);
+    const to = V.routeEnd(r.to);
+    // 찍은 점(사업체가 아닌 곳)은 출발 A·도착 B 표시로 보여 준다
+    const dot = (p, t) => L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', html: `<span class="route-dot ${t === 'A' ? 'a' : 'b'}">${t}</span>`, iconSize: [26, 26], iconAnchor: [13, 13] }), interactive: false, zIndexOffset: 1000 });
+    routeDots = L.layerGroup();
+    if (from && M.hasPos(from)) dot(from, 'A').addTo(routeDots);
+    if (to && M.hasPos(to)) dot(to, 'B').addTo(routeDots);
+    routeDots.addTo(bigMap);
     if (!from || !to || !M.hasPos(from) || !M.hasPos(to)) return;
     const km = M.distKm(from, to);
     const key = [from.id, to.id].join('>');
     const info = V.ui.map.routeInfo && V.ui.map.routeInfo.key === key ? V.ui.map.routeInfo : null;
     const line = (path, road) => L.polyline(path, road ? { color: '#1D4ED8', weight: 6, opacity: .85, interactive: false, lineCap: 'round' } : { color: '#172033', weight: 3, dashArray: '8 7', opacity: .85, interactive: false });
-    const tip = info && info.road ? `도로 ${info.road.km.toFixed(1)}km · 차로 약 ${info.road.min}분` : `${km.toFixed(1)}km · 차로 약 ${M.estimate(km).car}분`;
+    const tip = info && info.road ? `${info.road.km.toFixed(1)}km` : `직선 ${km.toFixed(1)}km`;
     routeLayer = line(info && info.road ? info.road.path : [[from.lat, from.lng], [to.lat, to.lng]], !!(info && info.road))
       .bindTooltip(tip, { permanent: true, direction: 'center', className: 'route-tip' }).addTo(bigMap);
-    if (zoom) bigMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 14 });
+    if (zoom) bigMap.fitBounds(routeLayer.getBounds(), { padding: [60, 60], maxZoom: 15 });
     if (!info) {
       // 도로 경로를 받아 오면 직선 대신 도로를 따라 다시 그린다 (받는 사이 다른 곳을 고르면 버림)
       V.ui.map.routeInfo = { key, loading: true };
+      if (box) box.innerHTML = V.routePanel();
       M.roadRoute(from, to).then(road => {
         if (!V.ui.map.route || !V.ui.map.routeInfo || V.ui.map.routeInfo.key !== key) return;
         V.ui.map.routeInfo = { key, road };
@@ -745,7 +814,7 @@ window.App = (() => {
     },
     'map-show': el => {
       // 지도로 가서 그곳을 바로 보여 준다 (필터는 풀어서 반드시 보이게)
-      Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', biz: true, net: true, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), focus: { kind: el.dataset.kind, id: el.dataset.id } });
+      Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', biz: true, net: true, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), solo: { kind: el.dataset.kind, id: el.dataset.id }, focus: { kind: el.dataset.kind, id: el.dataset.id } });
       closeDrawer();
       if (location.hash === '#/map') render(); else location.hash = '#/map';
     },
@@ -854,19 +923,48 @@ window.App = (() => {
     'net-cat': el => { V.ui.net.cat = el.dataset.cat; render(); },
     'card-link': el => { V.ui.cards.link = el.dataset.link; render(); },
     'map-layer': el => { const k = el.dataset.layer; V.ui.map[k] = !V.ui.map[k]; render(); },
-    'map-stage': el => { const s = V.ui.map.stages; const k = el.dataset.stage; if (el.checked) s.add(k); else s.delete(k); refreshMap(false); },
+    'map-stage': el => {
+      const s = V.ui.map.stages; const k = el.dataset.stage; if (el.checked) s.add(k); else s.delete(k);
+      const n = el.closest('.map-dd')?.querySelector('summary b'); if (n) n.textContent = `${s.size}/${D.STAGES.length}`;
+      refreshMap(false);
+    },
     'map-mode': el => { V.ui.map.mode = el.dataset.mode; render(); },
     'map-net-only': () => { Object.assign(V.ui.map, { biz: false, net: true, mode: 'ours' }); },
-    'route-to': el => { const r = V.ui.map.route; V.ui.map.route = { from: r && r.from ? r.from : null, to: { kind: el.dataset.kind, id: el.dataset.id } }; bigMap?.closePopup(); drawRoute(true); },
-    'route-from': el => { const r = V.ui.map.route; V.ui.map.route = { from: { kind: el.dataset.kind, id: el.dataset.id }, to: r ? r.to : null }; bigMap?.closePopup(); drawRoute(!!(r && r.to)); if (!r || !r.to) toast('출발지를 정했어요. 이제 도착할 곳을 누르고 여기까지 길찾기를 누르세요.'); },
+    'route-to': el => { const r = V.ui.map.route; V.ui.map.route = { from: r && r.from ? r.from : null, to: { kind: el.dataset.kind, id: el.dataset.id } }; bigMap?.closePopup(); routeChanged(true); },
+    'route-from': el => { const r = V.ui.map.route; V.ui.map.route = { from: { kind: el.dataset.kind, id: el.dataset.id }, to: r ? r.to : null }; bigMap?.closePopup(); if (r && r.to) routeChanged(true); else { drawRoute(false); toast('출발지를 정했어요. 이제 도착할 곳을 누르고 여기까지 길찾기를 누르세요.'); } },
     'route-swap': () => {
       const r = V.ui.map.route; if (!r || !r.to) return;
       const home = S.get().networks.find(n => S.isHome(n) && M.hasPos(n));
       const from = r.from || (home ? { kind: 'net', id: home.id } : null);
       if (!from) return;
-      V.ui.map.route = { from: r.to, to: from }; drawRoute(false);
+      V.ui.map.route = { from: r.to, to: from }; routeChanged(false);
     },
     'route-clear': () => { V.ui.map.route = null; drawRoute(false); },
+    'route-pick': () => {
+      const f = V.ui.map;
+      f.pick = !f.pick;
+      if (f.pick) { f.route = null; bigMap?.closePopup(); toast('지도에서 출발할 곳을 찍으세요. 점이나 아무 곳이나 찍을 수 있어요.'); }
+      const b = $('#routePickBtn');
+      if (b) { b.classList.toggle('on', f.pick); b.setAttribute('aria-pressed', f.pick); b.textContent = f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'; }
+      refreshMap(false);
+    },
+    'route-prov': el => { V.ui.map.rprov = el.dataset.prov; drawRoute(false); if (routeWin && !routeWin.closed) openRouteWin(true); },
+    'route-mode': el => { V.ui.map.rmode = el.dataset.mode; drawRoute(false); if (routeWin && !routeWin.closed) openRouteWin(true); },
+    'route-auto': el => { V.ui.map.rauto = el.checked; },
+    'route-open': () => openRouteWin(false),
+    'map-solo': el => {
+      const { kind, id } = el.dataset;
+      V.ui.map.solo = { kind, id };
+      bigMap?.closePopup();
+      refreshMap(false);
+      A['map-focus'](el);
+    },
+    'map-solo-off': () => {
+      V.ui.map.solo = null;
+      bigMap?.closePopup();
+      refreshMap(false);
+      if (bigMap && markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
+    },
     'map-focus': el => {
       const { kind, id } = el.dataset;
       const m = markerIndex[kind + id];

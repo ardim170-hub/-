@@ -124,10 +124,16 @@ window.M = (() => {
   }
   const hasPos = x => x && x.lat != null && x.lng != null && !isNaN(x.lat) && !isNaN(x.lng) && x.lat !== '' && x.lng !== '';
 
+  const soloBtn = (kind, x) => {
+    const so = V.ui.map.solo;
+    return so && so.kind === kind && so.id === x.id
+      ? '<button class="btn btn-ghost btn-sm" type="button" data-act="map-solo-off">전체 보기</button>'
+      : `<button class="btn btn-ghost btn-sm" type="button" data-act="map-solo" data-kind="${kind}" data-id="${x.id}">이것만 보기</button>`;
+  };
   function popupHtml(kind, x) {
     if (kind === 'card') {
       return `<div class="pop-name">${U.esc(x.org || x.name)}</div><div class="pop-meta">분류 대기 명함 · ${U.esc(x.name)} ${U.esc(x.title || '')}<br>${U.esc(x.address || '')}</div>
-        <div class="inline">${V.triageButtons(x)}</div>`;
+        <div class="inline">${V.triageButtons(x)}</div><div class="inline pop-actions">${soloBtn(kind, x)}</div>`;
     }
     const sup = kind === 'biz' ? S.supportOf(x).types : [];
     const meta = kind === 'biz'
@@ -144,7 +150,7 @@ window.M = (() => {
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
-      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button></div></div>`;
+      <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div></div>`;
   }
 
   /** 위치 지정용 지도: 클릭하면 핀 이동 */

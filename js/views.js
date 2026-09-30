@@ -25,7 +25,7 @@ window.V = (() => {
     biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, prog: '', sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
-    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit' },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false },
@@ -452,28 +452,31 @@ window.V = (() => {
         <div><h1 class="page-title">화성시 지도</h1><div class="page-desc">모든 사업체·기관을 지도에 표시하고, 옆 목록에는 고른 달에 발굴한 사업체만 보여줍니다.${scopeNote()}</div></div>
         <div class="inline"><button class="btn" type="button" data-act="new-net">+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
       </div>
-      <div class="chips" style="margin-bottom:12px" role="tablist">
+      <div class="map-bar"><div class="chips" role="tablist">
         <button type="button" role="tab" class="chip ${f.mode === 'ours' ? 'on' : ''}" data-act="map-mode" data-mode="ours" aria-selected="${f.mode === 'ours'}">사업체·네트워크 지도</button>
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
+      ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
       ${f.mode === 'city' ? cityMap() : `
-      <div class="chips gu-chips" style="margin-bottom:12px">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>
       <section class="panel map-layout">
-        <div class="map-side">
-          <div class="map-side-head">
-            <div class="month-nav">
-              <button class="icon-btn" type="button" data-act="map-month" data-d="-1" aria-label="이전 달">${I.back}</button>
-              <b class="num" id="mapMonthLabel">${monthLabel(f.month)}</b>
-              <button class="icon-btn" type="button" data-act="map-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button>
-              <button class="btn btn-ghost btn-sm" type="button" data-act="map-listmode" id="mapListMode">${f.listAll ? '이 달만' : '전체 목록'}</button>
-            </div>
-            <input class="input" id="mapQ" type="search" placeholder="지도에서 이름 찾기 (초성 가능)" value="${e(f.q)}">
+        <div class="map-main">
+          <div class="map-tools">
+            <input class="input" id="mapQ" type="search" placeholder="이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
               <button type="button" class="chip ${f.biz ? 'on' : ''}" data-act="map-layer" data-layer="biz">사업체 개발</button>
               <button type="button" class="chip ${f.net ? 'on' : ''}" data-act="map-layer" data-layer="net">네트워크</button>
               <button type="button" class="chip ${f.card ? 'on' : ''}" data-act="map-layer" data-layer="card">분류 대기 명함${pending ? ` <span class="n">${pending}</span>` : ''}</button>
             </div>
-            <div class="map-legend map-key">
+            <details class="map-dd"><summary>단계 <b class="num">${f.stages.size}/${D.STAGES.length}</b></summary>
+              <div class="map-dd-body">${D.STAGES.map(s => `<label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label>`).join('')}</div>
+            </details>
+            <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
+            ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
+          </div>
+          <div class="map-canvas">
+            <div class="map-box" id="bigMap"></div>
+            <div class="map-solo" id="mapSolo">${soloBar()}</div>
+            <div class="map-legend map-key map-float">
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.biz}"></i>사업체 개발</span>
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.placed}"></i>취업 연계</span>
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.employ}"></i>지원고용</span>
@@ -483,14 +486,21 @@ window.V = (() => {
               <span><i class="sq" style="--c:${D.MAP_COLORS.card}"></i>명함</span>
               <span><i class="ring"></i>이 달 발굴</span>
             </div>
-            ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 화성시아르딤복지관 위치 등록</button>`}
-            <div class="map-legend map-stages"><span class="sub">단계</span>${D.STAGES.map(s => `<span><label class="check"><input type="checkbox" data-act="map-stage" data-stage="${s.key}" ${f.stages.has(s.key) ? 'checked' : ''} ${f.biz ? '' : 'disabled'}>${s.key}</label></span>`).join('')}</div>
-            <div id="routeBox">${routePanel()}</div>
+          </div>
+        </div>
+        <div class="map-side">
+          <div id="routeBox">${routePanel()}</div>
+          <div class="map-side-head">
+            <div class="month-nav">
+              <button class="icon-btn" type="button" data-act="map-month" data-d="-1" aria-label="이전 달">${I.back}</button>
+              <b class="num" id="mapMonthLabel">${monthLabel(f.month)}</b>
+              <button class="icon-btn" type="button" data-act="map-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button>
+              <button class="btn btn-ghost btn-sm" type="button" data-act="map-listmode" id="mapListMode">${f.listAll ? '이 달만' : '전체 목록'}</button>
+            </div>
             ${noPos ? `<button type="button" class="nopos-bar ${f.noPos ? 'on' : ''}" data-act="map-nopos">📍 위치가 없어 지도에 안 나오는 곳 <b>${noPos}</b>곳 · ${f.noPos ? '지도 목록으로 돌아가기' : '보고 위치 정하기'}</button>` : ''}
           </div>
           <div class="map-list" id="mapList"></div>
         </div>
-        <div class="map-canvas"><div class="map-box" id="bigMap"></div></div>
       </section>`}`;
   }
   /** 화성시 통합 대시보드(공유 링크). 1920×1080 화면으로 그린 뒤 칸 너비에 맞춰 줄여 비율을 유지한다 */
@@ -523,28 +533,48 @@ window.V = (() => {
     return items.filter(({ x, home }) => home || ((!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
-  /** 길찾기 칸: 출발(기본 = 우리 복지관) → 도착, 대략 거리·시간과 네이버·카카오 길찾기 버튼 */
+  /** 이것만 보기 중이면 지도 위에 이름과 "전체 보기" 버튼 */
+  function soloBar() {
+    const so = ui.map.solo;
+    const x = so && S.find(so.kind, so.id);
+    if (!x) return '';
+    return `<span>👁 <b>${e(so.kind === 'card' ? (x.org || x.name) : x.name)}</b>만 보는 중</span><button class="btn btn-sm btn-primary" type="button" data-act="map-solo-off">전체 보기</button>`;
+  }
+  /** 길찾기 끝점: 사업체·기관·명함이거나, 지도에서 직접 찍은 점({kind:'pt'}). 출발이 비면 우리 복지관 */
+  function routeEnd(ref, fallbackHome) {
+    if (!ref) return fallbackHome ? S.get().networks.find(n => S.isHome(n) && M.hasPos(n)) || null : null;
+    if (ref.kind === 'pt') return { id: `pt${ref.lat},${ref.lng}`, name: ref.name || '찍은 위치', lat: ref.lat, lng: ref.lng };
+    const x = S.find(ref.kind, ref.id);
+    return x ? { ...x, name: ref.kind === 'card' ? (x.org || x.name) : x.name } : null;
+  }
+  const ROUTE_MODES = [['car', '🚗 자동차'], ['transit', '🚌 대중교통'], ['walk', '🚶 도보']];
+  /** 오른쪽 길찾기 칸: 두 곳을 고르면 도로 경로를 그리고, 네이버·카카오 길찾기 창을 오른쪽에 띄운다 */
   function routePanel() {
-    const r = ui.map.route;
-    const home = S.get().networks.find(n => S.isHome(n) && M.hasPos(n));
-    if (!r) return `<div class="route-box idle"><b>🧭 길찾기</b><span class="sub">지도에서 점을 누르고 <b>여기까지 길찾기</b>를 누르면 ${home ? '복지관에서' : '출발지에서'} 얼마나 걸리는지 보여 줘요.</span></div>`;
-    const from = r.from ? S.find(r.from.kind, r.from.id) : home;
-    const to = r.to ? S.find(r.to.kind, r.to.id) : null;
-    const head = `<div class="route-head"><b>🧭 길찾기</b><button class="icon-btn" type="button" data-act="route-clear" aria-label="길찾기 닫기" style="width:28px;height:28px">${I.close}</button></div>`;
-    if (!r.to) return `<div class="route-box">${head}<div class="route-ends"><span class="from">출발 <b>${e(from ? from.name : '')}</b></span></div><span class="sub">이제 지도에서 도착할 곳을 누르고 <b>여기까지 길찾기</b>를 누르세요.</span></div>`;
-    if (!to || !M.hasPos(to)) return `<div class="route-box">${head}<span class="sub">도착지 위치가 없습니다.</span></div>`;
-    if (!from || !M.hasPos(from)) return `<div class="route-box">${head}<div class="route-ends"><span class="to">도착 <b>${e(to.name)}</b></span></div><span class="sub">출발지가 없어요. 지도에서 다른 곳을 누르고 <b>여기서 출발</b>을 누르거나, 복지관 위치를 등록해 주세요.</span><button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 복지관 위치 등록</button></div>`;
-    const km = M.distKm(from, to), t = M.estimate(km);
-    const info = ui.map.routeInfo && ui.map.routeInfo.key === [from.id, to.id].join('>') ? ui.map.routeInfo : null;
+    const f = ui.map, r = f.route;
+    const head = (x = true) => `<div class="route-head"><b>🧭 길찾기</b>${x ? `<button class="icon-btn" type="button" data-act="route-clear" aria-label="길찾기 지우기" style="width:28px;height:28px">${I.close}</button>` : ''}</div>`;
+    const opts = `<div class="route-opts">
+        <div class="seg" role="group" aria-label="길찾기 지도">${[['naver', '네이버'], ['kakao', '카카오']].map(([k, l]) => `<button type="button" class="${f.rprov === k ? 'on' : ''}" data-act="route-prov" data-prov="${k}">${l}</button>`).join('')}</div>
+        ${f.rprov === 'naver' ? `<div class="seg" role="group" aria-label="이동 수단">${ROUTE_MODES.map(([k, l]) => `<button type="button" class="${f.rmode === k ? 'on' : ''}" data-act="route-mode" data-mode="${k}">${l}</button>`).join('')}</div>` : ''}
+        <label class="check sub"><input type="checkbox" data-act="route-auto" ${f.rauto ? 'checked' : ''}>두 곳을 고르면 길찾기 창 자동으로 열기</label>
+      </div>`;
+    const from = r ? routeEnd(r.from, true) : null;
+    const to = r ? routeEnd(r.to) : null;
+    const end = (cls, label, x, ph) => `<span class="${cls}">${label} <b>${x ? e(x.name) : `<span class="sub">${ph}</span>`}</b></span>`;
+    if (!r || !r.to) return `<div class="route-box ${r ? '' : 'idle'}">${head(!!r)}
+      <div class="route-ends">${end('from', '출발', from, f.pick ? '지도에서 첫 번째 곳을 찍으세요' : '복지관 (위치 등록 필요)')}${end('to', '도착', null, f.pick ? '두 번째 곳을 찍으세요' : '지도에서 고르기')}</div>
+      <p class="sub" style="margin:0">${f.pick ? '지도에서 <b>점(사업체·기관)</b>이나 <b>아무 곳</b>을 차례로 두 번 찍으면 바로 경로를 그리고 오른쪽에 길찾기 창을 띄워요.' : '지도 위 <b>📍 두 곳 찍어 길찾기</b>를 누르고 두 곳을 찍거나, 점을 눌러 <b>여기까지 길찾기</b>를 누르세요.'}</p>
+      ${opts}</div>`;
+    if (!to || !M.hasPos(to)) return `<div class="route-box">${head()}<span class="sub">도착지 위치가 없습니다.</span></div>`;
+    if (!from || !M.hasPos(from)) return `<div class="route-box">${head()}<div class="route-ends">${end('to', '도착', to)}</div><span class="sub">출발지가 없어요. 지도에서 다른 곳을 찍거나, 복지관 위치를 등록해 주세요.</span><button class="btn btn-sm" type="button" data-act="home-add" style="align-self:flex-start">★ 복지관 위치 등록</button></div>`;
+    const info = f.routeInfo && f.routeInfo.key === [from.id, to.id].join('>') ? f.routeInfo : null;
     const road = info && info.road;
-    const btn = (href, label, cls = '') => `<a class="btn btn-sm ${cls}" href="${e(href)}" target="_blank" rel="noopener">${label}</a>`;
-    return `<div class="route-box">${head}
-      <div class="route-ends"><span class="from">출발 <b>${e(from.name)}</b></span><button class="icon-btn" type="button" data-act="route-swap" aria-label="출발·도착 바꾸기" title="출발·도착 바꾸기" style="width:28px;height:28px">⇅</button><span class="to">도착 <b>${e(to.name)}</b></span></div>
-      ${road ? `<div class="route-est"><span>🚗 도로 <b class="num">${road.km.toFixed(1)}km</b></span><span>차로 약 <b class="num">${road.min}분</b></span><span>🚌 약 <b class="num">${Math.round(road.km / 15 * 60 + 10)}분</b></span></div>
-      <p class="sub" style="margin:0">지도의 파란 선이 자동차 도로 경로예요. 시간은 <b>교통 상황을 반영하지 않은</b> 값이라, 실시간 막힘은 아래 네이버·카카오에서 확인하세요.</p>`
-      : `<div class="route-est"><span>직선 <b class="num">${km.toFixed(1)}km</b></span><span>🚗 약 <b class="num">${t.car}분</b></span><span>🚌 약 <b class="num">${t.transit}분</b></span>${km < 3 ? `<span>🚶 약 <b class="num">${t.walk}분</b></span>` : ''}</div>
-      <p class="sub" style="margin:0">${info && info.loading ? '도로 경로를 찾는 중이에요…' : info ? '도로 경로를 받지 못해 직선거리로 어림했어요 (인터넷 연결 확인).' : '거리로 어림한 시간이에요.'} 정확한 경로와 시간은 아래에서 확인하세요.</p>`}
-      <div class="inline route-links">${btn(M.naverRoute(from, to, 'car'), '네이버 자동차', 'btn-naver')}${btn(M.naverRoute(from, to, 'transit'), '네이버 대중교통', 'btn-naver')}${km < 3 ? btn(M.naverRoute(from, to, 'walk'), '네이버 도보', 'btn-naver') : ''}${btn(M.kakaoRoute(from, to), '카카오맵 길찾기', 'btn-kakao')}</div>
+    const km = road ? road.km : M.distKm(from, to);
+    return `<div class="route-box">${head()}
+      <div class="route-ends">${end('from', '출발', from)}<button class="icon-btn" type="button" data-act="route-swap" aria-label="출발·도착 바꾸기" title="출발·도착 바꾸기" style="width:28px;height:28px">⇅</button>${end('to', '도착', to)}</div>
+      <div class="route-est"><span>${road ? '도로' : '직선'} <b class="num">${km.toFixed(1)}km</b></span><span class="sub">${info && info.loading ? '도로 경로 찾는 중…' : road ? '지도의 파란 선이 도로 경로' : ''}</span></div>
+      <button class="btn btn-route route-open" type="button" data-act="route-open">${f.rprov === 'kakao' ? '카카오맵' : '네이버 지도'} 길찾기 창 열기 →</button>
+      ${opts}
+      <p class="sub route-note">걸리는 시간·실시간 교통은 오른쪽에 뜨는 ${f.rprov === 'kakao' ? '카카오맵' : '네이버 지도'} 창에서 보세요. 창이 안 뜨면 브라우저 주소창 오른쪽의 <b>팝업 차단</b>을 풀어 주세요.</p>
     </div>`;
   }
   /** 옆 목록: 기본은 고른 달에 발굴한 사업체만, 구별로 묶어서 */
@@ -564,7 +594,7 @@ window.V = (() => {
     if (!list.length) return `<div class="empty"><strong>${f.listAll ? '표시할 곳이 없습니다' : `${monthLabel(f.month)}에 발굴한 사업체가 없습니다`}</strong>${f.listAll ? '레이어나 단계 선택을 확인하세요.' : '다른 달을 보거나 전체 목록을 눌러 보세요.'}</div>`;
     const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, list.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
     return groups.map(([g, l]) => `<div class="map-group"><h4>${g ? `<span class="prog-dot" style="--c:${D.GU[g].color}"></span>${g}` : '구 미지정'} <span class="num">${l.length}</span></h4>${l.map(({ kind, x }) => `
-      <div class="map-item" data-act="map-focus" data-kind="${kind}" data-id="${x.id}">
+      <div class="map-item ${f.solo && f.solo.kind === kind && f.solo.id === x.id ? 'on' : ''}" data-act="map-solo" data-kind="${kind}" data-id="${x.id}" title="누르면 지도에 이곳만 보여요">
         <span class="mk ${kind === 'net' && S.isHome(x) ? 'star' : kind !== 'biz' ? 'sq' : ''}" style="--c:${kind === 'biz' ? M.bizColor(x) : kind === 'net' ? (S.isHome(x) ? D.MAP_COLORS.home : D.MAP_COLORS.net) : D.MAP_COLORS.card}"></span>
         <div style="min-width:0"><div class="name">${e(kind === 'card' ? (x.org || x.name) : x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)} · ${U.md(x.discoveredAt)} 발굴` : kind === 'net' ? `${e(x.category)} · ${e(x.status)}` : `명함 · ${e(x.name)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
       </div>`).join('')}</div>`).join('');
@@ -1012,5 +1042,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
