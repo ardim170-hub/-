@@ -57,7 +57,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -359,11 +359,11 @@ window.App = (() => {
     const box = $('#atResults'); if (!box) return;
     const w0 = $('#atWrap'), sx = w0 ? w0.scrollLeft : 0, sy = w0 ? w0.scrollTop : 0, y = window.scrollY;
     box.innerHTML = AT.results();
-    AT.bindGrid();
+    AT.bindGrid(toast);
     const w = $('#atWrap'); if (w) { w.scrollLeft = sx; w.scrollTop = sy; }
     window.scrollTo(0, y);
     $('#atPeople')?.addEventListener('toggle', ev => { AT.ui.showPeople = ev.target.open; });
-    $('#atNum')?.addEventListener('input', ev => { AT.ui.num = ev.target.value.replace(/[^0-9.]/g, '') || '0'; });
+    $('#atSrc')?.addEventListener('toggle', ev => { AT.ui.showSrc = ev.target.open; });
   }
   /** 출석부 A4 가로 한 장에 맞추기 */
   function fitAttend() {
@@ -1132,7 +1132,17 @@ window.App = (() => {
       if (!found.length) return toast('표를 찾지 못했어요. "성명"과 "9월", "1일 2일 …" 머리줄까지 함께 복사해 주세요.', 'error');
       AT.ui.pasteTbl = false; AT.ui.imp = { file: '붙여넣은 표', found }; bindAttend();
     },
-    'at-brush': el => { AT.ui.brush = el.dataset.brush; bindAttend(); },
+    'at-apply': el => { AT.applyAll(el.dataset.v); },
+    'at-undo': () => AT.undo(),
+    'at-src-del': async el => {
+      const src = el.dataset.src;
+      if (!(await confirmBox('불러온 자료를 지울까요?', `'${src}'로 들어온 출석 기록과, 그때 새로 만든 참여자(다른 달 기록이 없는 사람)를 지워요. 바로 되돌릴 수 있어요.`, '지우기'))) return;
+      const r = AT.removeSrc(src); toast(`기록 ${r.recs}건${r.people ? `, 참여자 ${r.people}명` : ''}을 지웠어요.`, '', { undo: r.undo });
+    },
+    'at-month-clear': async () => {
+      if (!(await confirmBox(`${V.monthLabel(AT.ui.month)} 출석 기록을 모두 지울까요?`, '참여자 명단은 그대로 두고 이 달 칸만 비워요. 바로 되돌릴 수 있어요.', '모두 지우기'))) return;
+      const r = AT.clearMonth(); toast(`${r.n}명의 이 달 기록을 지웠어요.`, '', { undo: r.undo });
+    },
     'at-group': el => { AT.ui.group = el.dataset.g; bindAttend(); },
     'at-fill': async () => {
       if (!(await confirmBox('기본 시간으로 채울까요?', `${V.monthLabel(AT.ui.month)} 평일 중 비어 있는 칸만 참여자별 요일 시간으로 채워요. 공휴일은 공가로 들어가요. 이미 적힌 칸은 그대로 둬요.`, '채우기'))) return;

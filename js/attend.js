@@ -22,7 +22,7 @@ window.AT = (() => {
     '2026-09': [24, 25], '2026-10': [5, 9], '2026-12': [25],
     '2027-01': [1], '2027-02': [8, 9], '2027-03': [1], '2027-05': [5, 13], '2027-06': [7], '2027-08': [16], '2027-09': [14, 15, 16], '2027-10': [4, 11], '2027-12': [27],
   };
-  const ui = { month: U.today().slice(0, 7), view: 'month', pasteTbl: false, brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
+  const ui = { month: U.today().slice(0, 7), showSrc: false, view: 'month', pasteTbl: false, brush: '공', num: '3', group: '', showPeople: false, imp: null, paste: false };
 
   /* ---------- 데이터 ---------- */
   const people = () => [...S.get().jobPeople].sort((a, b) => TYPES.indexOf(a.type) - TYPES.indexOf(b.type) || SUBS.indexOf(a.sub) - SUBS.indexOf(b.sub) || (Number(a.no) || 999) - (Number(b.no) || 999) || (a.name || '').localeCompare(b.name || ''));
@@ -137,7 +137,7 @@ window.AT = (() => {
     const n = dim(m);
     const hol = new Set(mt.holidays.map(Number));
     const dayCls = d => { const w = wd(m, d); return w === 6 ? 'sat' : w === 0 ? 'sun' : hol.has(d) ? 'hol' : ''; };
-    const brushes = [['base', '기본 시간'], ['num', '시간 직접'], ['휴', '휴무'], ...Object.entries(ST).map(([k, v]) => [k, v.label]), ['clear', '지우기']];
+    const brushes = [['base', '기본 시간'], ['휴', '휴무'], ...Object.entries(ST).map(([k, v]) => [k, v.label]), ['clear', '지우기']];
     const tot = { hours: 0, cnt: 0, real: 0 };
     const sm = Object.fromEntries(list.map(p => { const s = sums(p, m, days[p.id], mt); tot.hours += s.hours; tot.cnt += s.cnt; tot.real += s.real; return [p.id, s]; }));
     const dl = daily(list, m, days);
@@ -155,13 +155,13 @@ window.AT = (() => {
         if (cls === 'sat') { tds += `<td class="wk num">${weekSum(p, d) || ''}</td>`; continue; }
         if (cls === 'sun') { tds += '<td class="sun"></td>'; continue; }
         const c = cell(days[p.id][d]);
-        tds += `<td class="c ${cls} ${c.st ? 'st-' + c.st : ''} ${c.off ? 'off' : ''}" data-p="${p.id}" data-d="${d}">${c.off ? '휴무' : c.h != null ? c.h : ''}</td>`;
+        tds += `<td class="c ${cls} ${c.st ? 'st-' + c.st : ''} ${c.off ? 'off' : ''}" data-r="${i}" data-d="${d}">${c.off ? '휴무' : c.h != null ? c.h : ''}</td>`;
       }
       // 마지막 주 (토요일이 없이 끝나는 달)
       const lastW = wd(m, n);
       if (lastW > 0 && lastW < 6) tds += `<td class="wk num">${weekSum(p, n + 1) || ''}</td>`;
       rows.push(`<tr>${span ? `<th rowspan="${span}" class="grp"><span>${e(p.type || '')}</span><span>${e(p.sub || '')}</span></th>` : ''}
-        <td class="no num">${i + 1}</td><th class="nm" title="${e(p.name)}">${e(p.name)}</th>${tds}
+        <td class="no num">${i + 1}</td><th class="nm c" data-r="${i}" data-d="0" title="${e(p.name)} (두 번 누르거나 글자를 치면 이름 고치기)">${e(p.name) || '<span class="sub">(이름)</span>'}<button type="button" class="at-rdel" data-act="at-pdel" data-id="${p.id}" aria-label="${e(p.name)} 삭제" title="이 참여자 삭제">×</button></th>${tds}
         <td class="s hours num">${s.hours}시간</td><td class="s num">${s.cnt}일</td><td class="s num">${s.real}일</td>
         <td class="s st-공 num">${s.공}</td><td class="s st-특 num">${s.특}</td><td class="s st-병 num">${s.병}</td><td class="s st-결 num">${s.결}</td><td class="s num">${s.gt + s.off}</td>
         <td class="s num ${s.off > OFF_LIMIT ? 'over' : 'offuse'}">${s.off}/${OFF_LIMIT}</td></tr>`);
@@ -171,8 +171,8 @@ window.AT = (() => {
     const realSum = Object.entries(dl).filter(([d]) => { const c = dayCls(+d); return !c || c === ''; }).reduce((a, [, v]) => a + v.real, 0);
     return `<section class="panel at">
       <div class="at-tools">
-        <div class="at-brush" role="group" aria-label="칠하기 도구"><span class="sub">칠하기</span>${brushes.map(([k, l]) => `<button type="button" class="br ${ui.brush === k ? 'on' : ''} ${ST[k] ? 'st-' + k : ''} br-${k === '휴' ? 'off' : k}" data-act="at-brush" data-brush="${k}">${l}</button>`).join('')}
-          ${ui.brush === 'num' ? `<input class="input sm" id="atNum" value="${e(ui.num)}" style="width:52px" inputmode="decimal" aria-label="칠할 시간">` : ''}</div>
+        <div class="at-brush" role="group" aria-label="고른 칸에 넣기"><span class="sub">고른 칸에</span>${brushes.map(([k, l]) => `<button type="button" class="br ${ST[k] ? 'st-' + k : ''} br-${k === '휴' ? 'off' : k}" data-act="at-apply" data-v="${k}" tabindex="-1">${l}</button>`).join('')}
+          <button type="button" class="br" data-act="at-undo" tabindex="-1" title="Ctrl+Z">↶ 되돌리기</button></div>
         <div class="inline at-acts">
           <button class="btn btn-sm" type="button" data-act="at-fill" ${list.length ? '' : 'disabled'}>📅 기본 시간으로 이 달 채우기</button>
           <button class="btn btn-sm" type="button" data-act="at-xlsx" ${list.length ? '' : 'disabled'}>엑셀로 받기</button>
@@ -183,25 +183,60 @@ window.AT = (() => {
         <label>기준 일수 <input class="input sm" id="atBase" value="${mt.base}" style="width:48px" inputmode="numeric"> 일 <span class="sub">(평일 ${mt.weekdays}일)</span></label>
         <button class="btn btn-sm" type="button" data-act="at-meta">저장</button>
         ${groups.length > 1 ? `<span class="chips at-groups"><button type="button" class="chip ${!ui.group ? 'on' : ''}" data-act="at-group" data-g="">전체</button>${groups.map(g => `<button type="button" class="chip ${ui.group === g ? 'on' : ''}" data-act="at-group" data-g="${e(g)}">${e(g)}</button>`).join('')}</span>` : ''}
-        <span class="sub at-help">도구를 고른 뒤 칸을 누르거나 끌면 칠해져요. 같은 칸을 다시 칠하면 지워져요. 공휴일은 채우기 때 공가로 들어가요.</span>
+        <details class="at-keys"><summary>⌨️ 엑셀처럼 쓰기 (단축키)</summary><div class="sub">
+          칸을 누르고 <kbd>←↑→↓</kbd>로 이동, 숫자를 치고 <kbd>Enter</kbd>(아래로)·<kbd>Tab</kbd>(오른쪽으로). <kbd>Shift</kbd>+방향키·끌기로 여러 칸 고르기.
+          <b>휴</b>=휴무, <b>공</b>=공가, <b>특</b>=특휴, <b>병</b>=병가, <b>결</b>=결근 (예: <b>3병</b> = 3시간 병가). <kbd>Delete</kbd> 지우기, <kbd>F2</kbd>·두 번 누르기 = 고치기,
+          <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 복사·붙여넣기(엑셀에서 복사한 것도 됨), <kbd>Ctrl</kbd>+<kbd>D</kbd> 위 칸 아래로 채우기, <kbd>Ctrl</kbd>+<kbd>Z</kbd> 되돌리기.
+          성명 칸에서 이름을 치면 이름이 바뀌고, 맨 아래 <b>+ 새 참여자</b> 줄에 이름을 치면 한 줄이 생겨요. 이름 여러 개를 붙여넣어도 돼요.</div></details>
       </div>
       ${ui.imp ? importPanel() : ''}${ui.pasteTbl ? pastePanel() : ''}
-      ${list.length ? `<div class="at-wrap" id="atWrap"><table class="at-tbl" id="atTbl"><thead>
+      ${`<div class="at-wrap" id="atWrap"><input class="at-ed" id="atEd" autocomplete="off" spellcheck="false" aria-label="출석부 칸 입력"><table class="at-tbl" id="atTbl"><thead>
         <tr><th rowspan="2" class="grp">구분</th><th rowspan="2" class="no">번호</th><th rowspan="2" class="nm">성명</th><th colspan="${n + tailCols}">${+m.slice(5, 7)}월</th><th colspan="9" class="s-head">${mt.base}일 기준</th></tr>
         <tr>${Array.from({ length: n }, (_, k) => { const d = k + 1, w = wd(m, d); return `<th class="d ${dayCls(d)}">${d}<small>${U.WD[w]}</small></th>`; }).join('')}${tailCols ? '<th class="d sat">계</th>' : ''}
           <th class="s hours">시간</th><th class="s">실적건수</th><th class="s">실근무 일수</th><th class="s st-공">공가</th><th class="s st-특">특휴</th><th class="s st-병">병가</th><th class="s st-결">결근</th><th class="s">근태</th><th class="s">휴무사용</th></tr></thead>
         <tbody>${rows.join('')}
+          <tr class="newrow"><td class="grp"></td><td class="no">+</td><th class="nm c" data-r="${list.length}" data-d="0"><span class="sub">+ 새 참여자</span></th><td colspan="${n + tailCols + 9}" class="sub newrow-hint">이름을 치고 Enter · 이름 여러 개를 붙여넣으면 한꺼번에 추가돼요</td></tr>
           <tr class="tot"><th colspan="3">합계 (${list.length}명)</th><td colspan="${n + tailCols}"></td><td class="s num">${tot.hours}시간</td><td class="s num">${tot.cnt}일</td><td class="s num">${tot.real}일</td><td colspan="6"></td></tr>
           ${foot('근무 인원', 'work')}<td colspan="9"></td></tr>
           ${foot('병가·공가 사용 인원', 'use')}<td colspan="9"></td></tr>
           ${foot('실 근무 인원 (실인원)', 'real')}<td class="s num" colspan="3">${realSum}</td><td colspan="6"></td></tr>
           ${places(list).map(pl => `<tr class="ft pl"><th colspan="3">${e(pl)} 인원</th>${Array.from({ length: n }, (_, k) => { const d = k + 1, cls = dayCls(d); return cls === 'sat' || cls === 'sun' ? `<td class="${cls === 'sat' ? 'wk' : 'sun'}"></td>` : `<td class="num ${cls}">${dl[d].place[pl] || ''}</td>`; }).join('')}${tailCols ? '<td class="wk"></td>' : ''}<td colspan="9"></td></tr>`).join('')}
-        </tbody></table></div>`
-      : `<div class="empty"><strong>${V.monthLabel(m)}에 참여 중인 사람이 없어요</strong>아래 참여자 명단에서 추가하거나, 지금 쓰는 엑셀 출석부를 불러오세요.</div>`}
+        </tbody></table></div>`}
+      ${srcPanel()}
       ${peoplePanel(all)}
     </section>`;
   }
 
+  /** 불러온 자료(엑셀·붙여넣기)별 묶음: 잘못 올렸으면 한꺼번에 지운다 */
+  function srcList() {
+    const map = new Map();
+    S.get().attends.forEach(a => { if (!a.src) return; const g = map.get(a.src) || { src: a.src, recs: 0, months: new Set(), people: 0 }; g.recs++; g.months.add(a.month); map.set(a.src, g); });
+    S.get().jobPeople.forEach(p => { if (p.src && map.has(p.src)) map.get(p.src).people++; });
+    return [...map.values()].reverse();
+  }
+  function srcPanel() {
+    const list = srcList();
+    const m = ui.month;
+    const monthRecs = S.get().attends.filter(a => a.month === m && a.pid !== '_').length;
+    return `<details class="at-src" ${ui.showSrc ? 'open' : ''} id="atSrc"><summary><b>불러온 자료 · 지우기</b> <span class="sub">${list.length ? `${list.length}개` : '없음'}</span></summary>
+      <div class="at-src-body">
+        ${list.length ? `<ul class="at-src-list">${list.map(g => `<li><span><b>${e(g.src)}</b> <span class="sub">${[...g.months].sort().map(x => V.monthLabel(x)).join(', ')} · 기록 ${g.recs}건${g.people ? ` · 새로 만든 참여자 ${g.people}명` : ''}</span></span><button class="btn btn-sm btn-danger-ghost" type="button" data-act="at-src-del" data-src="${e(g.src)}">이 자료 지우기</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">엑셀 파일이나 붙여넣기로 불러온 자료가 여기 나와요. 잘못 올렸으면 여기서 통째로 지울 수 있어요.</p>'}
+        <div class="inline"><button class="btn btn-sm btn-danger-ghost" type="button" data-act="at-month-clear" ${monthRecs ? '' : 'disabled'}>${V.monthLabel(m)} 출석 기록 모두 지우기 (${monthRecs}명)</button><span class="sub">참여자 명단은 그대로 두고 이 달 칸만 비워요.</span></div>
+      </div></details>`;
+  }
+  /** 불러온 자료 지우기: 그 자료로 들어온 기록 + 그 자료로 새로 만든 참여자(다른 기록이 없는 사람만) */
+  function removeSrc(src) {
+    const recIds = S.get().attends.filter(a => a.src === src).map(a => a.id);
+    const pidsLeft = new Set(S.get().attends.filter(a => a.src !== src && a.pid !== '_').map(a => a.pid));
+    const pplIds = S.get().jobPeople.filter(p => p.src === src && !pidsLeft.has(p.id)).map(p => p.id);
+    const u1 = recIds.length ? S.removeMany('att', recIds) : null;
+    const u2 = pplIds.length ? S.removeMany('jp', pplIds) : null;
+    return { recs: recIds.length, people: pplIds.length, undo: () => { u1 && u1(); u2 && u2(); } };
+  }
+  function clearMonth(m = ui.month) {
+    const ids = S.get().attends.filter(a => a.month === m && a.pid !== '_').map(a => a.id);
+    return { n: ids.length, undo: ids.length ? S.removeMany('att', ids) : null };
+  }
   const places = list => [...new Set(list.map(p => p.place).filter(Boolean))].sort();
   function pastePanel() {
     return `<div class="at-imp"><b>엑셀 표 붙여넣기</b> <span class="sub">엑셀에서 "구분 … 성명 … 1일 2일 …"부터 맨 아래 줄까지 드래그해 복사(Ctrl+C)한 뒤 아래에 붙여넣으세요(Ctrl+V).</span>
@@ -212,7 +247,7 @@ window.AT = (() => {
   function peoplePanel(all) {
     const inp = (p, k, w, ph = '', type = 'text') => `<input class="input sm" style="width:${w}px" data-chg="jp-field" data-id="${p.id}" data-field="${k}" value="${e(p[k] || '')}" placeholder="${ph}" ${type === 'date' ? 'type="date"' : ''}>`;
     const sel = (p, k, list) => `<select class="select sm" data-chg="jp-field" data-id="${p.id}" data-field="${k}">${list.map(v => `<option ${p[k] === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
-    return `<details class="at-people" ${ui.showPeople ? 'open' : ''} id="atPeople"><summary><b>참여자 명단</b> <span class="sub">${all.length}명 · 추가·수정·삭제</span></summary>
+    return `<details class="at-people" ${ui.showPeople ? 'open' : ''} id="atPeople"><summary><b>참여자 상세 정보</b> <span class="sub">${all.length}명 · 구분·생년월일·참여기간·요일별 시간·근무처</span></summary>
       <div class="at-people-body">
         <div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="at-padd">+ 참여자 추가</button><button class="btn btn-sm" type="button" data-act="at-paste">이름 여러 명 붙여넣기</button></div>
         ${ui.paste ? `<div class="at-paste"><textarea class="textarea" id="atPasteText" rows="5" placeholder="한 줄에 한 명: 성명 [탭] 생년월일 [탭] 참여시작일 [탭] 참여종료일 (엑셀에서 그대로 복사해 붙여넣어도 돼요)"></textarea><div class="inline"><select class="select sm" id="atPasteType">${TYPES.map(t => `<option>${t}</option>`).join('')}</select><select class="select sm" id="atPasteSub">${SUBS.map(t => `<option>${t}</option>`).join('')}</select><button class="btn btn-sm btn-primary" type="button" data-act="at-paste-commit">추가</button></div></div>` : ''}
@@ -224,52 +259,252 @@ window.AT = (() => {
       </div></details>`;
   }
 
-  /* ---------- 칠하기 ---------- */
-  let draft = null; // { pid: days } 끄는 동안 바뀐 것
-  let strokeErase = null;
-  function paint(td) {
-    const pid = td.dataset.p, d = +td.dataset.d, m = ui.month;
-    const p = S.get().jobPeople.find(x => x.id === pid);
-    if (!p) return;
-    draft ||= {};
-    const days = draft[pid] ||= daysOf(pid, m);
-    const cur = cell(days[d]);
-    const bh = baseHours(p, m, d);
-    const b = ui.brush;
-    const has = b === 'base' ? cur.h === bh && !cur.st : b === 'num' ? cur.h === +ui.num && !cur.st : b === '휴' ? cur.off : ST[b] ? cur.st === b : false;
-    if (strokeErase == null) strokeErase = has && b !== 'clear';
-    let v;
-    if (b === 'clear' || (strokeErase && b !== 'base' && b !== 'num' && b !== '휴' && !ST[b])) v = '';
-    else if (strokeErase) v = b === '휴' || b === 'base' || b === 'num' ? '' : b === '결' ? String(bh) : String(cur.h ?? bh);
-    else if (b === 'base') v = String(bh);
-    else if (b === 'num') v = String(+ui.num || 0);
-    else if (b === '휴') v = '휴';
-    else if (b === '결') v = '|결';
-    else v = `${cur.h ?? bh}|${b}`;
-    if (v) days[d] = v; else delete days[d];
-    const c = cell(v);
-    td.className = `c ${td.classList.contains('hol') ? 'hol' : ''} ${c.st ? 'st-' + c.st : ''} ${c.off ? 'off' : ''} painted`;
-    td.textContent = c.off ? '휴무' : c.h != null ? c.h : '';
+  /* ---------- 엑셀처럼 칸 고르기·입력 ---------- */
+  // sel: { r, d } 현재 칸, anc: 여러 칸을 고를 때 시작 칸. d=0 은 성명 칸
+  const G = { sel: null, anc: null, editing: false, active: false, undo: [] };
+  const gridList = () => { const m = ui.month; return people().filter(p => activeIn(p, m) && (!ui.group || `${p.type}·${p.sub}` === ui.group)); };
+  const editable = (m, d) => { const w = wd(m, d); return d >= 1 && d <= dim(m) && w > 0 && w < 6; };
+  const tdAt = (r, d) => document.querySelector(`#atTbl [data-r="${r}"][data-d="${d}"]`);
+  function range() {
+    if (!G.sel) return [];
+    const a = G.anc || G.sel, b = G.sel;
+    const r0 = Math.min(a.r, b.r), r1 = Math.max(a.r, b.r), d0 = Math.min(a.d, b.d), d1 = Math.max(a.d, b.d);
+    const out = [];
+    for (let r = r0; r <= r1; r++) for (let d = d0; d <= d1; d++) out.push({ r, d });
+    return out;
   }
-  function commit() {
-    if (!draft) return;
+  function paintSel() {
+    document.querySelectorAll('#atTbl .sel, #atTbl .cur').forEach(x => x.classList.remove('sel', 'cur'));
+    if (!G.sel) return;
+    range().forEach(({ r, d }) => tdAt(r, d)?.classList.add('sel'));
+    const td = tdAt(G.sel.r, G.sel.d);
+    td?.classList.add('cur');
+    placeEditor();
+  }
+  function placeEditor() {
+    const ed = document.getElementById('atEd'), wrap = document.getElementById('atWrap'), td = G.sel && tdAt(G.sel.r, G.sel.d);
+    if (!ed || !wrap || !td) { if (ed) ed.style.display = 'none'; return; }
+    const tr = td.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    Object.assign(ed.style, { display: 'block', left: `${tr.left - wr.left + wrap.scrollLeft}px`, top: `${tr.top - wr.top + wrap.scrollTop}px`, width: `${G.editing ? Math.max(tr.width, G.sel.d === 0 ? 110 : 60) : tr.width}px`, height: `${tr.height}px` });
+    ed.classList.toggle('editing', G.editing);
+  }
+  function focusEd() { const ed = document.getElementById('atEd'); if (ed && document.activeElement !== ed) ed.focus({ preventScroll: true }); }
+  function select(r, d, extend) {
+    const list = gridList(), m = ui.month;
+    r = Math.max(0, Math.min(r, list.length)); // list.length = 새 참여자 줄
+    if (r === list.length) d = 0;
+    d = Math.max(0, Math.min(d, dim(m)));
+    if (!extend) G.anc = null; else if (!G.anc) G.anc = G.sel;
+    G.sel = { r, d };
+    G.active = true;
+    paintSel();
+    const td = tdAt(r, d); td?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    placeEditor(); focusEd();
+  }
+  /** 방향으로 한 칸 이동 (토·일 칸은 건너뜀) */
+  function move(dr, dd, extend) {
+    if (!G.sel) return select(0, 1);
     const m = ui.month;
-    const recs = Object.entries(draft).map(([pid, days]) => { const r = recOf(pid, m); return { ...(r ? { id: r.id } : {}), pid, month: m, days: JSON.stringify(days) }; });
-    draft = null; strokeErase = null;
-    S.putMany('att', recs);
+    let { r, d } = G.sel;
+    r += dr;
+    if (dd) { let k = d; do { k += dd; } while (k >= 1 && k <= dim(m) && !editable(m, k)); d = k < 0 ? 0 : k > dim(m) ? d : k; }
+    select(r, d, extend);
   }
-  let down = false;
-  window.addEventListener('pointerup', () => { if (!down) return; down = false; commit(); });
-  function bindGrid() {
-    const tbl = document.getElementById('atTbl');
-    if (!tbl) return;
-    tbl.addEventListener('pointerdown', ev => {
-      const td = ev.target.closest('td.c'); if (!td || ev.button !== 0) return;
-      if (!S.can('attend', 2)) return;
-      ev.preventDefault(); down = true; strokeErase = null; paint(td);
+  /** 입력 글 → 칸 값. cur는 지금 칸, bh는 그 날 기본 시간 */
+  function parseInput(txt, cur, bh) {
+    const t = String(txt ?? '').replace(/\s+/g, '');
+    if (!t) return '';
+    if (/^(휴|휴무|ㅎ|h|H)$/.test(t)) return '휴';
+    const num = t.match(/\d+(?:\.\d+)?/);
+    const n = num ? +num[0] : null;
+    const st = /결|ㄱㄱ|결근/.test(t) ? '결' : /병/.test(t) ? '병' : /특/.test(t) ? '특' : /공/.test(t) ? '공' : '';
+    if (st === '결') return `${n ?? ''}|결`;
+    if (st) return `${n ?? cur.h ?? bh}|${st}`;
+    if (n == null) return null; // 알 수 없는 글자
+    return cur.st && cur.st !== '결' ? `${n}|${cur.st}` : String(n);
+  }
+  const showVal = v => { const c = cell(v); return c.off ? '휴무' : c.st ? `${c.h ?? ''}${ST[c.st].label}` : c.h != null ? String(c.h) : ''; };
+  /** 여러 칸 한꺼번에 저장 (되돌리기 기록 남김). changes = [{ r, d, v }] */
+  function write(changes) {
+    const list = gridList(), m = ui.month;
+    const by = {};
+    changes.forEach(({ r, d, v }) => {
+      const p = list[r]; if (!p || !editable(m, d) || v == null) return;
+      const days = by[p.id] ||= daysOf(p.id, m);
+      if (v) days[d] = v; else delete days[d];
     });
-    tbl.addEventListener('pointerover', ev => { if (!down) return; const td = ev.target.closest('td.c'); if (td && !td.classList.contains('painted')) paint(td); });
+    const ids = Object.keys(by); if (!ids.length) return;
+    G.undo.push({ m, before: ids.map(pid => { const r = recOf(pid, m); return { pid, id: r && r.id, days: r ? r.days : null }; }) });
+    if (G.undo.length > 50) G.undo.shift();
+    S.putMany('att', ids.map(pid => { const r = recOf(pid, m); return { ...(r ? { id: r.id } : {}), pid, month: m, days: JSON.stringify(by[pid]) }; }));
   }
+  function undo() {
+    const u = G.undo.pop();
+    if (!u) return toastMsg('되돌릴 것이 없어요.');
+    const keep = u.before.filter(b => b.id);
+    S.putMany('att', keep.map(b => ({ id: b.id, pid: b.pid, month: u.m, days: b.days || '{}' })));
+    const fresh = u.before.filter(b => !b.id).map(b => recOf(b.pid, u.m)).filter(Boolean).map(r => r.id);
+    if (fresh.length) S.removeMany('att', fresh);
+  }
+  let toastMsg = () => {};
+  /** 고른 칸 모두에 같은 값 (도구 버튼·Enter로 여러 칸) */
+  function applyAll(kind, txt) {
+    const list = gridList(), m = ui.month;
+    const cells = range().filter(({ r, d }) => list[r] && editable(m, d));
+    if (!cells.length) return;
+    const cur = ({ r, d }) => cell(daysOf(list[r].id, m)[d]);
+    const allHave = ST[kind] ? cells.every(x => cur(x).st === kind) : kind === '휴' ? cells.every(x => cur(x).off) : false;
+    write(cells.map(x => {
+      const c = cur(x), bh = baseHours(list[x.r], m, x.d);
+      let v;
+      if (kind === 'clear') v = '';
+      else if (kind === 'base') v = String(bh);
+      else if (kind === '휴') v = allHave ? String(bh) : '휴';
+      else if (ST[kind]) v = allHave ? (kind === '결' ? String(bh) : String(c.h ?? bh)) : kind === '결' ? '|결' : `${c.h ?? bh}|${kind}`;
+      else v = parseInput(txt, c, bh);
+      return { ...x, v };
+    }));
+  }
+  /** 성명 칸 입력: 이름 바꾸기 또는 새 참여자 */
+  function writeName(r, name) {
+    name = String(name || '').trim();
+    const list = gridList();
+    if (r < list.length) { if (name && name !== list[r].name) S.upsert('jp', { id: list[r].id, name }); return; }
+    if (!name) return;
+    addPeople([name]);
+  }
+  function addPeople(names) {
+    const list = gridList(), m = ui.month;
+    const last = list[list.length - 1];
+    const type = last ? last.type : '복지형', sub = last ? last.sub : '참여형';
+    let no = S.get().jobPeople.reduce((a, p) => Math.max(a, Number(p.no) || 0), 0);
+    const ppl = names.map(n => String(n).trim()).filter(Boolean).map(name => ({ id: U.uid('J'), no: String(++no), name, type, sub, start: `${m}-01`, end: '', pattern: (last && last.pattern) || DEFAULT_PATTERN[sub], staff: S.me() }));
+    if (!ppl.length) return [];
+    S.putMany('jp', ppl);
+    // 이 달 출석부에 바로 보이게 빈 기록을 만든다
+    S.putMany('att', ppl.map(p => ({ pid: p.id, month: m, days: '{}' })));
+    return ppl;
+  }
+  function commitEdit(dr, dd) {
+    const ed = document.getElementById('atEd');
+    if (!ed || !G.sel) return;
+    const txt = ed.value; ed.value = ''; const was = G.editing; G.editing = false;
+    if (was) {
+      if (G.sel.d === 0) writeName(G.sel.r, txt);
+      else {
+        const list = gridList(), p = list[G.sel.r];
+        if (p) {
+          const cur = cell(daysOf(p.id, ui.month)[G.sel.d]);
+          const v = parseInput(txt, cur, baseHours(p, ui.month, G.sel.d));
+          if (v == null) toastMsg(`"${txt}"은(는) 넣을 수 없어요. 숫자나 휴·공·특·병·결을 쳐 주세요.`);
+          else if (range().length > 1) applyAll('text', txt); else write([{ r: G.sel.r, d: G.sel.d, v }]);
+        }
+      }
+    }
+    if (dr || dd) move(dr, dd); else placeEditor();
+  }
+  function copySel() {
+    const list = gridList(), m = ui.month;
+    const rs = range(); if (!rs.length) return '';
+    const r0 = Math.min(...rs.map(x => x.r)), r1 = Math.max(...rs.map(x => x.r)), d0 = Math.min(...rs.map(x => x.d)), d1 = Math.max(...rs.map(x => x.d));
+    const lines = [];
+    for (let r = r0; r <= r1; r++) { const p = list[r]; if (!p) continue; const days = daysOf(p.id, m); const row = []; for (let d = d0; d <= d1; d++) row.push(d === 0 ? p.name : editable(m, d) ? showVal(days[d]) : ''); lines.push(row.join('\t')); }
+    return lines.join('\n');
+  }
+  /** 붙여넣기: 엑셀에서 복사한 표도 그대로. 성명 칸에서 시작하면 첫 열은 이름(모자라면 새 참여자) */
+  function pasteText(text) {
+    if (!G.sel) return;
+    const rows = String(text).replace(/\r/g, '').replace(/\n$/, '').split('\n').map(l => l.split('\t'));
+    const m = ui.month;
+    let list = gridList();
+    const { r: r0, d: d0 } = G.sel;
+    if (d0 === 0) {
+      const names = rows.map(c => (c[0] || '').trim());
+      names.slice(0, Math.max(0, list.length - r0)).forEach((n, i) => { if (n && n !== list[r0 + i].name) S.upsert('jp', { id: list[r0 + i].id, name: n }); });
+      const extra = names.slice(Math.max(0, list.length - r0)).filter(Boolean);
+      if (extra.length) addPeople(extra);
+      list = gridList();
+    }
+    const changes = [];
+    rows.forEach((cols, i) => {
+      const p = list[r0 + i]; if (!p) return;
+      const days = daysOf(p.id, m);
+      cols.forEach((txt, j) => {
+        const d = d0 === 0 ? j : d0 + j;
+        if (d0 === 0 && j === 0) return;
+        if (!editable(m, d)) return;
+        const v = parseInput(txt, cell(days[d]), baseHours(p, m, d));
+        if (v != null) changes.push({ r: r0 + i, d, v });
+      });
+    });
+    write(changes);
+  }
+  function fillDown() {
+    const rs = range(); if (!rs.length) return;
+    const list = gridList(), m = ui.month;
+    const r0 = Math.min(...rs.map(x => x.r));
+    const src = daysOf(list[r0]?.id, m);
+    write(rs.filter(x => x.r > r0 && x.d > 0).map(x => ({ ...x, v: src[x.d] || '' })));
+  }
+  function onKey(ev) {
+    const ed = ev.target;
+    if (ev.isComposing || ev.keyCode === 229) {
+      if (ev.key === 'Enter') setTimeout(() => commitEdit(ev.shiftKey ? -1 : 1, 0), 0);
+      return;
+    }
+    const k = ev.key, ctrl = ev.ctrlKey || ev.metaKey;
+    if (ctrl && (k === 'z' || k === 'Z')) { ev.preventDefault(); undo(); return; }
+    if (ctrl && (k === 'd' || k === 'D')) { ev.preventDefault(); fillDown(); return; }
+    if (ctrl && (k === 'c' || k === 'C') && !G.editing) { ev.preventDefault(); const t = copySel(); navigator.clipboard?.writeText(t).catch(() => {}); ed.value = t; ed.select(); setTimeout(() => { ed.value = ''; }, 0); return; }
+    if (ctrl) return; // Ctrl+V는 paste 이벤트에서
+    if (k === 'Enter') { ev.preventDefault(); if (G.editing) commitEdit(ev.shiftKey ? -1 : 1, 0); else move(ev.shiftKey ? -1 : 1, 0); return; }
+    if (k === 'Tab') { ev.preventDefault(); if (G.editing) commitEdit(0, ev.shiftKey ? -1 : 1); else move(0, ev.shiftKey ? -1 : 1); return; }
+    if (k === 'Escape') { ed.value = ''; G.editing = false; placeEditor(); return; }
+    if (k === 'F2') { ev.preventDefault(); startEdit(true); return; }
+    const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    if (arrows[k]) {
+      if (G.editing && (k === 'ArrowLeft' || k === 'ArrowRight') && ed.dataset.f2) return; // F2로 고칠 때는 글자 안에서 이동
+      ev.preventDefault();
+      if (G.editing) commitEdit(...arrows[k]); else move(...arrows[k], ev.shiftKey);
+      return;
+    }
+    if (k === 'Home' || k === 'End') { ev.preventDefault(); if (!G.sel) return; let d = k === 'Home' ? 1 : dim(ui.month); const m = ui.month; while (!editable(m, d) && d > 0 && d <= dim(m)) d += k === 'Home' ? 1 : -1; select(G.sel.r, d, ev.shiftKey); return; }
+    if ((k === 'Delete' || k === 'Backspace') && !G.editing) { ev.preventDefault(); if (G.sel.d === 0) return; applyAll('clear'); return; }
+  }
+  function startEdit(withValue) {
+    const ed = document.getElementById('atEd'); if (!ed || !G.sel) return;
+    const list = gridList(), p = list[G.sel.r];
+    G.editing = true;
+    ed.dataset.f2 = withValue ? '1' : '';
+    if (withValue) { ed.value = G.sel.d === 0 ? (p ? p.name : '') : p ? showVal(daysOf(p.id, ui.month)[G.sel.d]) : ''; ed.select(); }
+    placeEditor();
+  }
+  function bindGrid(toast) {
+    if (toast) toastMsg = toast;
+    const tbl = document.getElementById('atTbl'), ed = document.getElementById('atEd');
+    if (!tbl || !ed) return;
+    let down = false;
+    tbl.addEventListener('pointerdown', ev => {
+      if (ev.button !== 0 || ev.target.closest('button')) return;
+      const td = ev.target.closest('[data-r][data-d]'); if (!td) return;
+      ev.preventDefault();
+      if (G.editing) commitEdit(0, 0);
+      down = true;
+      select(+td.dataset.r, +td.dataset.d, ev.shiftKey);
+    });
+    tbl.addEventListener('pointerover', ev => { if (!down) return; const td = ev.target.closest('[data-r][data-d]'); if (td && (+td.dataset.r !== G.sel.r || +td.dataset.d !== G.sel.d)) { if (!G.anc) G.anc = G.sel; G.sel = { r: +td.dataset.r, d: +td.dataset.d }; paintSel(); } });
+    window.addEventListener('pointerup', () => { down = false; focusEd(); }, { once: true });
+    tbl.addEventListener('dblclick', ev => { const td = ev.target.closest('[data-r][data-d]'); if (td) startEdit(true); });
+    ed.addEventListener('keydown', onKey);
+    ed.addEventListener('input', () => { if (!G.editing && ed.value) { G.editing = true; ed.dataset.f2 = ''; placeEditor(); } });
+    ed.addEventListener('paste', ev => { if (G.editing) return; ev.preventDefault(); pasteText(ev.clipboardData.getData('text/plain')); });
+    ed.addEventListener('blur', () => { setTimeout(() => { if (document.activeElement !== ed && G.editing) commitEdit(0, 0); }, 0); });
+    document.getElementById('atWrap').addEventListener('scroll', placeEditor);
+    // 다시 그린 뒤에도 고른 칸·커서를 그대로
+    if (G.sel) { paintSel(); if (G.active) focusEd(); }
+  }
+  const releaseGrid = () => { G.active = false; };
+  window.addEventListener('pointerdown', ev => { if (!ev.target.closest('#atWrap, .at-brush')) G.active = false; }, true);
 
   /** 기본 시간으로 빈 칸 채우기 (참여 기간 안의 평일만, 공휴일은 공가) */
   function fillMonth() {
@@ -424,6 +659,8 @@ window.AT = (() => {
   }
   function commitImport() {
     const picked = ui.imp.found.filter(x => x.on);
+    const now = new Date();
+    const src = `${ui.imp.file} · ${U.today().slice(5).replace('-', '/')} ${U.pad(now.getHours())}:${U.pad(now.getMinutes())}`;
     const byKey = new Map(S.get().jobPeople.map(p => [p.name + '|' + normDate(p.birth), p]));
     let no = S.get().jobPeople.reduce((a, p) => Math.max(a, Number(p.no) || 0), 0);
     const newPeople = [], recs = [];
@@ -433,9 +670,9 @@ window.AT = (() => {
       let p = byKey.get(key) || [...byKey.values()].find(x => x.name === r.name && !r.birth);
       const type = TYPES.find(t => (r.type || '').includes(t.slice(0, 2))) || '복지형';
       const sub = SUBS.find(t => (r.sub || '').includes(t.slice(0, 2))) || '참여형';
-      if (!p) { p = { id: U.uid('J'), no: String(++no), name: r.name, type, sub, birth: r.birth, start: r.start, end: r.end, pattern: r.pattern || DEFAULT_PATTERN[sub], staff: S.me() }; newPeople.push(p); byKey.set(key, p); }
+      if (!p) { p = { id: U.uid('J'), no: String(++no), name: r.name, type, sub, birth: r.birth, start: r.start, end: r.end, pattern: r.pattern || DEFAULT_PATTERN[sub], staff: S.me(), src }; newPeople.push(p); byKey.set(key, p); }
       const old = recOf(p.id, g.month);
-      recs.push({ ...(old ? { id: old.id } : {}), pid: p.id, month: g.month, days: JSON.stringify(r.days) });
+      recs.push({ ...(old ? { id: old.id } : {}), pid: p.id, month: g.month, days: JSON.stringify(r.days), src });
       months.add(g.month);
     }));
     if (newPeople.length) S.putMany('jp', newPeople);
@@ -501,5 +738,5 @@ window.AT = (() => {
     XLSX.writeFile(wb, `${V.monthLabel(m)} 장애인일자리 출석부.xlsx`);
   }
 
-  return { ui, ST, parsePaste, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
+  return { ui, ST, srcList, removeSrc, clearMonth, parsePaste, parseInput, applyAll, undo, releaseGrid, page, results, bindGrid, fillMonth, saveMeta, addPerson, pasteCommit, removePerson, parseWorkbook, commitImport, doc, xlsx, sums, cell, meta, people, daysOf };
 })();
