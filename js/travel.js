@@ -117,7 +117,7 @@ window.TV = (() => {
       return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, over: sum > RULE.meal, total: meal, min: g.reduce((a, t) => a + minutesOf(t.time), 0) };
     });
   }
-  const monthTrips = month => S.view().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
+  const monthTrips = month => S.get().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
 
   /* ---------- 화면 ---------- */
   function page(month) {

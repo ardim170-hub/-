@@ -199,7 +199,8 @@ window.R = (() => {
   }
 
   /* ================= 출장·특근 명령부 ================= */
-  const trips = (month, kind) => S.view().trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.staff || '').localeCompare(b.staff || ''));
+  // 명령부는 팀 문서라 보기 범위(전체 팀/직원)와 상관없이 모든 직원 줄을 쓴다. 사람별로는 위 담당자 버튼으로 거른다
+  const trips = (month, kind) => S.get().trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.staff || '').localeCompare(b.staff || ''));
   function ordersPage() {
     const f = ui.orders;
     return `
@@ -246,11 +247,11 @@ window.R = (() => {
         </div>
         <div class="inline"><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
       </div>
-      ${list.length ? `<div class="panel-pad od-each">
+      ${`<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
-          <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each">전원 한 장씩 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file">전원 파일 받기</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item"><span><b>${e(s)}</b> <span class="sub">${n}건</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근 식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
-      </div>` : ''}
+          <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 파일</button></span></div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}"><span><b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근 식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+      </div>`}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
         ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>식비</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
@@ -299,7 +300,8 @@ window.R = (() => {
       ? [md(t.date), t.staff, t.place, t.purpose, t.method, t.time, reportText(t), t.note]
       : [md(t.date), t.staff, t.dept || '직업', t.time, [t.purpose, t.note].filter(Boolean).join(' / ')]));
   };
-  const orderStaff = () => { const f = ui.orders; return [...new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)'))]; };
+  /** 담당자별 명령부: 직원 목록의 모든 사람(이 달 기록이 없으면 빈 양식) + 목록에 없는 이름으로 적힌 줄 */
+  const orderStaff = () => { const f = ui.orders; return [...new Set([...S.staff().map(s => s.name), ...trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')])]; };
   const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
   /** staff를 주면 그 담당자 줄만 모아 결재란이 따로 있는 한 장을 만든다. 없으면 전체 */
   /* 명령부 양식: 칸 너비는 늘 같은 비율(%)로 고정하고, 표는 최소 MIN_ROWS 줄(빈 줄 채움)로 매달 같은 모양.
@@ -334,7 +336,8 @@ window.R = (() => {
     </article>`;
   }
   /** 담당자마다 한 장씩, 페이지를 나눠 이어 붙인다 (fit: 인쇄 전에 한 쪽에 맞추는 함수) */
-  const orderDocsEach = (fit = s => orderDoc(s)) => orderStaff().map(s => fit(s)).join('');
+  // 전원 인쇄·파일은 이 달 기록이 있는 사람만 (빈 양식은 사람별 버튼으로)
+  const orderDocsEach = (fit = s => orderDoc(s)) => { const f = ui.orders, have = new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')); return orderStaff().filter(s => have.has(s)).map(s => fit(s)).join(''); };
   /** 한글에서 열 수 있는 워드 호환 문서(.doc)로 저장 */
   function orderFile(staff, fit = s => orderDoc(s)) {
     const f = ui.orders;

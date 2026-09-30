@@ -1311,3 +1311,4 @@ label.field .textarea { width: 100%; }
 .at-tbl th.nm .at-rbtns { display: none; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); gap: 2px; }
 .at-tbl tr:hover th.nm .at-rbtns { display: inline-flex; }
 .at-tbl th.nm .at-rfill { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #DBEAFE; color: #1D4ED8; font-weight: 800; line-height: 18px; padding: 0; cursor: pointer; }
+.od-each-item.empty { opacity: .8; background: var(--surface-2); }
