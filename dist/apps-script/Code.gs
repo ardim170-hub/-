@@ -120,7 +120,7 @@ function access_() {
 /* ---------- 메뉴별 권한 ----------
  * 설정 시트 'perms' = { 이메일: { biz: 'none'|'view'|'edit'|'full', ... } }. 정하지 않은 메뉴는 'full'(전부 허용). 관리자는 늘 'full'. */
 var PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
-var SHEET_MENU = { '사업체': ['biz'], '네트워크': ['network'], '명함': ['cards'], '일정': ['schedule'], '실적입력': ['perf'], '출장특근': ['orders'], '활동기록': ['biz', 'network', 'contacts'], '일자리참여자': ['attend'], '출석부': ['attend'] };
+var SHEET_MENU = { '사업체': ['biz'], '네트워크': ['network'], '명함': ['cards'], '일정': ['schedule'], '실적입력': ['perf'], '출장특근': ['orders'], '활동기록': ['biz', 'network', 'contacts'], '일자리참여자': ['attend'], '출석부': ['attend'], '훈련일정': ['schedule'] };
 function level_(acc, menu) {
   if (acc.admin) return 3;
   var v = acc.perms && acc.perms[menu];

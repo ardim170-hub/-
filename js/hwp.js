@@ -89,11 +89,12 @@ window.HWP = (() => {
       let size = (h >>> 20) & 0xFFF;
       if (size === 0xFFF) { size = u32(b, i); i += 4; }
       if (cell && level < cellLevel) cell = null; // 칸 밖으로 나옴
-      if (tag === 77) { tbl = { rows: [], spans: [] }; out.push(tbl); cell = null; }
+      if (tag === 77) { tbl = { rows: [], spans: [], rspans: [] }; out.push(tbl); cell = null; }
       else if (tag === 72 && tbl && size >= 16) {
         const col = u16(b, i + 8), row = u16(b, i + 10);
         (tbl.rows[row] = tbl.rows[row] || [])[col] = '';
         (tbl.spans[row] = tbl.spans[row] || [])[col] = u16(b, i + 12) || 1;
+        (tbl.rspans[row] = tbl.rspans[row] || [])[col] = u16(b, i + 14) || 1;
         cell = { row, col }; cellLevel = level;
       } else if (tag === 67 && cell) {
         const t = paraText(b, i, size).trim();
@@ -101,7 +102,7 @@ window.HWP = (() => {
       }
       i += size;
     }
-    out.forEach(t => { t.rows = Array.from(t.rows, r => Array.from(r || [], c => (c || '').normalize('NFKC'))); t.spans = Array.from(t.spans, r => Array.from(r || [], x => x || 1)); });
+    out.forEach(t => { t.rows = Array.from(t.rows, r => Array.from(r || [], c => (c || '').normalize('NFKC'))); t.spans = Array.from(t.spans, r => Array.from(r || [], x => x || 1)); t.rspans = Array.from(t.rspans || [], r => Array.from(r || [], x => x || 1)); });
     return out;
   }
 

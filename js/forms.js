@@ -99,7 +99,7 @@ window.F = (() => {
   }
 
   /** 어느 사업 지도에 나올지 (여러 개 가능). 아무것도 안 고르면 담당 직원의 소속 사업을 따른다 */
-  const progPick = x => field('사업 구분 (지도)', `<div class="prog-pick">${D.PROGRAMS.map(p => `<label class="prog-opt" style="--c:${p.hex}"><input type="checkbox" name="programs" value="${U.esc(p.key)}" ${(x.programs || []).includes(p.key) ? 'checked' : ''}><span>${U.esc(p.map)}</span></label>`).join('')}</div>`, { full: true, hint: '고른 사업의 지도에 나와요. 비워 두면 담당 직원의 소속 사업 지도에 나와요.' });
+  const progPick = x => field('사업 구분 (지도)', `<div class="prog-pick">${D.PROGRAMS.filter(p => p.map).map(p => `<label class="prog-opt" style="--c:${p.hex}"><input type="checkbox" name="programs" value="${U.esc(p.key)}" ${(x.programs || []).includes(p.key) ? 'checked' : ''}><span>${U.esc(p.map)}</span></label>`).join('')}</div>`, { full: true, hint: '고른 사업의 지도에 나와요. 비워 두면 담당 직원의 소속 사업 지도에 나와요.' });
 
   /* ---------- 네트워크 ---------- */
   function net(n, preset = {}) {

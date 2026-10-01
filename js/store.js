@@ -21,6 +21,7 @@ window.S = (() => {
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
   SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록'], ['src', '불러온 자료']]];
+  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['src', '불러온 자료']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
@@ -54,7 +55,7 @@ window.S = (() => {
     if (!o.id) o.id = U.uid(col[0].toUpperCase());
     return o;
   }
-  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : col === 'trips' ? o.date : col === 'attends' ? o.pid && o.month : o.name);
+  const keepRow = (col, o) => (col === 'activities' ? o.content || o.type : col === 'events' ? o.title || o.date : col === 'perfs' ? o.item : col === 'trips' ? o.date : col === 'attends' ? o.pid && o.month : col === 'trainPlans' ? o.date && o.slot : o.name);
   function normalize(next) {
     for (const k of COLS) next[k] ||= [];
     next.settings ||= {};
@@ -66,6 +67,9 @@ window.S = (() => {
     if (!Array.isArray(next.settings.links)) next.settings.links = D.DEFAULT_LINKS.map(l => ({ ...l }));
     if (typeof next.settings.perfByProgram === 'string') { try { next.settings.perfByProgram = JSON.parse(next.settings.perfByProgram); } catch { next.settings.perfByProgram = null; } }
     next.settings.perfByProgram = { ...D.DEFAULT_PERF_BY_PROGRAM, ...(next.settings.perfByProgram || {}) };
+    if (typeof next.settings.programs === 'string') { try { next.settings.programs = JSON.parse(next.settings.programs); } catch { next.settings.programs = []; } }
+    if (!Array.isArray(next.settings.programs)) next.settings.programs = [];
+    D.setCustomPrograms(next.settings.programs);
     next.cards.forEach(c => place(c));
     next.businesses.forEach(b => { if (!D.STAGE[b.stage]) b.stage = '발굴'; place(b); });
     next.networks.forEach(n => { if (!D.NET_STATUS.includes(n.status)) n.status = '보통'; place(n); });
@@ -165,7 +169,7 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', fuelEff: s.settings.fuelEff || '', fuelPrice: s.settings.fuelPrice || '', perfGoal: typeof s.settings.perfGoal === 'string' ? s.settings.perfGoal : s.settings.perfGoal ? JSON.stringify(s.settings.perfGoal) : '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
+    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', fuelEff: s.settings.fuelEff || '', fuelPrice: s.settings.fuelPrice || '', perfGoal: typeof s.settings.perfGoal === 'string' ? s.settings.perfGoal : s.settings.perfGoal ? JSON.stringify(s.settings.perfGoal) : '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), programs: JSON.stringify(s.settings.programs || []), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
   }
   /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
   let access = { me: '', owner: '', admin: true, perms: {} };
@@ -247,8 +251,8 @@ window.S = (() => {
   }
 
   /* ---------- CRUD ---------- */
-  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips', jp: 'jobPeople', att: 'attends' };
-  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T', jp: 'J', att: 'W' };
+  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips', jp: 'jobPeople', att: 'attends', tp: 'trainPlans' };
+  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T', jp: 'J', att: 'W', tp: 'R' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
   const photoCache = new Map();
 

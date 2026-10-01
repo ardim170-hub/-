@@ -109,7 +109,22 @@ window.D = (() => {
     { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
     { key: '고용공단', short: '공단', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
     { key: '장애인일자리', short: '일자리', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
+    { key: '직업훈련', short: '훈련', color: '#2563EB', hex: '#2563EB', map: '' },
   ];
+  const BUILTIN_PROGRAMS = PROGRAMS.map(p => p.key);
+  const PROG_COLORS = ['#0E9384', '#B42318', '#7C4DDB', '#B08800', '#C2255C', '#475467'];
+  /** 데이터 관리에서 추가한 소속을 목록에 합친다 (지도 탭은 만들지 않음) */
+  function setCustomPrograms(list) {
+    PROGRAMS.splice(BUILTIN_PROGRAMS.length);
+    (list || []).forEach((k, i) => {
+      const key = String(k || '').trim();
+      if (!key || PROGRAMS.some(p => p.key === key)) return;
+      const hex = PROG_COLORS[i % PROG_COLORS.length];
+      PROGRAMS.push({ key, short: key.slice(0, 3), color: hex, hex, map: '', custom: true });
+    });
+    Object.keys(PROGRAM).forEach(k => delete PROGRAM[k]);
+    PROGRAMS.forEach(p => { PROGRAM[p.key] = p; });
+  }
   const PROGRAM = Object.fromEntries(PROGRAMS.map(p => [p.key, p]));
 
   /** 실적 분류표 (복지관 실적 시트의 대분류·중분류·세부사업명) */
@@ -340,5 +355,5 @@ window.D = (() => {
     };
   }
 
-  return { PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { BUILTIN_PROGRAMS, setCustomPrograms, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

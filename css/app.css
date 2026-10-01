@@ -1347,3 +1347,7 @@ label.field .textarea { width: 100%; }
 .order-doc .tv-grand th, .order-doc .tv-grand td { border: 1.5px solid #000; padding: 2mm 3mm; font-size: 12pt; }
 .order-doc .tv-grand th { background: #eee; text-align: left; }
 .order-doc .doc-tbl th.r, .order-doc .doc-tbl td.r { text-align: right; }
+.prog-mgr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 10px; margin-bottom: 10px; }
+.prog-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; border: 1.5px solid var(--c); color: var(--c); font-weight: 700; font-size: 13px; background: color-mix(in srgb, var(--c) 8%, transparent); }
+.prog-chip button { border: 0; background: none; color: var(--c); font-weight: 800; cursor: pointer; padding: 0 0 0 2px; }
+.prog-add { display: inline-flex; gap: 4px; margin-left: 4px; }

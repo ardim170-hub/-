@@ -456,7 +456,7 @@ window.V = (() => {
       </div>
       <div class="map-bar"><div class="chips map-progs" role="tablist" aria-label="사업별 지도">
         <button type="button" role="tab" class="chip ${f.mode === 'ours' && !f.prog ? 'on' : ''}" data-act="map-prog" data-prog="" aria-selected="${f.mode === 'ours' && !f.prog}">전체 지도</button>
-        ${D.PROGRAMS.map(p => `<button type="button" role="tab" class="chip prog-tab ${f.mode === 'ours' && f.prog === p.key ? 'on' : ''}" data-act="map-prog" data-prog="${e(p.key)}" style="--c:${p.hex}" aria-selected="${f.mode === 'ours' && f.prog === p.key}"><span class="dot"></span>${e(p.map)} 지도 <span class="n">${progCount(p.key)}</span></button>`).join('')}
+        ${D.PROGRAMS.filter(p => p.map).map(p => `<button type="button" role="tab" class="chip prog-tab ${f.mode === 'ours' && f.prog === p.key ? 'on' : ''}" data-act="map-prog" data-prog="${e(p.key)}" style="--c:${p.hex}" aria-selected="${f.mode === 'ours' && f.prog === p.key}"><span class="dot"></span>${e(p.map)} 지도 <span class="n">${progCount(p.key)}</span></button>`).join('')}
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
@@ -826,6 +826,10 @@ window.V = (() => {
         <section class="panel panel-pad staff-editor">
           <h2 class="section-title">담당 직원과 소속 사업</h2>
           <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
+          <div class="prog-mgr"><b>소속 사업</b>
+            ${D.PROGRAMS.map(p => `<span class="prog-chip" style="--c:${p.hex}">${e(p.key)}${p.custom ? `<button type="button" data-act="prog-del" data-key="${e(p.key)}" aria-label="${e(p.key)} 소속 삭제" title="소속 삭제">×</button>` : ''}</span>`).join('')}
+            <span class="prog-add"><input class="input sm" id="progNew" placeholder="새 소속 이름" style="width:130px"><button class="btn btn-sm" type="button" data-act="prog-add">+ 소속 추가</button></span>
+          </div>
           <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
           <div class="inline"><button class="btn btn-sm" type="button" data-act="staff-add">+ 직원 추가</button><button class="btn btn-sm btn-primary" type="button" data-act="save-staff">저장</button></div>
         </section>

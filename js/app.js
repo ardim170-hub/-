@@ -1325,6 +1325,20 @@ window.App = (() => {
       await S.saveSettings({ staff: list });
       toast('직원 목록을 저장했습니다.');
     },
+    'prog-add': async () => {
+      const k = ($('#progNew').value || '').trim();
+      if (!k) return $('#progNew').focus();
+      if (D.PROGRAMS.some(p => p.key === k)) return toast(`'${k}' 소속은 이미 있어요.`, 'error');
+      await S.saveSettings({ programs: [...(S.get().settings.programs || []), k] });
+      toast(`'${k}' 소속을 추가했어요. 아래 직원 목록에서 고를 수 있어요.`);
+    },
+    'prog-del': async el => {
+      const k = el.dataset.key;
+      const n = S.staff().filter(s => s.program === k).length;
+      if (!(await confirmBox(`'${k}' 소속을 지울까요?`, n ? `이 소속인 직원 ${n}명은 '소속 미지정'으로 바뀌어요.` : '이 소속을 쓰는 직원은 없어요.', '지우기'))) return;
+      await S.saveSettings({ programs: (S.get().settings.programs || []).filter(x => x !== k), ...(n ? { staff: S.staff().map(s => (s.program === k ? { ...s, program: '' } : s)) } : {}) });
+      toast(`'${k}' 소속을 지웠어요.`);
+    },
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
