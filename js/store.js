@@ -195,6 +195,8 @@ window.S = (() => {
     } catch (err) { setSync('error', err); }
   }
 
+  /** 현재 접속자 알리기·받기 (공유 모드에서만) */
+  const presence = info => (REMOTE ? call('api_presence', info).catch(() => null) : Promise.resolve(null));
   /** 보내는 중인 저장이 모두 끝날 때까지 기다린다 (최대 20초) */
   async function whenSaved() {
     for (let i = 0; i < 200 && pending > 0; i++) await new Promise(r => setTimeout(r, 100));
@@ -739,7 +741,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

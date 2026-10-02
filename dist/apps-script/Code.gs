@@ -144,6 +144,21 @@ function requireAdmin_() {
 }
 
 /** 전체 데이터 읽기. schema = { 시트이름: [열 제목...] } */
+/** 현재 접속자: 화면이 1분마다 알려 오고, 2분 안에 알려 온 사람만 보여 준다 (구글 캐시에 잠깐 보관) */
+function api_presence(info) {
+  var acc = requireMember_();
+  info = info || {};
+  var cache = CacheService.getScriptCache();
+  var list = {};
+  try { list = JSON.parse(cache.get('presence') || '{}') || {}; } catch (e) { list = {}; }
+  var now = Date.now();
+  var key = acc.me || ('익명-' + String(info.id || '').slice(0, 8));
+  list[key] = { email: acc.me || '', name: String(info.name || '').slice(0, 20), page: String(info.page || '').slice(0, 20), at: now };
+  Object.keys(list).forEach(function (k) { if (now - list[k].at > 120000) delete list[k]; });
+  cache.put('presence', JSON.stringify(list), 600);
+  return Object.keys(list).map(function (k) { return list[k]; });
+}
+
 function api_load(schema) {
   var acc = requireMember_();
   return withLock_(function () {

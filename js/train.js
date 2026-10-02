@@ -28,26 +28,26 @@ window.TR = (() => {
     }
     return out;
   }
-  function cellHtml(m, d, slot, rowspan) {
+  function cellHtml(m, d, slot, rowspan, R, c) {
     const x = at(m, d, slot);
     const bg = x && x.color ? `style="background:#${x.color}"` : '';
     const lines = x ? String(x.content || '').split('\n').filter(Boolean) : [];
     const big = x && !x.cat && lines.length <= 2 && /휴관|미운영|휴가|연휴|추석|공휴일/.test(x.content || '');
-    return `<td class="tp-cell ${x ? '' : 'empty'} ${big ? 'big' : ''}" ${rowspan ? `rowspan="${rowspan}"` : ''} ${bg} data-act="tp-edit" data-date="${m}-${U.pad(d)}" data-slot="${slot}" title="눌러서 고치기">
-      ${x ? `${x.cat ? `<div class="tp-cat">${e(x.cat)}</div>` : ''}<div class="tp-txt">${lines.map(l => e(l)).join('<br>')}</div>` : '<span class="tp-plus">+</span>'}</td>`;
+    return `<td class="tp-cell ${x ? '' : 'empty'} ${big ? 'big' : ''}" ${rowspan ? `rowspan="${rowspan}"` : ''} ${bg} data-r="${R}" data-c="${c}" ${rowspan ? `data-r2="${R + 1}"` : ''}>
+      ${x ? `${x.cat ? `<div class="tp-cat">${e(x.cat)}</div>` : ''}<div class="tp-txt">${lines.map(l => e(l)).join('<br>')}</div>` : ''}</td>`;
   }
   function grid(m, forPrint) {
     const ws = weeks(m);
     const label = d => { const x = at(m, d, '라벨'); return x && x.content ? x.content : ''; };
     return `<table class="tp-tbl ${forPrint ? 'print' : ''}"><colgroup><col style="width:9%">${'<col style="width:18.2%">'.repeat(5)}</colgroup>
       <thead><tr><th></th>${['월', '화', '수', '목', '금'].map(w => `<th>${w}</th>`).join('')}</tr></thead>
-      <tbody>${ws.map(wk => `
-        <tr class="tp-date"><td></td>${wk.map(d => d ? `<td class="${label(d) ? 'lab' : ''} ${D.AREAS && (AT_HOL(m).includes(d)) ? 'hol' : ''}" data-act="tp-label" data-date="${m}-${U.pad(d)}" title="날짜 옆 표시 고치기">${d}${label(d) ? ` <b>(${e(label(d))})</b>` : ''}</td>` : '<td class="none"></td>').join('')}</tr>
-        ${SLOTS.map((slot, si) => `<tr class="tp-slot"><th>${slot}<small>(${TIMES[slot]})</small></th>${wk.map(d => {
+      <tbody>${ws.map((wk, wi) => `
+        <tr class="tp-date"><td></td>${wk.map((d, c) => d ? `<td class="tp-dcell ${label(d) ? 'lab' : ''}" data-r="${wi * 3}" data-c="${c}" title="글자를 치면 날짜 옆 표시 (예: 건강관리)">${d}${label(d) ? ` <b>(${e(label(d))})</b>` : ''}</td>` : '<td class="none"></td>').join('')}</tr>
+        ${SLOTS.map((slot, si) => `<tr class="tp-slot"><th>${slot}<small>(${TIMES[slot]})</small></th>${wk.map((d, c) => {
           if (!d) return si === 0 ? '<td class="none" rowspan="2"></td>' : '';
           const full = at(m, d, '종일');
-          if (full) return si === 0 ? cellHtml(m, d, '종일', 2) : '';
-          return cellHtml(m, d, slot);
+          if (full) return si === 0 ? cellHtml(m, d, '종일', 2, wi * 3 + 1, c) : '';
+          return cellHtml(m, d, slot, 0, wi * 3 + 1 + si, c);
         }).join('')}</tr>`).join('')}`).join('')}
       </tbody></table>`;
   }
@@ -69,13 +69,20 @@ window.TR = (() => {
           <button class="btn btn-primary" type="button" data-act="tp-print" ${n ? '' : 'disabled'}>🖨 인쇄</button>
         </div>
       </div>
-      <p class="sub tp-staff">직업훈련 담당: ${names.length ? names.map(x => `<b>${e(x)}</b>`).join(', ') : '<span class="tv-over">데이터 관리에서 직원 소속을 "직업훈련"으로 정해 주세요</span>'} · 칸을 누르면 고칠 수 있어요. 날짜를 누르면 "(건강관리)" 같은 표시를 붙여요.</p>
+      <p class="sub tp-staff">직업훈련 담당: ${names.length ? names.map(x => `<b>${e(x)}</b>`).join(', ') : '<span class="tv-over">데이터 관리에서 직원 소속을 "직업훈련"으로 정해 주세요</span>'}</p>
       ${ui.imp ? importPanel() : ''}
-      <div class="tp-wrap">${grid(m)}</div>
+      <div class="tp-tools">
+        <span class="sub">고른 칸</span>
+        ${COLORS.map(([c, l]) => `<button type="button" class="tp-sw ${c ? '' : 'none'}" style="${c ? `background:#${c}` : ''}" data-act="tp-color" data-color="${c}" title="칸 색: ${l}" tabindex="-1">${c ? '' : '색 없음'}</button>`).join('')}
+        <button type="button" class="btn btn-sm" data-act="tp-merge" tabindex="-1" title="오전·오후를 한 칸으로 합치거나 나눠요">⇕ 오전·오후 합치기/나누기</button>
+        <button type="button" class="btn btn-sm" data-act="tp-undo" tabindex="-1">↶ 되돌리기</button>
+        <details class="at-keys tp-keys"><summary>⌨️ 엑셀처럼 쓰기</summary><div class="sub">칸을 누르고 바로 글자를 치면 새로 써져요. <kbd>Enter</kbd> 저장 후 아래로, <kbd>Alt</kbd>+<kbd>Enter</kbd> 칸 안에서 줄 바꿈, <kbd>Tab</kbd> 오른쪽으로, <kbd>←↑→↓</kbd> 이동, <kbd>F2</kbd>·두 번 누르기 = 있던 글 고치기, <kbd>Delete</kbd> 지우기, <kbd>Shift</kbd>+방향키·끌기 = 여러 칸, <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 복사·붙여넣기(엑셀에서 복사한 칸도 됨), <kbd>Ctrl</kbd>+<kbd>Z</kbd> 되돌리기.
+          칸의 첫 줄이 "직업탐색훈련 / 작업훈련"처럼 훈련 이름이면 훈련 구분(밑줄)으로 들어가요. 날짜 칸에 글자를 치면 "(건강관리)" 같은 표시가 붙어요.</div></details>
+      </div>
+      <div class="tp-wrap" id="tpWrap"><textarea class="tp-ed" id="tpEd" spellcheck="false" aria-label="일정표 칸 입력"></textarea>${grid(m)}</div>
       <div class="tp-notes"><label>아래 안내 문구 <span class="sub">(한 줄에 하나, 인쇄할 때 표 아래에 나와요)</span><textarea class="textarea" id="tpNotes" rows="3" placeholder="※복지관 상황에 따라 일정이 변동될 수 있습니다.">${e(notesOf(m))}</textarea></label>
         <div class="inline"><button class="btn btn-sm" type="button" data-act="tp-notes-save">안내 저장</button>${n ? `<button class="btn btn-sm btn-danger-ghost" type="button" data-act="tp-clear">${+m.slice(5)}월 일정표 비우기 (${n}칸)</button>` : ''}</div></div>
-    </section>
-    ${ui.edit ? editDialog() : ''}`;
+    </section>`;
   }
   function editDialog() {
     const { date, slot } = ui.edit;
@@ -148,6 +155,207 @@ window.TR = (() => {
     if (recs.length) S.putMany('tp', recs);
     return { n: recs.length, from: pm };
   }
+
+  /* ---------- 엑셀처럼 표에서 바로 입력 ---------- */
+  // 행 번호 R: 주마다 3줄 (날짜 · 오전 · 오후), 열 c: 0~4 (월~금)
+  const G = { sel: null, anc: null, editing: false, down: false, active: false, undo: [] };
+  const CAT_RE = /^\s*[가-힣+·]+(훈련|교육)(\s*\/\s*[가-힣+·]+(훈련|교육))*\s*$/;
+  function cellInfo(R, c, m = ui.month) {
+    const wk = weeks(m)[Math.floor(R / 3)]; if (!wk) return null;
+    const d = wk[c]; if (!d) return null;
+    const row = R % 3;
+    if (row === 0) return { d, slot: '라벨', date: `${m}-${U.pad(d)}` };
+    const full = at(m, d, '종일');
+    return { d, slot: full ? '종일' : SLOTS[row - 1], date: `${m}-${U.pad(d)}`, full: !!full };
+  }
+  const textOf = x => (x ? [x.cat, x.content].filter(Boolean).join('\n') : '');
+  const tdAt = (R, c) => document.querySelector(`#tpWrap [data-r="${R}"][data-c="${c}"]`) || document.querySelector(`#tpWrap [data-r2="${R}"][data-c="${c}"]`);
+  function rangeCells() {
+    if (!G.sel) return [];
+    const a = G.anc || G.sel, b = G.sel, out = [];
+    for (let R = Math.min(a.R, b.R); R <= Math.max(a.R, b.R); R++) for (let c = Math.min(a.c, b.c); c <= Math.max(a.c, b.c); c++) if (cellInfo(R, c)) out.push({ R, c });
+    return out;
+  }
+  function paint() {
+    document.querySelectorAll('#tpWrap .sel, #tpWrap .cur').forEach(x => x.classList.remove('sel', 'cur'));
+    if (!G.sel) return;
+    rangeCells().forEach(({ R, c }) => tdAt(R, c)?.classList.add('sel'));
+    tdAt(G.sel.R, G.sel.c)?.classList.add('cur');
+    place();
+  }
+  function place() {
+    const ed = document.getElementById('tpEd'), wrap = document.getElementById('tpWrap'), td = G.sel && tdAt(G.sel.R, G.sel.c);
+    if (!ed || !wrap || !td) { if (ed) ed.style.display = 'none'; return; }
+    const tr = td.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    Object.assign(ed.style, { display: 'block', left: `${tr.left - wr.left + wrap.scrollLeft}px`, top: `${tr.top - wr.top + wrap.scrollTop}px`, width: `${tr.width}px`, height: `${G.editing ? Math.max(tr.height, 90) : tr.height}px` });
+    ed.classList.toggle('editing', G.editing);
+  }
+  const focusEd = () => { const ed = document.getElementById('tpEd'); if (ed && document.activeElement !== ed) ed.focus({ preventScroll: true }); };
+  function select(R, c, extend) {
+    const maxR = weeks(ui.month).length * 3 - 1;
+    R = Math.max(0, Math.min(maxR, R)); c = Math.max(0, Math.min(4, c));
+    if (!extend) G.anc = null; else if (!G.anc) G.anc = G.sel;
+    G.sel = { R, c }; G.active = true;
+    paint(); tdAt(R, c)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); focusEd();
+  }
+  /** 다음 칸으로 (날짜 없는 칸·합쳐진 칸은 건너뜀) */
+  function move(dR, dc, extend) {
+    if (!G.sel) return select(1, 0);
+    let { R, c } = G.sel;
+    const info = cellInfo(R, c);
+    if (dR > 0 && info && info.full && R % 3 === 1) R++; // 합쳐진 칸 아래로
+    if (dR < 0 && info && info.full && R % 3 === 2) R--;
+    const maxR = weeks(ui.month).length * 3 - 1;
+    for (let i = 0; i < 40; i++) { R += dR; c += dc; if (R < 0 || R > maxR || c < 0 || c > 4) return; if (cellInfo(R, c)) break; }
+    const ni = cellInfo(R, c);
+    if (ni && ni.full && R % 3 === 2) R--; // 합쳐진 칸은 위쪽 칸으로
+    select(R, c, extend);
+  }
+  /** 한 칸에 글 넣기: 날짜 칸은 표시, 나머지는 훈련 구분 + 내용 */
+  function recFor(R, c, text) {
+    const info = cellInfo(R, c); if (!info) return null;
+    const m = ui.month;
+    const old = at(m, info.d, info.slot);
+    const t = String(text ?? '').replace(/\r/g, '').replace(/\s+$/, '');
+    if (info.slot === '라벨') return { old, rec: t ? { date: info.date, slot: '라벨', cat: '', content: t.replace(/^\(|\)$/g, ''), color: '', cls: ui.cls } : null };
+    if (!t.trim()) return { old, rec: null };
+    const lines = t.split('\n');
+    const isCat = lines.length > 1 && CAT_RE.test(lines[0]);
+    return { old, rec: { date: info.date, slot: info.slot, cat: isCat ? lines[0].trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: old ? old.color || '' : '', cls: ui.cls } };
+  }
+  /** 여러 칸 저장 + 되돌리기 기록 */
+  function apply(list) {
+    const put = [], drop = [], before = [];
+    list.forEach(({ old, rec }) => {
+      if (old) before.push({ ...old });
+      if (rec) put.push({ ...(old ? { id: old.id } : {}), ...rec });
+      else if (old) drop.push(old.id);
+    });
+    if (!put.length && !drop.length) return;
+    const created = put.filter(p => !p.id).map(p => (p.id = U.uid('R'), p.id));
+    G.undo.push({ before, created });
+    if (G.undo.length > 50) G.undo.shift();
+    if (drop.length) S.removeMany('tp', drop);
+    if (put.length) S.putMany('tp', put);
+  }
+  function undo(toast) {
+    const u = G.undo.pop(); if (!u) return toast && toast('되돌릴 것이 없어요.');
+    if (u.created.length) S.removeMany('tp', u.created);
+    if (u.before.length) S.putMany('tp', u.before);
+  }
+  function commitEdit(dR, dc) {
+    const ed = document.getElementById('tpEd'); if (!ed || !G.sel) return;
+    if (G.editing) {
+      const txt = ed.value; G.editing = false; ed.value = '';
+      const cells = rangeCells().length > 1 ? rangeCells() : [G.sel];
+      apply(cells.map(({ R, c }) => recFor(R, c, txt)).filter(Boolean));
+    }
+    if (dR || dc) move(dR, dc); else place();
+  }
+  function startEdit(withValue) {
+    const ed = document.getElementById('tpEd'); if (!ed || !G.sel) return;
+    const info = cellInfo(G.sel.R, G.sel.c); if (!info) return;
+    G.editing = true;
+    if (withValue) { const x = at(ui.month, info.d, info.slot); ed.value = info.slot === '라벨' ? (x ? x.content : '') : textOf(x); ed.setSelectionRange(ed.value.length, ed.value.length); }
+    place();
+  }
+  /** 엑셀 복사 형식(TSV, 줄 바꿈 있는 칸은 "따옴표") 읽기·쓰기 */
+  function parseTsv(t) {
+    const rows = [[]]; let cur = '', q = false;
+    t = String(t).replace(/\r\n?/g, '\n');
+    for (let i = 0; i < t.length; i++) {
+      const ch = t[i];
+      if (q) { if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; continue; }
+      if (ch === '"' && cur === '') q = true;
+      else if (ch === '\t') { rows[rows.length - 1].push(cur); cur = ''; }
+      else if (ch === '\n') { rows[rows.length - 1].push(cur); cur = ''; rows.push([]); }
+      else cur += ch;
+    }
+    rows[rows.length - 1].push(cur);
+    if (rows.length > 1 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') rows.pop();
+    return rows;
+  }
+  const tsvCell = v => (/[\t\n"]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  function copySel() {
+    const cells = rangeCells(); if (!cells.length) return '';
+    const Rs = [...new Set(cells.map(x => x.R))].sort((a, b) => a - b), cs = [...new Set(cells.map(x => x.c))].sort((a, b) => a - b);
+    return Rs.map(R => cs.map(c => { const i = cellInfo(R, c); if (!i) return ''; const x = at(ui.month, i.d, i.slot); return tsvCell(i.slot === '라벨' ? (x ? x.content : '') : textOf(x)); }).join('\t')).join('\n');
+  }
+  function paste(text) {
+    if (!G.sel) return;
+    const rows = parseTsv(text);
+    const list = [];
+    let R = G.sel.R;
+    rows.forEach(cols => {
+      cols.forEach((v, j) => { const r = recFor(R, G.sel.c + j, v); if (r) list.push(r); });
+      // 다음 줄: 합쳐진 칸은 한 줄로 친다
+      const i = cellInfo(R, G.sel.c); R += i && i.full && R % 3 === 1 ? 2 : 1;
+    });
+    apply(list);
+  }
+  function setColor(color) {
+    const list = rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); if (!i || i.slot === '라벨') return null; const old = at(ui.month, i.d, i.slot); return old ? { old, rec: { ...old, color } } : null; }).filter(Boolean);
+    apply(list);
+  }
+  /** 오전·오후 합치기/나누기: 합치면 두 칸 글을 이어 붙이고, 나누면 오전 칸으로 옮긴다 */
+  function toggleMerge() {
+    const m = ui.month, list = [];
+    const days = [...new Set(rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); return i && i.slot !== '라벨' ? i.d : null; }).filter(Boolean))];
+    days.forEach(d => {
+      const date = `${m}-${U.pad(d)}`;
+      const full = at(m, d, '종일'), am = at(m, d, '오전'), pm = at(m, d, '오후');
+      if (full) {
+        list.push({ old: full, rec: null });
+        list.push({ old: null, rec: { date, slot: '오전', cat: full.cat || '', content: full.content || '', color: full.color || '', cls: ui.cls } });
+      } else {
+        const lines = [textOf(am), textOf(pm)].filter(Boolean).join('\n').split('\n');
+        const isCat = lines.length > 1 && CAT_RE.test(lines[0]);
+        if (am) list.push({ old: am, rec: null });
+        if (pm) list.push({ old: pm, rec: null });
+        list.push({ old: null, rec: { date, slot: '종일', cat: isCat ? lines[0].trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: (am && am.color) || (pm && pm.color) || 'EEECE1', cls: ui.cls } });
+      }
+    });
+    apply(list);
+    if (G.sel && G.sel.R % 3 === 2) G.sel.R--;
+  }
+  function onKey(ev) {
+    const ed = ev.target, k = ev.key, ctrl = ev.ctrlKey || ev.metaKey;
+    if (ev.isComposing || ev.keyCode === 229) { if (k === 'Enter' && !ev.altKey) setTimeout(() => commitEdit(1, 0), 0); return; }
+    if (ctrl && (k === 'z' || k === 'Z')) { ev.preventDefault(); undo(toastFn); return; }
+    if (ctrl && (k === 'c' || k === 'C') && !G.editing) { ev.preventDefault(); const t = copySel(); navigator.clipboard?.writeText(t).catch(() => {}); ed.value = t; ed.select(); setTimeout(() => { ed.value = ''; }, 0); return; }
+    if (ctrl) return;
+    if (k === 'Enter' && ev.altKey) { ev.preventDefault(); if (!G.editing) startEdit(true); const p = ed.selectionStart; ed.value = ed.value.slice(0, p) + '\n' + ed.value.slice(ed.selectionEnd); ed.setSelectionRange(p + 1, p + 1); return; }
+    if (k === 'Enter') { ev.preventDefault(); if (G.editing) commitEdit(ev.shiftKey ? -1 : 1, 0); else move(ev.shiftKey ? -1 : 1, 0); return; }
+    if (k === 'Tab') { ev.preventDefault(); if (G.editing) commitEdit(0, ev.shiftKey ? -1 : 1); else move(0, ev.shiftKey ? -1 : 1); return; }
+    if (k === 'Escape') { ed.value = ''; G.editing = false; place(); return; }
+    if (k === 'F2') { ev.preventDefault(); startEdit(true); return; }
+    const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    if (arrows[k] && !G.editing) { ev.preventDefault(); move(...arrows[k], ev.shiftKey); return; }
+    if ((k === 'Delete' || k === 'Backspace') && !G.editing) { ev.preventDefault(); apply(rangeCells().map(({ R, c }) => recFor(R, c, '')).filter(Boolean)); }
+  }
+  let toastFn = null;
+  function bindGrid(toast) {
+    toastFn = toast;
+    const wrap = document.getElementById('tpWrap'), ed = document.getElementById('tpEd');
+    if (!wrap || !ed) return;
+    wrap.addEventListener('pointerdown', ev => {
+      const td = ev.target.closest('[data-r][data-c]'); if (!td || ev.button !== 0 || ev.target === ed) return;
+      ev.preventDefault();
+      if (G.editing) commitEdit(0, 0);
+      G.down = true; select(+td.dataset.r, +td.dataset.c, ev.shiftKey);
+    });
+    wrap.addEventListener('pointerover', ev => { if (!G.down || !(ev.buttons & 1)) { G.down = false; return; } const td = ev.target.closest('[data-r][data-c]'); if (td && G.sel && (+td.dataset.r !== G.sel.R || +td.dataset.c !== G.sel.c)) { if (!G.anc) G.anc = G.sel; G.sel = { R: +td.dataset.r, c: +td.dataset.c }; paint(); } });
+    wrap.addEventListener('dblclick', ev => { if (ev.target.closest('[data-r][data-c]')) startEdit(true); });
+    ed.addEventListener('keydown', onKey);
+    ed.addEventListener('input', () => { if (!G.editing && ed.value) { G.editing = true; place(); } });
+    ed.addEventListener('paste', ev => { if (G.editing) return; ev.preventDefault(); paste(ev.clipboardData.getData('text/plain')); });
+    ed.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ed && G.editing) commitEdit(0, 0); }, 0));
+    wrap.addEventListener('scroll', place);
+    if (G.sel) { paint(); if (G.active) focusEd(); }
+  }
+  window.addEventListener('pointerdown', ev => { if (!ev.target.closest('#tpWrap, .tp-tools')) G.active = false; }, true);
+  window.addEventListener('pointerup', () => { if (G.down) { G.down = false; if (G.active) focusEd(); } });
+  const resetGrid = () => { G.sel = null; G.anc = null; G.editing = false; G.active = false; };
 
   /* ---------- 엑셀·한글 불러오기 ---------- */
   /** G = { r0, r1, c0, c1, txt(r,c), fill(r,c), merge(r,c) → {r0,r1,c0,c1}|null } */
@@ -308,5 +516,5 @@ window.TR = (() => {
   }
   const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
 
-  return { ui, CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
+  return { ui, bindGrid, resetGrid, setColor, toggleMerge, undo: t => undo(t), CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
 })();

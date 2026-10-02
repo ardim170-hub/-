@@ -61,7 +61,7 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
@@ -389,6 +389,28 @@ window.App = (() => {
     box.remove();
     return html;
   }
+  /* ---------- 현재 접속자 ---------- */
+  const TAB_ID = Math.random().toString(36).slice(2);
+  let online = [];
+  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
+  async function pingPresence() {
+    if (!S.REMOTE) return;
+    const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
+    if (Array.isArray(r)) { online = r; drawPresence(); }
+  }
+  function drawPresence() {
+    const box = $('#presence'); if (!box) return;
+    if (!S.REMOTE || !online.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const me = S.accessInfo().me;
+    const label = p => p.name || (p.email ? p.email.split('@')[0] : '사용자');
+    const ago = at => { const s = Math.round((Date.now() - at) / 1000); return s < 60 ? '지금' : `${Math.floor(s / 60)}분 전`; };
+    const sorted = [...online].sort((a, b) => (b.email === me) - (a.email === me) || b.at - a.at);
+    box.innerHTML = `<button type="button" class="presence-btn" data-act="presence-toggle" aria-haspopup="true" title="지금 사이트를 쓰고 있는 사람">
+        <span class="presence-dot"></span><span class="presence-avs">${sorted.slice(0, 4).map(p => `<i title="${U.esc(label(p))}">${U.esc(label(p).slice(0, 1))}</i>`).join('')}</span><b>${sorted.length}명</b> 접속 중</button>
+      <div class="presence-menu" id="presenceMenu" hidden><div class="sub">최근 2분 안에 사이트를 쓴 사람</div>
+        ${sorted.map(p => `<div class="presence-row"><i>${U.esc(label(p).slice(0, 1))}</i><span><b>${U.esc(label(p))}</b>${p.email === me ? ' <span class="sub">(나)</span>' : ''}<small>${U.esc(p.email || '')}</small></span><span class="sub">${U.esc(PAGE_NAME[p.page] || p.page || '')} · ${ago(p.at)}</span></div>`).join('')}</div>`;
+  }
   /** 파일 고르기 창 (여러 개 가능) */
   function pickFiles(accept, multiple, onPick) {
     const f = document.createElement('input'); f.type = 'file'; f.accept = accept; f.multiple = multiple;
@@ -478,7 +500,13 @@ window.App = (() => {
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
   function bindSched() {
-    if (V.ui.sched.view === 'train') { const b = $('#tpBox'); if (b) b.innerHTML = TR.view(); return; }
+    if (V.ui.sched.view === 'train') {
+      const b = $('#tpBox'); if (!b) return;
+      const w0 = $('#tpWrap'), sx = w0 ? w0.scrollLeft : 0, y = window.scrollY;
+      b.innerHTML = TR.view(); TR.bindGrid(toast);
+      const w = $('#tpWrap'); if (w) w.scrollLeft = sx; window.scrollTo(0, y);
+      return;
+    }
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
@@ -878,8 +906,11 @@ window.App = (() => {
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
     'sched-view': el => { V.ui.sched.view = el.dataset.v; render(); },
-    'tp-cls': el => { TR.ui.cls = el.dataset.cls; bindSched(); },
-    'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
+    'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
+    'tp-color': el => TR.setColor(el.dataset.color),
+    'tp-merge': () => TR.toggleMerge(),
+    'tp-undo': () => TR.undo(toast),
+    'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; TR.resetGrid(); bindSched(); },
     'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
     'tp-cancel': () => { TR.ui.edit = null; bindSched(); },
     'tp-save': () => { TR.save(); bindSched(); toast('일정표 칸을 저장했어요.'); },
@@ -1215,6 +1246,7 @@ window.App = (() => {
     'od-print': el => printHtml(fitOrder(el.dataset.staff || null)),
     'od-hwp': () => $('#hwpFile').click(),
     'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
+    'presence-toggle': () => { const m = $('#presenceMenu'); if (m) m.hidden = !m.hidden; },
     'sync-now': async el => {
       const btn = el || $('#syncBtn');
       if (btn.disabled) return;
@@ -1644,6 +1676,7 @@ window.App = (() => {
         return;
       }
       if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
+      else if (route() === 'schedule' && V.ui.sched.view === 'train' && $('#tpBox') && !drawerOpen()) { bindSched(); renderNav(); }
       else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
     });
@@ -1663,6 +1696,10 @@ window.App = (() => {
       if (missing.length) throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다. index.html을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
       bindGlobal();
       render();
+      // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
+      pingPresence(); setInterval(pingPresence, 60000);
+      window.addEventListener('hashchange', () => setTimeout(pingPresence, 300));
+      document.addEventListener('click', ev => { if (!ev.target.closest('#presence')) { const m = $('#presenceMenu'); if (m) m.hidden = true; } });
     } catch (err) {
       console.error(err);
       view.innerHTML = `<div class="panel"><div class="empty"><strong>화면을 열지 못했습니다</strong>${window.U ? U.esc(err.message || String(err)) : String(err.message || err)}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
