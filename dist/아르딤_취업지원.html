@@ -2099,6 +2099,27 @@ label.field .textarea { width: 100%; }
 .presence-row > i { margin: 0; }
 .presence-row small { display: block; color: var(--text-2); font-size: 11px; }
 @media (max-width: 860px) { .presence-btn b, .presence-btn { font-size: 0; gap: 2px; } .presence-btn b { font-size: 12px; } .presence-avs { display: none; } }
+/* 일정표 서식 도구 (엑셀 리본처럼) */
+.tp-ribbon { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.tp-tb { min-width: 30px; height: 30px; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; cursor: pointer; font: inherit; font-size: 14px; padding: 0 6px; }
+.tp-tb.wide { font-size: 12.5px; }
+.tp-tb.on { background: #DBEAFE; border-color: #1D4ED8; color: #1D4ED8; }
+.tp-sep { width: 1px; height: 22px; background: var(--line-strong); margin: 0 2px; }
+.tp-grp { display: inline-flex; align-items: center; gap: 3px; }
+.tp-lbl { font-size: 11.5px; color: var(--text-2); margin-right: 2px; }
+.tp-sw.sm { width: 18px; height: 18px; border-radius: 4px; }
+.tp-pick { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; cursor: pointer; }
+.tp-cell { position: relative; }
+.tp-chk { display: inline-block; font-size: 1.25em; line-height: 1; margin-right: 4px; cursor: pointer; color: #475467; vertical-align: -2px; }
+.tp-chk.on { color: #15803D; }
+.tp-cell .tp-dd { display: none; position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; border: 1px solid var(--line-strong); border-radius: 4px; background: #fff; font-size: 10px; line-height: 1; padding: 0; cursor: pointer; z-index: 7; }
+.tp-cell.cur .tp-dd { display: block; }
+.tp-doc .tp-dd { display: none !important; }
+.tp-ddlist { position: absolute; z-index: 20; background: #fff; border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 8px 24px rgba(16,24,40,.18); max-height: 260px; overflow: auto; display: flex; flex-direction: column; padding: 4px; }
+.tp-ddlist button { text-align: left; border: 0; background: none; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; border-radius: 6px; white-space: nowrap; }
+.tp-ddlist button:hover { background: #EFF6FF; }
+.tp-ddlist button.clr { color: var(--danger); border-top: 1px solid var(--line); border-radius: 0; }
+.tp-cell .tp-cat { font-size: .84em; }
 
 </style>
 </head>
@@ -2183,7 +2204,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.10.02 14:46";</script>
+<script>window.APP_VERSION = "2026.10.02 14:54";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2702,11 +2723,11 @@ window.S = (() => {
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
   SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록'], ['src', '불러온 자료']]];
-  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['cls', '반'], ['src', '불러온 자료']]];
+  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['fmt', '서식(글씨·체크)'], ['cls', '반'], ['src', '불러온 자료']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
-  const JSON_KEYS = new Set(['survey', 'jobAnalyses']);
+  const JSON_KEYS = new Set(['survey', 'jobAnalyses', 'fmt']);
   const COLS = Object.keys(SHEETS);
 
   function toRow(col, x) {
@@ -7640,13 +7661,34 @@ window.TR = (() => {
     }
     return out;
   }
-  function cellHtml(m, d, slot, rowspan, R, c) {
+  const FONTS = [['', '기본 글씨체'], ['Malgun Gothic, 맑은 고딕', '맑은 고딕'], ['NanumGothic, 나눔고딕', '나눔고딕'], ['Gulim, 굴림', '굴림'], ['Dotum, 돋움', '돋움'], ['Batang, 바탕, serif', '바탕'], ['Gungsuh, 궁서, serif', '궁서']];
+  const SIZES = [9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
+  const TEXT_COLORS = ['111111', 'DC2626', 'C2410C', 'B08800', '15803D', '1D4ED8', '7C3AED', '6B7280'];
+  const CAT_LIST = ['직업탐색훈련', '직업준비훈련', '작업훈련', '권익옹호훈련', '사회적응훈련', '직업탐색훈련 / 작업훈련', '직업탐색훈련 / 직업준비훈련', '직업준비훈련 / 작업훈련', '직업준비훈련 / 권익옹호훈련', '권익옹호훈련 / 작업훈련', '사회적응훈련 / 직업탐색훈련', '사회적응훈련 / 직업준비훈련'];
+  const catList = () => [...new Set([...CAT_LIST, ...S.get().trainPlans.map(p => p.cat).filter(Boolean)])];
+  const fmtOf = x => (x && x.fmt && typeof x.fmt === 'object' ? x.fmt : {});
+  /** 칸 서식 → style (배경·글자색·크기·글씨체·굵게·기울임·밑줄·정렬) */
+  function styleOf(x, print) {
+    if (!x) return '';
+    const f = fmtOf(x), st = [];
+    if (x.color) st.push(`background:#${x.color}`);
+    if (f.fc) st.push(`color:#${f.fc}`);
+    if (f.size) st.push(print ? `font-size:calc(${f.size * 0.62}pt * var(--tps, 1))` : `font-size:${f.size}px`);
+    if (f.font) st.push(`font-family:${f.font}, sans-serif`);
+    if (f.b) st.push('font-weight:800');
+    if (f.i) st.push('font-style:italic');
+    if (f.u) st.push('text-decoration:underline');
+    if (f.al) st.push(`text-align:${f.al}`);
+    return st.length ? `style="${st.join(';')}"` : '';
+  }
+  function cellHtml(m, d, slot, rowspan, R, c, print) {
     const x = at(m, d, slot);
-    const bg = x && x.color ? `style="background:#${x.color}"` : '';
+    const bg = styleOf(x, print);
+    const f = fmtOf(x);
     const lines = x ? String(x.content || '').split('\n').filter(Boolean) : [];
     const big = x && !x.cat && lines.length <= 2 && /휴관|미운영|휴가|연휴|추석|공휴일/.test(x.content || '');
     return `<td class="tp-cell ${x ? '' : 'empty'} ${big ? 'big' : ''}" ${rowspan ? `rowspan="${rowspan}"` : ''} ${bg} data-r="${R}" data-c="${c}" ${rowspan ? `data-r2="${R + 1}"` : ''}>
-      ${x ? `${x.cat ? `<div class="tp-cat">${e(x.cat)}</div>` : ''}<div class="tp-txt">${lines.map(l => e(l)).join('<br>')}</div>` : ''}</td>`;
+      ${f.chk ? `<span class="tp-chk ${f.on ? 'on' : ''}" data-act="tp-check" data-r="${R}" data-c="${c}" role="checkbox" aria-checked="${!!f.on}" title="눌러서 체크">${f.on ? '☑' : '☐'}</span>` : ''}${x && (x.cat || x.content) ? `${x.cat ? `<div class="tp-cat">${e(x.cat)}</div>` : ''}<div class="tp-txt">${lines.map(l => e(l)).join('<br>')}</div>` : ''}<button type="button" class="tp-dd" data-act="tp-dd" data-r="${R}" data-c="${c}" tabindex="-1" aria-label="훈련 구분 고르기" title="훈련 구분 고르기">▾</button></td>`;
   }
   function grid(m, forPrint) {
     const ws = weeks(m);
@@ -7658,8 +7700,8 @@ window.TR = (() => {
         ${SLOTS.map((slot, si) => `<tr class="tp-slot"><th>${slot}<small>(${TIMES[slot]})</small></th>${wk.map((d, c) => {
           if (!d) return si === 0 ? '<td class="none" rowspan="2"></td>' : '';
           const full = at(m, d, '종일');
-          if (full) return si === 0 ? cellHtml(m, d, '종일', 2, wi * 3 + 1, c) : '';
-          return cellHtml(m, d, slot, 0, wi * 3 + 1 + si, c);
+          if (full) return si === 0 ? cellHtml(m, d, '종일', 2, wi * 3 + 1, c, forPrint) : '';
+          return cellHtml(m, d, slot, 0, wi * 3 + 1 + si, c, forPrint);
         }).join('')}</tr>`).join('')}`).join('')}
       </tbody></table>`;
   }
@@ -7683,15 +7725,32 @@ window.TR = (() => {
       </div>
       <p class="sub tp-staff">직업훈련 담당: ${names.length ? names.map(x => `<b>${e(x)}</b>`).join(', ') : '<span class="tv-over">데이터 관리에서 직원 소속을 "직업훈련"으로 정해 주세요</span>'}</p>
       ${ui.imp ? importPanel() : ''}
+      <div class="tp-tools tp-ribbon">
+        <select class="select sm" id="tpFont" data-tpfmt="font" title="글씨체" tabindex="-1">${FONTS.map(([v, l]) => `<option value="${e(v)}">${l}</option>`).join('')}</select>
+        <select class="select sm" id="tpSize" data-tpfmt="size" title="글씨 크기" tabindex="-1"><option value="">크기</option>${SIZES.map(z => `<option value="${z}">${z}</option>`).join('')}</select>
+        <button type="button" class="tp-tb" data-act="tp-fmt" data-k="b" title="굵게 (Ctrl+B)" tabindex="-1"><b>가</b></button>
+        <button type="button" class="tp-tb" data-act="tp-fmt" data-k="i" title="기울임 (Ctrl+I)" tabindex="-1"><i>가</i></button>
+        <button type="button" class="tp-tb" data-act="tp-fmt" data-k="u" title="밑줄 (Ctrl+U)" tabindex="-1"><u>가</u></button>
+        <span class="tp-sep"></span>
+        <span class="tp-grp" title="글자색"><span class="tp-lbl">글자</span>${TEXT_COLORS.map(c => `<button type="button" class="tp-sw sm" style="background:#${c}" data-act="tp-fc" data-color="${c}" title="글자색" tabindex="-1"></button>`).join('')}<input type="color" class="tp-pick" data-tpfmt="fc" title="글자색 직접 고르기" tabindex="-1"></span>
+        <span class="tp-sep"></span>
+        <button type="button" class="tp-tb" data-act="tp-align" data-al="left" title="왼쪽 정렬" tabindex="-1">⬅</button>
+        <button type="button" class="tp-tb" data-act="tp-align" data-al="center" title="가운데 정렬" tabindex="-1">↔</button>
+        <button type="button" class="tp-tb" data-act="tp-align" data-al="right" title="오른쪽 정렬" tabindex="-1">➡</button>
+        <span class="tp-sep"></span>
+        <button type="button" class="tp-tb wide" data-act="tp-chkbox" title="고른 칸에 체크박스 넣기/빼기" tabindex="-1">☑ 체크박스</button>
+        <select class="select sm" id="tpCatSel" data-tpfmt="cat" title="고른 칸의 훈련 구분 (드롭다운)" tabindex="-1"><option value="">▾ 훈련 구분 고르기</option>${catList().map(c => `<option>${e(c)}</option>`).join('')}<option value="-">(훈련 구분 지우기)</option></select>
+        <button type="button" class="tp-tb wide" data-act="tp-fmt-clear" title="고른 칸의 글씨 서식 지우기" tabindex="-1">서식 지우기</button>
+      </div>
       <div class="tp-tools">
-        <span class="sub">고른 칸</span>
-        ${COLORS.map(([c, l]) => `<button type="button" class="tp-sw ${c ? '' : 'none'}" style="${c ? `background:#${c}` : ''}" data-act="tp-color" data-color="${c}" title="칸 색: ${l}" tabindex="-1">${c ? '' : '색 없음'}</button>`).join('')}
+        <span class="sub">칸 색</span>
+        ${COLORS.map(([c, l]) => `<button type="button" class="tp-sw ${c ? '' : 'none'}" style="${c ? `background:#${c}` : ''}" data-act="tp-color" data-color="${c}" title="칸 색: ${l}" tabindex="-1">${c ? '' : '색 없음'}</button>`).join('')}<input type="color" class="tp-pick" data-tpfmt="bg" title="칸 색 직접 고르기" tabindex="-1">
         <button type="button" class="btn btn-sm" data-act="tp-merge" tabindex="-1" title="오전·오후를 한 칸으로 합치거나 나눠요">⇕ 오전·오후 합치기/나누기</button>
         <button type="button" class="btn btn-sm" data-act="tp-undo" tabindex="-1">↶ 되돌리기</button>
         <details class="at-keys tp-keys"><summary>⌨️ 엑셀처럼 쓰기</summary><div class="sub">칸을 누르고 바로 글자를 치면 새로 써져요. <kbd>Enter</kbd> 저장 후 아래로, <kbd>Alt</kbd>+<kbd>Enter</kbd> 칸 안에서 줄 바꿈, <kbd>Tab</kbd> 오른쪽으로, <kbd>←↑→↓</kbd> 이동, <kbd>F2</kbd>·두 번 누르기 = 있던 글 고치기, <kbd>Delete</kbd> 지우기, <kbd>Shift</kbd>+방향키·끌기 = 여러 칸, <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 복사·붙여넣기(엑셀에서 복사한 칸도 됨), <kbd>Ctrl</kbd>+<kbd>Z</kbd> 되돌리기.
           칸의 첫 줄이 "직업탐색훈련 / 작업훈련"처럼 훈련 이름이면 훈련 구분(밑줄)으로 들어가요. 날짜 칸에 글자를 치면 "(건강관리)" 같은 표시가 붙어요.</div></details>
       </div>
-      <div class="tp-wrap" id="tpWrap"><textarea class="tp-ed" id="tpEd" spellcheck="false" aria-label="일정표 칸 입력"></textarea>${grid(m)}</div>
+      <div class="tp-wrap" id="tpWrap"><textarea class="tp-ed" id="tpEd" spellcheck="false" aria-label="일정표 칸 입력"></textarea>${grid(m)}<div class="tp-ddlist" id="tpDD" hidden></div></div>
       <div class="tp-notes"><label>아래 안내 문구 <span class="sub">(한 줄에 하나, 인쇄할 때 표 아래에 나와요)</span><textarea class="textarea" id="tpNotes" rows="3" placeholder="※복지관 상황에 따라 일정이 변동될 수 있습니다.">${e(notesOf(m))}</textarea></label>
         <div class="inline"><button class="btn btn-sm" type="button" data-act="tp-notes-save">안내 저장</button>${n ? `<button class="btn btn-sm btn-danger-ghost" type="button" data-act="tp-clear">${+m.slice(5)}월 일정표 비우기 (${n}칸)</button>` : ''}</div></div>
     </section>`;
@@ -7793,7 +7852,7 @@ window.TR = (() => {
     if (!G.sel) return;
     rangeCells().forEach(({ R, c }) => tdAt(R, c)?.classList.add('sel'));
     tdAt(G.sel.R, G.sel.c)?.classList.add('cur');
-    place();
+    place(); syncRibbon(); closeDD();
   }
   function place() {
     const ed = document.getElementById('tpEd'), wrap = document.getElementById('tpWrap'), td = G.sel && tdAt(G.sel.R, G.sel.c);
@@ -7830,10 +7889,10 @@ window.TR = (() => {
     const old = at(m, info.d, info.slot);
     const t = String(text ?? '').replace(/\r/g, '').replace(/\s+$/, '');
     if (info.slot === '라벨') return { old, rec: t ? { date: info.date, slot: '라벨', cat: '', content: t.replace(/^\(|\)$/g, ''), color: '', cls: ui.cls } : null };
-    if (!t.trim()) return { old, rec: null };
+    if (!t.trim()) return { old, rec: old && fmtOf(old).chk ? { ...old, cat: '', content: '' } : null };
     const lines = t.split('\n');
     const isCat = lines.length > 1 && CAT_RE.test(lines[0]);
-    return { old, rec: { date: info.date, slot: info.slot, cat: isCat ? lines[0].trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: old ? old.color || '' : '', cls: ui.cls } };
+    return { old, rec: { date: info.date, slot: info.slot, cat: isCat ? lines[0].trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: old ? old.color || '' : '', fmt: old ? old.fmt || null : null, cls: ui.cls } };
   }
   /** 여러 칸 저장 + 되돌리기 기록 */
   function apply(list) {
@@ -7909,6 +7968,50 @@ window.TR = (() => {
     const list = rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); if (!i || i.slot === '라벨') return null; const old = at(ui.month, i.d, i.slot); return old ? { old, rec: { ...old, color } } : null; }).filter(Boolean);
     apply(list);
   }
+  /** 고른 칸 서식 바꾸기. 빈 칸에도 서식을 걸 수 있다 (나중에 글을 치면 그 서식으로) */
+  function setFmt(patch, toggleKey) {
+    const cells = rangeCells().map(({ R, c }) => ({ R, c, i: cellInfo(R, c) })).filter(x => x.i && x.i.slot !== '라벨');
+    if (!cells.length) return;
+    const all = toggleKey ? cells.every(x => fmtOf(at(ui.month, x.i.d, x.i.slot))[toggleKey]) : false;
+    apply(cells.map(({ i }) => {
+      const old = at(ui.month, i.d, i.slot);
+      const f = { ...fmtOf(old), ...(toggleKey ? { [toggleKey]: !all } : patch) };
+      Object.keys(f).forEach(k => { if (f[k] === '' || f[k] == null || f[k] === false) delete f[k]; });
+      const base = old ? { ...old } : { date: i.date, slot: i.slot, cat: '', content: '', color: '', cls: ui.cls };
+      return { old, rec: { ...base, fmt: Object.keys(f).length ? f : null } };
+    }));
+  }
+  function clearFmt() { setFmt({ font: '', size: '', b: false, i: false, u: false, fc: '', al: '' }); }
+  function toggleCheck(R, c) {
+    const i = cellInfo(R, c); if (!i) return;
+    const old = at(ui.month, i.d, i.slot); if (!old) return;
+    const f = { ...fmtOf(old), on: !fmtOf(old).on };
+    apply([{ old, rec: { ...old, fmt: f } }]);
+  }
+  function setCat(cat) {
+    const list = rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); if (!i || i.slot === '라벨') return null; const old = at(ui.month, i.d, i.slot); const base = old ? { ...old } : { date: i.date, slot: i.slot, cat: '', content: '', color: '', cls: ui.cls }; return { old, rec: { ...base, cat: cat === '-' ? '' : cat } }; }).filter(Boolean);
+    apply(list);
+  }
+  /** 칸 오른쪽 아래 ▾ : 훈련 구분 목록 */
+  function openDD(R, c) {
+    const dd = document.getElementById('tpDD'), wrap = document.getElementById('tpWrap'), td = tdAt(R, c);
+    if (!dd || !td) return;
+    G.sel = { R, c }; G.anc = null; paint();
+    const tr = td.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
+    dd.innerHTML = catList().map(v => `<button type="button" data-act="tp-dd-pick" data-v="${e(v)}">${e(v)}</button>`).join('') + '<button type="button" class="clr" data-act="tp-dd-pick" data-v="-">훈련 구분 지우기</button>';
+    Object.assign(dd.style, { left: `${tr.left - wr.left + wrap.scrollLeft}px`, top: `${tr.bottom - wr.top + wrap.scrollTop}px`, minWidth: `${tr.width}px` });
+    dd.hidden = false;
+  }
+  const closeDD = () => { const dd = document.getElementById('tpDD'); if (dd) dd.hidden = true; };
+  /** 지금 칸의 서식을 도구 막대에 보여 준다 */
+  function syncRibbon() {
+    const i = G.sel && cellInfo(G.sel.R, G.sel.c); const x = i && at(ui.month, i.d, i.slot); const f = fmtOf(x);
+    document.querySelectorAll('.tp-ribbon [data-act="tp-fmt"]').forEach(b => b.classList.toggle('on', !!f[b.dataset.k]));
+    document.querySelectorAll('.tp-ribbon [data-act="tp-align"]').forEach(b => b.classList.toggle('on', (f.al || '') === b.dataset.al));
+    document.querySelector('.tp-ribbon [data-act="tp-chkbox"]')?.classList.toggle('on', !!f.chk);
+    const fs = document.getElementById('tpFont'), sz = document.getElementById('tpSize'), cs = document.getElementById('tpCatSel');
+    if (fs) fs.value = f.font || ''; if (sz) sz.value = f.size || ''; if (cs) cs.value = '';
+  }
   /** 오전·오후 합치기/나누기: 합치면 두 칸 글을 이어 붙이고, 나누면 오전 칸으로 옮긴다 */
   function toggleMerge() {
     const m = ui.month, list = [];
@@ -7934,6 +8037,8 @@ window.TR = (() => {
     const ed = ev.target, k = ev.key, ctrl = ev.ctrlKey || ev.metaKey;
     if (ev.isComposing || ev.keyCode === 229) { if (k === 'Enter' && !ev.altKey) setTimeout(() => commitEdit(1, 0), 0); return; }
     if (ctrl && (k === 'z' || k === 'Z')) { ev.preventDefault(); undo(toastFn); return; }
+    if (ctrl && !G.editing && ['b', 'i', 'u', 'B', 'I', 'U'].includes(k)) { ev.preventDefault(); setFmt(null, k.toLowerCase()); return; }
+    if (ev.altKey && k === 'ArrowDown' && !G.editing) { ev.preventDefault(); openDD(G.sel.R, G.sel.c); return; }
     if (ctrl && (k === 'c' || k === 'C') && !G.editing) { ev.preventDefault(); const t = copySel(); navigator.clipboard?.writeText(t).catch(() => {}); ed.value = t; ed.select(); setTimeout(() => { ed.value = ''; }, 0); return; }
     if (ctrl) return;
     if (k === 'Enter' && ev.altKey) { ev.preventDefault(); if (!G.editing) startEdit(true); const p = ed.selectionStart; ed.value = ed.value.slice(0, p) + '\n' + ed.value.slice(ed.selectionEnd); ed.setSelectionRange(p + 1, p + 1); return; }
@@ -7965,7 +8070,7 @@ window.TR = (() => {
     wrap.addEventListener('scroll', place);
     if (G.sel) { paint(); if (G.active) focusEd(); }
   }
-  window.addEventListener('pointerdown', ev => { if (!ev.target.closest('#tpWrap, .tp-tools')) G.active = false; }, true);
+  window.addEventListener('pointerdown', ev => { if (!ev.target.closest('#tpWrap, .tp-tools')) { G.active = false; closeDD(); } }, true);
   window.addEventListener('pointerup', () => { if (G.down) { G.down = false; if (G.active) focusEd(); } });
   const resetGrid = () => { G.sel = null; G.anc = null; G.editing = false; G.active = false; };
 
@@ -8128,7 +8233,7 @@ window.TR = (() => {
   }
   const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
 
-  return { ui, bindGrid, resetGrid, setColor, toggleMerge, undo: t => undo(t), CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
+  return { ui, setFmt, clearFmt, toggleCheck, setCat, openDD, closeDD, bindGrid, resetGrid, setColor, toggleMerge, undo: t => undo(t), CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
 })();
 
 </script>
@@ -8196,7 +8301,7 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
@@ -9044,6 +9149,14 @@ window.App = (() => {
     'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
     'tp-color': el => TR.setColor(el.dataset.color),
     'tp-merge': () => TR.toggleMerge(),
+    'tp-fmt': el => TR.setFmt(null, el.dataset.k),
+    'tp-fc': el => TR.setFmt({ fc: el.dataset.color }),
+    'tp-align': el => TR.setFmt({ al: el.dataset.al }),
+    'tp-chkbox': () => TR.setFmt(null, 'chk'),
+    'tp-fmt-clear': () => TR.clearFmt(),
+    'tp-check': el => TR.toggleCheck(+el.dataset.r, +el.dataset.c),
+    'tp-dd': el => TR.openDD(+el.dataset.r, +el.dataset.c),
+    'tp-dd-pick': el => { TR.setCat(el.dataset.v); TR.closeDD(); },
     'tp-undo': () => TR.undo(toast),
     'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; TR.resetGrid(); bindSched(); },
     'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
@@ -9694,6 +9807,18 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
+      // 일정표 도구: 글씨체·크기·글자색·칸 색·훈련 구분
+      const tf = ev.target.closest('[data-tpfmt]');
+      if (tf) {
+        if (!allowed([['schedule', 2]])) return;
+        const k = tf.dataset.tpfmt, v = tf.value;
+        if (k === 'font') TR.setFmt({ font: v });
+        else if (k === 'size') TR.setFmt({ size: v ? +v : '' });
+        else if (k === 'fc') TR.setFmt({ fc: v.replace('#', '').toUpperCase() });
+        else if (k === 'bg') TR.setColor(v.replace('#', '').toUpperCase());
+        else if (k === 'cat' && v) TR.setCat(v);
+        return;
+      }
       const bk = ev.target.closest('#odBulk [data-bulk]');
       if (bk) {
         const b = R.bulkState(), k = bk.dataset.bulk, box = $('#odBulk');

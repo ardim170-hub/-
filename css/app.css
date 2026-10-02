@@ -1427,3 +1427,24 @@ label.field .textarea { width: 100%; }
 .presence-row > i { margin: 0; }
 .presence-row small { display: block; color: var(--text-2); font-size: 11px; }
 @media (max-width: 860px) { .presence-btn b, .presence-btn { font-size: 0; gap: 2px; } .presence-btn b { font-size: 12px; } .presence-avs { display: none; } }
+/* 일정표 서식 도구 (엑셀 리본처럼) */
+.tp-ribbon { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-2); }
+.tp-tb { min-width: 30px; height: 30px; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; cursor: pointer; font: inherit; font-size: 14px; padding: 0 6px; }
+.tp-tb.wide { font-size: 12.5px; }
+.tp-tb.on { background: #DBEAFE; border-color: #1D4ED8; color: #1D4ED8; }
+.tp-sep { width: 1px; height: 22px; background: var(--line-strong); margin: 0 2px; }
+.tp-grp { display: inline-flex; align-items: center; gap: 3px; }
+.tp-lbl { font-size: 11.5px; color: var(--text-2); margin-right: 2px; }
+.tp-sw.sm { width: 18px; height: 18px; border-radius: 4px; }
+.tp-pick { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 6px; background: #fff; cursor: pointer; }
+.tp-cell { position: relative; }
+.tp-chk { display: inline-block; font-size: 1.25em; line-height: 1; margin-right: 4px; cursor: pointer; color: #475467; vertical-align: -2px; }
+.tp-chk.on { color: #15803D; }
+.tp-cell .tp-dd { display: none; position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; border: 1px solid var(--line-strong); border-radius: 4px; background: #fff; font-size: 10px; line-height: 1; padding: 0; cursor: pointer; z-index: 7; }
+.tp-cell.cur .tp-dd { display: block; }
+.tp-doc .tp-dd { display: none !important; }
+.tp-ddlist { position: absolute; z-index: 20; background: #fff; border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 8px 24px rgba(16,24,40,.18); max-height: 260px; overflow: auto; display: flex; flex-direction: column; padding: 4px; }
+.tp-ddlist button { text-align: left; border: 0; background: none; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; border-radius: 6px; white-space: nowrap; }
+.tp-ddlist button:hover { background: #EFF6FF; }
+.tp-ddlist button.clr { color: var(--danger); border-top: 1px solid var(--line); border-radius: 0; }
+.tp-cell .tp-cat { font-size: .84em; }

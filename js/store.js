@@ -21,11 +21,11 @@ window.S = (() => {
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
   SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록'], ['src', '불러온 자료']]];
-  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['cls', '반'], ['src', '불러온 자료']]];
+  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['fmt', '서식(글씨·체크)'], ['cls', '반'], ['src', '불러온 자료']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
-  const JSON_KEYS = new Set(['survey', 'jobAnalyses']);
+  const JSON_KEYS = new Set(['survey', 'jobAnalyses', 'fmt']);
   const COLS = Object.keys(SHEETS);
 
   function toRow(col, x) {

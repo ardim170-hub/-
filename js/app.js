@@ -61,7 +61,7 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
@@ -909,6 +909,14 @@ window.App = (() => {
     'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
     'tp-color': el => TR.setColor(el.dataset.color),
     'tp-merge': () => TR.toggleMerge(),
+    'tp-fmt': el => TR.setFmt(null, el.dataset.k),
+    'tp-fc': el => TR.setFmt({ fc: el.dataset.color }),
+    'tp-align': el => TR.setFmt({ al: el.dataset.al }),
+    'tp-chkbox': () => TR.setFmt(null, 'chk'),
+    'tp-fmt-clear': () => TR.clearFmt(),
+    'tp-check': el => TR.toggleCheck(+el.dataset.r, +el.dataset.c),
+    'tp-dd': el => TR.openDD(+el.dataset.r, +el.dataset.c),
+    'tp-dd-pick': el => { TR.setCat(el.dataset.v); TR.closeDD(); },
     'tp-undo': () => TR.undo(toast),
     'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; TR.resetGrid(); bindSched(); },
     'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
@@ -1559,6 +1567,18 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
+      // 일정표 도구: 글씨체·크기·글자색·칸 색·훈련 구분
+      const tf = ev.target.closest('[data-tpfmt]');
+      if (tf) {
+        if (!allowed([['schedule', 2]])) return;
+        const k = tf.dataset.tpfmt, v = tf.value;
+        if (k === 'font') TR.setFmt({ font: v });
+        else if (k === 'size') TR.setFmt({ size: v ? +v : '' });
+        else if (k === 'fc') TR.setFmt({ fc: v.replace('#', '').toUpperCase() });
+        else if (k === 'bg') TR.setColor(v.replace('#', '').toUpperCase());
+        else if (k === 'cat' && v) TR.setCat(v);
+        return;
+      }
       const bk = ev.target.closest('#odBulk [data-bulk]');
       if (bk) {
         const b = R.bulkState(), k = bk.dataset.bulk, box = $('#odBulk');
