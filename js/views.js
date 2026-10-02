@@ -727,6 +727,7 @@ window.V = (() => {
     const rows = S.perfTable(f.month, f.set, f.withActs);
     const counts = def.items.map(i => [i, rows.filter(r => r.item === i).length, rows.filter(r => r.item === i).reduce((t, r) => t + (Number(r.people) || 0), 0)]);
     return `<section class="panel perf-sum">${counts.map(([i, n, p]) => `<div class="${n ? '' : 'zero'}"><span class="l">${e(i)}</span><b class="num">${n}</b><span class="sub">줄${p ? ` · ${p}명` : ''}</span></div>`).join('')}</section>
+      ${perfDetail(f, def)}
       <section class="panel">
         <div class="panel-pad perf-actions">
           <div class="inline">
@@ -743,6 +744,48 @@ window.V = (() => {
             <td>${r.kind === 'manual' ? `<button class="icon-btn" type="button" aria-label="삭제" data-act="perf-del" data-id="${r.id}">${I.close}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`
           : `<div class="empty"><strong>${monthLabel(f.month)} 실적이 없습니다</strong>위에서 실적을 입력하거나, 사업체·기관 상세 화면에서 활동을 기록하세요.</div>`}
       </section>`;
+  }
+  /** 세부사업별 실제 기록 목록: 어떤 사업체·기관 기록이 실적에 들어갔는지 보고, 바로 고치고·빼고·지우고·추가한다 */
+  function perfDetail(f, def) {
+    const acts = S.perfRows(f.month).filter(r => r.p.set === f.set);
+    const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month));
+    const out = S.view().activities.filter(a => a.perf === '제외' && a.date.startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const names = [...S.get().businesses.map(b => b.name), ...S.get().networks.map(n => n.name)];
+    const itemSel = (cur, chg, id, withOut) => `<select class="select sm" data-chg="${chg}" data-id="${id}" data-field="${chg === 'pa-field' ? 'perf' : 'item'}" aria-label="세부사업">${def.items.map(i => `<option ${i === cur ? 'selected' : ''}>${e(i)}</option>`).join('')}${withOut ? '<option value="제외">실적에서 빼기</option>' : ''}</select>`;
+    const actRow = ({ a, p, t }) => `<tr><td><input class="input sm" type="date" value="${a.date}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td>
+      <td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}</div>` : '<span class="sub">(대상 없음)</span>'}</td>
+      <td><textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
+      <td><input class="input sm pd-n" type="number" min="0" value="${e(a.people ?? '')}" data-chg="pa-field" data-id="${a.id}" data-field="people" aria-label="참여인원" placeholder="-"></td>
+      <td>${itemSel(p.item, 'pa-field', a.id, true)}</td>
+      <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
+    const manRow = m => `<tr class="man"><td><input class="input sm" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
+      <td><span class="badge">직접 입력</span><div class="meta">${e(m.staff || '')}${m.round ? ' · ' + e(m.round) + '회차' : ''}</div></td>
+      <td><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="비고">${e(m.note || '')}</textarea></td>
+      <td><input class="input sm pd-n" type="number" min="0" value="${e(m.people ?? '')}" data-chg="pf-field" data-id="${m.id}" data-field="people" aria-label="참여인원" placeholder="-"></td>
+      <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
+      <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
+    const day = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01';
+    const groups = def.items.map(item => {
+      const A = acts.filter(r => r.p.item === item), M = mans.filter(m => m.item === item);
+      const rows = [...A.map(r => [r.a.date, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]).join('');
+      const nTarget = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
+      return `<details class="pd-grp" ${A.length + M.length || f.pdOpen === item ? 'open' : ''}><summary><b>${e(item)}</b> <span class="num">${A.length + M.length}건</span>${nTarget ? `<span class="sub">· ${nTarget}곳</span>` : ''}</summary>
+        ${rows ? `<div class="table-wrap"><table class="tbl pd-tbl"><thead><tr><th>날짜</th><th>사업체·기관</th><th>내용</th><th>인원</th><th>세부사업</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="sub pd-empty">이 달 기록이 없습니다.</p>'}
+        <form class="pd-add" data-form="perf-item-add" data-item="${e(item)}" autocomplete="off">
+          <input class="input sm" type="date" name="date" value="${day}" required aria-label="날짜">
+          <input class="input sm grow" name="name" list="pdNames" placeholder="사업체·기관명 (있는 곳이면 그 기록으로 들어갑니다)" aria-label="사업체·기관명">
+          <select class="select sm" name="type" aria-label="방식">${D.ACT_TYPES.filter(t => t !== '발굴').map(t => `<option ${t === '방문' ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <input class="input sm grow" name="content" placeholder="내용" aria-label="내용">
+          <input class="input sm pd-n" type="number" min="0" name="people" placeholder="인원" aria-label="참여인원">
+          <button class="btn btn-sm btn-primary" type="submit">+ ${e(item)} 추가</button>
+        </form></details>`;
+    }).join('');
+    return `<section class="panel pd">
+      <div class="panel-pad perf-actions"><h2 class="section-title">${monthLabel(f.month)} 세부 목록 <span class="sub">실적에 들어간 사업체·기관 기록. 칸을 고치면 바로 저장됩니다</span></h2></div>
+      ${groups}
+      ${out.length ? `<details class="pd-grp pd-out"><summary><b>실적에서 뺀 기록</b> <span class="num">${out.length}건</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${out.map(a => { const t = S.find(a.targetType, a.targetId); return `<tr><td class="num nowrap">${a.date}</td><td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b>` : ''} <span class="sub">${e(a.type)}</span></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="제외" selected>빠져 있음</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody></table></div></details>` : ''}
+      <datalist id="pdNames">${[...new Set(names)].map(n => `<option value="${e(n)}">`).join('')}</datalist>
+    </section>`;
   }
   /** 구글 시트에 붙여넣을 탭 구분 글 */
   function perfTsv() {

@@ -9,16 +9,16 @@
 <style>
 /* 레이아웃: 좌측 사이드바 + 상단 검색바 + 본문, 상세/등록은 우측 Drawer (모바일은 전체 화면 + 하단 탭) */
 :root {
-  --bg: #FFFFFF;
+  --bg: #F7F8FA;
   --surface: #FFFFFF;
-  --surface-2: #F4F4F4;
-  --line: #E2E2E2;
-  --line-strong: #111111;
-  --text: #111111;
-  --text-2: #6B6B6B;
-  --navy: #111111;
-  --accent: #111111;
-  --accent-soft: #F1F1F1;
+  --surface-2: #F2F4F7;
+  --line: #E3E7EC;
+  --line-strong: #C3C9D2;
+  --text: #1E2530;
+  --text-2: #5A6372;
+  --navy: #1E2530;
+  --accent: #2F5BD3;
+  --accent-soft: #EEF3FD;
   --success: #2F7D57;
   --success-soft: #E7F3EC;
   --warning: #A86A0C;
@@ -49,10 +49,10 @@
   --k-dup: #EA580C;      --k-dup-soft: #FFF1E6;      --k-dup-ink: #C2410C;
 
   --font: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
-  --radius: 0;
-  --radius-sm: 0;
-  --shadow: none;
-  --shadow-lg: 0 0 0 1px #111, 6px 6px 0 rgba(17,17,17,.08);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 2px rgba(30, 37, 48, .05);
+  --shadow-lg: 0 12px 32px rgba(30, 37, 48, .16);
   --sidebar: 236px;
 }
 
@@ -1458,80 +1458,129 @@ label.field .textarea { width: 100%; }
 .tp-ddlist button.clr { color: var(--danger); border-top: 1px solid var(--line); border-radius: 0; }
 .tp-cell .tp-cat { font-size: .84em; }
 
-/* ---------- 에디토리얼 테마: 흑백·가는 검정 선·각진 모서리·굵은 제목 ---------- */
-body { font-size: 14.5px; letter-spacing: -.005em; }
-a { color: var(--text); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
-a.btn, .side-nav a, .kpi a, .bottom-nav a { text-decoration: none; }
-:focus-visible { outline: 2px solid #111; border-radius: 0; }
-.sidebar { border-right: 1px solid #111; }
-.brand { border-bottom: 2px solid #111; margin-bottom: 12px; padding-bottom: 14px; }
-.brand-mark { border-radius: 0; background: #111; }
-.brand-name { color: #111; font-weight: 800; letter-spacing: -.02em; }
-.side-nav a { border-radius: 0; color: #555; padding: 9px 10px; border-left: 3px solid transparent; }
-.side-nav a:hover { background: #F4F4F4; color: #111; }
-.side-nav a.active { background: #111; color: #fff; font-weight: 700; border-left-color: #111; }
-.side-nav a.active .count { color: #fff; opacity: .75; }
-.side-foot { border-top: 1px solid #111; }
-.topbar { background: rgba(255,255,255,.96); border-bottom: 1px solid #111; }
-.search-trigger { border-color: #111; }
-kbd { border-radius: 0; border-color: #111; background: #fff; color: #111; }
-.scope-select.scoped { border-color: #111; background: #111; color: #fff; }
-.menu { border: 1px solid #111; }
+/* ---------- 테마: 깔끔한 밝은 화면 + 메뉴마다 고유 색(퍼스널 컬러) ----------
+ * 글씨는 순검정 대신 짙은 남회색, 선은 연한 회색, 글씨는 조금 크게.
+ * 메뉴 색: --pc 본색 · --ps 연한 바탕 · --pi 글자·버튼용 진한 색 */
+.side-nav a[href="#/dashboard"], .bottom-nav a[href="#/dashboard"], body[data-route="dashboard"] { --pc: #4F5BD5; --ps: #EEF0FC; --pi: #3B46B8; }
+.side-nav a[href="#/biz"], .bottom-nav a[href="#/biz"], body[data-route="biz"] { --pc: #E8A317; --ps: #FDF5E2; --pi: #9A6400; }
+.side-nav a[href="#/map"], .bottom-nav a[href="#/map"], body[data-route="map"] { --pc: #1F9D6B; --ps: #E6F6EF; --pi: #147A52; }
+.side-nav a[href="#/cards"], .bottom-nav a[href="#/cards"], body[data-route="cards"] { --pc: #129A9A; --ps: #E3F5F5; --pi: #0D7474; }
+.side-nav a[href="#/network"], .bottom-nav a[href="#/network"], body[data-route="network"] { --pc: #5E6B7E; --ps: #EEF1F5; --pi: #434E5F; }
+.side-nav a[href="#/schedule"], body[data-route="schedule"] { --pc: #2F7FE0; --ps: #E9F2FD; --pi: #1F62B8; }
+.side-nav a[href="#/contacts"], body[data-route="contacts"] { --pc: #E8743B; --ps: #FDEFE7; --pi: #B5501D; }
+.side-nav a[href="#/perf"], body[data-route="perf"] { --pc: #8A5CD8; --ps: #F3EEFC; --pi: #6A3DB8; }
+.side-nav a[href="#/orders"], body[data-route="orders"] { --pc: #2E9CC9; --ps: #E5F4FA; --pi: #1B7499; }
+.side-nav a[href="#/attend"], body[data-route="attend"] { --pc: #D9487A; --ps: #FCEBF1; --pi: #A92D5A; }
+.side-nav a[href="#/data"], body[data-route="data"] { --pc: #7A8394; --ps: #F1F3F6; --pi: #555E6E; }
+body[data-route] { --accent: var(--pi); --accent-soft: var(--ps); }
 
-.page-head { border-bottom: 2px solid #111; padding-bottom: 14px; margin-bottom: 22px; }
-.page-title { font-size: 26px; font-weight: 850; letter-spacing: -.03em; }
-.section-title { font-weight: 800; letter-spacing: -.02em; }
-.panel { border: 1px solid #111; }
+body { font-size: 15.5px; line-height: 1.55; letter-spacing: -.005em; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--pc, var(--accent)); outline-offset: 2px; }
+.view:focus, .view:focus-visible, main:focus-visible { outline: none; }
 
-.btn { border-color: #111; font-weight: 700; }
-.btn:hover { background: #F4F4F4; }
-.btn-primary { background: #111; border-color: #111; color: #fff; }
-.btn-danger:hover { background: #7f1810; }
+/* 옆 메뉴: 아이콘은 메뉴 색, 선택된 메뉴는 연한 메뉴 색 바탕 + 왼쪽 색 막대 */
+.sidebar { background: #fff; border-right: 1px solid var(--line); }
+.brand { border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.brand-mark { background: linear-gradient(135deg, #4F5BD5, #2F7FE0); border-radius: 10px; }
+.brand-name { color: var(--text); font-weight: 800; font-size: 16px; }
+.side-nav { gap: 3px; }
+.side-nav a { padding: 8px 10px; font-size: 15px; color: #4A5363; border-radius: 8px; }
+.side-nav a svg { width: 30px; height: 30px; padding: 6px; border-radius: 8px; background: var(--ps); color: var(--pi); }
+.side-nav a:hover { background: var(--ps); color: var(--text); }
+.side-nav a:hover svg { background: #fff; }
+.side-nav a.active { background: var(--ps); color: var(--pi); font-weight: 750; }
+.side-nav a.active svg { background: var(--pc); color: #fff; box-shadow: none; }
+.side-nav a.active::before { display: block; left: -12px; top: 8px; bottom: 8px; width: 4px; border-radius: 0 4px 4px 0; background: var(--pc); }
+.side-nav a .count { font-size: 12.5px; }
+.side-nav a.active .count { color: var(--pi); }
+.side-foot { border-top: 1px solid var(--line); font-size: 12.5px; }
+.bottom-nav a.active, .bottom-nav a[aria-current="page"] { color: var(--pi); }
+
+.topbar { background: rgba(255, 255, 255, .94); border-bottom: 1px solid var(--line); }
+.search-trigger { border-color: var(--line-strong); border-radius: 8px; height: 42px; font-size: 15px; }
+kbd { border-color: var(--line-strong); background: var(--surface-2); color: var(--text-2); border-radius: 4px; }
+.scope-select.scoped { border-color: var(--pc); background: var(--ps); color: var(--pi); }
+.menu { border: 1px solid var(--line); border-radius: 8px; }
+
+/* 화면 제목: 큰 제목 + 메뉴 색 밑줄, 제목 앞에 메뉴 색 점 */
+.page-head { padding: 0 0 14px; background: none; border: 0; border-bottom: 3px solid var(--pc); border-radius: 0; margin-bottom: 22px; align-items: flex-end; }
+.page-title { font-size: 28px; font-weight: 800; letter-spacing: -.025em; color: var(--text); display: flex; align-items: center; gap: 10px; }
+.page-title::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--pc); flex: none; }
+.page-desc { margin-top: 6px; font-size: 14.5px; color: var(--text-2); }
+.section-title { font-size: 18.5px; font-weight: 750; letter-spacing: -.015em; color: var(--text); }
+.sub { font-size: 13.5px; }
+.panel { border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); }
+
+.btn { height: 40px; font-size: 14.5px; border-color: var(--line-strong); border-radius: 8px; font-weight: 650; }
+.btn:hover { background: var(--surface-2); }
+.btn-sm { height: 34px; font-size: 13.5px; }
+.btn-primary, #view .btn-primary, .topbar .btn-primary { background: var(--pi, var(--accent)); border-color: var(--pi, var(--accent)); color: #fff; }
+.btn-primary:hover { filter: brightness(1.08); background: var(--pi, var(--accent)); }
 .btn-ghost { border-color: transparent; }
-.btn-ghost:hover { background: #F4F4F4; }
-.input, .select, .textarea { border-color: #BDBDBD; }
-.input:hover, .select:hover, .textarea:hover { border-color: #111; }
-.input:focus, .select:focus, .textarea:focus { border-color: #111; box-shadow: inset 0 0 0 1px #111; }
+.input, .select, .textarea { height: 40px; font-size: 15px; border-color: var(--line-strong); border-radius: 6px; }
+.textarea { height: auto; }
+.input:hover, .select:hover, .textarea:hover { border-color: #9AA3B0; }
+.input:focus, .select:focus, .textarea:focus { border-color: var(--pc, var(--accent)); box-shadow: 0 0 0 3px var(--ps, var(--accent-soft)); }
+.select.sm, .input.sm { height: 34px; font-size: 14px; }
 
-.badge { border-radius: 0; font-weight: 700; }
-.badge.outline { border-color: #111; color: #111; }
-.chip { border-radius: 0; border-color: #111; color: #111; font-weight: 600; }
-.chip.on { background: #111; border-color: #111; color: #fff; }
-.chip-applied { background: #111; color: #fff; }
-.seg { border-radius: 0; border-color: #111; }
-.seg button + button { border-left-color: #111; }
-.seg button.on { background: #111; }
+.badge { border-radius: 999px; font-weight: 650; font-size: 12.5px; }
+.badge.outline { border-color: var(--line-strong); color: var(--text-2); }
+.chip { border-radius: 999px; border-color: var(--line-strong); color: #3E4756; font-weight: 600; height: 34px; font-size: 14px; }
+.chip:hover { border-color: var(--pc); color: var(--pi); }
+.chip.on, #view .chip.on { background: var(--pi); border-color: var(--pi); color: #fff; }
+.chip-applied { background: var(--ps); color: var(--pi); }
+.seg { border-radius: 8px; border-color: var(--line-strong); }
+.seg button + button { border-left-color: var(--line-strong); }
+.seg button.on { background: var(--pi); }
+.qlink { border-radius: 999px; border-color: var(--line-strong); color: var(--text); }
+.qlink:hover { border-color: var(--pc); color: var(--pi); }
 
-.kpis { border: 1px solid #111; }
-.kpi { border-right-color: #111; }
-.kpi-label { color: #111; font-weight: 700; font-size: 12.5px; }
-.kpi-value { font-weight: 850; letter-spacing: -.03em; }
-.pipe-bar, .pipe-bar span { border-radius: 0; }
+.kpis { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #fff; }
+.kpi { border-right-color: var(--line); }
+.kpi-label { color: var(--text-2); font-weight: 650; font-size: 13.5px; }
+.kpi-value { font-weight: 800; letter-spacing: -.03em; font-size: 32px; }
 
-.tbl th { color: #111; font-weight: 800; border-bottom: 1px solid #111; background: #fff; }
-.tbl tbody tr:hover td { background: #F7F7F7; }
+table.tbl { font-size: 14.5px; }
+.tbl th { color: #4A5363; font-weight: 700; font-size: 13.5px; border-bottom: 1px solid var(--line-strong); background: #FAFBFC; }
+.tbl tbody tr:hover td { background: var(--ps, #F7F8FA); }
 
-.drawer { border-left: 1px solid #111; box-shadow: none; }
-.dr-head { border-bottom: 2px solid #111; }
-.dr-title { font-weight: 850; letter-spacing: -.03em; }
-.scrim { background: rgba(0,0,0,.35); }
-.confirm-panel { border-radius: 0; border: 1px solid #111; }
-.toast { border-radius: 0; background: #111; }
-.demo-banner { border-radius: 0; border: 1px solid #111; background: #fff; color: #111; }
-.prog-mgr, .leaflet-popup-content-wrapper { border-radius: 0; }
-/* 메뉴별 색 대신 흑백 하나로 통일 (지도·종류 표시 색은 그대로) */
-body[data-route], .side-nav a[href], .bottom-nav a[href] { --pc: #111111; --ps: #F4F4F4; --pi: #111111; --pn: #FFFFFF; }
-.side-nav a { padding: 6px 10px; }
-.side-nav a svg { background: transparent; color: currentColor; width: 28px; height: 28px; padding: 5px; }
-.side-nav a:hover svg { background: transparent; }
-.side-nav a.active { background: #111; color: #fff; }
-.side-nav a.active svg { background: transparent; color: #fff; box-shadow: none; }
-.side-nav a.active::before { display: none; }
-.side-nav a.active .count { color: #fff; }
-.page-head { padding: 0 0 14px; background: none; border: 0; border-bottom: 2px solid #111; align-items: flex-end; }
-.page-title { color: #111; }
-.page-desc { margin-top: 6px; font-size: 13.5px; }
-#view .chip.on { background: #111; border-color: #111; }
+.drawer { border-left: 0; box-shadow: var(--shadow-lg); }
+.dr-head { border-bottom: 1px solid var(--line); border-top: 4px solid var(--pc, var(--accent)); }
+.dr-title { font-weight: 800; letter-spacing: -.02em; }
+.scrim { background: rgba(30, 37, 48, .32); }
+.confirm-panel { border-radius: 12px; border: 0; }
+.toast { border-radius: 10px; background: #2A313C; }
+.demo-banner { border-radius: 8px; border: 1px solid #F1D9A6; background: #FFF8E8; color: #6B4A0B; }
+.prog-mgr, .leaflet-popup-content-wrapper { border-radius: 10px; }
+.perf-bar .month-nav b { font-size: 19px; }
+
+/* 실적 세부 목록 (세부사업별 실제 기록) */
+.pd { margin-bottom: 14px; }
+.pd-grp { border-top: 1px solid var(--line); }
+.pd-grp > summary { cursor: pointer; padding: 12px 20px; display: flex; gap: 8px; align-items: baseline; list-style: none; user-select: none; }
+.pd-grp > summary::-webkit-details-marker { display: none; }
+.pd-grp > summary::before { content: "▸"; color: var(--text-2); width: 12px; transition: transform .15s; }
+.pd-grp[open] > summary::before { transform: rotate(90deg); }
+.pd-grp > summary:hover { background: var(--surface-2); }
+.pd-grp > summary .num { font-weight: 700; color: var(--pi, var(--text)); }
+.pd-grp .table-wrap { padding: 0 12px; }
+.pd-tbl td { padding: 6px 8px; vertical-align: top; }
+.pd-tbl th { padding: 8px; }
+.pd-tbl input[type=date] { width: 140px; }
+.pd-tbl td:nth-child(2) { min-width: 170px; }
+.pd-tbl td:nth-child(3) { width: 42%; }
+.pd-tbl .pd-n, .pd-add .pd-n { width: 72px; }
+.pd-tbl select { width: auto; max-width: 170px; }
+.ct-txt { width: 100%; min-width: 180px; height: auto; min-height: 32px; padding: 5px 8px; resize: vertical; line-height: 1.45; font-size: 13px; field-sizing: content; max-height: 140px; }
+.pd-empty { margin: 0; padding: 0 20px 8px 40px; }
+.pd-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px 20px 14px 40px; }
+.pd-add .input, .pd-add .select { width: auto; height: 32px; font-size: 13px; }
+.pd-add input[type=date] { width: 140px; }
+.pd-add .grow { flex: 1 1 200px; }
+.pd-out > summary b { color: var(--text-2); }
+.ct-date { width: 140px; height: 32px; font-size: 13px; }
+.bulk-tbl tr.dup td { opacity: .45; }
 
 </style>
 </head>
@@ -1616,7 +1665,7 @@ body[data-route], .side-nav a[href], .bottom-nav a[href] { --pc: #111111; --ps: 
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.10.02 15:44";</script>
+<script>window.APP_VERSION = "2026.10.02 16:52";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -3966,6 +4015,7 @@ window.V = (() => {
     const rows = S.perfTable(f.month, f.set, f.withActs);
     const counts = def.items.map(i => [i, rows.filter(r => r.item === i).length, rows.filter(r => r.item === i).reduce((t, r) => t + (Number(r.people) || 0), 0)]);
     return `<section class="panel perf-sum">${counts.map(([i, n, p]) => `<div class="${n ? '' : 'zero'}"><span class="l">${e(i)}</span><b class="num">${n}</b><span class="sub">줄${p ? ` · ${p}명` : ''}</span></div>`).join('')}</section>
+      ${perfDetail(f, def)}
       <section class="panel">
         <div class="panel-pad perf-actions">
           <div class="inline">
@@ -3982,6 +4032,48 @@ window.V = (() => {
             <td>${r.kind === 'manual' ? `<button class="icon-btn" type="button" aria-label="삭제" data-act="perf-del" data-id="${r.id}">${I.close}</button>` : ''}</td></tr>`).join('')}</tbody></table></div>`
           : `<div class="empty"><strong>${monthLabel(f.month)} 실적이 없습니다</strong>위에서 실적을 입력하거나, 사업체·기관 상세 화면에서 활동을 기록하세요.</div>`}
       </section>`;
+  }
+  /** 세부사업별 실제 기록 목록: 어떤 사업체·기관 기록이 실적에 들어갔는지 보고, 바로 고치고·빼고·지우고·추가한다 */
+  function perfDetail(f, def) {
+    const acts = S.perfRows(f.month).filter(r => r.p.set === f.set);
+    const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month));
+    const out = S.view().activities.filter(a => a.perf === '제외' && a.date.startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const names = [...S.get().businesses.map(b => b.name), ...S.get().networks.map(n => n.name)];
+    const itemSel = (cur, chg, id, withOut) => `<select class="select sm" data-chg="${chg}" data-id="${id}" data-field="${chg === 'pa-field' ? 'perf' : 'item'}" aria-label="세부사업">${def.items.map(i => `<option ${i === cur ? 'selected' : ''}>${e(i)}</option>`).join('')}${withOut ? '<option value="제외">실적에서 빼기</option>' : ''}</select>`;
+    const actRow = ({ a, p, t }) => `<tr><td><input class="input sm" type="date" value="${a.date}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td>
+      <td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}</div>` : '<span class="sub">(대상 없음)</span>'}</td>
+      <td><textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
+      <td><input class="input sm pd-n" type="number" min="0" value="${e(a.people ?? '')}" data-chg="pa-field" data-id="${a.id}" data-field="people" aria-label="참여인원" placeholder="-"></td>
+      <td>${itemSel(p.item, 'pa-field', a.id, true)}</td>
+      <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
+    const manRow = m => `<tr class="man"><td><input class="input sm" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
+      <td><span class="badge">직접 입력</span><div class="meta">${e(m.staff || '')}${m.round ? ' · ' + e(m.round) + '회차' : ''}</div></td>
+      <td><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="비고">${e(m.note || '')}</textarea></td>
+      <td><input class="input sm pd-n" type="number" min="0" value="${e(m.people ?? '')}" data-chg="pf-field" data-id="${m.id}" data-field="people" aria-label="참여인원" placeholder="-"></td>
+      <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
+      <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
+    const day = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01';
+    const groups = def.items.map(item => {
+      const A = acts.filter(r => r.p.item === item), M = mans.filter(m => m.item === item);
+      const rows = [...A.map(r => [r.a.date, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]).join('');
+      const nTarget = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
+      return `<details class="pd-grp" ${A.length + M.length || f.pdOpen === item ? 'open' : ''}><summary><b>${e(item)}</b> <span class="num">${A.length + M.length}건</span>${nTarget ? `<span class="sub">· ${nTarget}곳</span>` : ''}</summary>
+        ${rows ? `<div class="table-wrap"><table class="tbl pd-tbl"><thead><tr><th>날짜</th><th>사업체·기관</th><th>내용</th><th>인원</th><th>세부사업</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="sub pd-empty">이 달 기록이 없습니다.</p>'}
+        <form class="pd-add" data-form="perf-item-add" data-item="${e(item)}" autocomplete="off">
+          <input class="input sm" type="date" name="date" value="${day}" required aria-label="날짜">
+          <input class="input sm grow" name="name" list="pdNames" placeholder="사업체·기관명 (있는 곳이면 그 기록으로 들어갑니다)" aria-label="사업체·기관명">
+          <select class="select sm" name="type" aria-label="방식">${D.ACT_TYPES.filter(t => t !== '발굴').map(t => `<option ${t === '방문' ? 'selected' : ''}>${t}</option>`).join('')}</select>
+          <input class="input sm grow" name="content" placeholder="내용" aria-label="내용">
+          <input class="input sm pd-n" type="number" min="0" name="people" placeholder="인원" aria-label="참여인원">
+          <button class="btn btn-sm btn-primary" type="submit">+ ${e(item)} 추가</button>
+        </form></details>`;
+    }).join('');
+    return `<section class="panel pd">
+      <div class="panel-pad perf-actions"><h2 class="section-title">${monthLabel(f.month)} 세부 목록 <span class="sub">실적에 들어간 사업체·기관 기록. 칸을 고치면 바로 저장됩니다</span></h2></div>
+      ${groups}
+      ${out.length ? `<details class="pd-grp pd-out"><summary><b>실적에서 뺀 기록</b> <span class="num">${out.length}건</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${out.map(a => { const t = S.find(a.targetType, a.targetId); return `<tr><td class="num nowrap">${a.date}</td><td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b>` : ''} <span class="sub">${e(a.type)}</span></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="제외" selected>빠져 있음</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody></table></div></details>` : ''}
+      <datalist id="pdNames">${[...new Set(names)].map(n => `<option value="${e(n)}">`).join('')}</datalist>
+    </section>`;
   }
   /** 구글 시트에 붙여넣을 탭 구분 글 */
   function perfTsv() {
@@ -5257,7 +5349,7 @@ window.R = (() => {
     return `
       <div class="page-head">
         <div><h1 class="page-title">연락이력</h1><div class="page-desc">사업체 연락·방문을 한 줄씩 기록하고, 공유 시트의 연락이력·보고용 시트 모양 그대로 복사합니다.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="ct-paste">시트에서 붙여넣어 가져오기</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="ct-paste">붙여넣기·엑셀 파일로 한 번에 가져오기</button></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('ct-month', f.month)}
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
@@ -5311,14 +5403,15 @@ window.R = (() => {
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
-      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th></tr></thead><tbody>
-        ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num">${a.date}</td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
-          <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap">${e(a.content)}</td>
+      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
+        ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+          <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
           <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td>
           <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기 · ${e(siteName(a.jobUrl))}</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
-            : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td></tr>`).join('')}
+            : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td>
+          <td><button class="icon-btn" type="button" aria-label="이 연락 기록 삭제" title="삭제" data-act="act-del" data-id="${a.id}">${V.I.close}</button></td></tr>`).join('')}
       </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
   }
@@ -5363,56 +5456,170 @@ window.R = (() => {
     return '';
   }
 
-  /* ---------- 공유 시트에서 붙여넣어 가져오기 ---------- */
-  const COLS = [['date', ['날짜', '일자']], ['name', ['사업체명', '업체명', '사업체', '업체']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명']], ['jobType', ['직종', '직무']], ['content', ['결과', '내용']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
-  // 머리글이 없으면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
+  /* ---------- 공유 시트에서 붙여넣거나 엑셀·CSV 파일로 한 번에 가져오기 ---------- */
+  const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
+  // 머리글이 없거나 모자라면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
-  function parsePaste(text) {
-    const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim());
-    if (!lines.length) return { rows: [], map: null };
-    const cells = lines.map(l => l.split('\t').map(c => c.trim()));
-    const hdrIdx = cells.findIndex(r => r.filter(c => COLS.some(([, syn]) => syn.includes(c.replace(/\s/g, '')))).length >= 3);
+  /** 엑셀 복사 형식(TSV) 읽기: 줄 바꿈이 든 칸은 "따옴표"로 감싸져 온다 */
+  function parseTsv(t) {
+    const rows = [[]]; let cur = '', q = false;
+    t = String(t).replace(/\r\n?/g, '\n');
+    for (let i = 0; i < t.length; i++) {
+      const ch = t[i];
+      if (q) { if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; continue; }
+      if (ch === '"' && cur.trim() === '') { q = true; cur = ''; }
+      else if (ch === '\t') { rows[rows.length - 1].push(cur); cur = ''; }
+      else if (ch === '\n') { rows[rows.length - 1].push(cur); cur = ''; rows.push([]); }
+      else cur += ch;
+    }
+    rows[rows.length - 1].push(cur);
+    return rows;
+  }
+  const hdrKey = c => { const n = String(c).replace(/\s/g, ''); if (!n) return ''; const hit = COLS.find(([, syn]) => syn.some(s => n === s.replace(/\s/g, ''))) || COLS.find(([, syn]) => syn.some(s => s.length > 1 && n.includes(s))); return hit ? hit[0] : ''; };
+  /** 날짜처럼 보이는 칸 → YYYY-MM-DD (연도가 없으면 보고 있는 달의 연도) */
+  function dateOf(v, year) {
+    if (typeof v === 'number') return v > 20000 && v < 80000 ? U.toDateStr(v) : '';
+    const s = String(v || '').replace(/\s/g, '').replace(/[년월]/g, '-').replace(/일$/, '');
+    const full = U.toDateStr(s);
+    if (full) return full;
+    const m = s.match(/^(\d{1,2})[-./](\d{1,2})\.?$/);
+    return m && +m[1] <= 12 && +m[2] <= 31 ? `${year}-${U.pad(m[1])}-${U.pad(m[2])}` : '';
+  }
+  const oneLine = (v, sep = ' ') => String(v ?? '').split('\n').map(x => x.trim()).filter(Boolean).join(sep);
+  /** 앞자리 0이 빠진 번호 고치기: 10-1234-5678 → 010-…, 70-… → 070-… */
+  const fixPhone = p => oneLine(p, ' / ').replace(/(^|[\s/])(1[016789]|70)(?=[-)\s]\d)/g, '$10$2');
+  /** 결과 글에서 연락결과 고르기 */
+  function guessResult(t) {
+    const s = String(t || '').replace(/\s/g, '');
+    if (!s) return '';
+    if (/채용의향있|의향있|채용하니|면접요청|면접진행|협약/.test(s)) return '채용의향 있음';
+    if (/마감/.test(s)) return '채용마감';
+    if (/채용안|안뽑|거부|거절|채용하지않|힘들|어렵|필요성이없|아님/.test(s)) return '채용안함';
+    if (/안받|받지않|부재|자리를비|미응답|신호음|삐소리/.test(s)) return '부재·미응답';
+    if (/검토|확인|상의|문의|회의|보고후|연락주기|예정/.test(s)) return '검토중';
+    return '';
+  }
+  /** 표(2차원 배열) → 연락 기록 줄. 머리글 칸 수가 모자라거나 번호 칸이 빠져도 '날짜 칸'을 기준으로 맞춘다 */
+  function parseCells(cells, year = ui.contacts.month.slice(0, 4)) {
+    cells = cells.map(r => (r || []).map(c => (typeof c === 'number' ? c : String(c ?? '').trim())));
+    const hdrIdx = cells.slice(0, 15).findIndex(r => r.filter(c => hdrKey(c)).length >= 3 && !r.some(c => dateOf(c, year)));
     let order;
     if (hdrIdx >= 0) {
-      order = cells[hdrIdx].map(c => { const n = c.replace(/\s/g, ''); const hit = COLS.find(([, syn]) => syn.some(s => n === s)) || COLS.find(([, syn]) => syn.some(s => n.includes(s))); return hit ? hit[0] : ''; });
-    } else {
-      // 첫 칸이 날짜처럼 보이면 번호 열 없이 붙여넣은 것
-      const first = cells[0][0] || '';
-      order = /\d{4}[-.\s]/.test(first) ? DEFAULT_ORDER.slice(1) : DEFAULT_ORDER;
-    }
+      order = cells[hdrIdx].map(hdrKey);
+      // 빈 머리글 칸은 앞 칸 다음 순서로 채운다 (예: 전화번호 뒤 이름 없는 칸들 → 담당자·직종·결과…)
+      for (let i = 0; i < Math.max(order.length, 12); i++) {
+        if (order[i]) continue;
+        const prev = order[i - 1], at = DEFAULT_ORDER.indexOf(prev);
+        const next = at >= 0 ? DEFAULT_ORDER.slice(at + 1).find(k => !order.includes(k)) : '';
+        order[i] = next || '';
+      }
+    } else order = DEFAULT_ORDER.slice();
+    const dCol = order.indexOf('date');
     const body = hdrIdx >= 0 ? cells.slice(hdrIdx + 1) : cells;
-    const rows = body.map(r => {
+    const merged = new Map();
+    body.forEach(r => {
+      // 날짜 칸 찾기 (머리글 위치 근처를 먼저)
+      const cand = [dCol, dCol + 1, dCol - 1, ...r.keys()].filter(i => i >= 0 && i < r.length);
+      const di = cand.find(i => dateOf(r[i], year));
+      if (di == null) return;
+      const shift = di - dCol;
       const o = {};
-      order.forEach((k, i) => { if (k && r[i] != null && o[k] == null) o[k] = r[i]; });
-      o.date = U.toDateStr(String(o.date || '').replace(/\s/g, ''));
-      o.type = /방문/.test(o.content || '') ? '방문' : '전화';
-      return o;
-    }).filter(o => o.name && o.date);
+      order.forEach((k, i) => { const v = r[i + shift]; if (k && v != null && v !== '' && o[k] == null) o[k] = v; });
+      o.date = dateOf(r[di], year);
+      o.name = oneLine(o.name).replace(/\s+/g, ' ');
+      if (!o.name || /^\d+$/.test(o.name)) return;
+      o.address = String(o.address || '').trim();
+      // 주소 칸에 공고 설명을 적어 둔 줄 → 결과(내용)로 옮긴다
+      if (/\n|^\*|직무내용|근무시간|수습기간|급여|우대/.test(o.address)) { o.content = [oneLine(o.address, ' · ').replace(/^\*\s*/, '').replace(/\s*·\s*\*\s*/g, ' · '), o.content].filter(Boolean).join(' / '); o.address = ''; }
+      o.address = oneLine(o.address);
+      o.phone = fixPhone(o.phone);
+      o.contactName = oneLine(o.contactName, ' / ');
+      o.jobType = oneLine(o.jobType);
+      o.content = oneLine(o.content);
+      ['result', 'status', 'staff', 'jobUrl'].forEach(k => { o[k] = oneLine(o[k]); });
+      ['address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'].forEach(k => { if (/^[`'"\-·.\s]+$/.test(o[k] || '')) o[k] = ''; });
+      o.result = D.CONTACT_RESULTS.find(x => o.result.replace(/\s/g, '') === x.replace(/\s/g, '')) || guessResult(o.content);
+      o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : '전화';
+      // 같은 날 같은 사업체가 두 번 적혀 있으면 한 줄로 합친다 (빈 칸은 채우고, 결과는 긴 쪽)
+      const k = o.date + '|' + U.orgKey(o.name);
+      const prev = merged.get(k);
+      if (prev) {
+        ['address', 'phone', 'contactName', 'jobType', 'result', 'status', 'staff', 'jobUrl'].forEach(f => { if (!prev[f] && o[f]) prev[f] = o[f]; });
+        if ((o.content || '').length > (prev.content || '').length) { prev.content = o.content; prev.type = o.type; }
+        prev.n = (prev.n || 1) + 1;
+      } else merged.set(k, o);
+    });
+    const have = new Set(S.get().activities.filter(a => a.targetType === 'biz').map(a => { const b = S.find('biz', a.targetId); return b ? a.date + '|' + U.orgKey(b.name) : ''; }));
+    const rows = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
+    rows.forEach(r => { r.dup = have.has(r.date + '|' + U.orgKey(r.name)); });
     return { rows, order };
+  }
+  const parsePaste = text => parseCells(parseTsv(text));
+  /** 엑셀·CSV 파일 → 표 (시트 여러 개면 모두 이어 붙임) */
+  async function readFileCells(f) {
+    const wb = /\.csv$/i.test(f.name) ? XLSX.read(await f.text(), { type: 'string' }) : XLSX.read(new Uint8Array(await f.arrayBuffer()));
+    return wb.SheetNames.flatMap(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }));
   }
   function pasteDialog(state) {
     const rows = state.rows || [];
-    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">연락이력 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
+    const fresh = rows.filter(r => !r.dup);
+    const key = n => U.orgKey(n);
+    const have = new Set(S.get().businesses.map(b => key(b.name)));
+    const newCount = new Set(fresh.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">연락이력 한 번에 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
       <div class="dr-body">
-        <ol class="steps-help"><li>공유 시트 <b>○월 연락이력</b> 탭에서 가져올 줄을 머리글(날짜·사업체명…)과 함께 드래그해 <b>Ctrl+C</b></li><li>아래 칸을 누르고 <b>Ctrl+V</b></li><li>미리보기를 확인하고 <b>가져오기</b></li></ol>
+        <ol class="steps-help"><li>시트·엑셀에서 가져올 줄을 드래그해 <b>Ctrl+C</b> → 아래 칸에 <b>Ctrl+V</b> (머리글 줄은 있어도 없어도 됩니다)</li><li>또는 <button class="btn btn-sm" type="button" data-act="ct-file">엑셀·CSV 파일 열기</button></li><li>미리보기를 확인하고 <b>가져오기</b></li></ol>
         <textarea class="textarea" id="ctPasteBox" rows="7" placeholder="여기에 붙여넣기 (Ctrl+V)">${e(state.text || '')}</textarea>
-        ${rows.length ? `<p class="sub">${rows.length}줄을 읽었습니다. 처음 보는 사업체 ${state.newCount}곳은 사업체 개발에 새로 등록됩니다. 상담자 칸이 비어 있으면 '${e(S.me())}'로 기록합니다.</p>
-          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>날짜</th><th>사업체명</th><th>전화번호</th><th>담당자</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th></tr></thead><tbody>
-          ${rows.slice(0, 30).map(r => `<tr><td class="num">${e(r.date)}</td><td><b>${e(r.name)}</b></td><td class="num">${e(r.phone || '')}</td><td>${e(r.contactName || '')}</td><td>${e(r.content || '')}</td><td>${e(r.result || '')}</td><td>${e(r.status || '')}</td><td>${e(r.staff || '')}</td></tr>`).join('')}
-          </tbody></table></div>${rows.length > 30 ? `<p class="sub">처음 30줄만 보여줍니다.</p>` : ''}`
-          : state.text ? '<p class="sub" style="color:var(--danger)">날짜와 사업체명이 있는 줄을 찾지 못했습니다. 머리글 줄까지 함께 복사해 보세요.</p>' : ''}
+        ${state.file ? `<p class="sub">파일: <b>${e(state.file)}</b></p>` : ''}
+        ${rows.length ? `<p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에 새로 등록됩니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 상담자 칸이 비어 있으면 '${e(S.me())}'로 기록합니다.</p>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th></tr></thead><tbody>
+          ${rows.slice(0, 200).map(r => `<tr class="${r.dup ? 'dup' : ''}"><td>${r.dup ? '<span class="badge">있음</span>' : !have.has(key(r.name)) ? '<span class="badge accent">새 사업체</span>' : ''}</td><td class="num nowrap">${e(r.date)}</td><td><b>${e(r.name)}</b>${r.n > 1 ? ` <span class="sub">(${r.n}줄 합침)</span>` : ''}</td><td class="clip" title="${e(r.address)}">${e(r.address)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contactName)}</td><td class="clip">${e(r.jobType)}</td><td class="wrap">${e(r.content)}</td><td>${e(r.result)}</td><td>${e(r.type)}</td></tr>`).join('')}
+          </tbody></table></div>${rows.length > 200 ? `<p class="sub">처음 200줄만 보여줍니다.</p>` : ''}`
+          : state.text ? '<p class="sub" style="color:var(--danger)">날짜와 사업체명이 있는 줄을 찾지 못했습니다. 날짜 칸이 들어가게 복사해 보세요.</p>' : ''}
       </div>
-      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="ct-paste-commit" ${rows.length ? '' : 'disabled'}>${rows.length}줄 가져오기</button></div>`;
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="ct-paste-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
   }
+  /** 한 번에 저장 (새 사업체·기존 사업체 보완·연락 기록을 각각 한 번씩 보낸다) */
   function commitPaste(rows) {
     const staffNames = new Set(S.staff().map(s => s.name));
-    let n = 0;
-    rows.forEach(r => {
-      const result = D.CONTACT_RESULTS.find(x => (r.result || '').replace(/\s/g, '') === x.replace(/\s/g, '')) || r.result || '';
-      addContact({ ...r, content: r.content || '(내용 없음)', result, staff: staffNames.has(r.staff) ? r.staff : '' });
-      n++;
+    const me = S.me(), key = n => U.orgKey(n);
+    const list = rows.filter(r => !r.dup);
+    const bizBy = new Map(S.get().businesses.map(b => [key(b.name), b]));
+    const newSpecs = new Map();
+    list.forEach(r => {
+      const k = key(r.name);
+      if (bizBy.has(k)) return;
+      const who = staffNames.has(r.staff) ? r.staff : me;
+      const x = newSpecs.get(k) || { name: r.name, phone: '', address: '', stage: '접촉', discoveredAt: r.date, source: '현장 발굴', staff: who, placements: 0, jobs: '' };
+      if (!x.phone && r.phone) x.phone = r.phone;
+      if (!x.address && r.address) x.address = r.address;
+      if (!x.jobs && r.jobType) x.jobs = r.jobType;
+      if (r.type === '방문') x.stage = '방문상담';
+      if (r.date < x.discoveredAt) x.discoveredAt = r.date;
+      newSpecs.set(k, x);
     });
-    return n;
+    const made = newSpecs.size ? S.upsertMany('biz', [...newSpecs.values()]) : [];
+    made.forEach(b => bizBy.set(key(b.name), b));
+    const patches = new Map();
+    list.forEach(r => {
+      const b = bizBy.get(key(r.name));
+      if (made.includes(b)) return;
+      const p = patches.get(b.id) || { id: b.id };
+      if (!b.phone && !p.phone && r.phone) p.phone = r.phone;
+      if (!b.address && !p.address && r.address) p.address = r.address;
+      const st = p.stage || b.stage;
+      if (st === '발굴') p.stage = r.type === '방문' ? '방문상담' : '접촉';
+      else if (st === '접촉' && r.type === '방문') p.stage = '방문상담';
+      patches.set(b.id, p);
+    });
+    const fix = [...patches.values()].filter(p => Object.keys(p).length > 1);
+    if (fix.length) S.putMany('biz', fix);
+    const acts = made.map(b => ({ targetType: 'biz', targetId: b.id, date: b.discoveredAt, type: '발굴', content: '연락이력 가져오기로 사업체 등록', staff: b.staff }))
+      .concat(list.map(r => ({ targetType: 'biz', targetId: bizBy.get(key(r.name)).id, date: r.date, type: r.type, content: r.content || '(내용 없음)', staff: staffNames.has(r.staff) ? r.staff : me, contactName: r.contactName || '', jobType: r.jobType || '', result: r.result || '', status: r.status || '연락완료', jobUrl: jobLink(r.jobUrl), perf: '', people: '' })));
+    if (acts.length) S.upsertMany('act', acts);
+    const queue = made.filter(b => b.address).slice(0, 60).map(b => b.id);
+    (async () => { for (const id of queue) { await S.refine('biz', id); await new Promise(res => setTimeout(res, 1100)); } })();
+    return { n: list.length, biz: made.length };
   }
 
   /* ================= 출장·특근 명령부 ================= */
@@ -5448,7 +5655,7 @@ window.R = (() => {
     const tvCell = t => {
       const x = tvRow[t.id]; if (!x) return '<td></td>';
       const { d, r, first } = x;
-      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
+      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `특근비 ${won(d.pay || 0)}${d.noTime ? ' (시간 없음 → 4시간 미만)' : ''} · 식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
       const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
@@ -5472,7 +5679,7 @@ window.R = (() => {
       ${`<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 파일</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}"><span><b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근 식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}"><span><b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근비·식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>`}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
@@ -5489,7 +5696,7 @@ window.R = (() => {
           : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`}
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
-      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근 식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : '적은 식비를 날마다 2만원까지 더함'})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
+      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근비·식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : `특근비(하루 4시간 미만 ${won(TV.otRate().short)}원·이상 ${won(TV.otRate().long)}원) + 적은 식비(하루 2만원까지)`})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
       : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
   }
@@ -5582,7 +5789,7 @@ window.R = (() => {
       const per = months.map(m => {
         const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
         const p = TV.settle(m).people.find(x => x.name === name) || { in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
-        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
+        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.ot.reduce((a, r) => a + r.meal, 0), otPay: p.ot.reduce((a, r) => a + r.pay, 0), otTotal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
       });
       return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
     });
@@ -5605,7 +5812,7 @@ window.R = (() => {
         <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
       </div>
       ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
+        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 특근비 ${won(x.otPay)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
         <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
       </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
       <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>
@@ -5630,10 +5837,10 @@ window.R = (() => {
   function bulkSummaryDoc() {
     const sm = bulkSummary();
     return `<article class="doc order-doc" style="font-size:10pt">
-      <h1>출장 여비 · 특근 식비 요약</h1>
+      <h1>출장 여비 · 특근비 요약</h1>
       <p class="order-sub">${V.monthLabel(sm.months[0])} ~ ${V.monthLabel(sm.months[sm.months.length - 1])} · 화성시아르딤복지관 직업지원팀</p>
-      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="6">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
+      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근비</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
+        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.otPay)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="7">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
         <tr class="tv-doc-total" style="height:9mm"><th colspan="7">총 합계</th><th class="r">${won(sm.total)}</th></tr>
       </tbody></table>
       <p class="order-sub tv-doc-note">출장 여비: 중증장애인직업재활지원사업 규정집 2026 여비 기준(근무지 내 일비 4시간 기준·차량배치 유무, 유류비, 통행료, 주차료, 식비). 특근: 명령부에 적은 식비(1일 2만원 이내).</p>
@@ -5732,7 +5939,7 @@ window.R = (() => {
     }));
   }
 
-  return { ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, readFileCells, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();
 
 </script>
@@ -5750,7 +5957,10 @@ window.TV = (() => {
     outDaily: 20000, // 관외 일비 1일 상한
     meal: 20000, // 식비 1일 상한 (관외는 안 적으면 상한으로 잡음, 관내·특근은 적은 금액을 같이 계산)
     lodge: { 특별시: 70000, 광역시: 60000, '그 외': 50000 }, // 숙박비 1박 상한
+    ot: { short: 5000, long: 10000 }, // 특근비 1일: 4시간 미만 / 4시간 이상 (데이터 관리 없이 출장·특근 화면에서 관리자가 바꿀 수 있음)
   };
+  /** 특근비 단가 (설정값이 있으면 그것) */
+  const otRate = () => ({ short: num((S.get().settings || {}).otShort) || RULE.ot.short, long: num((S.get().settings || {}).otLong) || RULE.ot.long });
   const LODGE_REGIONS = Object.keys(RULE.lodge);
   const METRO = /서울|인천|대전|대구|광주광역|울산|부산/;
   // 화성시 밖 지명 (관외 자동 판단용). 화성시 안 지명은 D.AREAS에서 본다
@@ -5847,14 +6057,17 @@ window.TV = (() => {
       return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows, out, min, car, daily, why, meal, actual, total: daily + meal + actual, noTime: !out && !min };
     }).sort((a, b) => (a.staff).localeCompare(b.staff) || (a.date || '').localeCompare(b.date || ''));
   }
-  /** 특근: 담당자·날짜별 식비 (적은 금액, 1일 2만원까지) */
+  /** 특근: 담당자·날짜별 특근비(하루 특근시간 합: 4시간 미만·이상) + 식비(적은 금액, 1일 2만원까지) */
   function otDays(list) {
     const map = new Map();
+    const rate = otRate();
     list.forEach(t => { const k = `${t.staff || ''}|${t.date || ''}`; if (!map.has(k)) map.set(k, []); map.get(k).push(t); });
     return [...map.values()].map(g => {
       const sum = g.reduce((a, t) => a + num(t.meal), 0);
       const meal = Math.min(RULE.meal, sum);
-      return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, over: sum > RULE.meal, total: meal, min: g.reduce((a, t) => a + minutesOf(t.time), 0) };
+      const min = g.reduce((a, t) => a + minutesOf(t.time), 0);
+      const pay = min >= 240 ? rate.long : rate.short;
+      return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, pay, noTime: !min, over: sum > RULE.meal, total: pay + meal, min };
     });
   }
   /** 한 달 정산: 사람마다 관내 출장 · 관외 출장 · 특근(식비) 묶음. 식비는 출장·특근 합쳐 하루 2만원까지 */
@@ -5876,7 +6089,7 @@ window.TV = (() => {
       const left = Math.max(0, RULE.meal - (tripMeal.get(`${o.staff}|${o.date}`) || 0));
       const typed = o.rows.reduce((a, t) => a + num(t.meal), 0);
       const meal = Math.min(typed, left);
-      p.ot.push({ date: o.date, where: o.rows.map(t => t.purpose).filter(Boolean).join(', '), time: o.rows.map(t => t.time).filter(Boolean).join(', '), min: o.min, meal, typed, capped: typed > meal, total: meal, ids: o.rows.map(t => t.id) });
+      p.ot.push({ date: o.date, where: o.rows.map(t => t.purpose).filter(Boolean).join(', '), time: o.rows.map(t => t.time).filter(Boolean).join(', '), min: o.min, pay: o.pay, noTime: o.noTime, meal, typed, capped: typed > meal, total: o.pay + meal, ids: o.rows.map(t => t.id) });
     });
     const byDate = (a, b) => (a.date || '').localeCompare(b.date || '');
     const list = [...people.values()].map(p => {
@@ -5890,22 +6103,22 @@ window.TV = (() => {
     const sum = k => list.reduce((a, p) => a + p[k], 0);
     return { month, people: list, inTotal: sum('inTotal'), outTotal: sum('outTotal'), otTotal: sum('otTotal'), total: sum('total') };
   }
-  const PART = { in: '관내 출장', out: '관외 출장', ot: '특근 (식비)', all: '전체 정산' };
+  const PART = { in: '관내 출장', out: '관외 출장', ot: '특근 (특근비·식비)', all: '전체 정산' };
   /** 정산 판: 월 전체 합계 + 사람마다 관내·관외·특근 금액과 인쇄 버튼 */
   function settlePanel(month) {
     const st = settle(month);
     if (!st.people.length) return '';
     const cell = (rows, total) => rows.length ? `<b class="num">${won(total)}원</b><small>${rows.length}일</small>` : '<span class="sub">-</span>';
-    const pbtn = (name, part, n) => `<button class="btn btn-sm" type="button" data-act="tv-print-part" data-staff="${e(name)}" data-part="${part}" ${n ? '' : 'disabled'}>${PART[part].replace(' (식비)', '')}</button>`;
+    const pbtn = (name, part, n) => `<button class="btn btn-sm" type="button" data-act="tv-print-part" data-staff="${e(name)}" data-part="${part}" ${n ? '' : 'disabled'}>${PART[part].replace(' (특근비·식비)', '')}</button>`;
     return `<div class="tv-settle">
       <div class="tv-settle-head"><h3>📋 ${V.monthLabel(month)} 현장중심센터 여비 정산</h3><span class="tv-settle-total">전 직원 합계 <b class="num">${won(st.total)}원</b></span></div>
-      <div class="table-wrap"><table class="tbl tv-settle-tbl"><thead><tr><th>담당자</th><th>관내 출장<small>(화성시 안)</small></th><th>관외 출장<small>(화성시 밖)</small></th><th>특근 식비</th><th class="tot">정산 받을 금액</th><th>인쇄</th></tr></thead><tbody>
-        ${st.people.map(p => `<tr><th>${e(p.name)}</th><td>${cell(p.in, p.inTotal)}</td><td>${cell(p.out, p.outTotal)}</td><td>${cell(p.ot, p.otTotal)}${p.ot.some(r => r.capped) ? '<small class="tv-over">하루 2만원까지만</small>' : ''}</td><td class="tot"><b class="num">${won(p.total)}원</b></td>
+      <div class="table-wrap"><table class="tbl tv-settle-tbl"><thead><tr><th>담당자</th><th>관내 출장<small>(화성시 안)</small></th><th>관외 출장<small>(화성시 밖)</small></th><th>특근<small>(특근비 + 식비)</small></th><th class="tot">정산 받을 금액</th><th>인쇄</th></tr></thead><tbody>
+        ${st.people.map(p => `<tr><th>${e(p.name)}</th><td>${cell(p.in, p.inTotal)}</td><td>${cell(p.out, p.outTotal)}</td><td>${cell(p.ot, p.otTotal)}${p.ot.length ? `<small>특근비 ${won(p.ot.reduce((a, r) => a + r.pay, 0))} · 식비 ${won(p.ot.reduce((a, r) => a + r.meal, 0))}</small>` : ''}${p.ot.some(r => r.capped) ? '<small class="tv-over">하루 2만원까지만</small>' : ''}</td><td class="tot"><b class="num">${won(p.total)}원</b></td>
           <td class="nowrap">${pbtn(p.name, 'in', p.in.length)}${pbtn(p.name, 'out', p.out.length)}${pbtn(p.name, 'ot', p.ot.length)}<button class="btn btn-sm btn-primary" type="button" data-act="tv-print-part" data-staff="${e(p.name)}" data-part="all">전체</button></td></tr>`).join('')}
         <tr class="tot"><th>전 직원 합계</th><td><b class="num">${won(st.inTotal)}원</b></td><td><b class="num">${won(st.outTotal)}원</b></td><td><b class="num">${won(st.otTotal)}원</b></td><td class="tot"><b class="num">${won(st.total)}원</b></td>
           <td class="nowrap"><button class="btn btn-sm" type="button" data-act="tv-print-sum">전체 요약 인쇄</button><button class="btn btn-sm btn-primary" type="button" data-act="tv-print-all">전원 정산서 인쇄</button></td></tr>
       </tbody></table></div>
-      <p class="sub" style="margin:4px 0 0">관내: 4시간 미만 5천원 · 4시간 이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외: 일비 2만원 + 운임·숙박비 / 하루에 관내·관외를 같이 가면 관외 / 식비는 출장·특근 합쳐 한 사람 하루 최대 2만원. 특근 식비는 특근 명령부의 식비 칸에서 적어요.</p>
+      <p class="sub" style="margin:4px 0 0">관내: 4시간 미만 5천원 · 4시간 이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외: 일비 2만원 + 운임·숙박비 / 하루에 관내·관외를 같이 가면 관외 / 식비는 출장·특근 합쳐 한 사람 하루 최대 2만원 / 특근비: 그날 특근시간 4시간 미만 ${won(otRate().short)}원 · 4시간 이상 ${won(otRate().long)}원 (특근 명령부의 시간 칸 기준, 시간이 없으면 4시간 미만). 특근 식비는 특근 명령부의 식비 칸에서 적어요.</p>
     </div>`;
   }
   /** 정산서 한 장: part = in | out | ot | all */
@@ -5916,10 +6129,10 @@ window.TV = (() => {
     const nRows = parts.reduce((a, k) => a + Math.max(3, rowsOf(k).length) + 2, 0);
     const rowMm = +(Math.min(9, 190 / Math.max(14, nRows)) * scale).toFixed(2);
     const fs = +((rowMm >= 8 ? 10 : rowMm >= 6.5 ? 9 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
-    const COLS = { in: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['유류·통행·주차', 14], ['식비', 11], ['합계', 16]], out: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['운임·숙박', 14], ['식비', 11], ['합계', 16]], ot: [['날짜', 9], ['특근 업무', 36], ['특근시간', 17], ['식비', 18], ['합계', 20]] };
+    const COLS = { in: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['유류·통행·주차', 14], ['식비', 11], ['합계', 16]], out: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['운임·숙박', 14], ['식비', 11], ['합계', 16]], ot: [['날짜', 9], ['특근 업무', 31], ['특근시간', 15], ['특근비', 14], ['식비', 14], ['합계', 17]] };
     const sec = k => {
       const rows = rowsOf(k), cols = COLS[k];
-      const body = rows.map(r => `<tr style="height:${rowMm}mm"><td>${U.md(r.date)}</td><td class="l">${e(r.where)}</td><td>${e(r.time)}</td>${k === 'ot' ? `<td class="r">${won(r.meal)}${r.capped ? '*' : ''}</td>` : `<td class="r">${won(r.daily)}</td><td class="r">${won(k === 'in' ? r.fuel + r.tollPark : r.fareLodge + r.fuel + r.tollPark)}</td><td class="r">${won(r.meal)}</td>`}<td class="r"><b>${won(r.total)}</b></td></tr>`);
+      const body = rows.map(r => `<tr style="height:${rowMm}mm"><td>${U.md(r.date)}</td><td class="l">${e(r.where)}</td><td>${e(r.time)}</td>${k === 'ot' ? `<td class="r">${won(r.pay)}</td><td class="r">${won(r.meal)}${r.capped ? '*' : ''}</td>` : `<td class="r">${won(r.daily)}</td><td class="r">${won(k === 'in' ? r.fuel + r.tollPark : r.fareLodge + r.fuel + r.tollPark)}</td><td class="r">${won(r.meal)}</td>`}<td class="r"><b>${won(r.total)}</b></td></tr>`);
       while (body.length < 3) body.push(`<tr style="height:${rowMm}mm">${cols.map(() => '<td>&nbsp;</td>').join('')}</tr>`);
       return `<h2 class="tv-doc-sec">${PART[k]}</h2><table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${cols.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
         <thead><tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.join('')}
@@ -5933,7 +6146,7 @@ window.TV = (() => {
       <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터) · <b>${e(name)}</b></p>
       ${parts.map(sec).join('')}
       <table class="doc-tbl tv-grand"><tr><th>정산 받을 금액${part === 'all' ? ' (관내 + 관외 + 특근)' : ''}</th><td class="r"><b>${won(total)}원</b></td></tr></table>
-      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음), 관외 일비 2만원, 하루에 관내·관외를 같이 가면 관외. 식비는 출장·특근 합쳐 1인 1일 2만원 이내${p.ot.some(r => r.capped) ? ' (*표시: 상한 적용)' : ''}. 유류비·통행료·주차료·운임·숙박비는 영수증 첨부.</p>
+      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음), 관외 일비 2만원, 하루에 관내·관외를 같이 가면 관외. 특근비 4시간 미만 ${won(otRate().short)}원·이상 ${won(otRate().long)}원. 식비는 출장·특근 합쳐 1인 1일 2만원 이내${p.ot.some(r => r.capped) ? ' (*표시: 상한 적용)' : ''}. 유류비·통행료·주차료·운임·숙박비는 영수증 첨부.</p>
     </article>`;
   }
   /** 전 직원 월 합계 한 장 */
@@ -5944,11 +6157,11 @@ window.TV = (() => {
       <h1>여비 정산 총괄표</h1>
       <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)</p>
       <table class="doc-tbl order-tbl"><colgroup><col style="width:16%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:12%"><col style="width:14%"></colgroup>
-        <thead><tr><th>담당자</th><th>관내 일수</th><th>관내 금액</th><th>관외 일수</th><th>관외 금액</th><th>특근 일수</th><th>특근 식비</th><th>정산 금액</th></tr></thead><tbody>
+        <thead><tr><th>담당자</th><th>관내 일수</th><th>관내 금액</th><th>관외 일수</th><th>관외 금액</th><th>특근 일수</th><th>특근비·식비</th><th>정산 금액</th></tr></thead><tbody>
         ${st.people.map(p => `<tr style="height:10mm"><td><b>${e(p.name)}</b></td><td>${p.in.length}</td><td class="r">${won(p.inTotal)}</td><td>${p.out.length}</td><td class="r">${won(p.outTotal)}</td><td>${p.ot.length}</td><td class="r">${won(p.otTotal)}</td><td class="r"><b>${won(p.total)}</b></td></tr>`).join('')}
         <tr class="tv-doc-total" style="height:11mm"><th>합계</th><th></th><th class="r">${won(st.inTotal)}</th><th></th><th class="r">${won(st.outTotal)}</th><th></th><th class="r">${won(st.otTotal)}</th><th class="r">${won(st.total)}원</th></tr>
       </tbody></table>
-      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외 일비 2만원 + 운임·숙박비 / 식비 1인 1일 2만원 이내(출장·특근 합산).</p>
+      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외 일비 2만원 + 운임·숙박비 / 특근비 4시간 미만 ${won(otRate().short)}원·이상 ${won(otRate().long)}원 / 식비 1인 1일 2만원 이내(출장·특근 합산).</p>
     </article>`;
   }
   const monthTrips = month => S.get().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
@@ -5971,7 +6184,7 @@ window.TV = (() => {
         <details class="tv-rule"><summary><b>여비 지급 기준</b> <span class="sub">규정집 2026 · 누르면 펼쳐져요</span></summary>
           <div class="tv-rule-body">
             <table class="tbl tv-rule-tbl"><thead><tr><th>구분</th><th>일비</th></tr></thead>
-              <tbody><tr><td>근무지 내 (화성시 안) 4시간 미만</td><td>${won(RULE.daily.short.car)}원</td></tr><tr><td>근무지 내 4시간 이상</td><td>${won(RULE.daily.long.car)}원</td></tr><tr><td>근무지 외 (화성시 밖)</td><td>${won(RULE.outDaily)}원</td></tr><tr><td>식비 (출장·특근 합쳐 1인 1일)</td><td>최대 ${won(RULE.meal)}원</td></tr></tbody></table>
+              <tbody><tr><td>근무지 내 (화성시 안) 4시간 미만</td><td>${won(RULE.daily.short.car)}원</td></tr><tr><td>근무지 내 4시간 이상</td><td>${won(RULE.daily.long.car)}원</td></tr><tr><td>근무지 외 (화성시 밖)</td><td>${won(RULE.outDaily)}원</td></tr><tr><td>식비 (출장·특근 합쳐 1인 1일)</td><td>최대 ${won(RULE.meal)}원</td></tr><tr><td>특근비 (하루 특근시간) 4시간 미만</td><td>${won(otRate().short)}원</td></tr><tr><td>특근비 4시간 이상</td><td>${won(otRate().long)}원</td></tr></tbody></table>
             <ul class="sub">
               <li><b>근무지 내(화성시 안)</b>: 일비 + 유류비(출장거리 × 유가 ÷ 연비, 개인 차량일 때) + 통행료 + 주차료(영수증)</li>
               <li><b>근무지 외</b>: 운임(실비) + 숙박비(1박 상한 특별시 7만 · 광역시 6만 · 그 외 5만원) + 식비(1일 2만원 이내) + 일비(1일 2만원 이내)</li>
@@ -5985,6 +6198,9 @@ window.TV = (() => {
           <span class="sub">개인 차량 유류비 기본값</span>
           <label>연비 <input class="input sm" style="width:64px" id="tvEff" value="${e(st.fuelEff || '')}" placeholder="km/L" inputmode="decimal" ${admin ? '' : 'disabled'}> km/L</label>
           <label>유가 <input class="input sm" style="width:76px" id="tvPrice" value="${e(st.fuelPrice || '')}" placeholder="원/L" inputmode="numeric" ${admin ? '' : 'disabled'}> 원/L</label>
+          <span class="sub">특근비</span>
+          <label>4시간 미만 <input class="input sm" style="width:76px" id="tvOtS" value="${e((st.otShort || '') + '')}" placeholder="${RULE.ot.short}" inputmode="numeric" ${admin ? '' : 'disabled'}> 원</label>
+          <label>이상 <input class="input sm" style="width:76px" id="tvOtL" value="${e((st.otLong || '') + '')}" placeholder="${RULE.ot.long}" inputmode="numeric" ${admin ? '' : 'disabled'}> 원</label>
           ${admin ? '<button class="btn btn-sm" type="button" data-act="tv-save-set">저장</button>' : '<span class="sub">(관리자가 정해요 · 줄마다 따로 적을 수 있어요)</span>'}
           <span class="grow"></span>
           <button class="btn btn-sm" type="button" data-act="tv-road" ${list.length ? '' : 'disabled'}>🚗 개인 차량 거리 도로로 채우기</button>
@@ -6047,7 +6263,7 @@ window.TV = (() => {
   }
   const staffOf = month => [...new Set(days(monthTrips(month)).map(d => d.staff))];
 
-  return { RULE, settle, settleDoc, settleSumDoc, PART, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
+  return { RULE, otRate, settle, settleDoc, settleSumDoc, PART, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
 })();
 
 </script>
@@ -7683,7 +7899,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
-    'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
@@ -7697,8 +7913,8 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const FORM_GATES = { 'perf-item-add': [['perf', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -8214,9 +8430,7 @@ window.App = (() => {
       const box = $('#ctPasteBox');
       box.oninput = U.debounce(() => {
         const { rows } = R.parsePaste(box.value);
-        const key = n => U.orgKey(n);
-        const have = new Set(S.get().businesses.map(b => key(b.name)));
-        top.state = { text: box.value, rows, newCount: new Set(rows.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size };
+        top.state = { text: box.value, rows };
         renderDrawer(true);
         $('#ctPasteBox').focus();
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
@@ -8980,8 +9194,10 @@ window.App = (() => {
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'tv-save-set': async () => {
       const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
-      await S.saveSettings({ fuelEff: eff, fuelPrice: price });
-      toast(`유류비 기본값을 저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L`);
+      const otS = ($('#tvOtS')?.value || '').replace(/[^0-9]/g, ''), otL = ($('#tvOtL')?.value || '').replace(/[^0-9]/g, '');
+      await S.saveSettings({ fuelEff: eff, fuelPrice: price, otShort: otS, otLong: otL });
+      const r = TV.otRate();
+      toast(`저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L · 특근비 4시간 미만 ${r.short.toLocaleString()}원 · 이상 ${r.long.toLocaleString()}원`);
     },
     'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'tv-print-part': el => { const m = R.ui.orders.month; printHtml(fitA4(sc => TV.settleDoc(m, el.dataset.staff, el.dataset.part, sc))); },
@@ -9026,7 +9242,16 @@ window.App = (() => {
       S.upsert('act', { id: a.id, jobUrl: R.jobLink(v) });
       toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
     },
-    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const n = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${n}줄을 가져왔습니다.`); },
+    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const r = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${r.n}줄을 가져왔습니다.${r.biz ? ` 새 사업체 ${r.biz}곳은 사업체 개발·지도에도 올렸어요.` : ''}`); },
+    'ct-file': () => pickFiles('.xlsx,.xls,.csv', true, async files => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return;
+      let cells = [];
+      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
+      const { rows } = R.parseCells(cells);
+      top.state = { text: '', file: files.map(f => f.name).join(', '), rows };
+      renderDrawer(true);
+      if (!rows.length) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
+    }),
     'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
     'dash-move': el => { const [y, m] = V.ui.dash.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.dash.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; $('#dashCal').innerHTML = V.dashCal(); },
@@ -9230,6 +9455,15 @@ window.App = (() => {
         saveAcc(V.accRows().map(r => (r.email === email ? { ...r, admin: el.value === 'admin' } : r))).then(() => toast(`${email}을(를) ${el.value === 'admin' ? '관리자' : '사용자'}로 바꿨습니다.`));
         return;
       }
+      if (field === 'date' && /^(act|pa|pf)-field$/.test(el.dataset.chg) && !U.isDate(el.value)) { inlineEdit = false; render(); return; }
+      if (el.dataset.chg === 'pa-field' || el.dataset.chg === 'pf-field') {
+        inlineEdit = false;
+        const v = field === 'people' ? (el.value === '' ? '' : Math.max(0, +el.value || 0)) : field === 'content' || field === 'note' ? el.value.trim() : el.value;
+        S.upsert(el.dataset.chg === 'pa-field' ? 'act' : 'perf', { id, [field]: v });
+        if (field === 'perf' && v === '제외') toast('이 기록을 실적에서 뺐습니다. 아래 "실적에서 뺀 기록"에서 다시 넣을 수 있어요.');
+        return;
+      }
+      if (el.dataset.chg === 'act-field' && field === 'date') { inlineEdit = false; S.upsert('act', { id, date: el.value }); return; }
       if (el.dataset.chg === 'act-field' && field === 'jobUrl') {
         if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https:\/\/…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
@@ -9277,6 +9511,23 @@ window.App = (() => {
         const b = R.addContact(fd);
         toast(`${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
+        return;
+      }
+      if (form.dataset.form === 'perf-item-add') {
+        const fd = Object.fromEntries(new FormData(form).entries());
+        const item = form.dataset.item, name = (fd.name || '').trim();
+        if (!U.isDate(fd.date)) return toast('날짜를 입력하세요.', 'error');
+        const k = U.orgKey(name);
+        const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
+        const people = fd.people ? +fd.people : '';
+        V.ui.perf.pdOpen = item;
+        if (b || n) {
+          S.upsert('act', { targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type, content: fd.content.trim() || `${item} 실적`, staff: S.me(), perf: item, people });
+          toast(`${(b || n).name} 기록을 ${item}에 추가했습니다.`);
+        } else {
+          S.upsert('perf', { date: fd.date, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, fd.content.trim()].filter(Boolean).join(' · '), staff: S.me() });
+          toast(`${item} 실적을 추가했습니다.${name ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+        }
         return;
       }
       if (form.dataset.form === 'perf-add') {

@@ -62,7 +62,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
-    'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
@@ -76,8 +76,8 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const FORM_GATES = { 'perf-item-add': [['perf', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -593,9 +593,7 @@ window.App = (() => {
       const box = $('#ctPasteBox');
       box.oninput = U.debounce(() => {
         const { rows } = R.parsePaste(box.value);
-        const key = n => U.orgKey(n);
-        const have = new Set(S.get().businesses.map(b => key(b.name)));
-        top.state = { text: box.value, rows, newCount: new Set(rows.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size };
+        top.state = { text: box.value, rows };
         renderDrawer(true);
         $('#ctPasteBox').focus();
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
@@ -1359,8 +1357,10 @@ window.App = (() => {
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'tv-save-set': async () => {
       const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
-      await S.saveSettings({ fuelEff: eff, fuelPrice: price });
-      toast(`유류비 기본값을 저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L`);
+      const otS = ($('#tvOtS')?.value || '').replace(/[^0-9]/g, ''), otL = ($('#tvOtL')?.value || '').replace(/[^0-9]/g, '');
+      await S.saveSettings({ fuelEff: eff, fuelPrice: price, otShort: otS, otLong: otL });
+      const r = TV.otRate();
+      toast(`저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L · 특근비 4시간 미만 ${r.short.toLocaleString()}원 · 이상 ${r.long.toLocaleString()}원`);
     },
     'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'tv-print-part': el => { const m = R.ui.orders.month; printHtml(fitA4(sc => TV.settleDoc(m, el.dataset.staff, el.dataset.part, sc))); },
@@ -1405,7 +1405,16 @@ window.App = (() => {
       S.upsert('act', { id: a.id, jobUrl: R.jobLink(v) });
       toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
     },
-    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const n = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${n}줄을 가져왔습니다.`); },
+    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const r = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${r.n}줄을 가져왔습니다.${r.biz ? ` 새 사업체 ${r.biz}곳은 사업체 개발·지도에도 올렸어요.` : ''}`); },
+    'ct-file': () => pickFiles('.xlsx,.xls,.csv', true, async files => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return;
+      let cells = [];
+      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
+      const { rows } = R.parseCells(cells);
+      top.state = { text: '', file: files.map(f => f.name).join(', '), rows };
+      renderDrawer(true);
+      if (!rows.length) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
+    }),
     'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
     'dash-move': el => { const [y, m] = V.ui.dash.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.dash.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; $('#dashCal').innerHTML = V.dashCal(); },
@@ -1609,6 +1618,15 @@ window.App = (() => {
         saveAcc(V.accRows().map(r => (r.email === email ? { ...r, admin: el.value === 'admin' } : r))).then(() => toast(`${email}을(를) ${el.value === 'admin' ? '관리자' : '사용자'}로 바꿨습니다.`));
         return;
       }
+      if (field === 'date' && /^(act|pa|pf)-field$/.test(el.dataset.chg) && !U.isDate(el.value)) { inlineEdit = false; render(); return; }
+      if (el.dataset.chg === 'pa-field' || el.dataset.chg === 'pf-field') {
+        inlineEdit = false;
+        const v = field === 'people' ? (el.value === '' ? '' : Math.max(0, +el.value || 0)) : field === 'content' || field === 'note' ? el.value.trim() : el.value;
+        S.upsert(el.dataset.chg === 'pa-field' ? 'act' : 'perf', { id, [field]: v });
+        if (field === 'perf' && v === '제외') toast('이 기록을 실적에서 뺐습니다. 아래 "실적에서 뺀 기록"에서 다시 넣을 수 있어요.');
+        return;
+      }
+      if (el.dataset.chg === 'act-field' && field === 'date') { inlineEdit = false; S.upsert('act', { id, date: el.value }); return; }
       if (el.dataset.chg === 'act-field' && field === 'jobUrl') {
         if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
@@ -1656,6 +1674,23 @@ window.App = (() => {
         const b = R.addContact(fd);
         toast(`${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
+        return;
+      }
+      if (form.dataset.form === 'perf-item-add') {
+        const fd = Object.fromEntries(new FormData(form).entries());
+        const item = form.dataset.item, name = (fd.name || '').trim();
+        if (!U.isDate(fd.date)) return toast('날짜를 입력하세요.', 'error');
+        const k = U.orgKey(name);
+        const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
+        const people = fd.people ? +fd.people : '';
+        V.ui.perf.pdOpen = item;
+        if (b || n) {
+          S.upsert('act', { targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type, content: fd.content.trim() || `${item} 실적`, staff: S.me(), perf: item, people });
+          toast(`${(b || n).name} 기록을 ${item}에 추가했습니다.`);
+        } else {
+          S.upsert('perf', { date: fd.date, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, fd.content.trim()].filter(Boolean).join(' · '), staff: S.me() });
+          toast(`${item} 실적을 추가했습니다.${name ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+        }
         return;
       }
       if (form.dataset.form === 'perf-add') {

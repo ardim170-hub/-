@@ -40,7 +40,7 @@ window.R = (() => {
     return `
       <div class="page-head">
         <div><h1 class="page-title">연락이력</h1><div class="page-desc">사업체 연락·방문을 한 줄씩 기록하고, 공유 시트의 연락이력·보고용 시트 모양 그대로 복사합니다.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="ct-paste">시트에서 붙여넣어 가져오기</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="ct-paste">붙여넣기·엑셀 파일로 한 번에 가져오기</button></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('ct-month', f.month)}
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
@@ -94,14 +94,15 @@ window.R = (() => {
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
-      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th></tr></thead><tbody>
-        ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num">${a.date}</td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
-          <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap">${e(a.content)}</td>
+      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
+        ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+          <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
           <td>${e(a.staff || '')}</td><td><span class="badge">${e(a.type)}</span></td>
           <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기 · ${e(siteName(a.jobUrl))}</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
-            : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td></tr>`).join('')}
+            : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td>
+          <td><button class="icon-btn" type="button" aria-label="이 연락 기록 삭제" title="삭제" data-act="act-del" data-id="${a.id}">${V.I.close}</button></td></tr>`).join('')}
       </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
   }
@@ -146,56 +147,170 @@ window.R = (() => {
     return '';
   }
 
-  /* ---------- 공유 시트에서 붙여넣어 가져오기 ---------- */
-  const COLS = [['date', ['날짜', '일자']], ['name', ['사업체명', '업체명', '사업체', '업체']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명']], ['jobType', ['직종', '직무']], ['content', ['결과', '내용']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
-  // 머리글이 없으면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
+  /* ---------- 공유 시트에서 붙여넣거나 엑셀·CSV 파일로 한 번에 가져오기 ---------- */
+  const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
+  // 머리글이 없거나 모자라면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
-  function parsePaste(text) {
-    const lines = text.replace(/\r/g, '').split('\n').filter(l => l.trim());
-    if (!lines.length) return { rows: [], map: null };
-    const cells = lines.map(l => l.split('\t').map(c => c.trim()));
-    const hdrIdx = cells.findIndex(r => r.filter(c => COLS.some(([, syn]) => syn.includes(c.replace(/\s/g, '')))).length >= 3);
+  /** 엑셀 복사 형식(TSV) 읽기: 줄 바꿈이 든 칸은 "따옴표"로 감싸져 온다 */
+  function parseTsv(t) {
+    const rows = [[]]; let cur = '', q = false;
+    t = String(t).replace(/\r\n?/g, '\n');
+    for (let i = 0; i < t.length; i++) {
+      const ch = t[i];
+      if (q) { if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; continue; }
+      if (ch === '"' && cur.trim() === '') { q = true; cur = ''; }
+      else if (ch === '\t') { rows[rows.length - 1].push(cur); cur = ''; }
+      else if (ch === '\n') { rows[rows.length - 1].push(cur); cur = ''; rows.push([]); }
+      else cur += ch;
+    }
+    rows[rows.length - 1].push(cur);
+    return rows;
+  }
+  const hdrKey = c => { const n = String(c).replace(/\s/g, ''); if (!n) return ''; const hit = COLS.find(([, syn]) => syn.some(s => n === s.replace(/\s/g, ''))) || COLS.find(([, syn]) => syn.some(s => s.length > 1 && n.includes(s))); return hit ? hit[0] : ''; };
+  /** 날짜처럼 보이는 칸 → YYYY-MM-DD (연도가 없으면 보고 있는 달의 연도) */
+  function dateOf(v, year) {
+    if (typeof v === 'number') return v > 20000 && v < 80000 ? U.toDateStr(v) : '';
+    const s = String(v || '').replace(/\s/g, '').replace(/[년월]/g, '-').replace(/일$/, '');
+    const full = U.toDateStr(s);
+    if (full) return full;
+    const m = s.match(/^(\d{1,2})[-./](\d{1,2})\.?$/);
+    return m && +m[1] <= 12 && +m[2] <= 31 ? `${year}-${U.pad(m[1])}-${U.pad(m[2])}` : '';
+  }
+  const oneLine = (v, sep = ' ') => String(v ?? '').split('\n').map(x => x.trim()).filter(Boolean).join(sep);
+  /** 앞자리 0이 빠진 번호 고치기: 10-1234-5678 → 010-…, 70-… → 070-… */
+  const fixPhone = p => oneLine(p, ' / ').replace(/(^|[\s/])(1[016789]|70)(?=[-)\s]\d)/g, '$10$2');
+  /** 결과 글에서 연락결과 고르기 */
+  function guessResult(t) {
+    const s = String(t || '').replace(/\s/g, '');
+    if (!s) return '';
+    if (/채용의향있|의향있|채용하니|면접요청|면접진행|협약/.test(s)) return '채용의향 있음';
+    if (/마감/.test(s)) return '채용마감';
+    if (/채용안|안뽑|거부|거절|채용하지않|힘들|어렵|필요성이없|아님/.test(s)) return '채용안함';
+    if (/안받|받지않|부재|자리를비|미응답|신호음|삐소리/.test(s)) return '부재·미응답';
+    if (/검토|확인|상의|문의|회의|보고후|연락주기|예정/.test(s)) return '검토중';
+    return '';
+  }
+  /** 표(2차원 배열) → 연락 기록 줄. 머리글 칸 수가 모자라거나 번호 칸이 빠져도 '날짜 칸'을 기준으로 맞춘다 */
+  function parseCells(cells, year = ui.contacts.month.slice(0, 4)) {
+    cells = cells.map(r => (r || []).map(c => (typeof c === 'number' ? c : String(c ?? '').trim())));
+    const hdrIdx = cells.slice(0, 15).findIndex(r => r.filter(c => hdrKey(c)).length >= 3 && !r.some(c => dateOf(c, year)));
     let order;
     if (hdrIdx >= 0) {
-      order = cells[hdrIdx].map(c => { const n = c.replace(/\s/g, ''); const hit = COLS.find(([, syn]) => syn.some(s => n === s)) || COLS.find(([, syn]) => syn.some(s => n.includes(s))); return hit ? hit[0] : ''; });
-    } else {
-      // 첫 칸이 날짜처럼 보이면 번호 열 없이 붙여넣은 것
-      const first = cells[0][0] || '';
-      order = /\d{4}[-.\s]/.test(first) ? DEFAULT_ORDER.slice(1) : DEFAULT_ORDER;
-    }
+      order = cells[hdrIdx].map(hdrKey);
+      // 빈 머리글 칸은 앞 칸 다음 순서로 채운다 (예: 전화번호 뒤 이름 없는 칸들 → 담당자·직종·결과…)
+      for (let i = 0; i < Math.max(order.length, 12); i++) {
+        if (order[i]) continue;
+        const prev = order[i - 1], at = DEFAULT_ORDER.indexOf(prev);
+        const next = at >= 0 ? DEFAULT_ORDER.slice(at + 1).find(k => !order.includes(k)) : '';
+        order[i] = next || '';
+      }
+    } else order = DEFAULT_ORDER.slice();
+    const dCol = order.indexOf('date');
     const body = hdrIdx >= 0 ? cells.slice(hdrIdx + 1) : cells;
-    const rows = body.map(r => {
+    const merged = new Map();
+    body.forEach(r => {
+      // 날짜 칸 찾기 (머리글 위치 근처를 먼저)
+      const cand = [dCol, dCol + 1, dCol - 1, ...r.keys()].filter(i => i >= 0 && i < r.length);
+      const di = cand.find(i => dateOf(r[i], year));
+      if (di == null) return;
+      const shift = di - dCol;
       const o = {};
-      order.forEach((k, i) => { if (k && r[i] != null && o[k] == null) o[k] = r[i]; });
-      o.date = U.toDateStr(String(o.date || '').replace(/\s/g, ''));
-      o.type = /방문/.test(o.content || '') ? '방문' : '전화';
-      return o;
-    }).filter(o => o.name && o.date);
+      order.forEach((k, i) => { const v = r[i + shift]; if (k && v != null && v !== '' && o[k] == null) o[k] = v; });
+      o.date = dateOf(r[di], year);
+      o.name = oneLine(o.name).replace(/\s+/g, ' ');
+      if (!o.name || /^\d+$/.test(o.name)) return;
+      o.address = String(o.address || '').trim();
+      // 주소 칸에 공고 설명을 적어 둔 줄 → 결과(내용)로 옮긴다
+      if (/\n|^\*|직무내용|근무시간|수습기간|급여|우대/.test(o.address)) { o.content = [oneLine(o.address, ' · ').replace(/^\*\s*/, '').replace(/\s*·\s*\*\s*/g, ' · '), o.content].filter(Boolean).join(' / '); o.address = ''; }
+      o.address = oneLine(o.address);
+      o.phone = fixPhone(o.phone);
+      o.contactName = oneLine(o.contactName, ' / ');
+      o.jobType = oneLine(o.jobType);
+      o.content = oneLine(o.content);
+      ['result', 'status', 'staff', 'jobUrl'].forEach(k => { o[k] = oneLine(o[k]); });
+      ['address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'].forEach(k => { if (/^[`'"\-·.\s]+$/.test(o[k] || '')) o[k] = ''; });
+      o.result = D.CONTACT_RESULTS.find(x => o.result.replace(/\s/g, '') === x.replace(/\s/g, '')) || guessResult(o.content);
+      o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : '전화';
+      // 같은 날 같은 사업체가 두 번 적혀 있으면 한 줄로 합친다 (빈 칸은 채우고, 결과는 긴 쪽)
+      const k = o.date + '|' + U.orgKey(o.name);
+      const prev = merged.get(k);
+      if (prev) {
+        ['address', 'phone', 'contactName', 'jobType', 'result', 'status', 'staff', 'jobUrl'].forEach(f => { if (!prev[f] && o[f]) prev[f] = o[f]; });
+        if ((o.content || '').length > (prev.content || '').length) { prev.content = o.content; prev.type = o.type; }
+        prev.n = (prev.n || 1) + 1;
+      } else merged.set(k, o);
+    });
+    const have = new Set(S.get().activities.filter(a => a.targetType === 'biz').map(a => { const b = S.find('biz', a.targetId); return b ? a.date + '|' + U.orgKey(b.name) : ''; }));
+    const rows = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
+    rows.forEach(r => { r.dup = have.has(r.date + '|' + U.orgKey(r.name)); });
     return { rows, order };
+  }
+  const parsePaste = text => parseCells(parseTsv(text));
+  /** 엑셀·CSV 파일 → 표 (시트 여러 개면 모두 이어 붙임) */
+  async function readFileCells(f) {
+    const wb = /\.csv$/i.test(f.name) ? XLSX.read(await f.text(), { type: 'string' }) : XLSX.read(new Uint8Array(await f.arrayBuffer()));
+    return wb.SheetNames.flatMap(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }));
   }
   function pasteDialog(state) {
     const rows = state.rows || [];
-    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">연락이력 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
+    const fresh = rows.filter(r => !r.dup);
+    const key = n => U.orgKey(n);
+    const have = new Set(S.get().businesses.map(b => key(b.name)));
+    const newCount = new Set(fresh.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">연락이력 한 번에 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
       <div class="dr-body">
-        <ol class="steps-help"><li>공유 시트 <b>○월 연락이력</b> 탭에서 가져올 줄을 머리글(날짜·사업체명…)과 함께 드래그해 <b>Ctrl+C</b></li><li>아래 칸을 누르고 <b>Ctrl+V</b></li><li>미리보기를 확인하고 <b>가져오기</b></li></ol>
+        <ol class="steps-help"><li>시트·엑셀에서 가져올 줄을 드래그해 <b>Ctrl+C</b> → 아래 칸에 <b>Ctrl+V</b> (머리글 줄은 있어도 없어도 됩니다)</li><li>또는 <button class="btn btn-sm" type="button" data-act="ct-file">엑셀·CSV 파일 열기</button></li><li>미리보기를 확인하고 <b>가져오기</b></li></ol>
         <textarea class="textarea" id="ctPasteBox" rows="7" placeholder="여기에 붙여넣기 (Ctrl+V)">${e(state.text || '')}</textarea>
-        ${rows.length ? `<p class="sub">${rows.length}줄을 읽었습니다. 처음 보는 사업체 ${state.newCount}곳은 사업체 개발에 새로 등록됩니다. 상담자 칸이 비어 있으면 '${e(S.me())}'로 기록합니다.</p>
-          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>날짜</th><th>사업체명</th><th>전화번호</th><th>담당자</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th></tr></thead><tbody>
-          ${rows.slice(0, 30).map(r => `<tr><td class="num">${e(r.date)}</td><td><b>${e(r.name)}</b></td><td class="num">${e(r.phone || '')}</td><td>${e(r.contactName || '')}</td><td>${e(r.content || '')}</td><td>${e(r.result || '')}</td><td>${e(r.status || '')}</td><td>${e(r.staff || '')}</td></tr>`).join('')}
-          </tbody></table></div>${rows.length > 30 ? `<p class="sub">처음 30줄만 보여줍니다.</p>` : ''}`
-          : state.text ? '<p class="sub" style="color:var(--danger)">날짜와 사업체명이 있는 줄을 찾지 못했습니다. 머리글 줄까지 함께 복사해 보세요.</p>' : ''}
+        ${state.file ? `<p class="sub">파일: <b>${e(state.file)}</b></p>` : ''}
+        ${rows.length ? `<p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에 새로 등록됩니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 상담자 칸이 비어 있으면 '${e(S.me())}'로 기록합니다.</p>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th></tr></thead><tbody>
+          ${rows.slice(0, 200).map(r => `<tr class="${r.dup ? 'dup' : ''}"><td>${r.dup ? '<span class="badge">있음</span>' : !have.has(key(r.name)) ? '<span class="badge accent">새 사업체</span>' : ''}</td><td class="num nowrap">${e(r.date)}</td><td><b>${e(r.name)}</b>${r.n > 1 ? ` <span class="sub">(${r.n}줄 합침)</span>` : ''}</td><td class="clip" title="${e(r.address)}">${e(r.address)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contactName)}</td><td class="clip">${e(r.jobType)}</td><td class="wrap">${e(r.content)}</td><td>${e(r.result)}</td><td>${e(r.type)}</td></tr>`).join('')}
+          </tbody></table></div>${rows.length > 200 ? `<p class="sub">처음 200줄만 보여줍니다.</p>` : ''}`
+          : state.text ? '<p class="sub" style="color:var(--danger)">날짜와 사업체명이 있는 줄을 찾지 못했습니다. 날짜 칸이 들어가게 복사해 보세요.</p>' : ''}
       </div>
-      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="ct-paste-commit" ${rows.length ? '' : 'disabled'}>${rows.length}줄 가져오기</button></div>`;
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="ct-paste-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
   }
+  /** 한 번에 저장 (새 사업체·기존 사업체 보완·연락 기록을 각각 한 번씩 보낸다) */
   function commitPaste(rows) {
     const staffNames = new Set(S.staff().map(s => s.name));
-    let n = 0;
-    rows.forEach(r => {
-      const result = D.CONTACT_RESULTS.find(x => (r.result || '').replace(/\s/g, '') === x.replace(/\s/g, '')) || r.result || '';
-      addContact({ ...r, content: r.content || '(내용 없음)', result, staff: staffNames.has(r.staff) ? r.staff : '' });
-      n++;
+    const me = S.me(), key = n => U.orgKey(n);
+    const list = rows.filter(r => !r.dup);
+    const bizBy = new Map(S.get().businesses.map(b => [key(b.name), b]));
+    const newSpecs = new Map();
+    list.forEach(r => {
+      const k = key(r.name);
+      if (bizBy.has(k)) return;
+      const who = staffNames.has(r.staff) ? r.staff : me;
+      const x = newSpecs.get(k) || { name: r.name, phone: '', address: '', stage: '접촉', discoveredAt: r.date, source: '현장 발굴', staff: who, placements: 0, jobs: '' };
+      if (!x.phone && r.phone) x.phone = r.phone;
+      if (!x.address && r.address) x.address = r.address;
+      if (!x.jobs && r.jobType) x.jobs = r.jobType;
+      if (r.type === '방문') x.stage = '방문상담';
+      if (r.date < x.discoveredAt) x.discoveredAt = r.date;
+      newSpecs.set(k, x);
     });
-    return n;
+    const made = newSpecs.size ? S.upsertMany('biz', [...newSpecs.values()]) : [];
+    made.forEach(b => bizBy.set(key(b.name), b));
+    const patches = new Map();
+    list.forEach(r => {
+      const b = bizBy.get(key(r.name));
+      if (made.includes(b)) return;
+      const p = patches.get(b.id) || { id: b.id };
+      if (!b.phone && !p.phone && r.phone) p.phone = r.phone;
+      if (!b.address && !p.address && r.address) p.address = r.address;
+      const st = p.stage || b.stage;
+      if (st === '발굴') p.stage = r.type === '방문' ? '방문상담' : '접촉';
+      else if (st === '접촉' && r.type === '방문') p.stage = '방문상담';
+      patches.set(b.id, p);
+    });
+    const fix = [...patches.values()].filter(p => Object.keys(p).length > 1);
+    if (fix.length) S.putMany('biz', fix);
+    const acts = made.map(b => ({ targetType: 'biz', targetId: b.id, date: b.discoveredAt, type: '발굴', content: '연락이력 가져오기로 사업체 등록', staff: b.staff }))
+      .concat(list.map(r => ({ targetType: 'biz', targetId: bizBy.get(key(r.name)).id, date: r.date, type: r.type, content: r.content || '(내용 없음)', staff: staffNames.has(r.staff) ? r.staff : me, contactName: r.contactName || '', jobType: r.jobType || '', result: r.result || '', status: r.status || '연락완료', jobUrl: jobLink(r.jobUrl), perf: '', people: '' })));
+    if (acts.length) S.upsertMany('act', acts);
+    const queue = made.filter(b => b.address).slice(0, 60).map(b => b.id);
+    (async () => { for (const id of queue) { await S.refine('biz', id); await new Promise(res => setTimeout(res, 1100)); } })();
+    return { n: list.length, biz: made.length };
   }
 
   /* ================= 출장·특근 명령부 ================= */
@@ -231,7 +346,7 @@ window.R = (() => {
     const tvCell = t => {
       const x = tvRow[t.id]; if (!x) return '<td></td>';
       const { d, r, first } = x;
-      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
+      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `특근비 ${won(d.pay || 0)}${d.noTime ? ' (시간 없음 → 4시간 미만)' : ''} · 식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
       const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
@@ -255,7 +370,7 @@ window.R = (() => {
       ${`<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 파일</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}"><span><b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근 식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}"><span><b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근비·식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>`}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
@@ -272,7 +387,7 @@ window.R = (() => {
           : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`}
           <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
         </tr>`).join('')}
-      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근 식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : '적은 식비를 날마다 2만원까지 더함'})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
+      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근비·식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : `특근비(하루 4시간 미만 ${won(TV.otRate().short)}원·이상 ${won(TV.otRate().long)}원) + 적은 식비(하루 2만원까지)`})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
       : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
     </section>`;
   }
@@ -365,7 +480,7 @@ window.R = (() => {
       const per = months.map(m => {
         const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
         const p = TV.settle(m).people.find(x => x.name === name) || { in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
-        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
+        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.ot.reduce((a, r) => a + r.meal, 0), otPay: p.ot.reduce((a, r) => a + r.pay, 0), otTotal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
       });
       return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
     });
@@ -388,7 +503,7 @@ window.R = (() => {
         <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
       </div>
       ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
+        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 특근비 ${won(x.otPay)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
         <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
       </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
       <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>
@@ -413,10 +528,10 @@ window.R = (() => {
   function bulkSummaryDoc() {
     const sm = bulkSummary();
     return `<article class="doc order-doc" style="font-size:10pt">
-      <h1>출장 여비 · 특근 식비 요약</h1>
+      <h1>출장 여비 · 특근비 요약</h1>
       <p class="order-sub">${V.monthLabel(sm.months[0])} ~ ${V.monthLabel(sm.months[sm.months.length - 1])} · 화성시아르딤복지관 직업지원팀</p>
-      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="6">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
+      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근비</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
+        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.otPay)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="7">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
         <tr class="tv-doc-total" style="height:9mm"><th colspan="7">총 합계</th><th class="r">${won(sm.total)}</th></tr>
       </tbody></table>
       <p class="order-sub tv-doc-note">출장 여비: 중증장애인직업재활지원사업 규정집 2026 여비 기준(근무지 내 일비 4시간 기준·차량배치 유무, 유류비, 통행료, 주차료, 식비). 특근: 명령부에 적은 식비(1일 2만원 이내).</p>
@@ -515,5 +630,5 @@ window.R = (() => {
     }));
   }
 
-  return { ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, readFileCells, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();
