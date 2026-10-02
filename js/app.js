@@ -61,7 +61,7 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
@@ -389,6 +389,12 @@ window.App = (() => {
     box.remove();
     return html;
   }
+  /** 파일 고르기 창 (여러 개 가능) */
+  function pickFiles(accept, multiple, onPick) {
+    const f = document.createElement('input'); f.type = 'file'; f.accept = accept; f.multiple = multiple;
+    f.onchange = () => { const files = [...f.files]; if (files.length) onPick(files); };
+    f.click();
+  }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -472,6 +478,7 @@ window.App = (() => {
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
   function bindSched() {
+    if (V.ui.sched.view === 'train') { const b = $('#tpBox'); if (b) b.innerHTML = TR.view(); return; }
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
@@ -870,6 +877,57 @@ window.App = (() => {
       const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
+    'sched-view': el => { V.ui.sched.view = el.dataset.v; render(); },
+    'tp-cls': el => { TR.ui.cls = el.dataset.cls; bindSched(); },
+    'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
+    'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
+    'tp-cancel': () => { TR.ui.edit = null; bindSched(); },
+    'tp-save': () => { TR.save(); bindSched(); toast('일정표 칸을 저장했어요.'); },
+    'tp-del': () => { const undo = TR.remove(); bindSched(); toast('칸을 비웠어요.', '', undo ? { undo } : {}); },
+    'tp-label': el => { const cur = (TR.at(el.dataset.date.slice(0, 7), +el.dataset.date.slice(8), '라벨') || {}).content || ''; const v = prompt(`${+el.dataset.date.slice(5, 7)}월 ${+el.dataset.date.slice(8)}일 옆에 붙일 표시 (예: 건강관리, 식권 발급 X). 비우면 지워요.`, cur); if (v == null) return; TR.setLabel(el.dataset.date, v.trim()); },
+    'tp-notes-save': () => { TR.saveNotes($('#tpNotes').value); toast('안내 문구를 저장했어요.'); },
+    'tp-clear': async () => { if (!(await confirmBox(`${TR.ui.cls} ${+TR.ui.month.slice(5)}월 일정표를 비울까요?`, '이 반의 이 달 칸·표시·안내를 모두 지워요. 바로 되돌릴 수 있어요.', '비우기'))) return; const undo = TR.clearMonth(); toast('일정표를 비웠어요.', '', undo ? { undo } : {}); },
+    'tp-copy-prev': () => { const r = TR.copyPrev(); toast(r.n ? `${V.monthLabel(r.from)} 요일별 프로그램으로 빈 칸 ${r.n}개를 채웠어요. 휴관·특별 일정은 직접 고쳐 주세요.` : `${V.monthLabel(r.from)}에 가져올 요일별 프로그램이 없어요.`); },
+    'tp-print': () => {
+      // A4 가로 한 장에 들어가게 글자·칸 크기를 줄여 가며 잰다
+      const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:-10000px;top:0;width:281mm;visibility:hidden';
+      document.body.appendChild(box);
+      const limit = 192 * 96 / 25.4; let html = '';
+      for (const sc of [1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6]) { html = TR.doc(undefined, undefined, sc); box.innerHTML = html; if (box.firstElementChild.getBoundingClientRect().height <= limit) break; }
+      box.remove(); printHtml(html);
+    },
+    'tp-import': () => pickFiles('.xlsx,.xls,.hwp', true, async files => {
+      const found = [];
+      for (const f of files) {
+        try {
+          if (/\.hwp$/i.test(f.name)) found.push(...TR.fromHwpTables(await HWP.readTables(await f.arrayBuffer()), f.name));
+          else found.push(...TR.fromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer()), { cellStyles: true }), f.name));
+        } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
+      }
+      if (!found.length) return toast('일정표를 찾지 못했어요. 월·화·수·목·금 머리줄과 오전·오후 칸이 있는 표인지 확인해 주세요.', 'error');
+      found.forEach(x => { x.on = true; });
+      TR.ui.imp = { files: files.map(f => f.name), found, mode: 'over' }; bindSched();
+    }),
+    'tp-imp-toggle': el => { TR.ui.imp.found[+el.dataset.i].on = el.checked; },
+    'tp-imp-mode': el => { TR.ui.imp.mode = el.value; },
+    'tp-imp-cancel': () => { TR.ui.imp = null; bindSched(); },
+    'tp-imp-commit': () => { const r = TR.commitImport(); toast(`${r.put}칸을 합쳤어요.${r.skipped ? ` 이미 적힌 ${r.skipped}칸은 그대로 뒀어요.` : ''}`); render(); },
+    'ev-import': () => pickFiles('.xlsx,.xls,.csv,.hwp', true, async files => {
+      let evs = [];
+      for (const f of files) {
+        try {
+          if (/\.hwp$/i.test(f.name)) evs.push(...TR.eventsFromHwp(await HWP.readTables(await f.arrayBuffer()), f.name));
+          else if (/\.csv$/i.test(f.name)) evs.push(...TR.eventsFromWorkbook(XLSX.read(await f.text(), { type: 'string' }), f.name));
+          else evs.push(...TR.eventsFromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer())), f.name));
+        } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
+      }
+      const have = new Set(S.get().events.map(x => `${x.date}|${x.title}`));
+      const fresh = evs.filter(x => !have.has(`${x.date}|${x.title}`) && (have.add(`${x.date}|${x.title}`), true));
+      if (!evs.length) return toast('일정을 찾지 못했어요. 표 첫 줄에 "날짜"와 "제목(또는 내용·일정)" 칸이 있어야 해요. 직업훈련 일정표는 위 "직업훈련 일정표" 탭에서 불러오세요.', 'error');
+      if (!fresh.length) return toast(`${evs.length}건 모두 이미 있는 일정이에요.`);
+      if (!(await confirmBox(`일정 ${fresh.length}건을 추가할까요?`, `${files.map(f => f.name).join(', ')}에서 ${evs.length}건을 찾았고, 날짜·제목이 같은 ${evs.length - fresh.length}건은 빼요.`, '추가'))) return;
+      S.upsertMany('ev', fresh); toast(`일정 ${fresh.length}건을 추가했어요.`);
+    }),
     'sched-who': el => { V.ui.sched.who = el.dataset.who; render(); },
     'ev-del': el => {
       const ev = S.find('ev', el.dataset.id);

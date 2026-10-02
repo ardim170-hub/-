@@ -2023,6 +2023,56 @@ label.field .textarea { width: 100%; }
 .prog-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; border: 1.5px solid var(--c); color: var(--c); font-weight: 700; font-size: 13px; background: color-mix(in srgb, var(--c) 8%, transparent); }
 .prog-chip button { border: 0; background: none; color: var(--c); font-weight: 800; cursor: pointer; padding: 0 0 0 2px; }
 .prog-add { display: inline-flex; gap: 4px; margin-left: 4px; }
+/* 직업훈련 일정표 (JOB이음터 · 일과놀이반) */
+.sched-tabs { margin-bottom: 12px; }
+.sched-tabs .chip small { font-weight: 400; opacity: .8; margin-left: 4px; }
+.tp { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.tp-classes { margin: 0; }
+.tp-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
+.tp-title { margin: 0; font-size: 20px; letter-spacing: .5px; }
+.tp-staff { margin: 0; }
+.tp-wrap { overflow-x: auto; }
+.tp-tbl { width: 100%; min-width: 860px; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
+.tp-tbl th, .tp-tbl td { border: 1px solid #9AA3B2; vertical-align: top; }
+.tp-tbl thead th { background: #EEECE1; padding: 6px; font-size: 14px; }
+.tp-tbl tr.tp-date td { background: #EEECE1; text-align: center; font-weight: 700; padding: 3px; cursor: pointer; }
+.tp-tbl tr.tp-date td.lab { background: #FFF59D; }
+.tp-tbl tr.tp-date td.lab b { color: #B42318; }
+.tp-tbl tr.tp-date td.none, .tp-tbl td.none { background: #fff; cursor: default; }
+.tp-tbl tr.tp-slot th { background: #fff; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 2px; }
+.tp-tbl tr.tp-slot th small { display: block; font-weight: 400; color: var(--text-2); font-size: 11px; }
+.tp-cell { padding: 5px 7px; cursor: pointer; height: 64px; }
+.tp-cell:hover { outline: 2px solid #2563EB; outline-offset: -2px; }
+.tp-cell.empty { text-align: center; vertical-align: middle; }
+.tp-plus { color: #C0C5CE; font-size: 18px; }
+.tp-cat { font-size: 10.5px; color: #475467; text-decoration: underline; margin-bottom: 2px; }
+.tp-txt { line-height: 1.45; }
+.tp-cell.big { text-align: center; vertical-align: middle; }
+.tp-cell.big .tp-txt { font-size: 17px; font-weight: 800; color: #DC2626; }
+.tp-notes { display: flex; flex-direction: column; gap: 6px; }
+.tp-notes label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; }
+.tp-modal { position: fixed; inset: 0; background: rgba(16,24,40,.45); display: grid; place-items: center; z-index: 2000; }
+.tp-modal .modal { background: var(--surface); border-radius: 14px; padding: 18px 20px; width: min(460px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+.tp-modal h2 { margin: 0; font-size: 17px; }
+.tp-modal label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
+.tp-modal label.check { flex-direction: row; align-items: center; font-weight: 400; }
+.tp-modal-acts { justify-content: flex-end; gap: 6px; }
+/* 인쇄: A4 가로 */
+.tp-doc { page: tp; color: #000; }
+@page tp { size: A4 landscape; margin: 8mm; }
+.tp-doc h1 { text-align: center; font-size: 17pt; margin: 0 0 3mm; border: 1.5px solid #000; padding: 2mm; }
+.tp-doc .tp-tbl { min-width: 0; font-size: calc(7.6pt * var(--tps, 1)); }
+.tp-doc .tp-tbl th, .tp-doc .tp-tbl td { border-color: #000; }
+.tp-doc .tp-cell { height: auto; padding: calc(1mm * var(--tps, 1)) 1.5mm; cursor: default; line-height: 1.3; }
+.tp-doc .tp-plus { display: none; }
+.tp-doc .tp-cat { font-size: calc(6.6pt * var(--tps, 1)); margin-bottom: 0; }
+.tp-doc tr.tp-slot th { font-size: calc(8pt * var(--tps, 1)); }
+.tp-doc .tp-txt { line-height: 1.3; }
+.tp-doc .tp-cell.big .tp-txt { font-size: 13pt; }
+.tp-doc tr.tp-date td { padding: .6mm; }
+.tp-doc-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 6mm; margin-top: 2mm; font-size: 8pt; }
+.tp-doc-notes .r { text-align: right; }
+@media print { .tp-doc * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 
 </style>
 </head>
@@ -2106,7 +2156,7 @@ label.field .textarea { width: 100%; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.10.01 18:01";</script>
+<script>window.APP_VERSION = "2026.10.02 09:30";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2625,7 +2675,7 @@ window.S = (() => {
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
   SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록'], ['src', '불러온 자료']]];
-  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['src', '불러온 자료']]];
+  SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['cls', '반'], ['src', '불러온 자료']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
@@ -3784,7 +3834,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
-    sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '' },
+    sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
   };
@@ -4370,13 +4420,18 @@ window.V = (() => {
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
     const f = ui.sched;
+    const tabs = `<div class="chips sched-tabs" role="tablist"><button type="button" role="tab" class="chip ${f.view !== 'train' ? 'on' : ''}" data-act="sched-view" data-v="work">📅 업무 일정</button><button type="button" role="tab" class="chip ${f.view === 'train' ? 'on' : ''}" data-act="sched-view" data-v="train">🗓 직업훈련 일정표 <small>JOB이음터 · 일과놀이반</small></button></div>`;
+    if (f.view === 'train') return `
+      <div class="page-head"><div><h1 class="page-title">일정</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
+      ${tabs}<div id="tpBox"></div>`;
     const all = S.view().events.filter(x => !x.done);
     const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
     return `
       <div class="page-head">
         <div><h1 class="page-title">일정</h1><div class="page-desc">직원별로 일정을 적고, 추가·수정·삭제합니다. 사업체 방문, 면접 동행, 기관 행사 등.</div></div>
-        <button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button>
+        <div class="inline"><button class="btn" type="button" data-act="ev-import">📂 엑셀·한글로 일정 불러오기</button><button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button></div>
       </div>
+      ${tabs}
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
         ${S.staff().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
@@ -7526,19 +7581,22 @@ window.AT = (() => {
 
 </script>
 <script>
-/* JOB이음터 일정표 (직업훈련): 월~금 × 오전·오후 칸에 훈련 구분과 내용을 적는 월간 일정표
+/* 직업훈련 반별 월간 일정표 (JOB이음터 · 일과놀이반): 월~금 × 오전·오후 칸에 훈련 구분과 내용을 적는다
    - 칸 하나 = 기록 한 줄 { date, slot: 오전|오후|종일, cat: 훈련 구분, content: 내용, color }
    - 날짜 옆 표시(예: 7 (건강관리))는 slot '라벨', 아래 안내 문구는 그 달 1일의 slot '안내'
    - 엑셀(지금 쓰는 일정표 양식)·한글 파일을 여러 개 불러와 한 달에 합칠 수 있다 */
 window.TR = (() => {
   const e = U.esc;
-  const ui = { month: U.today().slice(0, 7), edit: null, imp: null };
+  const CLASSES = ['JOB이음터', '일과놀이반'];
+  const ui = { month: U.today().slice(0, 7), cls: CLASSES[0], edit: null, imp: null };
   const SLOTS = ['오전', '오후'];
   const TIMES = { 오전: '10:00~12:00', 오후: '13:30~16:00' };
   // 칸 색: 엑셀에서 쓰던 색 그대로
   const COLORS = [['', '없음'], ['F2DCDB', '분홍 (외부 활동)'], ['D7E4BD', '연두 (견학·탐색)'], ['DBEEF4', '하늘 (대회·행사)'], ['E6E0EC', '보라 (특별 교육)'], ['FDEADA', '살구'], ['FFFF00', '노랑 (강조)'], ['EEECE1', '회색 (휴관·미운영)']];
-  const plans = m => S.get().trainPlans.filter(x => (x.date || '').startsWith(m));
-  const at = (m, d, slot) => plans(m).find(x => x.date === `${m}-${U.pad(d)}` && x.slot === slot);
+  // 반 칸이 비어 있는 예전 기록은 JOB이음터로 본다
+  const clsOf = x => x.cls || CLASSES[0];
+  const plans = (m, cls = ui.cls) => S.get().trainPlans.filter(x => (x.date || '').startsWith(m) && clsOf(x) === cls);
+  const at = (m, d, slot, cls = ui.cls) => plans(m, cls).find(x => x.date === `${m}-${U.pad(d)}` && x.slot === slot);
   const dim = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
   const wd = (m, d) => new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, d).getDay();
   const staffNames = () => S.staff().filter(s => s.program === '직업훈련').map(s => s.name);
@@ -7584,9 +7642,10 @@ window.TR = (() => {
     const m = ui.month, names = staffNames();
     const n = plans(m).filter(x => SLOTS.includes(x.slot) || x.slot === '종일').length;
     return `<section class="panel tp">
+      <div class="chips tp-classes" role="tablist" aria-label="반 고르기">${CLASSES.map(c => `<button type="button" role="tab" class="chip ${ui.cls === c ? 'on' : ''}" data-act="tp-cls" data-cls="${e(c)}">${e(c)} <span class="n">${plans(m, c).filter(x => SLOTS.includes(x.slot) || x.slot === '종일').length}</span></button>`).join('')}</div>
       <div class="tp-head">
         <div class="month-nav"><button class="icon-btn" type="button" data-act="tp-month" data-d="-1" aria-label="이전 달">${V.I.back}</button><b class="num">${V.monthLabel(m)}</b><button class="icon-btn" type="button" data-act="tp-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${V.I.back}</button></div>
-        <h2 class="tp-title">JOB이음터 ${+m.slice(5)}월 일정표</h2>
+        <h2 class="tp-title">${e(ui.cls)} ${+m.slice(5)}월 일정표</h2>
         <div class="inline">
           <button class="btn" type="button" data-act="tp-import">📂 엑셀·한글 불러오기</button>
           <button class="btn" type="button" data-act="tp-copy-prev" title="지난달 같은 요일 프로그램으로 빈 칸 채우기">지난달 요일별로 채우기</button>
@@ -7625,7 +7684,7 @@ window.TR = (() => {
     const keep = full ? at(m, d, '종일') : at(m, d, slot);
     const drop = old.filter(o => o && (!keep || o.id !== keep.id)).map(o => o.id);
     if (drop.length) S.removeMany('tp', drop);
-    if (rec.cat || rec.content) S.putMany('tp', [{ ...(keep ? { id: keep.id } : {}), ...rec, slot: full ? '종일' : (slot === '종일' ? '오전' : slot) }]);
+    if (rec.cat || rec.content) S.putMany('tp', [{ ...(keep ? { id: keep.id } : {}), ...rec, cls: ui.cls, slot: full ? '종일' : (slot === '종일' ? '오전' : slot) }]);
     else if (keep) S.removeMany('tp', [keep.id]);
     ui.edit = null;
   }
@@ -7639,12 +7698,12 @@ window.TR = (() => {
     const m = date.slice(0, 7), d = +date.slice(8);
     const x = at(m, d, '라벨');
     if (!text) { if (x) S.removeMany('tp', [x.id]); return; }
-    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date, slot: '라벨', cat: '', content: text, color: '' }]);
+    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date, slot: '라벨', cat: '', content: text, color: '', cls: ui.cls }]);
   }
   function saveNotes(text) {
     const m = ui.month, x = at(m, 1, '안내');
     if (!text.trim()) { if (x) S.removeMany('tp', [x.id]); return; }
-    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date: `${m}-01`, slot: '안내', cat: '', content: text.trim(), color: '' }]);
+    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date: `${m}-01`, slot: '안내', cat: '', content: text.trim(), color: '', cls: ui.cls }]);
   }
   function clearMonth() {
     const ids = plans(ui.month).map(x => x.id);
@@ -7666,7 +7725,7 @@ window.TR = (() => {
         const c = best[`${w}|${slot}`]; if (!c) return;
         const [v] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
         const [cat, content] = v.split('\u0000');
-        recs.push({ date: `${m}-${U.pad(d)}`, slot, cat, content, color: '' });
+        recs.push({ date: `${m}-${U.pad(d)}`, slot, cat, content, color: '', cls: ui.cls });
       });
     }
     if (recs.length) S.putMany('tp', recs);
@@ -7691,6 +7750,12 @@ window.TR = (() => {
     scan(hint.sheet); for (let r = G.r0; r < head; r++) for (let c = G.c0; c <= G.c1; c++) scan(G.txt(r, c)); scan(hint.file);
     if (!year) year = +ui.month.slice(0, 4);
     if (!month) return null;
+    // 반: 제목(예: 일과놀이반 10월 일정표)·시트·파일 이름에서, 없으면 지금 보고 있는 반
+    let cls = '';
+    const findCls = t => { const n = String(t || '').replace(/\s/g, ''); const c = CLASSES.find(k => n.includes(k.replace(/\s/g, '')) || (k === 'JOB이음터' && /JOB|이음터/i.test(n))); if (c && !cls) cls = c; };
+    for (let r = G.r0; r < head; r++) for (let c = G.c0; c <= G.c1; c++) findCls(G.txt(r, c));
+    findCls(hint.sheet); findCls(hint.file);
+    if (!cls) cls = ui.cls;
     const m = `${year}-${U.pad(month)}`;
     const slotOf = r => { for (let c = G.c0; c < Math.min(...Object.values(cols)); c++) { const t = G.txt(r, c); if (/오전/.test(t)) return '오전'; if (/오후/.test(t)) return '오후'; } return ''; };
     const dateRow = r => { const ds = {}; Object.entries(cols).forEach(([w, c]) => { const k = G.txt(r, c).match(/^\s*(\d{1,2})\s*(?:일)?\s*(?:\(?\s*([^)]*?)\s*\)?)?\s*$/); if (k && +k[1] >= 1 && +k[1] <= 31) ds[w] = { d: +k[1], label: (k[2] || '').replace(/^\(|\)$/g, '').trim() }; }); return Object.keys(ds).length ? ds : null; };
@@ -7713,7 +7778,8 @@ window.TR = (() => {
         const lines = raw.replace(/\r/g, '').split('\n').map(x => x.replace(/\s+$/, ''));
         while (lines.length && !lines[0].trim()) lines.shift();
         const first = lines[0] || '';
-        const isCat = /훈련|교육$/.test(first) && /훈련/.test(first) && lines.length > 1;
+        // 첫 줄이 '직업탐색훈련 / 작업훈련'처럼 훈련 이름만으로 되어 있으면 훈련 구분
+        const isCat = lines.length > 1 && /^\s*[가-힣+·]+(훈련|교육)(\s*\/\s*[가-힣+·]+(훈련|교육))*\s*$/.test(first);
         const color = (G.fill(tr, tc) || '').toUpperCase();
         out.push({ date: `${m}-${U.pad(info.d)}`, slot: sl, cat: isCat ? first.trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: color === 'FFFFFF' ? '' : color });
       });
@@ -7722,7 +7788,8 @@ window.TR = (() => {
     const notes = [];
     for (let r = last + 1; r <= G.r1; r++) for (let c = G.c0; c <= G.c1; c++) { const t = G.txt(r, c); if (t && t.length > 3 && !notes.includes(t)) notes.push(t.replace(/\r/g, '')); }
     if (notes.length) out.push({ date: `${m}-01`, slot: '안내', cat: '', content: notes.join('\n'), color: '' });
-    return { month: m, recs: out };
+    out.forEach(r => { r.cls = cls; });
+    return { month: m, cls, recs: out };
   }
   function fromWorkbook(wb, file) {
     return wb.SheetNames.map(name => {
@@ -7753,7 +7820,7 @@ window.TR = (() => {
   function importPanel() {
     const g = ui.imp;
     return `<div class="at-imp tp-imp"><b>불러온 일정표</b> <span class="sub">${e(g.files.join(', '))}</span>
-      <div class="at-imp-list">${g.found.map((x, i) => { const have = plans(x.month).filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; const cells = x.recs.filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; return `<label class="check"><input type="checkbox" data-act="tp-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}>${e(V.monthLabel(x.month))} · ${cells}칸${have ? ` <span class="sub">(지금 ${have}칸 있음)</span>` : ''}</label>`; }).join('')}</div>
+      <div class="at-imp-list">${g.found.map((x, i) => { const have = plans(x.month, x.cls).filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; const cells = x.recs.filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; return `<label class="check"><input type="checkbox" data-act="tp-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}><b>${e(x.cls)}</b> ${e(V.monthLabel(x.month))} · ${cells}칸${have ? ` <span class="sub">(지금 ${have}칸 있음)</span>` : ''}</label>`; }).join('')}</div>
       <div class="inline" style="margin-top:6px"><label class="check"><input type="radio" name="tpMerge" value="over" ${g.mode === 'over' ? 'checked' : ''} data-act="tp-imp-mode">같은 칸은 새 파일로 바꾸기</label><label class="check"><input type="radio" name="tpMerge" value="keep" ${g.mode === 'keep' ? 'checked' : ''} data-act="tp-imp-mode">이미 적힌 칸은 그대로 두고 빈 칸만 채우기</label></div>
       <div class="inline" style="margin-top:6px"><button class="btn btn-sm btn-primary" type="button" data-act="tp-imp-commit">합치기</button><button class="btn btn-sm" type="button" data-act="tp-imp-cancel">취소</button></div></div>`;
   }
@@ -7763,9 +7830,9 @@ window.TR = (() => {
     g.found.filter(x => x.on).forEach(x => {
       months.push(x.month);
       x.recs.forEach(r => {
-        const m = r.date.slice(0, 7), d = +r.date.slice(8);
-        const same = at(m, d, r.slot);
-        const clash = r.slot === '종일' ? [at(m, d, '오전'), at(m, d, '오후')].filter(Boolean) : SLOTS.includes(r.slot) ? [at(m, d, '종일')].filter(Boolean) : [];
+        const m = r.date.slice(0, 7), d = +r.date.slice(8), c = r.cls;
+        const same = at(m, d, r.slot, c);
+        const clash = r.slot === '종일' ? [at(m, d, '오전', c), at(m, d, '오후', c)].filter(Boolean) : SLOTS.includes(r.slot) ? [at(m, d, '종일', c)].filter(Boolean) : [];
         if (g.mode === 'keep' && (same || clash.length)) { skipped++; return; }
         clash.forEach(c => drop.push(c.id));
         put.push({ ...(same ? { id: same.id } : {}), ...r, src: g.files.join(', ') });
@@ -7774,22 +7841,57 @@ window.TR = (() => {
     if (drop.length) S.removeMany('tp', drop);
     if (put.length) S.putMany('tp', put);
     if (months.length) ui.month = months.sort()[months.length - 1];
+    const lastCls = g.found.filter(x => x.on).map(x => x.cls).pop(); if (lastCls) ui.cls = lastCls;
     ui.imp = null;
     return { put: put.length, skipped, months };
   }
 
   /** 인쇄: A4 가로 한 장, 엑셀 양식과 같은 모양 */
-  function doc(m = ui.month) {
+  function doc(m = ui.month, cls = ui.cls, scale = 1) {
+    const keep = ui.cls; ui.cls = cls;
+    try {
     const notes = notesOf(m).split('\n').filter(Boolean);
     const names = staffNames();
-    return `<article class="doc tp-doc">
-      <h1>JOB이음터 ${+m.slice(5)}월 일정표</h1>
+    return `<article class="doc tp-doc" style="--tps:${scale}">
+      <h1>${e(cls)} ${+m.slice(5)}월 일정표</h1>
       ${grid(m, true)}
       <div class="tp-doc-notes">${notes.map(n => `<div>${e(n)}</div>`).join('')}${names.length && !notes.some(n => /담당/.test(n)) ? `<div class="r">담당: 직업지원팀 ${names.map(e).join(', ')}</div>` : ''}</div>
     </article>`;
+    } finally { ui.cls = keep; }
   }
 
-  return { ui, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
+  /* ---------- 업무 일정 불러오기 (엑셀·한글 표: 날짜·시간·제목/내용·유형·담당·메모) ---------- */
+  const EV_HEAD = { date: /^(날짜|일자|일시|일정일|월일)$/, time: /^(시간|시각)$/, title: /^(제목|일정|내용|일정내용|업무|업무내용|행사명|프로그램)$/, type: /^(유형|구분|종류)$/, staff: /^(담당|담당자|담당직원|성명|직원)$/, memo: /^(메모|비고|장소)$/ };
+  function eventsFromRows(rows, year) {
+    const out = [];
+    for (let h = 0; h < Math.min(rows.length, 15); h++) {
+      const head = (rows[h] || []).map(c => String(c ?? '').replace(/\s/g, ''));
+      const col = {};
+      head.forEach((t, i) => Object.entries(EV_HEAD).forEach(([k, re]) => { if (col[k] == null && re.test(t)) col[k] = i; }));
+      if (col.date == null || col.title == null) continue;
+      for (let r = h + 1; r < rows.length; r++) {
+        const row = rows[r] || [];
+        const raw = row[col.date];
+        let date = '';
+        if (typeof raw === 'number' && raw > 30000) { const d = new Date(Math.round((raw - 25569) * 864e5)); const y = d.getUTCFullYear() < 2015 ? year : d.getUTCFullYear(); date = `${y}-${U.pad(d.getUTCMonth() + 1)}-${U.pad(d.getUTCDate())}`; }
+        else { const t = String(raw ?? ''); const k = t.match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/) || t.match(/^\s*(\d{1,2})[.\-/월\s]+(\d{1,2})/); if (k) date = k.length === 4 ? `${k[1]}-${U.pad(+k[2])}-${U.pad(+k[3])}` : `${year}-${U.pad(+k[1])}-${U.pad(+k[2])}`; }
+        const title = String(row[col.title] ?? '').replace(/\s+/g, ' ').trim();
+        if (!date || !title) continue;
+        const tm = String(row[col.time] ?? '').match(/(\d{1,2})[:시]?\s*(\d{2})?/);
+        const staff = String(row[col.staff] ?? '').trim();
+        out.push({ date, time: tm ? `${U.pad(+tm[1])}:${tm[2] || '00'}` : '', title, type: D.EVENT_TYPES.find(t => String(row[col.type] ?? '').includes(t)) || '기타', staff: S.staff().some(s => s.name === staff) ? staff : '', memo: String(row[col.memo] ?? '').trim(), targetType: '', targetId: '' });
+      }
+      break;
+    }
+    return out;
+  }
+  function eventsFromWorkbook(wb, file) {
+    const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4));
+    return wb.SheetNames.flatMap(n => eventsFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }), year));
+  }
+  const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
+
+  return { ui, CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
 })();
 
 </script>
@@ -7857,7 +7959,7 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
@@ -8185,6 +8287,12 @@ window.App = (() => {
     box.remove();
     return html;
   }
+  /** 파일 고르기 창 (여러 개 가능) */
+  function pickFiles(accept, multiple, onPick) {
+    const f = document.createElement('input'); f.type = 'file'; f.accept = accept; f.multiple = multiple;
+    f.onchange = () => { const files = [...f.files]; if (files.length) onPick(files); };
+    f.click();
+  }
   function bindPerf() { $('#perfResults').innerHTML = V.perfResults(); }
   async function copyText(text) {
     try { await navigator.clipboard.writeText(text); return true; }
@@ -8268,6 +8376,7 @@ window.App = (() => {
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
   function bindSched() {
+    if (V.ui.sched.view === 'train') { const b = $('#tpBox'); if (b) b.innerHTML = TR.view(); return; }
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
@@ -8666,6 +8775,57 @@ window.App = (() => {
       const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
+    'sched-view': el => { V.ui.sched.view = el.dataset.v; render(); },
+    'tp-cls': el => { TR.ui.cls = el.dataset.cls; bindSched(); },
+    'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
+    'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
+    'tp-cancel': () => { TR.ui.edit = null; bindSched(); },
+    'tp-save': () => { TR.save(); bindSched(); toast('일정표 칸을 저장했어요.'); },
+    'tp-del': () => { const undo = TR.remove(); bindSched(); toast('칸을 비웠어요.', '', undo ? { undo } : {}); },
+    'tp-label': el => { const cur = (TR.at(el.dataset.date.slice(0, 7), +el.dataset.date.slice(8), '라벨') || {}).content || ''; const v = prompt(`${+el.dataset.date.slice(5, 7)}월 ${+el.dataset.date.slice(8)}일 옆에 붙일 표시 (예: 건강관리, 식권 발급 X). 비우면 지워요.`, cur); if (v == null) return; TR.setLabel(el.dataset.date, v.trim()); },
+    'tp-notes-save': () => { TR.saveNotes($('#tpNotes').value); toast('안내 문구를 저장했어요.'); },
+    'tp-clear': async () => { if (!(await confirmBox(`${TR.ui.cls} ${+TR.ui.month.slice(5)}월 일정표를 비울까요?`, '이 반의 이 달 칸·표시·안내를 모두 지워요. 바로 되돌릴 수 있어요.', '비우기'))) return; const undo = TR.clearMonth(); toast('일정표를 비웠어요.', '', undo ? { undo } : {}); },
+    'tp-copy-prev': () => { const r = TR.copyPrev(); toast(r.n ? `${V.monthLabel(r.from)} 요일별 프로그램으로 빈 칸 ${r.n}개를 채웠어요. 휴관·특별 일정은 직접 고쳐 주세요.` : `${V.monthLabel(r.from)}에 가져올 요일별 프로그램이 없어요.`); },
+    'tp-print': () => {
+      // A4 가로 한 장에 들어가게 글자·칸 크기를 줄여 가며 잰다
+      const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:-10000px;top:0;width:281mm;visibility:hidden';
+      document.body.appendChild(box);
+      const limit = 192 * 96 / 25.4; let html = '';
+      for (const sc of [1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6]) { html = TR.doc(undefined, undefined, sc); box.innerHTML = html; if (box.firstElementChild.getBoundingClientRect().height <= limit) break; }
+      box.remove(); printHtml(html);
+    },
+    'tp-import': () => pickFiles('.xlsx,.xls,.hwp', true, async files => {
+      const found = [];
+      for (const f of files) {
+        try {
+          if (/\.hwp$/i.test(f.name)) found.push(...TR.fromHwpTables(await HWP.readTables(await f.arrayBuffer()), f.name));
+          else found.push(...TR.fromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer()), { cellStyles: true }), f.name));
+        } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
+      }
+      if (!found.length) return toast('일정표를 찾지 못했어요. 월·화·수·목·금 머리줄과 오전·오후 칸이 있는 표인지 확인해 주세요.', 'error');
+      found.forEach(x => { x.on = true; });
+      TR.ui.imp = { files: files.map(f => f.name), found, mode: 'over' }; bindSched();
+    }),
+    'tp-imp-toggle': el => { TR.ui.imp.found[+el.dataset.i].on = el.checked; },
+    'tp-imp-mode': el => { TR.ui.imp.mode = el.value; },
+    'tp-imp-cancel': () => { TR.ui.imp = null; bindSched(); },
+    'tp-imp-commit': () => { const r = TR.commitImport(); toast(`${r.put}칸을 합쳤어요.${r.skipped ? ` 이미 적힌 ${r.skipped}칸은 그대로 뒀어요.` : ''}`); render(); },
+    'ev-import': () => pickFiles('.xlsx,.xls,.csv,.hwp', true, async files => {
+      let evs = [];
+      for (const f of files) {
+        try {
+          if (/\.hwp$/i.test(f.name)) evs.push(...TR.eventsFromHwp(await HWP.readTables(await f.arrayBuffer()), f.name));
+          else if (/\.csv$/i.test(f.name)) evs.push(...TR.eventsFromWorkbook(XLSX.read(await f.text(), { type: 'string' }), f.name));
+          else evs.push(...TR.eventsFromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer())), f.name));
+        } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
+      }
+      const have = new Set(S.get().events.map(x => `${x.date}|${x.title}`));
+      const fresh = evs.filter(x => !have.has(`${x.date}|${x.title}`) && (have.add(`${x.date}|${x.title}`), true));
+      if (!evs.length) return toast('일정을 찾지 못했어요. 표 첫 줄에 "날짜"와 "제목(또는 내용·일정)" 칸이 있어야 해요. 직업훈련 일정표는 위 "직업훈련 일정표" 탭에서 불러오세요.', 'error');
+      if (!fresh.length) return toast(`${evs.length}건 모두 이미 있는 일정이에요.`);
+      if (!(await confirmBox(`일정 ${fresh.length}건을 추가할까요?`, `${files.map(f => f.name).join(', ')}에서 ${evs.length}건을 찾았고, 날짜·제목이 같은 ${evs.length - fresh.length}건은 빼요.`, '추가'))) return;
+      S.upsertMany('ev', fresh); toast(`일정 ${fresh.length}건을 추가했어요.`);
+    }),
     'sched-who': el => { V.ui.sched.who = el.dataset.who; render(); },
     'ev-del': el => {
       const ev = S.find('ev', el.dataset.id);

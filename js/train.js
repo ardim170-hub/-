@@ -1,16 +1,19 @@
-/* JOB이음터 일정표 (직업훈련): 월~금 × 오전·오후 칸에 훈련 구분과 내용을 적는 월간 일정표
+/* 직업훈련 반별 월간 일정표 (JOB이음터 · 일과놀이반): 월~금 × 오전·오후 칸에 훈련 구분과 내용을 적는다
    - 칸 하나 = 기록 한 줄 { date, slot: 오전|오후|종일, cat: 훈련 구분, content: 내용, color }
    - 날짜 옆 표시(예: 7 (건강관리))는 slot '라벨', 아래 안내 문구는 그 달 1일의 slot '안내'
    - 엑셀(지금 쓰는 일정표 양식)·한글 파일을 여러 개 불러와 한 달에 합칠 수 있다 */
 window.TR = (() => {
   const e = U.esc;
-  const ui = { month: U.today().slice(0, 7), edit: null, imp: null };
+  const CLASSES = ['JOB이음터', '일과놀이반'];
+  const ui = { month: U.today().slice(0, 7), cls: CLASSES[0], edit: null, imp: null };
   const SLOTS = ['오전', '오후'];
   const TIMES = { 오전: '10:00~12:00', 오후: '13:30~16:00' };
   // 칸 색: 엑셀에서 쓰던 색 그대로
   const COLORS = [['', '없음'], ['F2DCDB', '분홍 (외부 활동)'], ['D7E4BD', '연두 (견학·탐색)'], ['DBEEF4', '하늘 (대회·행사)'], ['E6E0EC', '보라 (특별 교육)'], ['FDEADA', '살구'], ['FFFF00', '노랑 (강조)'], ['EEECE1', '회색 (휴관·미운영)']];
-  const plans = m => S.get().trainPlans.filter(x => (x.date || '').startsWith(m));
-  const at = (m, d, slot) => plans(m).find(x => x.date === `${m}-${U.pad(d)}` && x.slot === slot);
+  // 반 칸이 비어 있는 예전 기록은 JOB이음터로 본다
+  const clsOf = x => x.cls || CLASSES[0];
+  const plans = (m, cls = ui.cls) => S.get().trainPlans.filter(x => (x.date || '').startsWith(m) && clsOf(x) === cls);
+  const at = (m, d, slot, cls = ui.cls) => plans(m, cls).find(x => x.date === `${m}-${U.pad(d)}` && x.slot === slot);
   const dim = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
   const wd = (m, d) => new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, d).getDay();
   const staffNames = () => S.staff().filter(s => s.program === '직업훈련').map(s => s.name);
@@ -56,9 +59,10 @@ window.TR = (() => {
     const m = ui.month, names = staffNames();
     const n = plans(m).filter(x => SLOTS.includes(x.slot) || x.slot === '종일').length;
     return `<section class="panel tp">
+      <div class="chips tp-classes" role="tablist" aria-label="반 고르기">${CLASSES.map(c => `<button type="button" role="tab" class="chip ${ui.cls === c ? 'on' : ''}" data-act="tp-cls" data-cls="${e(c)}">${e(c)} <span class="n">${plans(m, c).filter(x => SLOTS.includes(x.slot) || x.slot === '종일').length}</span></button>`).join('')}</div>
       <div class="tp-head">
         <div class="month-nav"><button class="icon-btn" type="button" data-act="tp-month" data-d="-1" aria-label="이전 달">${V.I.back}</button><b class="num">${V.monthLabel(m)}</b><button class="icon-btn" type="button" data-act="tp-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${V.I.back}</button></div>
-        <h2 class="tp-title">JOB이음터 ${+m.slice(5)}월 일정표</h2>
+        <h2 class="tp-title">${e(ui.cls)} ${+m.slice(5)}월 일정표</h2>
         <div class="inline">
           <button class="btn" type="button" data-act="tp-import">📂 엑셀·한글 불러오기</button>
           <button class="btn" type="button" data-act="tp-copy-prev" title="지난달 같은 요일 프로그램으로 빈 칸 채우기">지난달 요일별로 채우기</button>
@@ -97,7 +101,7 @@ window.TR = (() => {
     const keep = full ? at(m, d, '종일') : at(m, d, slot);
     const drop = old.filter(o => o && (!keep || o.id !== keep.id)).map(o => o.id);
     if (drop.length) S.removeMany('tp', drop);
-    if (rec.cat || rec.content) S.putMany('tp', [{ ...(keep ? { id: keep.id } : {}), ...rec, slot: full ? '종일' : (slot === '종일' ? '오전' : slot) }]);
+    if (rec.cat || rec.content) S.putMany('tp', [{ ...(keep ? { id: keep.id } : {}), ...rec, cls: ui.cls, slot: full ? '종일' : (slot === '종일' ? '오전' : slot) }]);
     else if (keep) S.removeMany('tp', [keep.id]);
     ui.edit = null;
   }
@@ -111,12 +115,12 @@ window.TR = (() => {
     const m = date.slice(0, 7), d = +date.slice(8);
     const x = at(m, d, '라벨');
     if (!text) { if (x) S.removeMany('tp', [x.id]); return; }
-    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date, slot: '라벨', cat: '', content: text, color: '' }]);
+    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date, slot: '라벨', cat: '', content: text, color: '', cls: ui.cls }]);
   }
   function saveNotes(text) {
     const m = ui.month, x = at(m, 1, '안내');
     if (!text.trim()) { if (x) S.removeMany('tp', [x.id]); return; }
-    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date: `${m}-01`, slot: '안내', cat: '', content: text.trim(), color: '' }]);
+    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date: `${m}-01`, slot: '안내', cat: '', content: text.trim(), color: '', cls: ui.cls }]);
   }
   function clearMonth() {
     const ids = plans(ui.month).map(x => x.id);
@@ -138,7 +142,7 @@ window.TR = (() => {
         const c = best[`${w}|${slot}`]; if (!c) return;
         const [v] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
         const [cat, content] = v.split('\u0000');
-        recs.push({ date: `${m}-${U.pad(d)}`, slot, cat, content, color: '' });
+        recs.push({ date: `${m}-${U.pad(d)}`, slot, cat, content, color: '', cls: ui.cls });
       });
     }
     if (recs.length) S.putMany('tp', recs);
@@ -163,6 +167,12 @@ window.TR = (() => {
     scan(hint.sheet); for (let r = G.r0; r < head; r++) for (let c = G.c0; c <= G.c1; c++) scan(G.txt(r, c)); scan(hint.file);
     if (!year) year = +ui.month.slice(0, 4);
     if (!month) return null;
+    // 반: 제목(예: 일과놀이반 10월 일정표)·시트·파일 이름에서, 없으면 지금 보고 있는 반
+    let cls = '';
+    const findCls = t => { const n = String(t || '').replace(/\s/g, ''); const c = CLASSES.find(k => n.includes(k.replace(/\s/g, '')) || (k === 'JOB이음터' && /JOB|이음터/i.test(n))); if (c && !cls) cls = c; };
+    for (let r = G.r0; r < head; r++) for (let c = G.c0; c <= G.c1; c++) findCls(G.txt(r, c));
+    findCls(hint.sheet); findCls(hint.file);
+    if (!cls) cls = ui.cls;
     const m = `${year}-${U.pad(month)}`;
     const slotOf = r => { for (let c = G.c0; c < Math.min(...Object.values(cols)); c++) { const t = G.txt(r, c); if (/오전/.test(t)) return '오전'; if (/오후/.test(t)) return '오후'; } return ''; };
     const dateRow = r => { const ds = {}; Object.entries(cols).forEach(([w, c]) => { const k = G.txt(r, c).match(/^\s*(\d{1,2})\s*(?:일)?\s*(?:\(?\s*([^)]*?)\s*\)?)?\s*$/); if (k && +k[1] >= 1 && +k[1] <= 31) ds[w] = { d: +k[1], label: (k[2] || '').replace(/^\(|\)$/g, '').trim() }; }); return Object.keys(ds).length ? ds : null; };
@@ -185,7 +195,8 @@ window.TR = (() => {
         const lines = raw.replace(/\r/g, '').split('\n').map(x => x.replace(/\s+$/, ''));
         while (lines.length && !lines[0].trim()) lines.shift();
         const first = lines[0] || '';
-        const isCat = /훈련|교육$/.test(first) && /훈련/.test(first) && lines.length > 1;
+        // 첫 줄이 '직업탐색훈련 / 작업훈련'처럼 훈련 이름만으로 되어 있으면 훈련 구분
+        const isCat = lines.length > 1 && /^\s*[가-힣+·]+(훈련|교육)(\s*\/\s*[가-힣+·]+(훈련|교육))*\s*$/.test(first);
         const color = (G.fill(tr, tc) || '').toUpperCase();
         out.push({ date: `${m}-${U.pad(info.d)}`, slot: sl, cat: isCat ? first.trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: color === 'FFFFFF' ? '' : color });
       });
@@ -194,7 +205,8 @@ window.TR = (() => {
     const notes = [];
     for (let r = last + 1; r <= G.r1; r++) for (let c = G.c0; c <= G.c1; c++) { const t = G.txt(r, c); if (t && t.length > 3 && !notes.includes(t)) notes.push(t.replace(/\r/g, '')); }
     if (notes.length) out.push({ date: `${m}-01`, slot: '안내', cat: '', content: notes.join('\n'), color: '' });
-    return { month: m, recs: out };
+    out.forEach(r => { r.cls = cls; });
+    return { month: m, cls, recs: out };
   }
   function fromWorkbook(wb, file) {
     return wb.SheetNames.map(name => {
@@ -225,7 +237,7 @@ window.TR = (() => {
   function importPanel() {
     const g = ui.imp;
     return `<div class="at-imp tp-imp"><b>불러온 일정표</b> <span class="sub">${e(g.files.join(', '))}</span>
-      <div class="at-imp-list">${g.found.map((x, i) => { const have = plans(x.month).filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; const cells = x.recs.filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; return `<label class="check"><input type="checkbox" data-act="tp-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}>${e(V.monthLabel(x.month))} · ${cells}칸${have ? ` <span class="sub">(지금 ${have}칸 있음)</span>` : ''}</label>`; }).join('')}</div>
+      <div class="at-imp-list">${g.found.map((x, i) => { const have = plans(x.month, x.cls).filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; const cells = x.recs.filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; return `<label class="check"><input type="checkbox" data-act="tp-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}><b>${e(x.cls)}</b> ${e(V.monthLabel(x.month))} · ${cells}칸${have ? ` <span class="sub">(지금 ${have}칸 있음)</span>` : ''}</label>`; }).join('')}</div>
       <div class="inline" style="margin-top:6px"><label class="check"><input type="radio" name="tpMerge" value="over" ${g.mode === 'over' ? 'checked' : ''} data-act="tp-imp-mode">같은 칸은 새 파일로 바꾸기</label><label class="check"><input type="radio" name="tpMerge" value="keep" ${g.mode === 'keep' ? 'checked' : ''} data-act="tp-imp-mode">이미 적힌 칸은 그대로 두고 빈 칸만 채우기</label></div>
       <div class="inline" style="margin-top:6px"><button class="btn btn-sm btn-primary" type="button" data-act="tp-imp-commit">합치기</button><button class="btn btn-sm" type="button" data-act="tp-imp-cancel">취소</button></div></div>`;
   }
@@ -235,9 +247,9 @@ window.TR = (() => {
     g.found.filter(x => x.on).forEach(x => {
       months.push(x.month);
       x.recs.forEach(r => {
-        const m = r.date.slice(0, 7), d = +r.date.slice(8);
-        const same = at(m, d, r.slot);
-        const clash = r.slot === '종일' ? [at(m, d, '오전'), at(m, d, '오후')].filter(Boolean) : SLOTS.includes(r.slot) ? [at(m, d, '종일')].filter(Boolean) : [];
+        const m = r.date.slice(0, 7), d = +r.date.slice(8), c = r.cls;
+        const same = at(m, d, r.slot, c);
+        const clash = r.slot === '종일' ? [at(m, d, '오전', c), at(m, d, '오후', c)].filter(Boolean) : SLOTS.includes(r.slot) ? [at(m, d, '종일', c)].filter(Boolean) : [];
         if (g.mode === 'keep' && (same || clash.length)) { skipped++; return; }
         clash.forEach(c => drop.push(c.id));
         put.push({ ...(same ? { id: same.id } : {}), ...r, src: g.files.join(', ') });
@@ -246,20 +258,55 @@ window.TR = (() => {
     if (drop.length) S.removeMany('tp', drop);
     if (put.length) S.putMany('tp', put);
     if (months.length) ui.month = months.sort()[months.length - 1];
+    const lastCls = g.found.filter(x => x.on).map(x => x.cls).pop(); if (lastCls) ui.cls = lastCls;
     ui.imp = null;
     return { put: put.length, skipped, months };
   }
 
   /** 인쇄: A4 가로 한 장, 엑셀 양식과 같은 모양 */
-  function doc(m = ui.month) {
+  function doc(m = ui.month, cls = ui.cls, scale = 1) {
+    const keep = ui.cls; ui.cls = cls;
+    try {
     const notes = notesOf(m).split('\n').filter(Boolean);
     const names = staffNames();
-    return `<article class="doc tp-doc">
-      <h1>JOB이음터 ${+m.slice(5)}월 일정표</h1>
+    return `<article class="doc tp-doc" style="--tps:${scale}">
+      <h1>${e(cls)} ${+m.slice(5)}월 일정표</h1>
       ${grid(m, true)}
       <div class="tp-doc-notes">${notes.map(n => `<div>${e(n)}</div>`).join('')}${names.length && !notes.some(n => /담당/.test(n)) ? `<div class="r">담당: 직업지원팀 ${names.map(e).join(', ')}</div>` : ''}</div>
     </article>`;
+    } finally { ui.cls = keep; }
   }
 
-  return { ui, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
+  /* ---------- 업무 일정 불러오기 (엑셀·한글 표: 날짜·시간·제목/내용·유형·담당·메모) ---------- */
+  const EV_HEAD = { date: /^(날짜|일자|일시|일정일|월일)$/, time: /^(시간|시각)$/, title: /^(제목|일정|내용|일정내용|업무|업무내용|행사명|프로그램)$/, type: /^(유형|구분|종류)$/, staff: /^(담당|담당자|담당직원|성명|직원)$/, memo: /^(메모|비고|장소)$/ };
+  function eventsFromRows(rows, year) {
+    const out = [];
+    for (let h = 0; h < Math.min(rows.length, 15); h++) {
+      const head = (rows[h] || []).map(c => String(c ?? '').replace(/\s/g, ''));
+      const col = {};
+      head.forEach((t, i) => Object.entries(EV_HEAD).forEach(([k, re]) => { if (col[k] == null && re.test(t)) col[k] = i; }));
+      if (col.date == null || col.title == null) continue;
+      for (let r = h + 1; r < rows.length; r++) {
+        const row = rows[r] || [];
+        const raw = row[col.date];
+        let date = '';
+        if (typeof raw === 'number' && raw > 30000) { const d = new Date(Math.round((raw - 25569) * 864e5)); const y = d.getUTCFullYear() < 2015 ? year : d.getUTCFullYear(); date = `${y}-${U.pad(d.getUTCMonth() + 1)}-${U.pad(d.getUTCDate())}`; }
+        else { const t = String(raw ?? ''); const k = t.match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/) || t.match(/^\s*(\d{1,2})[.\-/월\s]+(\d{1,2})/); if (k) date = k.length === 4 ? `${k[1]}-${U.pad(+k[2])}-${U.pad(+k[3])}` : `${year}-${U.pad(+k[1])}-${U.pad(+k[2])}`; }
+        const title = String(row[col.title] ?? '').replace(/\s+/g, ' ').trim();
+        if (!date || !title) continue;
+        const tm = String(row[col.time] ?? '').match(/(\d{1,2})[:시]?\s*(\d{2})?/);
+        const staff = String(row[col.staff] ?? '').trim();
+        out.push({ date, time: tm ? `${U.pad(+tm[1])}:${tm[2] || '00'}` : '', title, type: D.EVENT_TYPES.find(t => String(row[col.type] ?? '').includes(t)) || '기타', staff: S.staff().some(s => s.name === staff) ? staff : '', memo: String(row[col.memo] ?? '').trim(), targetType: '', targetId: '' });
+      }
+      break;
+    }
+    return out;
+  }
+  function eventsFromWorkbook(wb, file) {
+    const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4));
+    return wb.SheetNames.flatMap(n => eventsFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }), year));
+  }
+  const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
+
+  return { ui, CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
 })();

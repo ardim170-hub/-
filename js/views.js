@@ -26,7 +26,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
-    sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '' },
+    sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
   };
@@ -612,13 +612,18 @@ window.V = (() => {
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
     const f = ui.sched;
+    const tabs = `<div class="chips sched-tabs" role="tablist"><button type="button" role="tab" class="chip ${f.view !== 'train' ? 'on' : ''}" data-act="sched-view" data-v="work">📅 업무 일정</button><button type="button" role="tab" class="chip ${f.view === 'train' ? 'on' : ''}" data-act="sched-view" data-v="train">🗓 직업훈련 일정표 <small>JOB이음터 · 일과놀이반</small></button></div>`;
+    if (f.view === 'train') return `
+      <div class="page-head"><div><h1 class="page-title">일정</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
+      ${tabs}<div id="tpBox"></div>`;
     const all = S.view().events.filter(x => !x.done);
     const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
     return `
       <div class="page-head">
         <div><h1 class="page-title">일정</h1><div class="page-desc">직원별로 일정을 적고, 추가·수정·삭제합니다. 사업체 방문, 면접 동행, 기관 행사 등.</div></div>
-        <button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button>
+        <div class="inline"><button class="btn" type="button" data-act="ev-import">📂 엑셀·한글로 일정 불러오기</button><button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button></div>
       </div>
+      ${tabs}
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
         ${S.staff().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
