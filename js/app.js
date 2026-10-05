@@ -4,10 +4,8 @@ window.App = (() => {
   const view = $('#view');
   const NAV = [
     ['dashboard', '대시보드', 'dash'],
-    ['biz', '사업체 개발', 'biz', () => S.get().businesses.length],
+    ['biz', '사업체·네트워크', 'biz', () => S.get().businesses.length + S.get().networks.length],
     ['map', '지도', 'map'],
-    ['cards', '명함 관리', 'card', () => S.get().cards.length],
-    ['network', '네트워크', 'net', () => S.get().networks.length],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
@@ -17,6 +15,12 @@ window.App = (() => {
   ];
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   const route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
+  // 사업체·기관·명함은 한 메뉴(사업체·네트워크)의 탭: 주소는 #/biz · #/network · #/cards 그대로
+  const HUB_R = ['biz', 'network', 'cards'];
+  const navOf = r => (HUB_R.includes(r) ? 'biz' : r);
+  /** 메뉴를 눌렀을 때 갈 곳: 사업체·네트워크는 볼 수 있는 첫 탭 */
+  const hrefOf = k => (k === 'biz' ? HUB_R.find(x => S.level(x) >= 1) || 'biz' : k);
+  const canSee = k => (k === 'biz' ? HUB_R.some(x => S.level(x) >= 1) : !MENU_NAME[k] || S.level(k) >= 1);
 
   /* ---------- Toast / Confirm ---------- */
   function toast(msg, type = '', opt = {}) {
@@ -96,8 +100,9 @@ window.App = (() => {
     const r = route();
     // 데이터 관리는 관리자에게만 보인다 (팀원은 등록·수정·삭제만)
     applyPermClasses();
-    $('#sideNav').innerHTML = NAV.filter(([k]) => (k !== 'data' || S.isAdmin()) && (!MENU_NAME[k] || S.level(k) >= 1)).map(([k, l, ic, cnt]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}" ${r === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
-    const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'data'].includes(r);
+    const n = navOf(r);
+    $('#sideNav').innerHTML = NAV.filter(([k]) => (k !== 'data' || S.isAdmin()) && canSee(k)).map(([k, l, ic, cnt]) => `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
+    const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'attend', 'data'].includes(r);
     $('#bottomNav').innerHTML = MOBILE.filter(([k]) => !MENU_NAME[k] || S.level(k) >= 1).map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
@@ -141,7 +146,8 @@ window.App = (() => {
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
-      biz: [V.bizPage, bindBiz],
+      biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
+
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
       network: [V.netPage, bindNet],
@@ -173,9 +179,16 @@ window.App = (() => {
     if (q) q.addEventListener('input', U.debounce(() => { setter(q.value.trim()); draw(); }, 120));
     return draw;
   }
+  /** 세 탭이 같은 검색어를 쓴다: 다른 탭으로 가도 검색어가 남고, 탭 옆 숫자가 바로 바뀐다 */
+  function syncQ(v) {
+    V.ui.hub.q = V.ui.biz.q = V.ui.net.q = V.ui.cards.q = v;
+    const t = $('#hubTabs'); if (t) t.innerHTML = V.hubTabsInner(route());
+  }
   function bindBiz() {
     const f = V.ui.biz;
-    const draw = bindList('#bizQ', '#bizResults', V.bizResults, v => { f.q = v; });
+    syncQ(V.ui.hub.q);
+    const draw = bindList('#bizQ', '#bizResults', V.bizResults, syncQ);
+    $('#bizProg').onchange = ev => { f.prog = ev.target.value; draw(); };
     $('#bizArea').onchange = ev => { f.area = ev.target.value; draw(); };
     $('#bizInd').onchange = ev => { f.industry = ev.target.value; draw(); };
     $('#bizMand').onchange = ev => { f.mandatory = ev.target.checked; draw(); };
@@ -184,11 +197,13 @@ window.App = (() => {
     $('#bizMonth').onchange = ev => { f.month = ev.target.value || U.today().slice(0, 7); draw(); };
   }
   function bindNet() {
-    const draw = bindList('#netQ', '#netResults', V.netResults, v => { V.ui.net.q = v; });
+    syncQ(V.ui.hub.q);
+    const draw = bindList('#netQ', '#netResults', V.netResults, syncQ);
     $('#netStatus').onchange = ev => { V.ui.net.status = ev.target.value; draw(); };
   }
   function bindCards() {
-    const draw = bindList('#cardQ', '#cardResults', V.cardResults, v => { V.ui.cards.q = v; });
+    syncQ(V.ui.hub.q);
+    const draw = bindList('#cardQ', '#cardResults', V.cardResults, syncQ);
     $('#cardSort').onchange = ev => { V.ui.cards.sort = ev.target.value; draw(); };
   }
   function bindMap() {
@@ -824,7 +839,7 @@ window.App = (() => {
     if (document.querySelector('.more-sheet')) return closeMore();
     const el = document.createElement('div');
     el.className = 'more-sheet';
-    el.innerHTML = '<a href="#/network">네트워크</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a>' + (S.isAdmin() ? '<a href="#/data">데이터 관리</a>' : '');
+    el.innerHTML = '<a href="#/network">기관·네트워크</a><a href="#/attend">출석부</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a>' + (S.isAdmin() ? '<a href="#/data">데이터 관리</a>' : '');
     document.body.appendChild(el);
   }
 
@@ -1039,8 +1054,9 @@ window.App = (() => {
     'dr-back': () => { stack.pop(); renderDrawer(); },
     'dr-cancel': () => { stack.pop(); renderDrawer(); },
     'biz-stage': el => { V.ui.biz.stage = el.dataset.stage; if (route() === 'biz') render(); else location.hash = '#/biz'; },
-    'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else f[k] = ''; render(); },
-    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', q: '', area: '', industry: '', mandatory: false, period: 'all', dup: false, prog: '' }); render(); },
+    'biz-unfilter': el => { const k = el.dataset.k; const f = V.ui.biz; if (k === 'stage') f.stage = '전체'; else if (k === 'mandatory') f.mandatory = false; else if (k === 'period') f.period = 'all'; else if (k === 'q') syncQ(''); else f[k] = ''; render(); },
+    'biz-reset': () => { Object.assign(V.ui.biz, { stage: '전체', area: '', industry: '', mandatory: false, period: 'all', dup: false, prog: '' }); syncQ(''); render(); },
+    'hub-triage': () => { V.ui.hub.triage = !V.ui.hub.triage; render(); },
     'biz-prog': el => { V.ui.biz.prog = el.dataset.prog; render(); },
     'sup-toggle': el => {
       const b = S.find('biz', el.dataset.id);

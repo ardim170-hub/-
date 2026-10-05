@@ -25,6 +25,7 @@ window.V = (() => {
     biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, prog: '', sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
+    hub: { q: '', triage: false },
     map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
@@ -198,21 +199,53 @@ window.V = (() => {
     </svg>`;
   }
 
+  /* ================= 사업체·네트워크 (사업체 · 기관 · 명함 한 메뉴) ================= */
+  const HUB = [['biz', '사업체', 'biz'], ['network', '기관<i class="hub-long">·네트워크</i>', 'net'], ['cards', '명함', 'card']];
+  /** 검색어가 같은 탭마다 몇 개 걸리는지 (탭 옆 숫자) */
+  function hubCounts(q = ui.hub.q) {
+    const v = S.view();
+    const n = (list, f) => (q ? list.filter(f).length : list.length);
+    return {
+      biz: [n(v.businesses, b => U.match(q, b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, b.phone, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone]))), v.businesses.length],
+      network: [n(v.networks, x => U.match(q, x.name, x.relation, x.promo, x.memo, x.address, x.staff, ...S.cardsOf('net', x.id).flatMap(c => [c.name, c.mobile, c.phone]))), v.networks.length],
+      cards: [n(v.cards, c => U.match(q, c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo, c.address)), v.cards.length],
+    };
+  }
+  const hubTabsInner = tab => { const c = hubCounts(); return HUB.filter(([k]) => S.level(k) >= 1).map(([k, l, ic]) => `<a href="#/${k}" class="hub-tab hub-${k} ${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${I[ic]}<span>${l}</span><b class="num">${ui.hub.q ? `${c[k][0]}<small>/${c[k][1]}</small>` : c[k][1]}</b></a>`).join(''); };
+  /** 화면 머리: 제목 하나 + 탭별 버튼, 그 아래 탭, 분류 대기 명함 한 줄 */
+  function hubHead(tab) {
+    const desc = {
+      biz: `장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.`,
+      network: `복지관 홍보와 협력을 위한 지역 기관을 관리합니다.`,
+      cards: `휴대폰으로 명함을 찍어 올리면 ${AI.available() ? 'AI가 이름·연락처를 읽어 채워 줍니다' : '사진과 함께 보관됩니다'}. 사업체·기관과 연결하면 지도와 상세 화면에 함께 나옵니다.`,
+    }[tab];
+    const acts = {
+      biz: `<a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button>`,
+      network: `<a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button>`,
+      cards: `<button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button>`,
+    }[tab];
+    const wait = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).length;
+    return `<div class="page-head">
+        <div><h1 class="page-title">사업체·네트워크</h1><div class="page-desc">${desc}${scopeNote()}</div></div>
+        <div class="inline">${acts}</div>
+      </div>
+      <nav class="hub-tabs" id="hubTabs" aria-label="사업체·기관·명함">${hubTabsInner(tab)}</nav>
+      ${wait && S.can('cards', 1) ? `<div class="hub-wait ${ui.hub.triage ? 'open' : ''}"><button type="button" class="hub-wait-bar" data-act="hub-triage" aria-expanded="${ui.hub.triage}"><span>📇 아직 사업체·기관에 연결 안 된 <b>명함 ${wait}장</b>이 있어요. 연결하면 지도·상세 화면에 같이 나와요.</span><span class="hub-wait-go">${ui.hub.triage ? '접기 ▲' : '정리하기 ▼'}</span></button>${ui.hub.triage ? triagePanel(12) : ''}</div>` : ''}`;
+  }
+  /** 검색 칸 (세 탭이 같은 검색어를 씀) */
+  const hubSearch = (id, ph) => `<input class="input hub-q" id="${id}" type="search" placeholder="${ph}" value="${e(ui.hub.q)}" aria-label="검색 (사업체·기관·명함 탭 공통)">`;
+
   /* ================= 사업체 개발 ================= */
   function bizPage() {
     const f = ui.biz;
     const all = S.view().businesses;
     const count = k => k === '전체' ? all.length : all.filter(b => b.stage === k).length;
     return `
-      <div class="page-head">
-        <div><h1 class="page-title">사업체 개발</h1><div class="page-desc">장애인 채용 가능 사업체를 발굴하고 채용연계까지 단계별로 관리합니다.${scopeNote()}</div></div>
-        <div class="inline"><a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button></div>
-      </div>
-
+      ${hubHead('biz')}
       <div class="chips" style="margin-bottom:8px">${['전체', ...D.STAGES.map(s => s.key)].map(k => `<button type="button" class="chip ${f.stage === k ? 'on' : ''}" data-act="biz-stage" data-stage="${k}" ${k !== '전체' ? `style="--c:${D.STAGE[k].color}"` : ''}>${k !== '전체' ? '<span class="dot"></span>' : ''}${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
-      <div class="chips prog-chips" style="margin-bottom:12px"><span class="sub" style="align-self:center">진행 사업</span>${[['', '전체'], ['placed', '취업 연계'], ['employ', '지원고용'], ['training', '현장훈련'], ['biz', '해당 없음']].map(([k, l]) => `<button type="button" class="chip tone-chip ${k ? 'tc-' + k : ''} ${f.prog === k ? 'on' : ''}" data-act="biz-prog" data-prog="${k}">${k && k !== 'biz' ? '<span class="dot"></span>' : ''}${l}<span class="n">${k ? all.filter(b => k === 'employ' || k === 'training' ? S.supportOf(b).types.includes(k === 'employ' ? '지원고용' : '현장훈련') : S.bizTone(b) === k).length : all.length}</span></button>`).join('')}</div>
       <div class="toolbar">
-        <input class="input" id="bizQ" type="search" placeholder="사업체명, 직무, 담당자 이름·연락처" value="${e(f.q)}">
+        ${hubSearch('bizQ', '사업체명·직무·담당자·전화')}
+        <select class="select" id="bizProg" aria-label="진행 사업">${[['', '진행 사업'], ['placed', '취업 연계'], ['employ', '지원고용'], ['training', '현장훈련'], ['biz', '진행 사업 없음']].map(([k, l]) => `<option value="${k}" ${f.prog === k ? 'selected' : ''}>${l}${k ? ` (${all.filter(b => k === 'employ' || k === 'training' ? S.supportOf(b).types.includes(k === 'employ' ? '지원고용' : '현장훈련') : S.bizTone(b) === k).length})` : ''}</option>`).join('')}</select>
         <select class="select" id="bizPeriod" aria-label="발굴 기간">${PERIODS.map(([k, l]) => `<option value="${k}" ${f.period === k ? 'selected' : ''}>${k === 'all' ? l : '발굴 ' + l}</option>`).join('')}</select>
         <input class="input month-input" id="bizMonth" type="month" value="${e(f.month)}" aria-label="발굴 월" ${f.period === 'month' ? '' : 'hidden'}>
         <select class="select" id="bizArea" aria-label="지역">${areaOptions(f.area)}</select>
@@ -320,16 +353,12 @@ window.V = (() => {
     const all = S.view().networks;
     const count = k => k === '전체' ? all.length : all.filter(n => n.category === k).length;
     return `
-      <div class="page-head">
-        <div><h1 class="page-title">네트워크</h1><div class="page-desc">복지관 홍보와 협력을 위한 지역 기관을 관리합니다.${scopeNote()}</div></div>
-        <div class="inline"><a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button></div>
-      </div>
+      ${hubHead('network')}
       <div class="chips" style="margin-bottom:12px">${['전체', ...new Set([...D.NET_CATEGORIES, ...all.map(n => n.category).filter(Boolean)])].filter(k => k === '전체' || D.NET_CATEGORIES.slice(0, 3).includes(k) || count(k)).map(k => `<button type="button" class="chip ${f.cat === k ? 'on' : ''}" data-act="net-cat" data-cat="${k}">${k}<span class="n">${count(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
-        <input class="input" id="netQ" type="search" placeholder="기관명, 협력 내용, 담당자" value="${e(f.q)}">
+        ${hubSearch('netQ', '기관명, 협력 내용, 담당자')}
         <select class="select" id="netStatus" aria-label="관계 상태">${opts(D.NET_STATUS, f.status, '전체 관계 상태')}</select>
       </div>
-      ${triagePanel()}
       <div id="netResults"></div>`;
   }
   /** 연결 안 된 명함을 사업체/네트워크로 나누는 목록 */
@@ -337,11 +366,11 @@ window.V = (() => {
     const list = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).sort((a, b) => (b.metAt || '').localeCompare(a.metAt || ''));
     if (!list.length) return '';
     return `<section class="panel panel-pad triage">
-      <div class="section-head"><h2 class="section-title">분류 대기 명함 <span class="num sub">${list.length}장</span></h2><span class="sub">버튼 하나로 사업체 개발이나 네트워크에 등록되고 지도에 표시됩니다</span></div>
+      <div class="section-head"><h2 class="section-title">분류 대기 명함 <span class="num sub">${list.length}장</span></h2><span class="sub">같은 소속이 있으면 🔗 연결, 없으면 사업체·기관으로 새로 등록돼 지도에 표시됩니다</span></div>
       <ul class="triage-list">${list.slice(0, limit).map(c => `<li>
         <div style="min-width:0"><b data-act="open" data-kind="card" data-id="${c.id}">${e(c.org || c.name)}</b> <span class="sub">${e(c.name)} ${e(c.title || '')}${c.area ? ' · ' + e(D.guOf(c.area) + ' ' + c.area) : ''}</span></div>
         <div class="inline">${triageButtons(c)}</div></li>`).join('')}</ul>
-      ${list.length > limit ? `<a class="sub" href="#/cards" data-act="card-link-none">나머지 ${list.length - limit}장 보기</a>` : ''}
+      ${list.length > limit ? `<a class="sub" href="#/cards" data-act="card-link-none">나머지 ${list.length - limit}장 보기 (명함 탭 · 연결 안 됨)</a>` : ''}
     </section>`;
   }
   /** 연결 안 된 명함: 소속이 같은 곳이 있으면 '연결'을 먼저, 없으면 새로 등록 */
@@ -387,14 +416,10 @@ window.V = (() => {
     const all = S.view().cards;
     const cnt = k => all.filter(c => k === 'all' ? true : k === 'none' ? !c.linkType : c.linkType === k).length;
     return `
-      <div class="page-head">
-        <div><h1 class="page-title">명함 관리</h1><div class="page-desc">휴대폰으로 명함을 찍어 올리면 ${AI.available() ? 'AI가 이름·연락처를 읽어 채워 줍니다' : '사진과 함께 보관됩니다'}. 사업체·기관과 연결하면 지도와 상세 화면에 함께 나옵니다.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button></div>
-      </div>
-
+      ${hubHead('cards')}
       <div class="chips" style="margin-bottom:12px">${[['all', '전체'], ['biz', '사업체 담당자'], ['net', '네트워크 기관'], ['none', '연결 안 됨']].map(([k, l]) => `<button type="button" class="chip ${f.link === k ? 'on' : ''}" data-act="card-link" data-link="${k}">${l}<span class="n">${cnt(k)}</span></button>`).join('')}</div>
       <div class="toolbar">
-        <input class="input" id="cardQ" type="search" placeholder="이름·소속·전화 뒷자리·초성(ㄱㅈㅂ)" value="${e(f.q)}">
+        ${hubSearch('cardQ', '이름·소속·전화 뒷자리·초성(ㄱㅈㅂ)')}
         <span class="spacer"></span>
         <select class="select" id="cardSort" aria-label="정렬">
           <option value="recent" ${f.sort === 'recent' ? 'selected' : ''}>최근 받은 순</option>
@@ -1115,5 +1140,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
