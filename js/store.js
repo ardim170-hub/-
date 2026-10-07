@@ -583,6 +583,17 @@ window.S = (() => {
   /* ---------- 실적 ---------- */
   /** 직원의 실적 분류표 이름 (현장중심직업재활센터 / 고용지원사업) */
   const perfSetOf = staffName => state.settings.perfByProgram[programOf(staffName)] || '';
+  /** 사업체 최초 등록일: 발굴일과 첫 연락 기록 중 이른 날 (오늘 입력해도 처음 만난 날이 9월이면 9월) */
+  function bizFirst(b) {
+    if (!b) return '';
+    const ds = [b.discoveredAt, ...state.activities.filter(a => a.targetType === 'biz' && a.targetId === b.id && a.type !== '발굴').map(a => a.date)].filter(U.isDate);
+    return ds.sort()[0] || '';
+  }
+  /** 실적에 쓰는 날짜: 발굴(사업체 등록) 기록은 입력한 날이 아니라 사업체의 최초 등록일 */
+  function perfDate(a, t = targetOf(a)) {
+    if (a.type === '발굴' && a.targetType === 'biz' && t) return bizFirst(t) || a.date;
+    return a.date;
+  }
   /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null */
   function perfOf(a) {
     const set = perfSetOf(a.staff);
@@ -590,13 +601,25 @@ window.S = (() => {
     if (!def) return null;
     let item = a.perf;
     if (item === '제외') return null;
-    if (!item || !def.items.includes(item)) item = D.suggestPerf(set, a, targetOf(a));
+    if (!item || !def.items.includes(item)) {
+      const t = targetOf(a);
+      const first = a.targetType === 'biz' ? bizFirst(t) : '';
+      const later = !!first && perfDate(a, t).slice(0, 7) > first.slice(0, 7);
+      item = D.suggestPerf(set, a, t, later);
+    }
     return item ? { set, big: def.big, mid: def.mid, item } : null;
   }
-  /** 기간(YYYY-MM) 안의 실적 기록 */
+  /** 기간(YYYY-MM) 안의 실적 기록. d = 실적 날짜(발굴 기록은 최초 등록일) */
   function perfRows(month, v = view()) {
-    return v.activities.filter(a => a.date.startsWith(month)).map(a => ({ a, p: perfOf(a), t: targetOf(a) })).filter(r => r.p)
-      .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.p.item.localeCompare(y.p.item));
+    return v.activities.map(a => { const t = targetOf(a); return { a, t, d: perfDate(a, t) }; }).filter(r => r.d.startsWith(month))
+      .map(r => ({ ...r, p: perfOf(r.a) })).filter(r => r.p)
+      .sort((x, y) => x.d.localeCompare(y.d) || x.p.item.localeCompare(y.p.item));
+  }
+  /** 이 달 연락 중 실적에 자동으로 안 들어간 것 (이미 개발한 사업체에 다시 연락 등). 골라서 넣을 수 있다 */
+  function perfLeft(month, set, v = view()) {
+    return v.activities.filter(a => a.perf !== '제외' && (a.targetType === 'biz' || a.targetType === 'net') && perfSetOf(a.staff) === set && !/^진행 단계 변경/.test(a.content || ''))
+      .map(a => { const t = targetOf(a); return { a, t, d: perfDate(a, t) }; }).filter(r => r.d.startsWith(month) && r.t && !perfOf(r.a))
+      .sort((x, y) => x.d.localeCompare(y.d));
   }
 
   /** 실적 표 (구글 시트 '실적(기타)' 열 순서). 직접 입력한 실적 + 활동 기록 자동 집계(날짜·세부사업별 한 줄) */
@@ -609,9 +632,9 @@ window.S = (() => {
     }));
     if (withActs) {
       const groups = new Map();
-      perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t }) => {
-        const k = a.date + '|' + p.item;
-        const g = groups.get(k) || { kind: 'auto', date: a.date, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
+      perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t, d }) => {
+        const k = d + '|' + p.item;
+        const g = groups.get(k) || { kind: 'auto', date: d, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
         g.n++; g.people += Number(a.people) || 0;
         if (t) g.targets.set(t.id, t.name);
         groups.set(k, g);
@@ -743,7 +766,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },

@@ -222,7 +222,7 @@ window.V = (() => {
     const acts = {
       biz: `<a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button>`,
       network: `<a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button>`,
-      cards: `<button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button>`,
+      cards: `<button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn" type="button" data-act="card-pdf" title="명함을 스캔한 PDF · 여러 장이 든 PDF도 한 번에">📄 PDF로 등록</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button>`,
     }[tab];
     const wait = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).length;
     return `<div class="page-head">
@@ -742,7 +742,7 @@ window.V = (() => {
           <label class="grow">비고<input class="input" name="note"></label>
           <button class="btn btn-primary" type="submit">추가</button>
         </form>
-        <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면에서 남긴 활동 기록(방문·전화 등)은 따로 입력하지 않아도 아래 표에 날짜·세부사업별로 자동 집계됩니다.</p>
+        <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면에서 남긴 활동 기록(방문·전화 등)은 따로 입력하지 않아도 아래 표에 날짜·세부사업별로 자동 집계됩니다. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요. 오늘 입력해도 발굴일·첫 연락이 9월이면 9월 실적이에요.</p>
       </section>
       <div id="perfResults"></div>`;
   }
@@ -774,10 +774,11 @@ window.V = (() => {
   function perfDetail(f, def) {
     const acts = S.perfRows(f.month).filter(r => r.p.set === f.set);
     const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month));
-    const out = S.view().activities.filter(a => a.perf === '제외' && a.date.startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const out = S.view().activities.filter(a => a.perf === '제외' && S.perfDate(a).startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const left = S.perfLeft(f.month, f.set);
     const names = [...S.get().businesses.map(b => b.name), ...S.get().networks.map(n => n.name)];
     const itemSel = (cur, chg, id, withOut) => `<select class="select sm" data-chg="${chg}" data-id="${id}" data-field="${chg === 'pa-field' ? 'perf' : 'item'}" aria-label="세부사업">${def.items.map(i => `<option ${i === cur ? 'selected' : ''}>${e(i)}</option>`).join('')}${withOut ? '<option value="제외">실적에서 빼기</option>' : ''}</select>`;
-    const actRow = ({ a, p, t }) => `<tr><td><input class="input sm" type="date" value="${a.date}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td>
+    const actRow = ({ a, p, t, d }) => `<tr><td><input class="input sm" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
       <td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}</div>` : '<span class="sub">(대상 없음)</span>'}</td>
       <td><textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
       <td><input class="input sm pd-n" type="number" min="0" value="${e(a.people ?? '')}" data-chg="pa-field" data-id="${a.id}" data-field="people" aria-label="참여인원" placeholder="-"></td>
@@ -792,7 +793,7 @@ window.V = (() => {
     const day = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01';
     const groups = def.items.map(item => {
       const A = acts.filter(r => r.p.item === item), M = mans.filter(m => m.item === item);
-      const rows = [...A.map(r => [r.a.date, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]).join('');
+      const rows = [...A.map(r => [r.d, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]).join('');
       const nTarget = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
       return `<details class="pd-grp" ${A.length + M.length || f.pdOpen === item ? 'open' : ''}><summary><b>${e(item)}</b> <span class="num">${A.length + M.length}건</span>${nTarget ? `<span class="sub">· ${nTarget}곳</span>` : ''}</summary>
         ${rows ? `<div class="table-wrap"><table class="tbl pd-tbl"><thead><tr><th>날짜</th><th>사업체·기관</th><th>내용</th><th>인원</th><th>세부사업</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="sub pd-empty">이 달 기록이 없습니다.</p>'}
@@ -808,6 +809,7 @@ window.V = (() => {
     return `<section class="panel pd">
       <div class="panel-pad perf-actions"><h2 class="section-title">${monthLabel(f.month)} 세부 목록 <span class="sub">실적에 들어간 사업체·기관 기록. 칸을 고치면 바로 저장됩니다</span></h2></div>
       ${groups}
+      ${left.length ? `<details class="pd-grp pd-out"><summary><b>실적에 안 들어간 이 달 연락</b> <span class="num">${left.length}건</span><span class="sub">· 이미 앞 달에 개발(최초 등록)한 사업체에 다시 연락한 기록 등. 실적이면 세부사업을 골라 넣으세요</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${left.map(({ a, t, d }) => `<tr><td class="num nowrap">${d}</td><td><b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}${a.targetType === 'biz' && S.bizFirst(t) ? ` · 최초 등록 ${U.dateDot(S.bizFirst(t))}` : ''}</div></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="" selected>실적 아님</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>` : ''}
       ${out.length ? `<details class="pd-grp pd-out"><summary><b>실적에서 뺀 기록</b> <span class="num">${out.length}건</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${out.map(a => { const t = S.find(a.targetType, a.targetId); return `<tr><td class="num nowrap">${a.date}</td><td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b>` : ''} <span class="sub">${e(a.type)}</span></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="제외" selected>빠져 있음</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody></table></div></details>` : ''}
       <datalist id="pdNames">${[...new Set(names)].map(n => `<option value="${e(n)}">`).join('')}</datalist>
     </section>`;
@@ -997,7 +999,8 @@ window.V = (() => {
     const set = S.perfSetOf(S.me());
     const def = D.PERF_SETS[set];
     if (!def) return '';
-    const auto = D.suggestPerf(set, { targetType: kind, type: '전화', content: '' }, S.find(kind, id));
+    const tg = S.find(kind, id), first = kind === 'biz' ? S.bizFirst(tg) : '';
+    const auto = D.suggestPerf(set, { targetType: kind, type: '전화', content: '' }, tg, !!first && U.today().slice(0, 7) > first.slice(0, 7));
     return `<div class="quick-perf"><span class="sub">실적</span>
       <select class="select" name="perf" aria-label="실적 세부사업"><option value="">자동${auto ? ` (${e(auto)})` : ' (실적 아님)'}</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}<option value="제외">실적 아님</option></select>
       <input class="input" type="number" min="0" name="people" placeholder="참여인원" aria-label="참여인원"></div>`;

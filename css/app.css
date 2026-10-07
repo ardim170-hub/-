@@ -1593,3 +1593,5 @@ table.tbl { font-size: 14.5px; }
 .hub-tab i { font-style: normal; }
 @media (max-width: 720px) { .hub-tab .hub-long { display: none; } }
 .toolbar .select { max-width: 158px; text-overflow: ellipsis; }
+.cb-tbl td { vertical-align: top; padding: 6px; }
+.cb-thumb { width: 72px; height: auto; border: 1px solid var(--line); border-radius: 4px; display: block; }

@@ -60,11 +60,22 @@ window.AI = (() => {
   const str = description => ({ type: 'string', description });
 
   /* ---------- 명함 사진 → 연락처 ---------- */
-  const CARD_SCHEMA = obj({
+  const CARD_PROPS = {
     name: str('사람 이름'), title: str('직함/직위'), dept: str('부서'), org: str('회사·기관 이름'),
     mobile: str('휴대전화 010-0000-0000 형식'), phone: str('사무실 전화 (대표번호 포함)'), fax: str('팩스'),
     email: str('이메일'), address: str('주소 전체'), homepage: str('홈페이지 주소'),
-  });
+  };
+  const CARD_SCHEMA = obj(CARD_PROPS);
+  const CARDS_SCHEMA = obj({ cards: { type: 'array', items: obj({ page: { type: 'integer', description: '그 명함이 있는 PDF 쪽 번호 (1부터)' }, ...CARD_PROPS }) } });
+  /** 명함 PDF (한 쪽에 한 장이든, 여러 장을 스캔한 것이든) → 명함 목록 */
+  async function readCardsPdf(dataUrl) {
+    const msg = await run({
+      max_tokens: 16000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: CARDS_SCHEMA } },
+      messages: [{ role: 'user', content: [imageBlock(dataUrl), { type: 'text', text: '이 PDF에 들어 있는 명함을 모두 찾아 한 장씩 연락처 정보를 읽어 주세요. 앞면·뒷면이 같은 사람이면 한 장으로 합치세요. 명함에 없는 항목은 빈 문자열로 두고, 짐작해서 채우지 마세요. 전화번호는 하이픈을 넣어 주세요.' }] }],
+    });
+    return (JSON.parse(textOf(msg)).cards || []);
+  }
   async function readCard(dataUrl) {
     const msg = await run({
       max_tokens: 4000,
@@ -134,5 +145,5 @@ ${acts || '-'}` }],
     return textOf(msg);
   }
 
-  return { MODEL, available, setKey, localKey, readCard, readBizDoc, research, summarize };
+  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, research, summarize };
 })();

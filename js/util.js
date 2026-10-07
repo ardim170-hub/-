@@ -85,5 +85,24 @@ window.U = (() => {
     return ({ 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' })[c] || (/[ㄱ-ㅎ]/.test(c) ? c : (c ? 'A-Z' : ''));
   };
 
-  return { orgKey, cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
+  /* 문서보안(DRM)이 걸린 엑셀은 암호화돼 있어 표를 읽을 수 없다. 겉모양으로 알아보고 이유를 알려 준다 */
+  const DRM_MARKS = [['DocuRay', 'DocuRay'], ['DRMONE', 'DRM ONE'], ['Fasoo', 'Fasoo'], ['FSN-', 'Fasoo'], ['SCDSA', 'SoftCamp'], ['NASCA', 'NASCA'], ['MarkAny', 'MarkAny'], ['MADRM', 'MarkAny'], ['SealDocument', 'Seal']];
+  function drmOf(data) {
+    let head = '';
+    try {
+      if (typeof data === 'string') head = data.slice(0, 600);
+      else { const u = data instanceof Uint8Array ? data : new Uint8Array(data.buffer || data); head = String.fromCharCode(...u.subarray(0, 600)); }
+    } catch { return ''; }
+    if (/^PK/.test(head)) return '';
+    const hit = DRM_MARKS.find(([m]) => head.includes(m));
+    return hit ? hit[1] : '';
+  }
+  const drmError = name => Object.assign(new Error(`이 파일은 문서보안(DRM${name ? ' · ' + name : ''})이 걸려 있어 열 수 없어요. 회사 PC의 엑셀에서 보안 해제(복호화·반출) 후 '다른 이름으로 저장'해서 올리거나, 엑셀에서 표를 드래그해 복사(Ctrl+C)한 뒤 붙여넣기로 넣어 주세요.`), { drm: true });
+  if (window.XLSX && !XLSX.__drm) {
+    const read = XLSX.read;
+    XLSX.read = function (data, opts) { const d = drmOf(data); if (d) throw drmError(d); return read.call(this, data, opts); };
+    XLSX.__drm = true;
+  }
+
+  return { drmOf, orgKey, cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
 })();

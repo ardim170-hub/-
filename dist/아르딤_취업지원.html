@@ -2265,6 +2265,8 @@ table.tbl { font-size: 14.5px; }
 .hub-tab i { font-style: normal; }
 @media (max-width: 720px) { .hub-tab .hub-long { display: none; } }
 .toolbar .select { max-width: 158px; text-overflow: ellipsis; }
+.cb-tbl td { vertical-align: top; padding: 6px; }
+.cb-thumb { width: 72px; height: auto; border: 1px solid var(--line); border-radius: 4px; display: block; }
 
 </style>
 </head>
@@ -2300,6 +2302,7 @@ table.tbl { font-size: 14.5px; }
             <button type="button" data-act="new-biz">사업체 발굴 등록</button>
             <button type="button" data-act="biz-upload">사업체 파일로 등록</button>
             <button type="button" data-act="card-photo">명함 사진으로 등록</button>
+            <button type="button" data-act="card-pdf">명함 PDF로 등록</button>
             <button type="button" data-act="new-card">명함 직접 입력</button>
             <button type="button" data-act="new-net">네트워크 기관 등록</button>
             <button type="button" data-act="new-event">일정 등록</button>
@@ -2349,7 +2352,7 @@ table.tbl { font-size: 14.5px; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.10.06 08:49";</script>
+<script>window.APP_VERSION = "2026.10.07 15:55";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -2471,7 +2474,26 @@ window.U = (() => {
     return ({ 'ㄲ': 'ㄱ', 'ㄸ': 'ㄷ', 'ㅃ': 'ㅂ', 'ㅆ': 'ㅅ', 'ㅉ': 'ㅈ' })[c] || (/[ㄱ-ㅎ]/.test(c) ? c : (c ? 'A-Z' : ''));
   };
 
-  return { orgKey, cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
+  /* 문서보안(DRM)이 걸린 엑셀은 암호화돼 있어 표를 읽을 수 없다. 겉모양으로 알아보고 이유를 알려 준다 */
+  const DRM_MARKS = [['DocuRay', 'DocuRay'], ['DRMONE', 'DRM ONE'], ['Fasoo', 'Fasoo'], ['FSN-', 'Fasoo'], ['SCDSA', 'SoftCamp'], ['NASCA', 'NASCA'], ['MarkAny', 'MarkAny'], ['MADRM', 'MarkAny'], ['SealDocument', 'Seal']];
+  function drmOf(data) {
+    let head = '';
+    try {
+      if (typeof data === 'string') head = data.slice(0, 600);
+      else { const u = data instanceof Uint8Array ? data : new Uint8Array(data.buffer || data); head = String.fromCharCode(...u.subarray(0, 600)); }
+    } catch { return ''; }
+    if (/^PK/.test(head)) return '';
+    const hit = DRM_MARKS.find(([m]) => head.includes(m));
+    return hit ? hit[1] : '';
+  }
+  const drmError = name => Object.assign(new Error(`이 파일은 문서보안(DRM${name ? ' · ' + name : ''})이 걸려 있어 열 수 없어요. 회사 PC의 엑셀에서 보안 해제(복호화·반출) 후 '다른 이름으로 저장'해서 올리거나, 엑셀에서 표를 드래그해 복사(Ctrl+C)한 뒤 붙여넣기로 넣어 주세요.`), { drm: true });
+  if (window.XLSX && !XLSX.__drm) {
+    const read = XLSX.read;
+    XLSX.read = function (data, opts) { const d = drmOf(data); if (d) throw drmError(d); return read.call(this, data, opts); };
+    XLSX.__drm = true;
+  }
+
+  return { drmOf, orgKey, cho, isCho, match, indexOf, pad, fmt, today, parse, isDate, addDays, diffDays, WD, dday, ago, md, dateKo, dateDot, esc, num, uid, norm, hl, debounce, toDateStr };
 })();
 
 </script>
@@ -2619,18 +2641,20 @@ window.D = (() => {
   };
   /** 소속 → 실적 분류표 (데이터 관리에서 바꿀 수 있음) */
   const DEFAULT_PERF_BY_PROGRAM = { '장애인개발원': '현장중심직업재활센터', '고용공단': '고용지원사업' };
-  /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님 */
-  function suggestPerf(setKey, act, target) {
+  /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님
+   *  later = 사업체를 처음 등록(최초 등록일)한 달보다 뒤의 연락. 사업체개발·고용자원개발은 처음 등록한 달에만 잡는다 */
+  function suggestPerf(setKey, act, target, later = false) {
     if (!PERF_SETS[setKey] || !act) return null;
     if (/^진행 단계 변경/.test(act.content || '')) return null;
     if (setKey === '현장중심직업재활센터') {
       if (act.targetType !== 'biz') return null;
-      return act.type === '채용연계' ? '취업' : '사업체개발';
+      if (act.type === '채용연계') return '취업';
+      return later ? null : '사업체개발';
     }
     if (act.targetType === 'net') return '고용네트워크';
     if (act.targetType !== 'biz') return null;
     if (act.type === '채용연계') return '취업확정';
-    return target && target.stage === '채용연계' ? '사업체관리' : '고용자원개발';
+    return later || (target && target.stage === '채용연계') ? '사업체관리' : '고용자원개발';
   }
 
   const INDUSTRIES = {
@@ -3430,6 +3454,17 @@ window.S = (() => {
   /* ---------- 실적 ---------- */
   /** 직원의 실적 분류표 이름 (현장중심직업재활센터 / 고용지원사업) */
   const perfSetOf = staffName => state.settings.perfByProgram[programOf(staffName)] || '';
+  /** 사업체 최초 등록일: 발굴일과 첫 연락 기록 중 이른 날 (오늘 입력해도 처음 만난 날이 9월이면 9월) */
+  function bizFirst(b) {
+    if (!b) return '';
+    const ds = [b.discoveredAt, ...state.activities.filter(a => a.targetType === 'biz' && a.targetId === b.id && a.type !== '발굴').map(a => a.date)].filter(U.isDate);
+    return ds.sort()[0] || '';
+  }
+  /** 실적에 쓰는 날짜: 발굴(사업체 등록) 기록은 입력한 날이 아니라 사업체의 최초 등록일 */
+  function perfDate(a, t = targetOf(a)) {
+    if (a.type === '발굴' && a.targetType === 'biz' && t) return bizFirst(t) || a.date;
+    return a.date;
+  }
   /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null */
   function perfOf(a) {
     const set = perfSetOf(a.staff);
@@ -3437,13 +3472,25 @@ window.S = (() => {
     if (!def) return null;
     let item = a.perf;
     if (item === '제외') return null;
-    if (!item || !def.items.includes(item)) item = D.suggestPerf(set, a, targetOf(a));
+    if (!item || !def.items.includes(item)) {
+      const t = targetOf(a);
+      const first = a.targetType === 'biz' ? bizFirst(t) : '';
+      const later = !!first && perfDate(a, t).slice(0, 7) > first.slice(0, 7);
+      item = D.suggestPerf(set, a, t, later);
+    }
     return item ? { set, big: def.big, mid: def.mid, item } : null;
   }
-  /** 기간(YYYY-MM) 안의 실적 기록 */
+  /** 기간(YYYY-MM) 안의 실적 기록. d = 실적 날짜(발굴 기록은 최초 등록일) */
   function perfRows(month, v = view()) {
-    return v.activities.filter(a => a.date.startsWith(month)).map(a => ({ a, p: perfOf(a), t: targetOf(a) })).filter(r => r.p)
-      .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.p.item.localeCompare(y.p.item));
+    return v.activities.map(a => { const t = targetOf(a); return { a, t, d: perfDate(a, t) }; }).filter(r => r.d.startsWith(month))
+      .map(r => ({ ...r, p: perfOf(r.a) })).filter(r => r.p)
+      .sort((x, y) => x.d.localeCompare(y.d) || x.p.item.localeCompare(y.p.item));
+  }
+  /** 이 달 연락 중 실적에 자동으로 안 들어간 것 (이미 개발한 사업체에 다시 연락 등). 골라서 넣을 수 있다 */
+  function perfLeft(month, set, v = view()) {
+    return v.activities.filter(a => a.perf !== '제외' && (a.targetType === 'biz' || a.targetType === 'net') && perfSetOf(a.staff) === set && !/^진행 단계 변경/.test(a.content || ''))
+      .map(a => { const t = targetOf(a); return { a, t, d: perfDate(a, t) }; }).filter(r => r.d.startsWith(month) && r.t && !perfOf(r.a))
+      .sort((x, y) => x.d.localeCompare(y.d));
   }
 
   /** 실적 표 (구글 시트 '실적(기타)' 열 순서). 직접 입력한 실적 + 활동 기록 자동 집계(날짜·세부사업별 한 줄) */
@@ -3456,9 +3503,9 @@ window.S = (() => {
     }));
     if (withActs) {
       const groups = new Map();
-      perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t }) => {
-        const k = a.date + '|' + p.item;
-        const g = groups.get(k) || { kind: 'auto', date: a.date, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
+      perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t, d }) => {
+        const k = d + '|' + p.item;
+        const g = groups.get(k) || { kind: 'auto', date: d, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
         g.n++; g.people += Number(a.people) || 0;
         if (t) g.targets.set(t.id, t.name);
         groups.set(k, g);
@@ -3590,7 +3637,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -3922,11 +3969,22 @@ window.AI = (() => {
   const str = description => ({ type: 'string', description });
 
   /* ---------- 명함 사진 → 연락처 ---------- */
-  const CARD_SCHEMA = obj({
+  const CARD_PROPS = {
     name: str('사람 이름'), title: str('직함/직위'), dept: str('부서'), org: str('회사·기관 이름'),
     mobile: str('휴대전화 010-0000-0000 형식'), phone: str('사무실 전화 (대표번호 포함)'), fax: str('팩스'),
     email: str('이메일'), address: str('주소 전체'), homepage: str('홈페이지 주소'),
-  });
+  };
+  const CARD_SCHEMA = obj(CARD_PROPS);
+  const CARDS_SCHEMA = obj({ cards: { type: 'array', items: obj({ page: { type: 'integer', description: '그 명함이 있는 PDF 쪽 번호 (1부터)' }, ...CARD_PROPS }) } });
+  /** 명함 PDF (한 쪽에 한 장이든, 여러 장을 스캔한 것이든) → 명함 목록 */
+  async function readCardsPdf(dataUrl) {
+    const msg = await run({
+      max_tokens: 16000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: CARDS_SCHEMA } },
+      messages: [{ role: 'user', content: [imageBlock(dataUrl), { type: 'text', text: '이 PDF에 들어 있는 명함을 모두 찾아 한 장씩 연락처 정보를 읽어 주세요. 앞면·뒷면이 같은 사람이면 한 장으로 합치세요. 명함에 없는 항목은 빈 문자열로 두고, 짐작해서 채우지 마세요. 전화번호는 하이픈을 넣어 주세요.' }] }],
+    });
+    return (JSON.parse(textOf(msg)).cards || []);
+  }
   async function readCard(dataUrl) {
     const msg = await run({
       max_tokens: 4000,
@@ -3996,7 +4054,7 @@ ${acts || '-'}` }],
     return textOf(msg);
   }
 
-  return { MODEL, available, setKey, localKey, readCard, readBizDoc, research, summarize };
+  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, research, summarize };
 })();
 
 </script>
@@ -4225,7 +4283,7 @@ window.V = (() => {
     const acts = {
       biz: `<a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button>`,
       network: `<a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button>`,
-      cards: `<button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button>`,
+      cards: `<button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn" type="button" data-act="card-pdf" title="명함을 스캔한 PDF · 여러 장이 든 PDF도 한 번에">📄 PDF로 등록</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button>`,
     }[tab];
     const wait = S.get().cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).length;
     return `<div class="page-head">
@@ -4745,7 +4803,7 @@ window.V = (() => {
           <label class="grow">비고<input class="input" name="note"></label>
           <button class="btn btn-primary" type="submit">추가</button>
         </form>
-        <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면에서 남긴 활동 기록(방문·전화 등)은 따로 입력하지 않아도 아래 표에 날짜·세부사업별로 자동 집계됩니다.</p>
+        <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면에서 남긴 활동 기록(방문·전화 등)은 따로 입력하지 않아도 아래 표에 날짜·세부사업별로 자동 집계됩니다. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요. 오늘 입력해도 발굴일·첫 연락이 9월이면 9월 실적이에요.</p>
       </section>
       <div id="perfResults"></div>`;
   }
@@ -4777,10 +4835,11 @@ window.V = (() => {
   function perfDetail(f, def) {
     const acts = S.perfRows(f.month).filter(r => r.p.set === f.set);
     const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month));
-    const out = S.view().activities.filter(a => a.perf === '제외' && a.date.startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const out = S.view().activities.filter(a => a.perf === '제외' && S.perfDate(a).startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const left = S.perfLeft(f.month, f.set);
     const names = [...S.get().businesses.map(b => b.name), ...S.get().networks.map(n => n.name)];
     const itemSel = (cur, chg, id, withOut) => `<select class="select sm" data-chg="${chg}" data-id="${id}" data-field="${chg === 'pa-field' ? 'perf' : 'item'}" aria-label="세부사업">${def.items.map(i => `<option ${i === cur ? 'selected' : ''}>${e(i)}</option>`).join('')}${withOut ? '<option value="제외">실적에서 빼기</option>' : ''}</select>`;
-    const actRow = ({ a, p, t }) => `<tr><td><input class="input sm" type="date" value="${a.date}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td>
+    const actRow = ({ a, p, t, d }) => `<tr><td><input class="input sm" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
       <td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}</div>` : '<span class="sub">(대상 없음)</span>'}</td>
       <td><textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
       <td><input class="input sm pd-n" type="number" min="0" value="${e(a.people ?? '')}" data-chg="pa-field" data-id="${a.id}" data-field="people" aria-label="참여인원" placeholder="-"></td>
@@ -4795,7 +4854,7 @@ window.V = (() => {
     const day = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01';
     const groups = def.items.map(item => {
       const A = acts.filter(r => r.p.item === item), M = mans.filter(m => m.item === item);
-      const rows = [...A.map(r => [r.a.date, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]).join('');
+      const rows = [...A.map(r => [r.d, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]).join('');
       const nTarget = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
       return `<details class="pd-grp" ${A.length + M.length || f.pdOpen === item ? 'open' : ''}><summary><b>${e(item)}</b> <span class="num">${A.length + M.length}건</span>${nTarget ? `<span class="sub">· ${nTarget}곳</span>` : ''}</summary>
         ${rows ? `<div class="table-wrap"><table class="tbl pd-tbl"><thead><tr><th>날짜</th><th>사업체·기관</th><th>내용</th><th>인원</th><th>세부사업</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p class="sub pd-empty">이 달 기록이 없습니다.</p>'}
@@ -4811,6 +4870,7 @@ window.V = (() => {
     return `<section class="panel pd">
       <div class="panel-pad perf-actions"><h2 class="section-title">${monthLabel(f.month)} 세부 목록 <span class="sub">실적에 들어간 사업체·기관 기록. 칸을 고치면 바로 저장됩니다</span></h2></div>
       ${groups}
+      ${left.length ? `<details class="pd-grp pd-out"><summary><b>실적에 안 들어간 이 달 연락</b> <span class="num">${left.length}건</span><span class="sub">· 이미 앞 달에 개발(최초 등록)한 사업체에 다시 연락한 기록 등. 실적이면 세부사업을 골라 넣으세요</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${left.map(({ a, t, d }) => `<tr><td class="num nowrap">${d}</td><td><b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}${a.targetType === 'biz' && S.bizFirst(t) ? ` · 최초 등록 ${U.dateDot(S.bizFirst(t))}` : ''}</div></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="" selected>실적 아님</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>` : ''}
       ${out.length ? `<details class="pd-grp pd-out"><summary><b>실적에서 뺀 기록</b> <span class="num">${out.length}건</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${out.map(a => { const t = S.find(a.targetType, a.targetId); return `<tr><td class="num nowrap">${a.date}</td><td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b>` : ''} <span class="sub">${e(a.type)}</span></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="제외" selected>빠져 있음</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody></table></div></details>` : ''}
       <datalist id="pdNames">${[...new Set(names)].map(n => `<option value="${e(n)}">`).join('')}</datalist>
     </section>`;
@@ -5000,7 +5060,8 @@ window.V = (() => {
     const set = S.perfSetOf(S.me());
     const def = D.PERF_SETS[set];
     if (!def) return '';
-    const auto = D.suggestPerf(set, { targetType: kind, type: '전화', content: '' }, S.find(kind, id));
+    const tg = S.find(kind, id), first = kind === 'biz' ? S.bizFirst(tg) : '';
+    const auto = D.suggestPerf(set, { targetType: kind, type: '전화', content: '' }, tg, !!first && U.today().slice(0, 7) > first.slice(0, 7));
     return `<div class="quick-perf"><span class="sub">실적</span>
       <select class="select" name="perf" aria-label="실적 세부사업"><option value="">자동${auto ? ` (${e(auto)})` : ' (실적 아님)'}</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}<option value="제외">실적 아님</option></select>
       <input class="input" type="number" min="0" name="people" placeholder="참여인원" aria-label="참여인원"></div>`;
@@ -5861,24 +5922,97 @@ window.DT = (() => {
     return loading;
   }
 
+  const openPdf = async file => (await loadPdfJs()).getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  /** 한 쪽의 글자를 위→아래 줄 단위로 */
+  async function pageLines(page) {
+    const { items } = await page.getTextContent();
+    const rows = new Map();
+    items.forEach(it => {
+      if (!it.str || !it.str.trim()) return;
+      const y = Math.round(it.transform[5] / 3);
+      (rows.get(y) || rows.set(y, []).get(y)).push({ x: it.transform[4], s: it.str });
+    });
+    return [...rows.entries()].sort((a, b) => b[0] - a[0]).map(([, r]) => r.sort((a, b) => a.x - b.x).map(o => o.s).join(' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  }
   /** PDF → 줄 단위 글자 (앞쪽 3쪽까지) */
   async function pdfText(file) {
-    const lib = await loadPdfJs();
-    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pdf = await openPdf(file);
     const lines = [];
-    for (let n = 1; n <= Math.min(pdf.numPages, 3); n++) {
-      const page = await pdf.getPage(n);
-      const { items } = await page.getTextContent();
-      const rows = new Map();
-      items.forEach(it => {
-        if (!it.str || !it.str.trim()) return;
-        const y = Math.round(it.transform[5] / 3);
-        (rows.get(y) || rows.set(y, []).get(y)).push({ x: it.transform[4], s: it.str });
-      });
-      [...rows.entries()].sort((a, b) => b[0] - a[0]).forEach(([, r]) => lines.push(r.sort((a, b) => a.x - b.x).map(o => o.s).join(' ').replace(/\s+/g, ' ').trim()));
-    }
-    return lines.filter(Boolean).join('\n');
+    for (let n = 1; n <= Math.min(pdf.numPages, 3); n++) lines.push(...await pageLines(await pdf.getPage(n)));
+    return lines.join('\n');
   }
+  /** PDF 쪽마다 글자 + 그림(명함 사진으로 쓸 JPG). 최대 max쪽 */
+  async function pdfPages(file, max = 40, imgW = 1000) {
+    const pdf = await openPdf(file);
+    const out = [];
+    for (let n = 1; n <= Math.min(pdf.numPages, max); n++) {
+      const page = await pdf.getPage(n);
+      const lines = await pageLines(page);
+      let img = '';
+      try {
+        const vp0 = page.getViewport({ scale: 1 });
+        const vp = page.getViewport({ scale: Math.min(3, imgW / vp0.width) });
+        const cv = document.createElement('canvas'); cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+        const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+        img = cv.toDataURL('image/jpeg', .78);
+      } catch { img = ''; }
+      out.push({ page: n, lines, text: lines.join('\n'), img });
+    }
+    return { pages: out, total: pdf.numPages };
+  }
+
+  /* ---------- 명함 글자 → 연락처 (AI 없이) ---------- */
+  const TITLES = '대표이사|대표|회장|사장|부사장|전무|상무|이사|본부장|국장|센터장|관장|원장|소장|실장|부장|차장|과장|팀장|대리|주임|계장|사원|매니저|책임|선임|수석|연구원|사회복지사|간사|코디네이터|위원|담당|주무관|팀원|교사|선생님';
+  const TITLE_RE = new RegExp('(' + TITLES + ')');
+  const ORG_RE = /\(주\)|㈜|주식회사|유한회사|\(유\)|협동조합|사회적협동조합|재단|법인|협회|공단|센터|복지관|병원|의원|학교|대학교|청$|시청|구청|군청|주민센터|행정복지센터|조합|회사|그룹|산업|테크|푸드|식품|물류|건설|\bInc\b|Co\.|Corp/i;
+  const PHONE = /(?:\+82[-\s]?)?0\d{1,2}[-)\s.]*\d{3,4}[-\s.]*\d{4}/g;
+  const ADDR_RE = /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주|충청|전라|경상)[^\n]*?(시|군|구)\s[^\n]*?(로|길|동|읍|면|리)\s?\d/;
+  const fmtTel = t => t.replace(/^\+82[-\s]?/, '0').replace(/[)\s.]+/g, '-').replace(/-+/g, '-').replace(/^0(1\d)(\d{3,4})(\d{4})$/, '0$1-$2-$3');
+  function parseCard(text) {
+    const lines = String(text || '').replace(/\r/g, '').replace(/[(（]\s*([주유사재])\s*[)）]\s*/g, '($1)').split('\n').map(l => l.trim()).filter(Boolean);
+    const all = lines.join('\n');
+    const r = { name: '', title: '', dept: '', org: '', mobile: '', phone: '', fax: '', email: '', address: '', homepage: '' };
+    r.email = (all.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/) || [''])[0];
+    r.homepage = ((all.match(/(?:https?:\/\/)?www\.[a-z0-9.-]+\.[a-z]{2,}[^\s]*/i) || [''])[0]);
+    lines.forEach(l => {
+      const nums = l.match(PHONE) || [];
+      nums.forEach(n => {
+        const before = l.slice(0, l.indexOf(n)).slice(-8);
+        const t = fmtTel(n);
+        if (/fax|팩스|F[.:\s]*$/i.test(before)) { if (!r.fax) r.fax = t; }
+        else if (/^01/.test(t.replace(/^\+82-?/, '0'))) { if (!r.mobile) r.mobile = t; }
+        else if (!r.phone) r.phone = t;
+      });
+    });
+    const addrLine = lines.find(l => ADDR_RE.test(l)) || lines.find(l => /^(주소|A[.:)]|Add)/i.test(l));
+    if (addrLine) r.address = addrLine.replace(/^(주소|A[.:)]|Add(ress)?)\s*[:.]?\s*/i, '').replace(PHONE, '').replace(/(T|Tel|F|Fax|전화|팩스)[.:\s]*$/i, '').trim();
+    const hasTel = l => new RegExp(PHONE.source).test(l);
+    const plain = lines.filter(l => l !== addrLine && !hasTel(l) && !/@/.test(l) && !/www\./i.test(l));
+    // 소속: (주)·복지관·센터처럼 분명한 이름을 먼저, 없으면 재단·법인 등
+    const STRONG = /\(주\)|㈜|주식회사|유한회사|복지관|센터|병원|의원|학교|시청|구청|군청|공단|협회|조합/;
+    const orgLine = plain.find(l => STRONG.test(l) && !/(팀|부|과)\s/.test(l + ' ')) || plain.find(l => ORG_RE.test(l));
+    if (orgLine) r.org = orgLine.replace(/\s+/g, ' ').trim();
+    const isDeptWord = w => /(팀|부|과|실|본부|사업단)$/.test(w);
+    const isName = w => /^[가-힣]{2,4}$/.test(w) && !TITLE_RE.test(w) && !isDeptWord(w) && !ORG_RE.test(w);
+    // 이름: 한글 2~4글자만 있는 줄이 가장 확실, 다음은 '홍길동 과장'·'과장 홍길동'
+    const solo = plain.find(l => l !== orgLine && isName(l.replace(/\s/g, '')) && /^[가-힣](\s?[가-힣]){1,3}$/.test(l));
+    if (solo) r.name = solo.replace(/\s/g, '');
+    for (const l of plain) {
+      if (l === orgLine) continue;
+      // '이 수 영'처럼 한 글자씩 띄운 이름은 붙인다
+      const words = l.replace(/(^|\s)([가-힣](?:\s[가-힣]){1,3})(?=\s|$)/g, (m0, sp, nm) => sp + nm.replace(/\s/g, '')).split(/[\s/·|,]+/).filter(Boolean);
+      words.forEach((w, i) => {
+        if (isDeptWord(w) && w.length <= 12 && !r.dept) r.dept = w;
+        const t = w.match(TITLE_RE);
+        if (t && t[0] === w && !r.title) r.title = w;
+        if (!r.name && t && t[0] === w) { const nb = [words[i - 1], words[i + 1]].find(x => x && isName(x)); if (nb) r.name = nb; }
+      });
+    }
+    return r;
+  }
+  /** 연락처가 하나라도 있으면 명함으로 본다 */
+  const isCard = c => !!(c.mobile || c.phone || c.email);
 
   // '상 호', '상호(법인명)'처럼 글자 사이에 빈칸이 있어도 찾는다
   const lab = w => w.split('').map(c => c.replace(/[()]/g, '\\$&')).join('\\s*');
@@ -5911,7 +6045,7 @@ window.DT = (() => {
     };
   }
 
-  return { pdfText, parseBiz };
+  return { pdfText, pdfPages, parseCard, isCard, parseBiz };
 })();
 
 </script>
@@ -8617,7 +8751,7 @@ window.App = (() => {
       el.appendChild(b);
     }
     $('#toasts').appendChild(el);
-    setTimeout(() => el.remove(), opt.undo || opt.action ? 6500 : type === 'error' ? 5000 : 2600);
+    setTimeout(() => el.remove(), opt.undo || opt.action ? 6500 : type === 'error' ? (String(msg).length > 80 ? 10000 : 5000) : 2600);
   }
   function confirmBox(title, body, ok = '확인') {
     return new Promise(res => {
@@ -8640,7 +8774,7 @@ window.App = (() => {
     'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
-    'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
+    'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
@@ -9129,7 +9263,7 @@ window.App = (() => {
         next.isDemo = false;
         await S.replace(next);
         toast('엑셀 데이터를 불러왔습니다.');
-      } catch (err) { console.error(err); toast('엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
+      } catch (err) { console.error(err); toast(err.drm ? err.message : '엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
     };
     if ($('#jsonFile')) $('#jsonFile').onchange = async ev => {
       const file = ev.target.files[0];
@@ -9172,6 +9306,13 @@ window.App = (() => {
     inner.dataset.tone = '';
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
+    if (top.type === 'cardbulk') {
+      inner.innerHTML = cardBulkHtml(top.state);
+      showDrawer();
+      bindCardBulk(top.state);
+      if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
+      return;
+    }
     if (top.type === 'bulk') {
       inner.innerHTML = IMP.html(top.state);
       showDrawer();
@@ -9259,9 +9400,9 @@ window.App = (() => {
     }
     const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
     const rec = to === 'biz'
-      ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
+      ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.isDate(c.metAt) ? c.metAt : U.today(), source: '명함', phone: c.phone || '', placements: 0 })
       : S.upsert('net', { ...base, category: category || D.guessCategory(name), status: '보통', since: c.metAt || U.today(), relation: '', promo: '' });
-    if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
+    if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: rec.discoveredAt, type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
     S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
     bigMap?.closePopup();
     const where = to === 'biz' ? '사업체 개발' : `네트워크(${rec.category})`;
@@ -9306,7 +9447,12 @@ window.App = (() => {
       const list = d.slice(0, 3).map(x => `'${x.x.name}${kind === 'card' && x.x.org ? ' · ' + x.x.org : ''}' (${x.why.join(', ')})`).join(', ');
       if (d.length && !(await confirmBox('이미 비슷한 게 있어요', `${list}${d.length > 3 ? ` 외 ${d.length - 3}건` : ''}. 그래도 새로 등록할까요? 등록한 뒤에도 상세 화면에서 합칠 수 있어요.`, '그래도 등록'))) return;
     }
+    const before = id && kind === 'biz' ? (S.find('biz', id) || {}).discoveredAt : null;
     const saved = S.upsert(kind, obj);
+    if (id && kind === 'biz' && U.isDate(saved.discoveredAt) && before !== saved.discoveredAt) {
+      const disc = S.get().activities.filter(a => a.targetType === 'biz' && a.targetId === id && a.type === '발굴');
+      if (disc.length) S.putMany('act', disc.map(a => ({ id: a.id, date: saved.discoveredAt })));
+    }
     if (kind === 'card' && res.extra) {
       stack.pop();
       registerFromCard(saved, res.extra.to, res.extra.name, res.extra.cat, false);
@@ -9349,7 +9495,7 @@ window.App = (() => {
   async function handleBizFile(file) {
     if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
       try { push({ type: 'bulk', state: await IMP.start(file) }, false); }
-      catch (err) { console.error(err); toast('파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
+      catch (err) { console.error(err); toast(err.drm ? err.message : '파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
       return;
     }
     if (file.size > 20 * 1024 * 1024) return toast('파일이 너무 큽니다. 20MB 이하로 올려 주세요.', 'error');
@@ -9386,6 +9532,72 @@ window.App = (() => {
     if (k.length < 2) return null;
     const hit = (list, kind) => { const x = list.find(o => { const n = U.orgKey(o.name); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
     return hit(S.get().businesses, 'biz') || hit(S.get().networks, 'net');
+  }
+
+  /* ---------- 명함 PDF로 등록: 한 장이면 등록 양식, 여러 장이면 확인 목록 ---------- */
+  const cardMemo = r => [r.fax && `팩스 ${r.fax}`, r.homepage && `홈페이지 ${r.homepage}`].filter(Boolean).join('\n');
+  async function handleCardPdf(files) {
+    push({ type: 'loading', title: '명함 PDF를 읽는 중', body: AI.available() ? 'AI가 PDF 안의 명함을 찾고 있습니다. 쪽이 많으면 30초쯤 걸립니다.' : 'PDF에서 이름·연락처를 찾고 있습니다.' }, false);
+    const found = [];
+    let scanned = null;
+    for (const f of files) {
+      if (f.size > 25 * 1024 * 1024) { toast(`${f.name}: 25MB 이하 PDF만 올릴 수 있어요.`, 'error'); continue; }
+      let pages = null, perr = null;
+      try { ({ pages } = await DT.pdfPages(f, 40)); } catch (err) { perr = err; }
+      if (AI.available()) {
+        try {
+          const list = await AI.readCardsPdf(await readDataUrl(f));
+          list.filter(c => c.name || c.mobile || c.phone || c.email).forEach(c => found.push({ ...c, photo: (pages && pages[(c.page || 1) - 1] || {}).img || '', file: f.name }));
+          continue;
+        } catch (err) { toast(`AI로 읽지 못해 PDF 글자로 읽어요: ${err.message}`, 'error'); }
+      }
+      if (!pages) { toast(`${f.name}을(를) 열지 못했어요${perr ? ` (${perr.message})` : ''}.`, 'error'); continue; }
+      pages.forEach(pg => {
+        const c = DT.parseCard(pg.text);
+        if (DT.isCard(c)) found.push({ ...c, page: pg.page, photo: pg.img, file: f.name });
+        else if (!pg.text.replace(/\s/g, '') && !scanned) scanned = { img: pg.img, file: f.name };
+      });
+    }
+    if (!found.length) {
+      if (scanned) return replaceTop({ type: 'form', kind: 'card', preset: { photo: scanned.img, _notice: `${scanned.file}은(는) 스캔한 그림 PDF라 글자를 읽을 수 없어요. 첫 쪽을 명함 사진으로 넣어 두었으니 보면서 칸을 채워 주세요. (데이터 관리 > AI 도우미에 키를 넣으면 스캔본도 자동으로 읽어요)` } });
+      closeDrawer();
+      return toast('PDF에서 명함(전화번호·이메일)을 찾지 못했어요.', 'error');
+    }
+    const rows = found.map(c => {
+      const link = guessLink(c.org);
+      const dup = S.dupesOf('card', { name: c.name || '', org: c.org || '', mobile: c.mobile || '', email: c.email || '' })[0];
+      return { ...c, on: !dup, dup: dup ? `${dup.x.name}${dup.x.org ? ' · ' + dup.x.org : ''}` : '', linkType: link ? link.kind : '', linkId: link ? link.x.id : '', linkName: link ? link.x.name : '' };
+    });
+    if (rows.length === 1 && !rows[0].dup) {
+      const r = rows[0];
+      return replaceTop({ type: 'form', kind: 'card', preset: { name: r.name, title: r.title, dept: r.dept, org: r.org, mobile: r.mobile, phone: r.phone, email: r.email, address: r.address, memo: cardMemo(r), photo: r.photo, linkType: r.linkType, linkId: r.linkId,
+        _notice: `PDF(${r.file})에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.${r.linkName ? ` 소속이 같은 '${r.linkName}'에 연결해 두었습니다.` : ''}` } });
+    }
+    replaceTop({ type: 'cardbulk', state: { rows, metAt: U.today(), metWhere: '' } });
+  }
+  function cardBulkHtml(st) {
+    const n = st.rows.filter(r => r.on).length;
+    const inp = (i, k, w) => `<input class="input sm" style="width:${w}px" data-cbf="${i}" data-k="${k}" value="${U.esc(st.rows[i][k] || '')}">`;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">명함 PDF 등록 · ${st.rows.length}장</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">PDF에서 찾은 명함입니다. 칸을 고칠 수 있고, 이미 있는 명함은 빼 두었어요. 소속이 같은 사업체·기관이 있으면 자동으로 연결됩니다.</p></div>
+      <div class="dr-body">
+        <div class="table-wrap"><table class="tbl bulk-tbl cb-tbl"><thead><tr><th><input type="checkbox" data-cball ${n === st.rows.length ? 'checked' : ''} aria-label="모두 선택"></th><th></th><th>이름</th><th>직함</th><th>소속</th><th>휴대전화</th><th>전화</th><th>이메일</th><th>연결</th></tr></thead><tbody>
+        ${st.rows.map((r, i) => `<tr class="${r.on ? '' : 'dup'}"><td><input type="checkbox" data-cbon="${i}" ${r.on ? 'checked' : ''} aria-label="등록"></td>
+          <td>${r.photo ? `<img class="cb-thumb" src="${r.photo}" alt="">` : ''}<div class="sub">${r.page ? r.page + '쪽' : ''}</div></td>
+          <td>${inp(i, 'name', 90)}${r.dup ? `<div class="sub" style="color:var(--danger)">이미 있음: ${U.esc(r.dup)}</div>` : ''}</td><td>${inp(i, 'title', 80)}</td><td>${inp(i, 'org', 150)}</td><td>${inp(i, 'mobile', 125)}</td><td>${inp(i, 'phone', 125)}</td><td>${inp(i, 'email', 150)}</td>
+          <td class="nowrap">${r.linkName ? `🔗 ${U.esc(r.linkName)}` : '<span class="sub">분류 대기</span>'}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="perf-form" style="margin-top:12px"><label>받은 날<input class="input" type="date" id="cbMet" value="${U.esc(st.metAt)}"></label><label class="grow">받은 곳 <span class="sub">(행사·방문처 등)</span><input class="input" id="cbWhere" value="${U.esc(st.metWhere)}" placeholder="예: 경기 서남부 채용박람회"></label></div>
+      </div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="card-bulk-commit" ${n ? '' : 'disabled'}>선택한 ${n}장 등록</button></div>`;
+  }
+  function bindCardBulk(st) {
+    const inner = $('#drawerInner');
+    inner.querySelectorAll('[data-cbf]').forEach(el => { el.oninput = () => { st.rows[+el.dataset.cbf][el.dataset.k] = el.value; }; });
+    inner.querySelectorAll('[data-cbon]').forEach(el => { el.onchange = () => { st.rows[+el.dataset.cbon].on = el.checked; renderDrawer(true); }; });
+    const all = inner.querySelector('[data-cball]'); if (all) all.onchange = () => { st.rows.forEach(r => { r.on = all.checked; }); renderDrawer(true); };
+    $('#cbMet').onchange = ev => { st.metAt = ev.target.value || U.today(); };
+    $('#cbWhere').oninput = ev => { st.metWhere = ev.target.value; };
   }
 
   async function handleCardPhoto(file) {
@@ -9672,6 +9884,16 @@ window.App = (() => {
     },
     'biz-upload': () => $('#globalBizFile').click(),
     'card-photo': () => $('#globalCardPhoto').click(),
+    'card-pdf': () => pickFiles('.pdf,application/pdf', true, files => handleCardPdf(files)),
+    'card-bulk-commit': () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'cardbulk') return;
+      const st = top.state, list = st.rows.filter(r => r.on && (r.name || r.mobile || r.phone || r.email));
+      list.forEach(r => S.upsert('card', { name: (r.name || '').trim() || '(이름 없음)', title: r.title || '', dept: r.dept || '', org: (r.org || '').trim(), mobile: r.mobile || '', phone: r.phone || '', email: r.email || '', address: r.address || '', linkType: r.linkType || '', linkId: r.linkId || '', metAt: st.metAt || U.today(), metWhere: st.metWhere || '', tags: [], memo: cardMemo(r), photo: r.photo || '' }));
+      closeDrawer();
+      const linked = list.filter(r => r.linkId).length;
+      toast(`명함 ${list.length}장을 등록했어요.${linked ? ` ${linked}장은 사업체·기관에 연결했고,` : ''}${list.length - linked ? ` ${list.length - linked}장은 '분류 대기'에서 사업체·기관으로 나눌 수 있어요.` : ''}`);
+      if (route() !== 'cards') location.hash = '#/cards'; else render();
+    },
     'card-idx': el => { V.ui.cards.idx = el.dataset.idx; render(); },
     'card-link-none': () => { V.ui.cards.link = 'none'; },
     'bulk-commit': () => {
@@ -10002,11 +10224,12 @@ window.App = (() => {
     'ct-file': () => pickFiles('.xlsx,.xls,.csv', true, async files => {
       const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return;
       let cells = [];
-      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
+      let drm = false;
+      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { drm = drm || err.drm; toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
       const { rows } = R.parseCells(cells);
       top.state = { text: '', file: files.map(f => f.name).join(', '), rows };
       renderDrawer(true);
-      if (!rows.length) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
+      if (!rows.length && !drm) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
     }),
     'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
@@ -10216,6 +10439,8 @@ window.App = (() => {
         inlineEdit = false;
         const v = field === 'people' ? (el.value === '' ? '' : Math.max(0, +el.value || 0)) : field === 'content' || field === 'note' ? el.value.trim() : el.value;
         S.upsert(el.dataset.chg === 'pa-field' ? 'act' : 'perf', { id, [field]: v });
+        const ax = el.dataset.chg === 'pa-field' && field === 'date' ? S.find('act', id) : null;
+        if (ax && ax.type === '발굴' && ax.targetType === 'biz' && S.find('biz', ax.targetId)) S.upsert('biz', { id: ax.targetId, discoveredAt: v });
         if (field === 'perf' && v === '제외') toast('이 기록을 실적에서 뺐습니다. 아래 "실적에서 뺀 기록"에서 다시 넣을 수 있어요.');
         return;
       }

@@ -40,7 +40,7 @@ window.App = (() => {
       el.appendChild(b);
     }
     $('#toasts').appendChild(el);
-    setTimeout(() => el.remove(), opt.undo || opt.action ? 6500 : type === 'error' ? 5000 : 2600);
+    setTimeout(() => el.remove(), opt.undo || opt.action ? 6500 : type === 'error' ? (String(msg).length > 80 ? 10000 : 5000) : 2600);
   }
   function confirmBox(title, body, ok = '확인') {
     return new Promise(res => {
@@ -63,7 +63,7 @@ window.App = (() => {
     'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
-    'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'photo-clear': [['cards', 2]],
+    'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
@@ -552,7 +552,7 @@ window.App = (() => {
         next.isDemo = false;
         await S.replace(next);
         toast('엑셀 데이터를 불러왔습니다.');
-      } catch (err) { console.error(err); toast('엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
+      } catch (err) { console.error(err); toast(err.drm ? err.message : '엑셀 파일을 읽지 못했습니다. 내보내기 양식과 같은 형식인지 확인하세요.', 'error'); }
     };
     if ($('#jsonFile')) $('#jsonFile').onchange = async ev => {
       const file = ev.target.files[0];
@@ -595,6 +595,13 @@ window.App = (() => {
     inner.dataset.tone = '';
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
+    if (top.type === 'cardbulk') {
+      inner.innerHTML = cardBulkHtml(top.state);
+      showDrawer();
+      bindCardBulk(top.state);
+      if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
+      return;
+    }
     if (top.type === 'bulk') {
       inner.innerHTML = IMP.html(top.state);
       showDrawer();
@@ -682,9 +689,9 @@ window.App = (() => {
     }
     const base = { name, address: c.address || '', area: c.area || '', lat: c.lat ?? null, lng: c.lng ?? null, approx: !!c.approx, staff: S.me() };
     const rec = to === 'biz'
-      ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.today(), source: '명함', phone: c.phone || '', placements: 0 })
+      ? S.upsert('biz', { ...base, stage: '발굴', discoveredAt: U.isDate(c.metAt) ? c.metAt : U.today(), source: '명함', phone: c.phone || '', placements: 0 })
       : S.upsert('net', { ...base, category: category || D.guessCategory(name), status: '보통', since: c.metAt || U.today(), relation: '', promo: '' });
-    if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: U.today(), type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
+    if (to === 'biz') S.upsert('act', { targetType: 'biz', targetId: rec.id, date: rec.discoveredAt, type: '발굴', content: `명함(${c.name})으로 사업체 등록`, staff: S.me() });
     S.upsert('card', { id: c.id, linkType: to, linkId: rec.id });
     bigMap?.closePopup();
     const where = to === 'biz' ? '사업체 개발' : `네트워크(${rec.category})`;
@@ -729,7 +736,12 @@ window.App = (() => {
       const list = d.slice(0, 3).map(x => `'${x.x.name}${kind === 'card' && x.x.org ? ' · ' + x.x.org : ''}' (${x.why.join(', ')})`).join(', ');
       if (d.length && !(await confirmBox('이미 비슷한 게 있어요', `${list}${d.length > 3 ? ` 외 ${d.length - 3}건` : ''}. 그래도 새로 등록할까요? 등록한 뒤에도 상세 화면에서 합칠 수 있어요.`, '그래도 등록'))) return;
     }
+    const before = id && kind === 'biz' ? (S.find('biz', id) || {}).discoveredAt : null;
     const saved = S.upsert(kind, obj);
+    if (id && kind === 'biz' && U.isDate(saved.discoveredAt) && before !== saved.discoveredAt) {
+      const disc = S.get().activities.filter(a => a.targetType === 'biz' && a.targetId === id && a.type === '발굴');
+      if (disc.length) S.putMany('act', disc.map(a => ({ id: a.id, date: saved.discoveredAt })));
+    }
     if (kind === 'card' && res.extra) {
       stack.pop();
       registerFromCard(saved, res.extra.to, res.extra.name, res.extra.cat, false);
@@ -772,7 +784,7 @@ window.App = (() => {
   async function handleBizFile(file) {
     if (/\.(xlsx|xls|csv)$/i.test(file.name)) {
       try { push({ type: 'bulk', state: await IMP.start(file) }, false); }
-      catch (err) { console.error(err); toast('파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
+      catch (err) { console.error(err); toast(err.drm ? err.message : '파일에서 표를 읽지 못했습니다. 첫 줄(또는 제목 아래 줄)에 사업체명·주소 같은 열 이름이 있는지 확인하세요.', 'error'); }
       return;
     }
     if (file.size > 20 * 1024 * 1024) return toast('파일이 너무 큽니다. 20MB 이하로 올려 주세요.', 'error');
@@ -809,6 +821,72 @@ window.App = (() => {
     if (k.length < 2) return null;
     const hit = (list, kind) => { const x = list.find(o => { const n = U.orgKey(o.name); return n && (n === k || n.includes(k) || k.includes(n)); }); return x ? { kind, x } : null; };
     return hit(S.get().businesses, 'biz') || hit(S.get().networks, 'net');
+  }
+
+  /* ---------- 명함 PDF로 등록: 한 장이면 등록 양식, 여러 장이면 확인 목록 ---------- */
+  const cardMemo = r => [r.fax && `팩스 ${r.fax}`, r.homepage && `홈페이지 ${r.homepage}`].filter(Boolean).join('\n');
+  async function handleCardPdf(files) {
+    push({ type: 'loading', title: '명함 PDF를 읽는 중', body: AI.available() ? 'AI가 PDF 안의 명함을 찾고 있습니다. 쪽이 많으면 30초쯤 걸립니다.' : 'PDF에서 이름·연락처를 찾고 있습니다.' }, false);
+    const found = [];
+    let scanned = null;
+    for (const f of files) {
+      if (f.size > 25 * 1024 * 1024) { toast(`${f.name}: 25MB 이하 PDF만 올릴 수 있어요.`, 'error'); continue; }
+      let pages = null, perr = null;
+      try { ({ pages } = await DT.pdfPages(f, 40)); } catch (err) { perr = err; }
+      if (AI.available()) {
+        try {
+          const list = await AI.readCardsPdf(await readDataUrl(f));
+          list.filter(c => c.name || c.mobile || c.phone || c.email).forEach(c => found.push({ ...c, photo: (pages && pages[(c.page || 1) - 1] || {}).img || '', file: f.name }));
+          continue;
+        } catch (err) { toast(`AI로 읽지 못해 PDF 글자로 읽어요: ${err.message}`, 'error'); }
+      }
+      if (!pages) { toast(`${f.name}을(를) 열지 못했어요${perr ? ` (${perr.message})` : ''}.`, 'error'); continue; }
+      pages.forEach(pg => {
+        const c = DT.parseCard(pg.text);
+        if (DT.isCard(c)) found.push({ ...c, page: pg.page, photo: pg.img, file: f.name });
+        else if (!pg.text.replace(/\s/g, '') && !scanned) scanned = { img: pg.img, file: f.name };
+      });
+    }
+    if (!found.length) {
+      if (scanned) return replaceTop({ type: 'form', kind: 'card', preset: { photo: scanned.img, _notice: `${scanned.file}은(는) 스캔한 그림 PDF라 글자를 읽을 수 없어요. 첫 쪽을 명함 사진으로 넣어 두었으니 보면서 칸을 채워 주세요. (데이터 관리 > AI 도우미에 키를 넣으면 스캔본도 자동으로 읽어요)` } });
+      closeDrawer();
+      return toast('PDF에서 명함(전화번호·이메일)을 찾지 못했어요.', 'error');
+    }
+    const rows = found.map(c => {
+      const link = guessLink(c.org);
+      const dup = S.dupesOf('card', { name: c.name || '', org: c.org || '', mobile: c.mobile || '', email: c.email || '' })[0];
+      return { ...c, on: !dup, dup: dup ? `${dup.x.name}${dup.x.org ? ' · ' + dup.x.org : ''}` : '', linkType: link ? link.kind : '', linkId: link ? link.x.id : '', linkName: link ? link.x.name : '' };
+    });
+    if (rows.length === 1 && !rows[0].dup) {
+      const r = rows[0];
+      return replaceTop({ type: 'form', kind: 'card', preset: { name: r.name, title: r.title, dept: r.dept, org: r.org, mobile: r.mobile, phone: r.phone, email: r.email, address: r.address, memo: cardMemo(r), photo: r.photo, linkType: r.linkType, linkId: r.linkId,
+        _notice: `PDF(${r.file})에서 읽은 내용입니다. 틀린 곳이 없는지 확인한 뒤 등록하세요.${r.linkName ? ` 소속이 같은 '${r.linkName}'에 연결해 두었습니다.` : ''}` } });
+    }
+    replaceTop({ type: 'cardbulk', state: { rows, metAt: U.today(), metWhere: '' } });
+  }
+  function cardBulkHtml(st) {
+    const n = st.rows.filter(r => r.on).length;
+    const inp = (i, k, w) => `<input class="input sm" style="width:${w}px" data-cbf="${i}" data-k="${k}" value="${U.esc(st.rows[i][k] || '')}">`;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">명함 PDF 등록 · ${st.rows.length}장</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">PDF에서 찾은 명함입니다. 칸을 고칠 수 있고, 이미 있는 명함은 빼 두었어요. 소속이 같은 사업체·기관이 있으면 자동으로 연결됩니다.</p></div>
+      <div class="dr-body">
+        <div class="table-wrap"><table class="tbl bulk-tbl cb-tbl"><thead><tr><th><input type="checkbox" data-cball ${n === st.rows.length ? 'checked' : ''} aria-label="모두 선택"></th><th></th><th>이름</th><th>직함</th><th>소속</th><th>휴대전화</th><th>전화</th><th>이메일</th><th>연결</th></tr></thead><tbody>
+        ${st.rows.map((r, i) => `<tr class="${r.on ? '' : 'dup'}"><td><input type="checkbox" data-cbon="${i}" ${r.on ? 'checked' : ''} aria-label="등록"></td>
+          <td>${r.photo ? `<img class="cb-thumb" src="${r.photo}" alt="">` : ''}<div class="sub">${r.page ? r.page + '쪽' : ''}</div></td>
+          <td>${inp(i, 'name', 90)}${r.dup ? `<div class="sub" style="color:var(--danger)">이미 있음: ${U.esc(r.dup)}</div>` : ''}</td><td>${inp(i, 'title', 80)}</td><td>${inp(i, 'org', 150)}</td><td>${inp(i, 'mobile', 125)}</td><td>${inp(i, 'phone', 125)}</td><td>${inp(i, 'email', 150)}</td>
+          <td class="nowrap">${r.linkName ? `🔗 ${U.esc(r.linkName)}` : '<span class="sub">분류 대기</span>'}</td></tr>`).join('')}
+        </tbody></table></div>
+        <div class="perf-form" style="margin-top:12px"><label>받은 날<input class="input" type="date" id="cbMet" value="${U.esc(st.metAt)}"></label><label class="grow">받은 곳 <span class="sub">(행사·방문처 등)</span><input class="input" id="cbWhere" value="${U.esc(st.metWhere)}" placeholder="예: 경기 서남부 채용박람회"></label></div>
+      </div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="card-bulk-commit" ${n ? '' : 'disabled'}>선택한 ${n}장 등록</button></div>`;
+  }
+  function bindCardBulk(st) {
+    const inner = $('#drawerInner');
+    inner.querySelectorAll('[data-cbf]').forEach(el => { el.oninput = () => { st.rows[+el.dataset.cbf][el.dataset.k] = el.value; }; });
+    inner.querySelectorAll('[data-cbon]').forEach(el => { el.onchange = () => { st.rows[+el.dataset.cbon].on = el.checked; renderDrawer(true); }; });
+    const all = inner.querySelector('[data-cball]'); if (all) all.onchange = () => { st.rows.forEach(r => { r.on = all.checked; }); renderDrawer(true); };
+    $('#cbMet').onchange = ev => { st.metAt = ev.target.value || U.today(); };
+    $('#cbWhere').oninput = ev => { st.metWhere = ev.target.value; };
   }
 
   async function handleCardPhoto(file) {
@@ -1095,6 +1173,16 @@ window.App = (() => {
     },
     'biz-upload': () => $('#globalBizFile').click(),
     'card-photo': () => $('#globalCardPhoto').click(),
+    'card-pdf': () => pickFiles('.pdf,application/pdf', true, files => handleCardPdf(files)),
+    'card-bulk-commit': () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'cardbulk') return;
+      const st = top.state, list = st.rows.filter(r => r.on && (r.name || r.mobile || r.phone || r.email));
+      list.forEach(r => S.upsert('card', { name: (r.name || '').trim() || '(이름 없음)', title: r.title || '', dept: r.dept || '', org: (r.org || '').trim(), mobile: r.mobile || '', phone: r.phone || '', email: r.email || '', address: r.address || '', linkType: r.linkType || '', linkId: r.linkId || '', metAt: st.metAt || U.today(), metWhere: st.metWhere || '', tags: [], memo: cardMemo(r), photo: r.photo || '' }));
+      closeDrawer();
+      const linked = list.filter(r => r.linkId).length;
+      toast(`명함 ${list.length}장을 등록했어요.${linked ? ` ${linked}장은 사업체·기관에 연결했고,` : ''}${list.length - linked ? ` ${list.length - linked}장은 '분류 대기'에서 사업체·기관으로 나눌 수 있어요.` : ''}`);
+      if (route() !== 'cards') location.hash = '#/cards'; else render();
+    },
     'card-idx': el => { V.ui.cards.idx = el.dataset.idx; render(); },
     'card-link-none': () => { V.ui.cards.link = 'none'; },
     'bulk-commit': () => {
@@ -1425,11 +1513,12 @@ window.App = (() => {
     'ct-file': () => pickFiles('.xlsx,.xls,.csv', true, async files => {
       const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return;
       let cells = [];
-      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
+      let drm = false;
+      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { drm = drm || err.drm; toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
       const { rows } = R.parseCells(cells);
       top.state = { text: '', file: files.map(f => f.name).join(', '), rows };
       renderDrawer(true);
-      if (!rows.length) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
+      if (!rows.length && !drm) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
     }),
     'biz-ledger': async () => { const ok = await copyText(R.ledgerTsv(S.view().businesses)); toast(ok ? `사업체 ${S.view().businesses.length}곳을 복사했습니다. 개발대장 시트의 등록일 칸을 누르고 Ctrl+V 하세요.` : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'dash-pick': el => { V.ui.dash.sel = el.dataset.date; $('#dashCal').innerHTML = V.dashCal(); },
@@ -1639,6 +1728,8 @@ window.App = (() => {
         inlineEdit = false;
         const v = field === 'people' ? (el.value === '' ? '' : Math.max(0, +el.value || 0)) : field === 'content' || field === 'note' ? el.value.trim() : el.value;
         S.upsert(el.dataset.chg === 'pa-field' ? 'act' : 'perf', { id, [field]: v });
+        const ax = el.dataset.chg === 'pa-field' && field === 'date' ? S.find('act', id) : null;
+        if (ax && ax.type === '발굴' && ax.targetType === 'biz' && S.find('biz', ax.targetId)) S.upsert('biz', { id: ax.targetId, discoveredAt: v });
         if (field === 'perf' && v === '제외') toast('이 기록을 실적에서 뺐습니다. 아래 "실적에서 뺀 기록"에서 다시 넣을 수 있어요.');
         return;
       }

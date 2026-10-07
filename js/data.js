@@ -134,18 +134,20 @@ window.D = (() => {
   };
   /** 소속 → 실적 분류표 (데이터 관리에서 바꿀 수 있음) */
   const DEFAULT_PERF_BY_PROGRAM = { '장애인개발원': '현장중심직업재활센터', '고용공단': '고용지원사업' };
-  /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님 */
-  function suggestPerf(setKey, act, target) {
+  /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님
+   *  later = 사업체를 처음 등록(최초 등록일)한 달보다 뒤의 연락. 사업체개발·고용자원개발은 처음 등록한 달에만 잡는다 */
+  function suggestPerf(setKey, act, target, later = false) {
     if (!PERF_SETS[setKey] || !act) return null;
     if (/^진행 단계 변경/.test(act.content || '')) return null;
     if (setKey === '현장중심직업재활센터') {
       if (act.targetType !== 'biz') return null;
-      return act.type === '채용연계' ? '취업' : '사업체개발';
+      if (act.type === '채용연계') return '취업';
+      return later ? null : '사업체개발';
     }
     if (act.targetType === 'net') return '고용네트워크';
     if (act.targetType !== 'biz') return null;
     if (act.type === '채용연계') return '취업확정';
-    return target && target.stage === '채용연계' ? '사업체관리' : '고용자원개발';
+    return later || (target && target.stage === '채용연계') ? '사업체관리' : '고용자원개발';
   }
 
   const INDUSTRIES = {
