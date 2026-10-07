@@ -547,7 +547,7 @@ window.App = (() => {
       try {
         const { next, found } = S.parseXlsx(await file.arrayBuffer());
         if (!found.length) { toast('알맞은 시트를 찾지 못했습니다. 시트 이름이 사업체·네트워크·명함·활동기록·일정인지 확인하세요.', 'error'); return; }
-        const ok = await confirmBox('엑셀 데이터로 교체할까요?', `${found.join(', ')} 시트에서 사업체 ${next.businesses.length}곳, 기관 ${next.networks.length}곳, 명함 ${next.cards.length}장, 활동 ${next.activities.length}건, 일정 ${next.events.length}건을 읽었습니다. 지금 데이터는 모두 교체됩니다.`, '교체');
+        const ok = await confirmBox('엑셀 데이터로 교체할까요?', `${found.join(', ')} 시트에서 사업체 ${next.businesses.length}곳, 기관 ${next.networks.length}곳, 명함 ${next.cards.length}장, 활동 ${next.activities.length}건, 일정 ${next.events.length}건, 실적 ${next.perfs.length}건, 출장·특근 ${next.trips.length}건, 일자리참여자 ${next.jobPeople.length}명, 출석부 ${next.attends.length}줄, 훈련일정 ${next.trainPlans.length}칸, 직원 ${(next.settings.staff || []).length}명을 읽었습니다. 지금 데이터는 모두 이 파일 내용으로 교체됩니다.`, '교체');
         if (!ok) return;
         next.isDemo = false;
         await S.replace(next);
