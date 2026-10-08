@@ -730,6 +730,7 @@ window.V = (() => {
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <div class="chips">${sets.map(k => `<button type="button" class="chip ${f.set === k ? 'on' : ''}" data-act="perf-set" data-set="${e(k)}">${e(k)}</button>`).join('')}</div>
       </div>
+      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)} · 넣으면 아래 실적표의 그 항목 칸에 한 줄 추가돼요</span></h2>
         <form class="perf-form" data-form="perf-add" autocomplete="off">
@@ -746,8 +747,7 @@ window.V = (() => {
         </form>
         <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
       </section>
-      <div id="perfResults"></div>
-      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}`;
+      <div id="perfResults"></div>`;
   }
   /** 실적표: 세부사업 항목마다 칸을 나누고, 그 아래에 날짜순으로 한 줄씩. 칸을 고치면 바로 저장 */
   function perfResults() {

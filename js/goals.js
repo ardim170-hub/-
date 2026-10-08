@@ -39,7 +39,8 @@ window.GL = (() => {
     return { ...DEFAULT, ...g, rows: { ...DEFAULT.rows, ...(g.rows || {}) } };
   }
   /** 목표 연도: 고른 달의 해. 기준 연도(올해)를 보고 있으면 내년 목표를 보여 준다 */
-  const yearOf = (month, g) => Math.max(+month.slice(0, 4), g.baseYear + 1);
+  // 보고 있는 달의 연도가 기본 (2026년이면 2026년 실적이 먼저). 기준 연도보다 앞이면 기준 연도
+  const yearOf = (month, g) => Math.max(+month.slice(0, 4), g.baseYear);
   const factor = g => 12 / (Number(g.months) || 12);
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */

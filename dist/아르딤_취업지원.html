@@ -2376,7 +2376,7 @@ table.tbl { font-size: 14.5px; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" hidden>
 
-<script>window.APP_VERSION = "2026.10.08 09:04";</script>
+<script>window.APP_VERSION = "2026.10.08 09:07";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -4815,6 +4815,7 @@ window.V = (() => {
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <div class="chips">${sets.map(k => `<button type="button" class="chip ${f.set === k ? 'on' : ''}" data-act="perf-set" data-set="${e(k)}">${e(k)}</button>`).join('')}</div>
       </div>
+      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)} · 넣으면 아래 실적표의 그 항목 칸에 한 줄 추가돼요</span></h2>
         <form class="perf-form" data-form="perf-add" autocomplete="off">
@@ -4831,8 +4832,7 @@ window.V = (() => {
         </form>
         <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
       </section>
-      <div id="perfResults"></div>
-      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}`;
+      <div id="perfResults"></div>`;
   }
   /** 실적표: 세부사업 항목마다 칸을 나누고, 그 아래에 날짜순으로 한 줄씩. 칸을 고치면 바로 저장 */
   function perfResults() {
@@ -7199,7 +7199,8 @@ window.GL = (() => {
     return { ...DEFAULT, ...g, rows: { ...DEFAULT.rows, ...(g.rows || {}) } };
   }
   /** 목표 연도: 고른 달의 해. 기준 연도(올해)를 보고 있으면 내년 목표를 보여 준다 */
-  const yearOf = (month, g) => Math.max(+month.slice(0, 4), g.baseYear + 1);
+  // 보고 있는 달의 연도가 기본 (2026년이면 2026년 실적이 먼저). 기준 연도보다 앞이면 기준 연도
+  const yearOf = (month, g) => Math.max(+month.slice(0, 4), g.baseYear);
   const factor = g => 12 / (Number(g.months) || 12);
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
