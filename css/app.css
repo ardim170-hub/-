@@ -1595,3 +1595,24 @@ table.tbl { font-size: 14.5px; }
 .toolbar .select { max-width: 158px; text-overflow: ellipsis; }
 .cb-tbl td { vertical-align: top; padding: 6px; }
 .cb-thumb { width: 72px; height: auto; border: 1px solid var(--line); border-radius: 4px; display: block; }
+/* 실적표: 항목 칸 + 날짜순 줄 */
+.pt { margin-bottom: 14px; }
+.pt-tbl { table-layout: fixed; min-width: 900px; }
+.pt-tbl td { padding: 6px 8px; vertical-align: top; }
+.pt-tbl th { padding: 9px 8px; }
+.pt-tbl .pt-grp th { background: var(--ps, #F3EEFC); border-top: 2px solid var(--pc, #8A5CD8); border-bottom: 1px solid var(--line); padding: 8px 12px; text-align: left; }
+.pt-tbl .pt-grp.zero th { background: #FAFBFC; border-top-color: var(--line-strong); }
+.pt-gname { font-size: 15px; font-weight: 800; color: var(--pi, var(--text)); margin-right: 10px; }
+.pt-grp.zero .pt-gname { color: var(--text-2); }
+.pt-gcount { font-size: 13px; color: var(--text-2); font-weight: 600; }
+.pt-gadd { float: right; height: 28px; font-size: 12.5px; }
+.pt-none td { color: var(--text-2); font-size: 13px; padding: 7px 12px 9px 24px !important; }
+.pt-tbl .input.sm, .pt-tbl .select.sm { width: 100%; }
+.pt-what .link { margin-right: 4px; }
+.pt-what .ct-txt { margin-top: 4px; min-width: 0; }
+.pt-row.man td { background: #FCFCFD; }
+.pt-row.pt-new td { animation: ptNew 2.4s ease-out; }
+@keyframes ptNew { 0%, 40% { background: #FFF4C2; } 100% { background: transparent; } }
+.pt-tbl td.c { text-align: center; }
+.perf-form .pt-n { width: 80px; min-width: 0; }
+.perf-form label:has(.pt-n) { min-width: 0; }

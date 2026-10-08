@@ -67,7 +67,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -80,7 +80,7 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'perf-item-add': [['perf', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
   const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
@@ -1334,6 +1334,13 @@ window.App = (() => {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), '실적(기타)');
       XLSX.writeFile(wb, `실적_${f.set}_${f.month}.xlsx`);
     },
+    'pt-add': el => {
+      V.ui.perf.lastItem = el.dataset.item;
+      const fm = document.querySelector('[data-form="perf-add"]'); if (!fm) return;
+      fm.querySelector('[name=item]').value = el.dataset.item;
+      fm.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      setTimeout(() => fm.elements.name.focus(), 250);
+    },
     'perf-del': el => { const undo = S.remove('perf', el.dataset.id); if (undo) toast('실적을 삭제했습니다.', '', { undo }); },
     'save-perfmap': async () => {
       const map = Object.fromEntries([...document.querySelectorAll('[data-perfmap]')].map(sel => [sel.dataset.perfmap, sel.value]));
@@ -1726,7 +1733,7 @@ window.App = (() => {
       if (field === 'date' && /^(act|pa|pf)-field$/.test(el.dataset.chg) && !U.isDate(el.value)) { inlineEdit = false; render(); return; }
       if (el.dataset.chg === 'pa-field' || el.dataset.chg === 'pf-field') {
         inlineEdit = false;
-        const v = field === 'people' ? (el.value === '' ? '' : Math.max(0, +el.value || 0)) : field === 'content' || field === 'note' ? el.value.trim() : el.value;
+        const v = field === 'people' || field === 'newPeople' ? (el.value === '' ? '' : Math.max(0, +el.value || 0)) : field === 'content' || field === 'note' || field === 'round' ? el.value.trim() : el.value;
         S.upsert(el.dataset.chg === 'pa-field' ? 'act' : 'perf', { id, [field]: v });
         const ax = el.dataset.chg === 'pa-field' && field === 'date' ? S.find('act', id) : null;
         if (ax && ax.type === '발굴' && ax.targetType === 'biz' && S.find('biz', ax.targetId)) S.upsert('biz', { id: ax.targetId, discoveredAt: v });
@@ -1783,28 +1790,25 @@ window.App = (() => {
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
         return;
       }
-      if (form.dataset.form === 'perf-item-add') {
+      if (form.dataset.form === 'perf-add') {
         const fd = Object.fromEntries(new FormData(form).entries());
-        const item = form.dataset.item, name = (fd.name || '').trim();
-        if (!U.isDate(fd.date)) return toast('날짜를 입력하세요.', 'error');
+        if (!U.isDate(fd.date)) return toast('사업날짜를 입력하세요.', 'error');
+        const item = fd.item, name = (fd.name || '').trim(), note = (fd.note || '').trim();
         const k = U.orgKey(name);
         const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
         const people = fd.people ? +fd.people : '';
-        V.ui.perf.pdOpen = item;
+        const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P');
+        Object.assign(V.ui.perf, { lastItem: item, lastDate: fd.date, flash: newId }); // 다시 그릴 때 고른 항목·날짜를 그대로 두고 새 줄을 표시
+        let rec;
         if (b || n) {
-          S.upsert('act', { targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type, content: fd.content.trim() || `${item} 실적`, staff: S.me(), perf: item, people });
-          toast(`${(b || n).name} 기록을 ${item}에 추가했습니다.`);
+          const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
+          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: S.me(), perf: item, people });
         } else {
-          S.upsert('perf', { date: fd.date, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, fd.content.trim()].filter(Boolean).join(' · '), staff: S.me() });
-          toast(`${item} 실적을 추가했습니다.${name ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), note: [name, note].filter(Boolean).join(' · '), staff: S.me() });
         }
-        return;
-      }
-      if (form.dataset.form === 'perf-add') {
-        const fd = Object.fromEntries(new FormData(form).entries());
-        if (!fd.date) return toast('사업날짜를 입력하세요.', 'error');
-        S.upsert('perf', { date: fd.date, set: V.ui.perf.set, item: fd.item, people: fd.people ? +fd.people : '', newPeople: fd.newPeople ? +fd.newPeople : '', round: fd.round.trim(), note: fd.note.trim(), staff: S.me() });
-        toast(`${fd.date} ${fd.item} 실적을 추가했습니다.`);
+        toast(`${fd.date} ${item}에 한 줄 추가했어요.${name && !(b || n) ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+        setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
+        setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
       }
       if (form.dataset.form === 'quick-log') {
