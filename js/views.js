@@ -220,7 +220,7 @@ window.V = (() => {
       cards: `휴대폰으로 명함을 찍어 올리면 ${AI.available() ? 'AI가 이름·연락처를 읽어 채워 줍니다' : '사진과 함께 보관됩니다'}. 사업체·기관과 연결하면 지도와 상세 화면에 함께 나옵니다.`,
     }[tab];
     const acts = {
-      biz: `<a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록이나 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button>`,
+      biz: `<a class="btn" href="#/map">지도에서 보기</a><button class="btn" type="button" data-act="biz-ledger" title="공유 시트 '구인업체 개발 대장' 열 순서로 복사">개발대장 복사</button><button class="btn" type="button" data-act="biz-upload" title="엑셀·CSV 목록, 장애인개발원 사업체정보·직무분석 엑셀(여러 개 한 번에), 사업자등록증·구인공고 사진/PDF">파일로 등록</button><button class="btn btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button>`,
       network: `<a class="btn" href="#/map" data-act="map-net-only">지도에서 보기</a><button class="btn btn-primary" type="button" data-act="new-net">+ 기관 등록</button>`,
       cards: `<button class="btn" type="button" data-act="new-card">직접 입력</button><button class="btn" type="button" data-act="card-pdf" title="명함을 스캔한 PDF · 여러 장이 든 PDF도 한 번에">📄 PDF로 등록</button><button class="btn btn-primary" type="button" data-act="card-photo">${I.camera}명함 사진으로 등록</button>`,
     }[tab];

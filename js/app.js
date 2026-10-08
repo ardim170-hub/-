@@ -60,7 +60,7 @@ window.App = (() => {
    * 버튼 동작마다 필요한 [메뉴, 단계]. 2 = 등록·수정, 3 = 삭제. 서버(Code.gs)도 같은 기준으로 막는다 */
   const KIND_MENU = { biz: 'biz', net: 'network', card: 'cards', ev: 'schedule' };
   const GATES = {
-    'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
+    'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'kead-commit': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
@@ -595,6 +595,11 @@ window.App = (() => {
     inner.dataset.tone = '';
     const oldScroll = keepScroll ? inner.querySelector('.dr-body')?.scrollTop : 0;
     let v;
+    if (top.type === 'kead') {
+      inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
     if (top.type === 'cardbulk') {
       inner.innerHTML = cardBulkHtml(top.state);
       showDrawer();
@@ -1173,6 +1178,13 @@ window.App = (() => {
     },
     'biz-upload': () => $('#globalBizFile').click(),
     'card-photo': () => $('#globalCardPhoto').click(),
+    'kead-commit': () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'kead') return;
+      const r = IMP.keadCommit(top.state);
+      closeDrawer();
+      toast(`장애인개발원 자료 반영: 새 사업체 ${r.added}곳 추가, ${r.filled}곳 채움${r.cards ? `, 담당자 명함 ${r.cards}장` : ''}.`);
+      if (route() !== 'biz') location.hash = '#/biz'; else render();
+    },
     'card-pdf': () => pickFiles('.pdf,application/pdf', true, files => handleCardPdf(files)),
     'card-bulk-commit': () => {
       const top = stack[stack.length - 1]; if (!top || top.type !== 'cardbulk') return;
@@ -1670,7 +1682,15 @@ window.App = (() => {
     });
     $('#searchTrigger').onclick = openSearch;
     $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };
-    $('#globalBizFile').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleBizFile(f); };
+    $('#globalBizFile').onchange = async ev => {
+      const files = [...ev.target.files]; ev.target.value = '';
+      if (!files.length) return;
+      // 장애인개발원 시스템 엑셀(사업체정보·직무분석)은 여러 개를 한 번에 합쳐서
+      const reads = [];
+      for (const f of files) { try { const k = await IMP.keadRead(f); if (k) reads.push(k); } catch (err) { if (err.drm) return toast(err.message, 'error'); } }
+      if (reads.length) { push({ type: 'kead', state: IMP.keadPlan(reads) }, false); return; }
+      handleBizFile(files[0]);
+    };
     $('#globalCardPhoto').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if (f) handleCardPhoto(f); };
     $('#scopeSel').onchange = ev => S.setScope(ev.target.value);
     S.onSync(renderSync);

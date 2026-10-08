@@ -134,5 +134,102 @@ window.IMP = (() => {
     return { biz: bizs.length, cards: cards.length };
   }
 
-  return { start, html, bind, commit };
+  /* ================= 장애인개발원 시스템 엑셀 ('사업체정보' · '직무분석(사업체정보)') =================
+   * 새 사업체는 추가하고, 이미 있는 사업체는 빈 칸(대표자·사업자번호·업종·연락처·지역)과 직무를 채우며
+   * 발굴일은 개발원의 사업체개발일자와 비교해 더 이른 날로 맞춘다 (실적은 최초 등록일 기준). */
+  const KEAD_COLS = { date: ['사업체개발일자', '개발일자'], region: ['사업체지역', '지역'], name: ['사업체명'], ceo: ['대표자명', '대표자'], bizNo: ['사업자등록번호'], industry: ['업종'], phone: ['연락처', '전화번호'], contact: ['담당자'], job: ['직무'], jobDate: ['등록일'] };
+  /** 개발원 파일이면 { kind, rows, viewer } 아니면 null */
+  async function keadRead(file) {
+    if (!/\.(xls|xlsx)$/i.test(file.name)) return null;
+    const wb = XLSX.read(new Uint8Array(await file.arrayBuffer()), { cellDates: true });
+    const grid = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false, dateNF: 'yyyy-mm-dd' });
+    const title = String((grid[0] || [])[0] || '') + ' ' + wb.SheetNames[0];
+    const hi = grid.slice(0, 15).findIndex(r => r.map(nh).includes('사업체명') && (r.map(nh).includes('사업체개발일자') || r.map(nh).includes('직무') || r.map(nh).includes('사업체지역')));
+    if (hi < 0 || !/사업체정보|직무분석|사업체개발일자/.test(title + grid[hi].join(' '))) return null;
+    const head = grid[hi].map(nh);
+    const col = k => head.findIndex(h => KEAD_COLS[k].includes(h));
+    const ix = Object.fromEntries(Object.keys(KEAD_COLS).map(k => [k, col(k)]));
+    const kind = ix.job >= 0 ? 'job' : 'biz';
+    const viewerLine = grid.slice(0, hi).map(r => String(r[0] || '')).find(t => /조\s*회\s*자/.test(t)) || '';
+    const viewer = (viewerLine.split(/[:：]/)[1] || '').trim().split(/\s+/)[0] || '';
+    const rows = grid.slice(hi + 1).map(r => {
+      const g = k => (ix[k] >= 0 ? String(r[ix[k]] ?? '').trim() : '');
+      return { name: g('name').replace(/\s+/g, ' '), date: U.toDateStr(g('date')), region: g('region').replace(/\s*>\s*/g, ' '), ceo: g('ceo'), bizNo: /\d{3}-?\d{2}-?\d{5}/.test(g('bizNo')) ? g('bizNo') : '', industry: g('industry'), phone: /\d{3,}/.test(g('phone')) ? g('phone') : '', contact: g('contact'), job: g('job'), jobDate: U.toDateStr(g('jobDate')) };
+    }).filter(r => r.name);
+    return { kind, rows, viewer, file: file.name };
+  }
+  /** 이름 비교용: 괄호 안·(주)·주식회사·장애인·띄어쓰기·물결을 뺀다 */
+  const looseKey = n => String(n || '').replace(/\(\s*주\s*\)|㈜|주식회사|유한회사/g, '').replace(/\([^)]*\)/g, '').replace(/장애인|[\s~·.,\-*]/g, '').toLowerCase();
+  const digits = v => String(v || '').replace(/\D/g, '');
+  function keadMatch(r, list) {
+    const bn = digits(r.bizNo), k = looseKey(r.name);
+    return list.find(b => bn && digits(b.bizNo) === bn) || list.find(b => looseKey(b.name) === k)
+      || list.find(b => { const x = looseKey(b.name); const [s, l] = x.length < k.length ? [x, k] : [k, x]; return s.length >= 3 && l.includes(s); }) || null;
+  }
+  /** 여러 파일을 사업체 한 곳당 한 줄로 합친 계획 */
+  function keadPlan(reads) {
+    const staffNames = S.staff().map(s => s.name);
+    const viewer = reads.map(r => r.viewer).find(v => staffNames.includes(v)) || S.me();
+    const list = S.get().businesses;
+    const plan = [];
+    reads.forEach(rd => rd.rows.forEach(r => {
+      let p = plan.find(x => (digits(x.bizNo) && digits(x.bizNo) === digits(r.bizNo)) || looseKey(x.name) === looseKey(r.name) || (looseKey(x.name).length >= 3 && looseKey(r.name).includes(looseKey(x.name))) || (looseKey(r.name).length >= 3 && looseKey(x.name).includes(looseKey(r.name))));
+      if (!p) { p = { name: r.name, region: '', ceo: '', bizNo: '', industry: '', phone: '', contact: '', date: '', jobs: [] }; plan.push(p); }
+      ['region', 'ceo', 'bizNo', 'industry', 'phone', 'contact'].forEach(k => { if (!p[k] && r[k]) p[k] = r[k]; });
+      if (rd.kind === 'biz' && r.name.length > p.name.length) p.name = r.name;
+      const d = r.date || (rd.kind === 'job' ? '' : r.jobDate);
+      if (d && (!p.date || d < p.date)) p.date = d;
+      if (r.job && !p.jobs.includes(r.job)) p.jobs.push(r.job);
+    }));
+    plan.forEach(p => {
+      const b = keadMatch(p, list);
+      p.match = b ? b.id : '';
+      p.changes = [];
+      if (b) {
+        p.patch = { id: b.id };
+        [['ceo', '대표자'], ['bizNo', '사업자번호'], ['industry', '업종'], ['phone', '대표 전화']].forEach(([k, l]) => { if (!b[k] && p[k]) { p.patch[k] = p[k]; p.changes.push(l); } });
+        if (!b.address && p.region) { p.patch.address = p.region; p.changes.push('지역'); }
+        const have = String(b.jobs || '').split(/[,·\/]\s*/).map(x => x.trim()).filter(Boolean);
+        const add = p.jobs.filter(j => !have.includes(j));
+        if (add.length) { p.patch.jobs = [...have, ...add].join(', '); p.changes.push('직무 ' + add.length); }
+        if (p.date && (!b.discoveredAt || p.date < b.discoveredAt)) { p.patch.discoveredAt = p.date; p.changes.push(`발굴일 ${b.discoveredAt || '-'} → ${p.date}`); }
+        p.cur = b.name;
+      }
+      p.contactNew = !!p.contact && !S.get().cards.some(c => c.name === p.contact && (c.org === p.name || (b && c.linkId === b.id)));
+    });
+    return { plan, staff: viewer, files: reads.map(r => `${r.file} (${r.kind === 'job' ? '직무분석' : '사업체정보'} ${r.rows.length}줄)`) };
+  }
+  function keadHtml(st) {
+    const fresh = st.plan.filter(p => !p.match), upd = st.plan.filter(p => p.match && (p.changes.length || p.contactNew)), same = st.plan.filter(p => p.match && !p.changes.length && !p.contactNew);
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">장애인개발원 자료 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">${st.files.map(e).join(' · ')}</p></div>
+      <div class="dr-body">
+        <p class="sub">새 사업체 <b>${fresh.length}곳</b>은 추가하고, 이미 있는 <b>${upd.length}곳</b>은 빈 칸·직무를 채우고 발굴일을 개발원 사업체개발일자 중 <b>더 이른 날</b>로 맞춰요(실적은 최초 등록일 기준). 사업체 쪽 담당자는 명함으로 연결해요. 우리 담당: <b>${e(st.staff)}</b></p>
+        <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>사업체명</th><th>개발일자</th><th>업종</th><th>직무</th><th>바뀌는 것</th></tr></thead><tbody>
+        ${[...fresh, ...upd, ...same].map(p => `<tr class="${p.match && !p.changes.length && !p.contactNew ? 'dup' : ''}"><td>${p.match ? (p.changes.length || p.contactNew ? '<span class="badge">채움</span>' : '<span class="badge">같음</span>') : '<span class="badge accent">새로</span>'}</td>
+          <td><b>${e(p.name)}</b>${p.cur && p.cur !== p.name ? `<div class="meta">사이트: ${e(p.cur)}</div>` : ''}<div class="meta">${e(p.region)}</div></td><td class="num nowrap">${e(p.date)}</td><td class="clip">${e(p.industry)}</td><td>${e(p.jobs.join(', '))}</td>
+          <td class="wrap">${p.match ? e([...p.changes, p.contactNew ? '담당자 명함' : ''].filter(Boolean).join(' · ') || '-') : '새로 등록' + (p.contact ? ' · 담당자 명함' : '')}</td></tr>`).join('')}
+        </tbody></table></div>
+      </div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="kead-commit" ${fresh.length + upd.length ? '' : 'disabled'}>추가 ${fresh.length}곳 · 채움 ${upd.length}곳 반영</button></div>`;
+  }
+  function keadCommit(st) {
+    const fresh = st.plan.filter(p => !p.match);
+    const bizs = fresh.length ? S.upsertMany('biz', fresh.map(p => ({ name: p.name, ceo: p.ceo, bizNo: p.bizNo, industry: p.industry, phone: p.phone, address: p.region, jobs: p.jobs.join(', '), discoveredAt: p.date || U.today(), stage: '발굴', staff: st.staff, source: '장애인개발원', placements: 0, memo: '' }))) : [];
+    S.upsertMany('act', bizs.map(b => ({ targetType: 'biz', targetId: b.id, date: b.discoveredAt, type: '발굴', content: '장애인개발원 사업체정보로 등록', staff: st.staff })));
+    const patches = st.plan.filter(p => p.match && Object.keys(p.patch || {}).length > 1).map(p => p.patch);
+    if (patches.length) S.putMany('biz', patches);
+    // 발굴일을 앞당긴 곳은 발굴 기록 날짜도 같이
+    const moved = new Map(patches.filter(x => x.discoveredAt).map(x => [x.id, x.discoveredAt]));
+    const disc = S.get().activities.filter(a => a.type === '발굴' && a.targetType === 'biz' && moved.has(a.targetId)).map(a => ({ id: a.id, date: moved.get(a.targetId) }));
+    if (disc.length) S.putMany('act', disc);
+    const idOf = p => p.match || (bizs.find(b => b.name === p.name) || {}).id;
+    const cards = st.plan.filter(p => p.contactNew).map(p => ({ name: p.contact, org: p.name, phone: /^01/.test(digits(p.phone)) ? '' : p.phone, mobile: /^01/.test(digits(p.phone)) ? p.phone : '', linkType: 'biz', linkId: idOf(p), tags: ['사업체 담당자'], metAt: p.date || U.today(), metWhere: '장애인개발원 자료', memo: '' }));
+    if (cards.length) S.upsertMany('card', cards);
+    const queue = bizs.filter(b => b.address).slice(0, 40).map(b => b.id);
+    (async () => { for (const id of queue) { await S.refine('biz', id); await new Promise(r => setTimeout(r, 1100)); } })();
+    return { added: bizs.length, filled: patches.length, cards: cards.length };
+  }
+
+  return { start, html, bind, commit, keadRead, keadPlan, keadHtml, keadCommit, looseKey };
 })();
