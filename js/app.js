@@ -1334,6 +1334,8 @@ window.App = (() => {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), '실적(기타)');
       XLSX.writeFile(wb, `실적_${f.set}_${f.month}.xlsx`);
     },
+    'perf-who': el => { V.ui.perf.who = el.dataset.who; bindPerf(); },
+    'gl-open': () => { V.ui.perf.glOpen = !V.ui.perf.glOpen; },
     'pt-add': el => {
       V.ui.perf.lastItem = el.dataset.item;
       const fm = document.querySelector('[data-form="perf-add"]'); if (!fm) return;
@@ -1797,16 +1799,16 @@ window.App = (() => {
         const k = U.orgKey(name);
         const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
         const people = fd.people ? +fd.people : '';
-        const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P');
-        Object.assign(V.ui.perf, { lastItem: item, lastDate: fd.date, flash: newId }); // 다시 그릴 때 고른 항목·날짜를 그대로 두고 새 줄을 표시
+        const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
+        Object.assign(V.ui.perf, { lastItem: item, lastDate: fd.date, lastStaff: who, flash: newId }); // 다시 그릴 때 고른 항목·날짜를 그대로 두고 새 줄을 표시
         let rec;
         if (b || n) {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
-          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: S.me(), perf: item, people });
+          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people });
         } else {
-          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), note: [name, note].filter(Boolean).join(' · '), staff: S.me() });
+          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), note: [name, note].filter(Boolean).join(' · '), staff: who });
         }
-        toast(`${fd.date} ${item}에 한 줄 추가했어요.${name && !(b || n) ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+        toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${name && !(b || n) ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;

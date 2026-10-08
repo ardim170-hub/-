@@ -717,26 +717,80 @@ window.V = (() => {
     const sets = [...new Set(S.staff().map(st => S.perfSetOf(st.name)).filter(Boolean))];
     return sets.length ? sets : Object.keys(D.PERF_SETS);
   }
+  /** 현장중심 전문인력: 실적 분류가 현장중심인 직원 */
+  const perfStaff = () => S.staff().filter(s => S.perfSetOf(s.name) === GL.SET).map(s => s.name);
+  /** 한 달(또는 앞부분이 같은 기간) 실적 줄: 팀 전체. [{item, staff, people}] */
+  function perfLines(prefix) {
+    const st = S.get();
+    return [...S.perfRows(prefix, st).filter(r => r.p.set === GL.SET).map(r => ({ item: r.p.item, staff: r.a.staff || '', people: Number(r.a.people) || 0, d: r.d })),
+      ...st.perfs.filter(p => p.set === GL.SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', people: Number(p.people) || 0, d: p.date }))];
+  }
+  /** 이번 달 종합: 항목별 월 목표 대비 실적 그래프(사람별 색) + 전문인력별 자세한 표 */
+  function perfMonth(f) {
+    const g = GL.goal(), items = D.PERF_SETS[GL.SET].items;
+    const months = Number(g.months) || 12, Y = +f.month.slice(0, 4);
+    const base = i => { const v = (g.rows[i] || [])[2]; return v == null || v === '' ? null : Number(v); };
+    const mT = i => (base(i) == null ? null : Math.max(1, Math.round(base(i) / months)));      // 월 목표 = 기준 실적 ÷ 기준 개월 수
+    const yT = i => (base(i) == null ? null : Math.round(base(i) * (Y === g.baseYear ? 1 : 12 / months)));
+    const pros = perfStaff();
+    const need = Math.max(Number(g.staffNeed) || 3, pros.length);
+    const slots = [...pros, ...Array.from({ length: need - pros.length }, (_, k) => `충원 예정${need - pros.length > 1 ? ' ' + (k + 1) : ''}`)];
+    const lines = perfLines(f.month);
+    const ytd = perfLines(String(Y)).filter(l => l.d.slice(0, 7) <= f.month && (Y !== g.baseYear || +l.d.slice(5, 7) > 12 - months));
+    const cnt = (list, i, who) => list.filter(l => l.item === i && (who == null || l.staff === who)).length;
+    const ppl = (list, i, who) => list.filter(l => l.item === i && (who == null || l.staff === who)).reduce((a, l) => a + l.people, 0);
+    const others = lines.filter(l => !pros.includes(l.staff)).length;
+    const pc = (a, t) => (t ? Math.round(a / t * 100) : null);
+    const tone = p => (p == null ? '' : p >= 100 ? 'done' : p >= 70 ? 'ok' : p >= 40 ? 'warn' : 'low');
+    const parts = items.filter(i => mT(i)).map(i => Math.min(1, cnt(lines, i) / mT(i)));
+    const overall = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length * 100) : 0;
+    const totA = items.reduce((a, i) => a + cnt(lines, i), 0), totT = items.reduce((a, i) => a + (mT(i) || 0), 0);
+    const col = n => (pros.includes(n) ? staffColor(n) : '#C3C9D2');
+    const chart = items.map(i => {
+      const t = mT(i), a = cnt(lines, i), max = Math.max(t || 0, a, 1), p = pc(a, t);
+      const segs = [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : lines.filter(l => l.item === i && !pros.includes(l.staff)).length; return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
+      return `<div class="pm-row"><span class="pm-l">${e(i)}</span><div class="pm-track">${segs}${t ? `<b class="pm-goal" style="left:${t / max * 100}%" title="월 목표 ${t}건"></b>` : ''}</div><span class="pm-v num"><b>${a}</b> / ${t ?? '-'}건 ${p != null ? `<em class="${tone(p)}">${p}%</em>` : ''}</span></div>`;
+    }).join('');
+    const head = `<tr><th>세부사업</th>${slots.map(n => `<th class="r"><span class="pm-dot" style="background:${col(n)}"></span>${e(n)}</th>`).join('')}${others ? '<th class="r"><span class="pm-dot" style="background:#9AA3B2"></span>그 외 직원</th>' : ''}<th class="r">이번 달 합계</th><th class="r">월 목표</th><th class="r">달성률</th><th class="r">1인당 월 목표<small>(${need}명)</small></th><th class="r">올해 누적 / 연 목표</th><th class="r">누적 달성률</th></tr>`;
+    const body = items.map(i => {
+      const t = mT(i), a = cnt(lines, i), p = pc(a, t), ya = cnt(ytd, i), yt = yT(i), yp = pc(ya, yt);
+      const oc = lines.filter(l => l.item === i && !pros.includes(l.staff)).length;
+      return `<tr><th>${e(i)}</th>${slots.map(n => { const c = cnt(lines, i, n), m = ppl(lines, i, n); return `<td class="r num ${pros.includes(n) ? '' : 'sub'}">${pros.includes(n) ? (c ? `<b>${c}</b>${m ? `<small>${m}명</small>` : ''}` : '0') : '-'}</td>`; }).join('')}${others ? `<td class="r num sub">${oc || 0}</td>` : ''}
+        <td class="r num"><b>${a}</b>${ppl(lines, i) ? `<small>${ppl(lines, i)}명</small>` : ''}</td><td class="r num">${t ?? '-'}</td><td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td><td class="r num">${t ? Math.ceil(t / need) : '-'}</td><td class="r num">${ya} / ${yt ?? '-'}</td><td class="r">${yp != null ? `<span class="gl-pill ${tone(yp)}">${yp}%</span>` : '-'}</td></tr>`;
+    }).join('');
+    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${lines.filter(l => l.staff === n).length}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num"><b>${totA}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(pc(totA, totT))}">${pc(totA, totT) ?? 0}%</span></td><td class="r num">${Math.ceil(totT / need)}</td><td class="r num">${ytd.length} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
+    return `<section class="panel panel-pad pm">
+      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 복지관 기준(건수)</span></h2>
+        <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${lines.filter(l => l.staff === n).length}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
+        <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건 / 목표 ${totT}건</small></div></div>
+      <div class="pm-chart">${chart}</div>
+      <div class="table-wrap"><table class="tbl pm-tbl"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
+      ${others ? `<p class="sub" style="margin:8px 0 0">⚠ 전문인력이 아닌 직원 이름으로 들어간 실적이 <b>${others}건</b> 있어요. 아래 실적표의 <b>담당</b> 칸에서 전문인력으로 바꾸면 사람별 칸에 들어가요.</p>` : ''}
+      ${need > pros.length ? `<p class="sub" style="margin:8px 0 0">전문인력 ${need}명 중 ${pros.length}명이에요. 1인당 월 목표는 ${need}명 기준이에요. 새 직원은 데이터 관리 → 직원에서 소속을 '장애인개발원'으로 넣으면 이 표에 칸이 생겨요.</p>` : ''}
+    </section>`;
+  }
   function perfPage() {
     const f = ui.perf;
-    const sets = perfSets();
-    if (!sets.includes(f.set)) f.set = sets.includes(S.perfSetOf(S.me())) ? S.perfSetOf(S.me()) : sets[0];
+    f.set = GL.SET; // 실적은 현장중심직업재활센터 기준만 본다
     const def = D.PERF_SETS[f.set];
+    const pros = perfStaff();
+    if (!pros.includes(f.who)) f.who = '';
     return `
       <div class="page-head">
         <div><h1 class="page-title">실적</h1><div class="page-desc">실적을 입력하고, 구글 시트 '실적(기타)'에 그대로 붙여넣을 수 있게 정리합니다.${scopeNote()}</div></div>
       </div>
       <div class="toolbar perf-bar">
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
-        <div class="chips">${sets.map(k => `<button type="button" class="chip ${f.set === k ? 'on' : ''}" data-act="perf-set" data-set="${e(k)}">${e(k)}</button>`).join('')}</div>
+        <span class="sub">${e(def.mid)} · 한 달 기준</span>
       </div>
-      ${f.set === GL.SET ? GL.panel(f.month, f.glMode, f.glYear) : ''}
+      ${perfMonth(f)}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)} · 넣으면 아래 실적표의 그 항목 칸에 한 줄 추가돼요</span></h2>
         <form class="perf-form" data-form="perf-add" autocomplete="off">
           <label>사업날짜<input class="input" type="date" name="date" value="${f.lastDate && f.lastDate.startsWith(f.month) ? f.lastDate : f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
           <label>세부사업명<select class="select" name="item">${def.items.map(i => `<option ${f.lastItem === i ? 'selected' : ''}>${e(i)}</option>`).join('')}</select></label>
           <label class="grow">사업체·기관 <span class="sub">(있는 곳이면 그 기록으로)</span><input class="input" name="name" list="ptNames" placeholder="비워도 돼요"></label>
+          <label>담당 전문인력<select class="select" name="staff">${pros.map(n => `<option ${n === (f.lastStaff || S.me()) ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
           <label>방식<select class="select" name="type">${D.ACT_TYPES.filter(t => t !== '발굴').map(t => `<option ${t === '방문' ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           <label>참여인원<input class="input pt-n" type="number" min="0" name="people" inputmode="numeric"></label>
           <label>신규<input class="input pt-n" type="number" min="0" name="newPeople" inputmode="numeric"></label>
@@ -747,14 +801,17 @@ window.V = (() => {
         </form>
         <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
       </section>
-      <div id="perfResults"></div>`;
+      <div id="perfResults"></div>
+      <details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 달성률</b> <span class="sub">2026년(6개월)·2027년(12개월) · 장애인개발원 기준(실인원·연인원) · 기준 실적 고치기</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`;
   }
   /** 실적표: 세부사업 항목마다 칸을 나누고, 그 아래에 날짜순으로 한 줄씩. 칸을 고치면 바로 저장 */
   function perfResults() {
     const f = ui.perf;
     const def = D.PERF_SETS[f.set];
-    const acts = f.withActs ? S.perfRows(f.month).filter(r => r.p.set === f.set) : [];
-    const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month));
+    const pros = perfStaff();
+    const acts = f.withActs ? S.perfRows(f.month).filter(r => r.p.set === f.set && (!f.who || r.a.staff === f.who)) : [];
+    const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month) && (!f.who || p.staff === f.who));
+    const whoSel = (chg, id, cur) => `<select class="select sm pt-who" data-chg="${chg}" data-id="${id}" data-field="staff" aria-label="담당" style="border-left:4px solid ${staffColor(cur)}">${[...new Set([...pros, cur].filter(Boolean))].map(n => `<option ${n === cur ? 'selected' : ''}>${e(n)}</option>`).join('')}</select>`;
     const out = S.view().activities.filter(a => a.perf === '제외' && S.perfDate(a).startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
     const left = S.perfLeft(f.month, f.set);
     const sheetRows = S.perfTable(f.month, f.set, f.withActs);
@@ -766,7 +823,7 @@ window.V = (() => {
       <td><input class="input sm pt-date" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
       <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
       <td>${num('pa-field', a.id, 'people', a.people)}</td><td class="sub c">-</td><td class="sub c">-</td>
-      <td class="nowrap"><span class="badge accent">기록</span><div class="meta">${e(a.staff || '')}</div></td>
+      <td>${whoSel('pa-field', a.id, a.staff)}<div class="meta">방문·전화 기록</div></td>
       <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
     const manRow = m => `<tr class="pt-row man${flash(m.id)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
@@ -774,7 +831,7 @@ window.V = (() => {
       <td class="pt-what"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
       <td>${num('pf-field', m.id, 'people', m.people)}</td><td>${num('pf-field', m.id, 'newPeople', m.newPeople)}</td>
       <td><input class="input sm pt-n" value="${e(m.round || '')}" data-chg="pf-field" data-id="${m.id}" data-field="round" placeholder="-" aria-label="회차"></td>
-      <td class="nowrap"><span class="badge">직접</span><div class="meta">${e(m.staff || '')}</div></td>
+      <td>${whoSel('pf-field', m.id, m.staff)}<div class="meta">직접 입력</div></td>
       <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
     let total = 0, totalP = 0;
     const body = def.items.map(item => {
@@ -786,11 +843,10 @@ window.V = (() => {
       return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="8"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length}건${places ? ` · ${places}곳` : ''}${ppl ? ` · ${ppl}명` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
         ${rows.join('') || `<tr class="pt-none"><td colspan="8">이 달 기록 없음</td></tr>`}`;
     }).join('');
-    const counts = def.items.map(i => [i, acts.filter(r => r.p.item === i).length + mans.filter(m => m.item === i).length]);
-    return `<section class="panel perf-sum">${counts.map(([i, n]) => `<div class="${n ? '' : 'zero'}"><span class="l">${e(i)}</span><b class="num">${n}</b><span class="sub">건</span></div>`).join('')}</section>
-      <section class="panel pt">
+    return `<section class="panel pt">
         <div class="panel-pad perf-actions">
           <h2 class="section-title">${monthLabel(f.month)} 실적표 <span class="sub num">${total}건${totalP ? ` · ${totalP}명` : ''}</span></h2>
+          <div class="chips">${['', ...pros].map(n => `<button type="button" class="chip ${f.who === n ? 'on' : ''}" data-act="perf-who" data-who="${e(n)}">${n ? `<span class="dot" style="background:${staffColor(n)}"></span>${e(n)}` : '전체'}</button>`).join('')}</div>
           <div class="inline">
             <label class="check"><input type="checkbox" data-act="perf-acts" ${f.withActs ? 'checked' : ''}>방문·전화 기록 포함</label>
             <label class="check"><input type="checkbox" data-act="perf-no" ${f.withNo ? 'checked' : ''}>연번 포함해서 복사</label>
@@ -798,8 +854,8 @@ window.V = (() => {
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
-          <colgroup><col style="width:170px"><col style="width:150px"><col><col style="width:84px"><col style="width:84px"><col style="width:84px"><col style="width:96px"><col style="width:44px"></colgroup>
-          <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>참여인원</th><th>신규</th><th>회차</th><th>입력</th><th></th></tr></thead>
+          <colgroup><col style="width:170px"><col style="width:150px"><col><col style="width:84px"><col style="width:84px"><col style="width:84px"><col style="width:120px"><col style="width:44px"></colgroup>
+          <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>참여인원</th><th>신규</th><th>회차</th><th>담당</th><th></th></tr></thead>
           <tbody>${body}</tbody></table></div>
         <p class="sub perf-help">칸을 고치면 바로 저장돼요. 세부사업 칸을 바꾸면 그 항목으로 옮겨지고, "실적에서 빼기"를 고르면 빠져요. 구글 시트 <b>실적(기타)</b>에는 위 <b>구글 시트용 복사</b>로 붙여 넣으세요(같은 날·같은 항목 기록은 한 줄로 묶여요).</p>
         ${left.length ? `<details class="pd-grp pd-out"><summary><b>실적에 안 들어간 이 달 연락</b> <span class="num">${left.length}건</span><span class="sub">· 이미 앞 달에 개발(최초 등록)한 사업체에 다시 연락한 기록 등. 실적이면 세부사업을 골라 넣으세요</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${left.map(({ a, t, d }) => `<tr><td class="num nowrap">${d}</td><td><b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}${a.targetType === 'biz' && S.bizFirst(t) ? ` · 최초 등록 ${U.dateDot(S.bizFirst(t))}` : ''}</div></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="" selected>실적 아님</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>` : ''}
