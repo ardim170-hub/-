@@ -1894,3 +1894,5 @@ body { font-size: 16px; }
 .sc-main b { font-size: 16px; }
 .btn-danger.btn-primary { background: #C8364E; border-color: #C8364E; }
 .sc-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sc-li { box-shadow: inset 4px 0 0 var(--sc, transparent); padding-left: 12px !important; }
+.sc-row > th:first-child { box-shadow: inset 5px 0 0 var(--sc, transparent); padding-left: 14px; white-space: nowrap; }

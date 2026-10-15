@@ -136,7 +136,7 @@ window.V = (() => {
             <div class="section-head"><h2 class="section-title">최근 활동</h2></div>
             ${feed.length ? `<ul class="feed">${feed.map(a => {
               const t = S.targetOf(a);
-              return `<li><span class="d">${U.md(a.date)}</span><span class="t">${t ? `<b data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> · ` : ''}<span>${e(a.type)}</span> <span class="c">${e(a.content)}</span></span></li>`;
+              return `<li class="sc-li" style="--sc:${staffColor(a.staff)}" title="${e(a.staff || '')}"><span class="d">${U.md(a.date)}</span><span class="t">${t ? `<b data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> · ` : ''}<span>${e(a.type)}</span> <span class="c">${e(a.content)}</span>${a.staff ? ` <span class="sub nowrap">${staffDot(a.staff)}${e(a.staff)}</span>` : ''}</span></li>`;
             }).join('')}</ul>` : emptyState('아직 활동 기록이 없습니다', '사업체나 기관 상세 화면에서 전화·방문 기록을 남겨 보세요.')}
           </section>
         </div>
@@ -460,7 +460,7 @@ window.V = (() => {
           ${c.phone ? `<div>T ${U.hl(c.phone, f.q)}</div>` : ''}
           ${c.email ? `<div>${e(c.email)}</div>` : ''}
         </div>
-        ${c.photo ? '<span class="tagline photo-flag">사진 있음</span>' : ''}${link && link.staff ? `<span class="card-staff">우리 담당 ${e(link.staff)}</span>` : ''}
+        ${c.photo ? '<span class="tagline photo-flag">사진 있음</span>' : ''}${link && link.staff ? `<span class="card-staff">우리 담당 ${staffDot(link.staff)}${e(link.staff)}</span>` : ''}
       </article>`;
     }).join('')}</div><p class="sub num" style="margin-top:12px">${rows.length}장 표시 · ${e(S.scopeLabel())} ${all.length}장</p>`;
   }
@@ -900,13 +900,13 @@ window.V = (() => {
     const itemSel = (cur, chg, id, withOut) => `<select class="select sm pt-item" data-chg="${chg}" data-id="${id}" data-field="${chg === 'pa-field' ? 'perf' : 'item'}" aria-label="세부사업">${def.items.map(i => `<option ${i === cur ? 'selected' : ''}>${e(i)}</option>`).join('')}${withOut ? '<option value="제외">실적에서 빼기</option>' : ''}</select>`;
     const num = (chg, id, k, v) => `<input class="input sm pt-n" type="number" min="0" value="${e(v ?? '')}" data-chg="${chg}" data-id="${id}" data-field="${k}" placeholder="-" aria-label="${k}">`;
     const flash = id => (f.flash === id ? ' pt-new' : '');
-    const actRow = ({ a, p, t, d }) => `<tr class="pt-row${flash(a.id)}" data-row="${a.id}">
+    const actRow = ({ a, p, t, d }) => `<tr class="pt-row sc-row${flash(a.id)}" style="--sc:${staffColor(a.staff)}" data-row="${a.id}">
       <td>${itemSel(p.item, 'pa-field', a.id, true)}</td>
       <td><input class="input sm pt-date" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
       <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
       <td>${whoSel('pa-field', a.id, a.staff)}<div class="meta">방문·전화 기록</div></td>
       <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
-    const manRow = m => `<tr class="pt-row man${flash(m.id)}" data-row="${m.id}">
+    const manRow = m => `<tr class="pt-row man sc-row${flash(m.id)}" style="--sc:${staffColor(m.staff)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
       <td><input class="input sm pt-date" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
       <td class="pt-what"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
@@ -1163,7 +1163,7 @@ window.V = (() => {
         <input type="hidden" name="staff" value="${e(S.me())}">
         ${perfSelect(kind, id)}
       </form>
-      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 · ${e(R.siteName(a.jobUrl))}</a>` : ''}${a.staff ? ` <span class="sub">· ${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
+      ${acts.length ? `<ul class="timeline">${acts.map(a => `<li class="sc-li" style="--sc:${staffColor(a.staff)}"><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 · ${e(R.siteName(a.jobUrl))}</a>` : ''}${a.staff ? ` <span class="sub">· ${staffDot(a.staff)}${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
   const locSec = x => `<section class="dr-sec"><h3>위치 ${M.hasPos(x) ? `<span class="inline"><a class="btn btn-ghost btn-sm" href="${M.kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a><a class="btn btn-ghost btn-sm" href="${M.naverSearch(x)}" target="_blank" rel="noopener">네이버지도</a></span>` : ''}</h3>
     <div class="sub" style="margin-bottom:8px">${e(x.address || '주소 미입력')}${x.approx ? ' · 읍면동 중심의 대략적 위치' : ''}</div>
