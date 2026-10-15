@@ -1773,3 +1773,18 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 .labels-on .leaflet-tooltip.mk-label, .leaflet-tooltip.mk-label.hov { display: block; }
 .leaflet-marker-icon.mk-sel { z-index: 1000 !important; filter: drop-shadow(0 0 4px rgba(26, 115, 232, .9)); }
 @media (max-width: 860px) { .place-box { left: 50px; width: calc(100% - 64px); } }
+
+/* 실적: 연간 최종 실적 + 이월 */
+.pm-year { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 20px; align-items: center; margin-bottom: 16px; border-top: 4px solid var(--pi); }
+.pm-year-num { display: flex; align-items: baseline; gap: 8px; }
+.pm-year-num b { font-size: 40px; font-weight: 850; line-height: 1; color: var(--pi); }
+.pm-year-num b.done { color: #1F9D6B; } .pm-year-num b.low { color: #D9485F; } .pm-year-num b.warn { color: #C98A1B; }
+.pm-year-num span.num { font-size: 18px; color: var(--text-2); font-weight: 700; }
+.pm-year-bar { grid-column: 1 / -1; height: 12px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.pm-year-bar i { display: block; height: 100%; background: var(--pi); border-radius: 999px; }
+.pm-year-bar i.done { background: #1F9D6B; } .pm-year-bar i.ok { background: #2F7FE0; } .pm-year-bar i.warn { background: #C98A1B; } .pm-year-bar i.low { background: #D9485F; }
+.pm-tbl td.pm-cin { color: #5B6B82; font-weight: 700; }
+.pm-tbl td.pm-cout { color: #1F9D6B; font-weight: 800; }
+.pm-v small { color: var(--text-2); margin-left: 4px; }
+@media (max-width: 640px) { .pm-year { grid-template-columns: 1fr; } }
+.pm-tbl thead th small { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-2); }

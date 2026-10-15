@@ -808,31 +808,44 @@ window.V = (() => {
     const lines = perfLines(f.month);
     const ytd = perfLines(String(Y)).filter(l => l.d.slice(0, 7) <= f.month && (Y !== g.baseYear || +l.d.slice(5, 7) > 12 - months));
     const cnt = (list, i, who) => list.filter(l => l.item === i && (who == null || l.staff === who)).length;
-    const ppl = (list, i, who) => list.filter(l => l.item === i && (who == null || l.staff === who)).reduce((a, l) => a + l.people, 0);
+    // 이월: 그 해 첫 달부터 달마다 (이월 + 실적 - 월 목표)가 남으면 다음 달로 넘긴다
+    const first = Y === g.baseYear ? 13 - months : 1, curM = +f.month.slice(5, 7);
+    const yearAll = perfLines(String(Y));
+    const carryIn = i => { const t = mT(i); if (!t) return 0; let c = 0; for (let m = first; m < curM; m++) c = Math.max(0, c + cnt(yearAll.filter(l => +l.d.slice(5, 7) === m), i) - t); return c; };
+    const cin = Object.fromEntries(items.map(i => [i, carryIn(i)]));
+    const got = i => cnt(lines, i) + cin[i];                     // 인정 실적 = 이번 달 실적 + 지난달 이월
+    const cout = i => (mT(i) ? Math.max(0, got(i) - mT(i)) : 0);
     const others = lines.filter(l => !pros.includes(l.staff)).length;
     const pc = (a, t) => (t ? Math.round(a / t * 100) : null);
     const tone = p => (p == null ? '' : p >= 100 ? 'done' : p >= 70 ? 'ok' : p >= 40 ? 'warn' : 'low');
-    const parts = items.filter(i => mT(i)).map(i => Math.min(1, cnt(lines, i) / mT(i)));
+    const parts = items.filter(i => mT(i)).map(i => Math.min(1, got(i) / mT(i)));
     const overall = parts.length ? Math.round(parts.reduce((a, b) => a + b, 0) / parts.length * 100) : 0;
-    const totA = items.reduce((a, i) => a + cnt(lines, i), 0), totT = items.reduce((a, i) => a + (mT(i) || 0), 0);
+    const totA = items.reduce((a, i) => a + cnt(lines, i), 0), totC = items.reduce((a, i) => a + cin[i], 0), totG = items.reduce((a, i) => a + Math.min(got(i), mT(i) || got(i)), 0), totT = items.reduce((a, i) => a + (mT(i) || 0), 0);
     const col = n => (pros.includes(n) ? staffColor(n) : '#C3C9D2');
     const chart = items.map(i => {
-      const t = mT(i), a = cnt(lines, i), max = Math.max(t || 0, a, 1), p = pc(a, t);
-      const segs = [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : lines.filter(l => l.item === i && !pros.includes(l.staff)).length; return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
-      return `<div class="pm-row"><span class="pm-l">${e(i)}</span><div class="pm-track">${segs}${t ? `<b class="pm-goal" style="left:${t / max * 100}%" title="월 목표 ${t}건"></b>` : ''}</div><span class="pm-v num"><b>${a}</b> / ${t ?? '-'}건 ${p != null ? `<em class="${tone(p)}">${p}%</em>` : ''}</span></div>`;
+      const t = mT(i), a = got(i), max = Math.max(t || 0, a, 1), p = pc(a, t);
+      const segs = (cin[i] ? `<i style="width:${cin[i] / max * 100}%;background:repeating-linear-gradient(45deg,#C9D3E0 0 6px,#E3E9F1 6px 12px)" title="지난달 이월 ${cin[i]}건"></i>` : '') + [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : lines.filter(l => l.item === i && !pros.includes(l.staff)).length; return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
+      return `<div class="pm-row"><span class="pm-l">${e(i)}</span><div class="pm-track">${segs}${t ? `<b class="pm-goal" style="left:${t / max * 100}%" title="월 목표 ${t}건"></b>` : ''}</div><span class="pm-v num"><b>${a}</b> / ${t ?? '-'}건${cin[i] ? `<small>(이월 ${cin[i]})</small>` : ''} ${p != null ? `<em class="${tone(p)}">${p}%</em>` : ''}</span></div>`;
     }).join('');
-    const head = `<tr><th>세부사업</th>${slots.map(n => `<th class="r"><span class="pm-dot" style="background:${col(n)}"></span>${e(n)}</th>`).join('')}${others ? '<th class="r"><span class="pm-dot" style="background:#9AA3B2"></span>그 외 직원</th>' : ''}<th class="r">이번 달 합계</th><th class="r">월 목표</th><th class="r">달성률</th><th class="r">1인당 월 목표<small>(${need}명)</small></th><th class="r">올해 누적 / 연 목표</th><th class="r">누적 달성률</th></tr>`;
+    const head = `<tr><th>세부사업</th>${slots.map(n => `<th class="r"><span class="pm-dot" style="background:${col(n)}"></span>${e(n)}</th>`).join('')}${others ? '<th class="r"><span class="pm-dot" style="background:#9AA3B2"></span>그 외 직원</th>' : ''}<th class="r">이번 달</th><th class="r">이월<small>(지난달)</small></th><th class="r">인정 실적</th><th class="r">월 목표</th><th class="r">달성률</th><th class="r">이월<small>(다음 달)</small></th><th class="r">연 누적</th><th class="r">연 달성률</th></tr>`;
     const body = items.map(i => {
-      const t = mT(i), a = cnt(lines, i), p = pc(a, t), ya = cnt(ytd, i), yt = yT(i), yp = pc(ya, yt);
+      const t = mT(i), a = cnt(lines, i), gi = got(i), p = pc(gi, t), ya = cnt(ytd, i), yt = yT(i), yp = pc(ya, yt);
       const oc = lines.filter(l => l.item === i && !pros.includes(l.staff)).length;
-      return `<tr><th>${e(i)}</th>${slots.map(n => { const c = cnt(lines, i, n), m = ppl(lines, i, n); return `<td class="r num ${pros.includes(n) ? '' : 'sub'}">${pros.includes(n) ? (c ? `<b>${c}</b>${m ? `<small>${m}명</small>` : ''}` : '0') : '-'}</td>`; }).join('')}${others ? `<td class="r num sub">${oc || 0}</td>` : ''}
-        <td class="r num"><b>${a}</b>${ppl(lines, i) ? `<small>${ppl(lines, i)}명</small>` : ''}</td><td class="r num">${t ?? '-'}</td><td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td><td class="r num">${t ? Math.ceil(t / need) : '-'}</td><td class="r num">${ya} / ${yt ?? '-'}</td><td class="r">${yp != null ? `<span class="gl-pill ${tone(yp)}">${yp}%</span>` : '-'}</td></tr>`;
+      return `<tr><th>${e(i)}</th>${slots.map(n => { const c = cnt(lines, i, n); return `<td class="r num ${pros.includes(n) ? '' : 'sub'}">${pros.includes(n) ? (c ? `<b>${c}</b>` : '0') : '-'}</td>`; }).join('')}${others ? `<td class="r num sub">${oc || 0}</td>` : ''}
+        <td class="r num">${a}</td><td class="r num ${cin[i] ? 'pm-cin' : 'sub'}">${cin[i] ? '+' + cin[i] : '-'}</td><td class="r num"><b>${gi}</b></td><td class="r num">${t ?? '-'}</td><td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td><td class="r num ${cout(i) ? 'pm-cout' : 'sub'}">${cout(i) ? '→ ' + cout(i) : '-'}</td><td class="r num">${ya} / ${yt ?? '-'}</td><td class="r">${yp != null ? `<span class="gl-pill ${tone(yp)}">${yp}%</span>` : '-'}</td></tr>`;
     }).join('');
-    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${lines.filter(l => l.staff === n).length}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num"><b>${totA}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(pc(totA, totT))}">${pc(totA, totT) ?? 0}%</span></td><td class="r num">${Math.ceil(totT / need)}</td><td class="r num">${ytd.length} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
-    return `<section class="panel panel-pad pm">
-      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 복지관 기준(건수)</span></h2>
+    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${lines.filter(l => l.staff === n).length}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num">${totA}</td><td class="r num">${totC ? '+' + totC : '-'}</td><td class="r num"><b>${totA + totC}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(overall)}">${overall}%</span></td><td class="r num">${items.reduce((a, i) => a + cout(i), 0) || '-'}</td><td class="r num">${ytd.length} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
+    const yAll = yearAll.filter(l => Y !== g.baseYear || +l.d.slice(5, 7) >= first).length, yTot = items.reduce((a, i) => a + (yT(i) || 0), 0), yPc = pc(yAll, yTot);
+    const year = `<section class="panel panel-pad pm-year">
+      <div><h2 class="section-title">🏁 ${Y}년 최종 실적 <span class="sub">현장중심직업재활센터 · ${Y === g.baseYear ? `${first}~12월(${months}개월)` : '1~12월'} 전체</span></h2>
+        <p class="sub" style="margin:4px 0 0">한 달 목표를 넘긴 실적은 다음 달로 이월돼요. 연간 최종 실적은 이월과 상관없이 실제 건수를 모두 더한 값이에요.</p></div>
+      <div class="pm-year-num"><b class="num ${tone(yPc)}">${yAll}</b><span class="num">/ ${yTot}건</span>${yPc != null ? `<span class="gl-pill ${tone(yPc)}">${yPc}%</span>` : ''}</div>
+      <div class="pm-year-bar"><i class="${tone(yPc)}" style="width:${Math.min(100, yPc || 0)}%"></i></div>
+    </section>`;
+    return `${year}<section class="panel panel-pad pm">
+      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 남은 실적은 다음 달로 이월</span></h2>
         <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${lines.filter(l => l.staff === n).length}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
-        <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건 / 목표 ${totT}건</small></div></div>
+        <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건${totC ? ` + 이월 ${totC}건` : ''} / 목표 ${totT}건</small></div></div>
       <div class="pm-chart">${chart}</div>
       <div class="table-wrap"><table class="tbl pm-tbl"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
       ${others ? `<p class="sub" style="margin:8px 0 0">⚠ 전문인력이 아닌 직원 이름으로 들어간 실적이 <b>${others}건</b> 있어요. 아래 실적표의 <b>담당</b> 칸에서 전문인력으로 바꾸면 사람별 칸에 들어가요.</p>` : ''}
@@ -862,9 +875,6 @@ window.V = (() => {
           <label class="grow">사업체·기관 <span class="sub">(있는 곳이면 그 기록으로)</span><input class="input" name="name" list="ptNames" placeholder="비워도 돼요"></label>
           <label>담당 전문인력<select class="select" name="staff">${pros.map(n => `<option ${n === (f.lastStaff || S.me()) ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
           <label>방식<select class="select" name="type">${D.ACT_TYPES.filter(t => t !== '발굴').map(t => `<option ${t === '방문' ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-          <label>참여인원<input class="input pt-n" type="number" min="0" name="people" inputmode="numeric"></label>
-          <label>신규<input class="input pt-n" type="number" min="0" name="newPeople" inputmode="numeric"></label>
-          <label>회차<input class="input pt-n" name="round"></label>
           <label class="grow">내용·비고<input class="input" name="note"></label>
           <button class="btn btn-primary" type="submit">+ 표에 추가</button>
           <datalist id="ptNames">${[...new Set([...S.get().businesses.map(x => x.name), ...S.get().networks.map(x => x.name)])].map(n => `<option value="${e(n)}">`).join('')}</datalist>
@@ -872,7 +882,7 @@ window.V = (() => {
         <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
       </section>
       <div id="perfResults"></div>
-      <details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 달성률</b> <span class="sub">2026년(6개월)·2027년(12개월) · 장애인개발원 기준(실인원·연인원) · 기준 실적 고치기</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`;
+      <details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 설정</b> <span class="sub">기준 실적(목표) 고치기 · 2026년(6개월)·2027년(12개월)</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`;
   }
   /** 실적표: 세부사업 항목마다 칸을 나누고, 그 아래에 날짜순으로 한 줄씩. 칸을 고치면 바로 저장 */
   function perfResults() {
@@ -892,15 +902,12 @@ window.V = (() => {
       <td>${itemSel(p.item, 'pa-field', a.id, true)}</td>
       <td><input class="input sm pt-date" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
       <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
-      <td>${num('pa-field', a.id, 'people', a.people)}</td><td class="sub c">-</td><td class="sub c">-</td>
       <td>${whoSel('pa-field', a.id, a.staff)}<div class="meta">방문·전화 기록</div></td>
       <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
     const manRow = m => `<tr class="pt-row man${flash(m.id)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
       <td><input class="input sm pt-date" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
       <td class="pt-what"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
-      <td>${num('pf-field', m.id, 'people', m.people)}</td><td>${num('pf-field', m.id, 'newPeople', m.newPeople)}</td>
-      <td><input class="input sm pt-n" value="${e(m.round || '')}" data-chg="pf-field" data-id="${m.id}" data-field="round" placeholder="-" aria-label="회차"></td>
       <td>${whoSel('pf-field', m.id, m.staff)}<div class="meta">직접 입력</div></td>
       <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
     let total = 0, totalP = 0;
@@ -910,12 +917,12 @@ window.V = (() => {
       const ppl = A.reduce((t, r) => t + (Number(r.a.people) || 0), 0) + M.reduce((t, m) => t + (Number(m.people) || 0), 0);
       const places = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
       total += rows.length; totalP += ppl;
-      return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="8"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length}건${places ? ` · ${places}곳` : ''}${ppl ? ` · ${ppl}명` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
-        ${rows.join('') || `<tr class="pt-none"><td colspan="8">이 달 기록 없음</td></tr>`}`;
+      return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="5"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length}건${places ? ` · ${places}곳` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
+        ${rows.join('') || `<tr class="pt-none"><td colspan="5">이 달 기록 없음</td></tr>`}`;
     }).join('');
     return `<section class="panel pt">
         <div class="panel-pad perf-actions">
-          <h2 class="section-title">${monthLabel(f.month)} 실적표 <span class="sub num">${total}건${totalP ? ` · ${totalP}명` : ''}</span></h2>
+          <h2 class="section-title">${monthLabel(f.month)} 실적표 <span class="sub num">${total}건</span></h2>
           <div class="chips">${['', ...pros].map(n => `<button type="button" class="chip ${f.who === n ? 'on' : ''}" data-act="perf-who" data-who="${e(n)}">${n ? `<span class="dot" style="background:${staffColor(n)}"></span>${e(n)}` : '전체'}</button>`).join('')}</div>
           <div class="inline">
             <label class="check"><input type="checkbox" data-act="perf-acts" ${f.withActs ? 'checked' : ''}>방문·전화 기록 포함</label>
@@ -924,8 +931,8 @@ window.V = (() => {
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
-          <colgroup><col style="width:170px"><col style="width:150px"><col><col style="width:84px"><col style="width:84px"><col style="width:84px"><col style="width:120px"><col style="width:44px"></colgroup>
-          <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>참여인원</th><th>신규</th><th>회차</th><th>담당</th><th></th></tr></thead>
+          <colgroup><col style="width:170px"><col style="width:150px"><col><col style="width:140px"><col style="width:44px"></colgroup>
+          <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>담당</th><th></th></tr></thead>
           <tbody>${body}</tbody></table></div>
         <p class="sub perf-help">칸을 고치면 바로 저장돼요. 세부사업 칸을 바꾸면 그 항목으로 옮겨지고, "실적에서 빼기"를 고르면 빠져요. 구글 시트 <b>실적(기타)</b>에는 위 <b>구글 시트용 복사</b>로 붙여 넣으세요(같은 날·같은 항목 기록은 한 줄로 묶여요).</p>
         ${left.length ? `<details class="pd-grp pd-out"><summary><b>실적에 안 들어간 이 달 연락</b> <span class="num">${left.length}건</span><span class="sub">· 이미 앞 달에 개발(최초 등록)한 사업체에 다시 연락한 기록 등. 실적이면 세부사업을 골라 넣으세요</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${left.map(({ a, t, d }) => `<tr><td class="num nowrap">${d}</td><td><b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}${a.targetType === 'biz' && S.bizFirst(t) ? ` · 최초 등록 ${U.dateDot(S.bizFirst(t))}` : ''}</div></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="" selected>실적 아님</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>` : ''}
