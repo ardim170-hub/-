@@ -639,7 +639,7 @@ window.V = (() => {
     const f = ui.sched;
     const tabs = `<div class="chips sched-tabs" role="tablist"><button type="button" role="tab" class="chip ${f.view !== 'train' ? 'on' : ''}" data-act="sched-view" data-v="work">📅 업무 일정</button><button type="button" role="tab" class="chip ${f.view === 'train' ? 'on' : ''}" data-act="sched-view" data-v="train">🗓 직업훈련 일정표 <small>JOB이음터 · 일과놀이반</small></button></div>`;
     if (f.view === 'train') return `
-      <div class="page-head"><div><h1 class="page-title">일정</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">직업훈련 일정표</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
       ${tabs}<div id="tpBox"></div>`;
     const all = S.view().events.filter(x => !x.done);
     const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;

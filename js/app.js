@@ -12,7 +12,33 @@ window.App = (() => {
     ['orders', '출장·특근', 'trip'],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
+    ['training', '직업훈련 일정표', 'cal'],
   ];
+  /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
+  const SECS = [
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'orders'], desc: '현장중심직업재활센터 · 사업체 개발·실적·출장' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
+    { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
+    { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
+    { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
+  ];
+  const SEC_HINT = {
+    dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
+    schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
+    contacts: () => '사업체 연락·방문', perf: () => '월 목표·실적표', orders: () => '출장·특근 명령부·여비', attend: () => `참여자 ${S.get().jobPeople.length}명`, training: () => 'JOB이음터 · 일과놀이반', data: () => '백업·가져오기·권한',
+  };
+  const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
+  const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
+  let secKey = lsGetSec() || 'field';
+  /** 지금 구역: 보고 있는 화면이 들어 있는 구역 (지금 구역에 없으면 그 화면이 있는 첫 구역) */
+  function curSec() {
+    const n = (r => (['biz', 'network', 'cards'].includes(r) ? 'biz' : r))(route());
+    const cur = SECS.find(x => x.k === secKey);
+    if (cur && cur.items.includes(n)) return cur;
+    const hit = SECS.find(x => x.items.includes(n)) || SECS[0];
+    secKey = hit.k; lsSetSec(hit.k);
+    return hit;
+  }
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   const route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
   // 사업체·기관·명함은 한 메뉴(사업체·네트워크)의 탭: 주소는 #/biz · #/network · #/cards 그대로
@@ -101,9 +127,16 @@ window.App = (() => {
     // 데이터 관리는 관리자에게만 보인다 (팀원은 등록·수정·삭제만)
     applyPermClasses();
     const n = navOf(r);
-    $('#sideNav').innerHTML = NAV.filter(([k]) => (k !== 'data' || S.isAdmin()) && canSee(k)).map(([k, l, ic, cnt]) => `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
-    const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'attend', 'data'].includes(r);
-    $('#bottomNav').innerHTML = MOBILE.filter(([k]) => !MENU_NAME[k] || S.level(k) >= 1).map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
+    const sec = curSec();
+    const seeSec = x => (x.k === 'data' ? S.isAdmin() : x.items.some(k => canSee(k === 'training' ? 'schedule' : k)));
+    $('#secNav').innerHTML = SECS.filter(seeSec).map(x => `<button type="button" class="sec-btn sec-${x.k} ${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}" ${x.k === sec.k ? 'aria-current="true"' : ''}>${x.label}</button>`).join('');
+    $('#secTitle').innerHTML = `<b>${U.esc(sec.label)}</b><span>${U.esc(sec.desc)}</span>`;
+    const byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
+    $('#sideNav').innerHTML = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
+    const mItems = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).slice(0, 4);
+    const moreActive = !mItems.includes(n);
+    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', orders: '출장', attend: '출석부', training: '일정표', data: '데이터' };
+    $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
     $('#demoBanner').hidden = !S.get().isDemo;
@@ -143,15 +176,17 @@ window.App = (() => {
   function render() {
     const r = route();
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
+    document.body.dataset.sec = curSec().k; // 구역 색
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
+      training: [() => { V.ui.sched.view = 'train'; return V.schedPage(); }, bindSched],
 
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
       network: [V.netPage, bindNet],
-      schedule: [V.schedPage, bindSched],
+      schedule: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched],
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
@@ -407,7 +442,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { training: '직업훈련 일정표', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -922,7 +957,8 @@ window.App = (() => {
     if (document.querySelector('.more-sheet')) return closeMore();
     const el = document.createElement('div');
     el.className = 'more-sheet';
-    el.innerHTML = '<a href="#/network">기관·네트워크</a><a href="#/attend">출석부</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a>' + (S.isAdmin() ? '<a href="#/data">데이터 관리</a>' : '');
+    const sec = curSec(), byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
+    el.innerHTML = sec.items.slice(4).map(k => `<a href="#/${k}">${byKey[k][1]}</a>`).join('') + '<div class="more-secs">' + SECS.filter(x => x.k !== 'data' || S.isAdmin()).map(x => `<button type="button" class="${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}">${x.label}</button>`).join('') + '</div>';
     document.body.appendChild(el);
   }
 
@@ -1001,7 +1037,22 @@ window.App = (() => {
       const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
-    'sched-view': el => { V.ui.sched.view = el.dataset.v; render(); },
+    'sched-view': el => { location.hash = el.dataset.v === 'train' ? '#/training' : '#/schedule'; },
+    /** 상단 구역 바꾸기: 보기 범위를 그 사업 직원으로, 지도는 그 사업 지도로 맞추고 첫 기능으로 간다 */
+    sec: el => {
+      const x = SECS.find(s => s.k === el.dataset.sec); if (!x) return;
+      closeMore();
+      secKey = x.k; lsSetSec(x.k);
+      if (x.prog) {
+        const has = S.staff().some(st => st.program === x.prog);
+        S.setScope(has ? 'p:' + x.prog : 'all');
+        const P = D.PROGRAM[x.prog];
+        Object.assign(V.ui.map, { mode: 'ours', prog: P && P.map ? x.prog : '', solo: null });
+      }
+      const first = x.items.find(k => canSee(k === 'training' ? 'schedule' : k)) || x.items[0];
+      const target = '#/' + hrefOf(first);
+      if (location.hash === target) render(); else location.hash = target;
+    },
     'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
     'tp-color': el => TR.setColor(el.dataset.color),
     'tp-merge': () => TR.toggleMerge(),

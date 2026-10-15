@@ -2330,18 +2330,88 @@ table.tbl { font-size: 14.5px; }
 .pt-who { font-weight: 600; }
 @media (max-width: 720px) { .pm-row { grid-template-columns: 1fr; gap: 4px; } }
 
+/* ================= 복지관 홈페이지 스타일: 상단 구역 메뉴 + 왼쪽 구역별 기능 ================= */
+body[data-sec="field"] { --sc: #F39800; --ss: #FFF4DF; --si: #B36A00; }
+body[data-sec="emp"] { --sc: #2F7FE0; --ss: #EAF2FD; --si: #1F5FB0; }
+body[data-sec="jobs"] { --sc: #2BB673; --ss: #E6F7EE; --si: #178553; }
+body[data-sec="train"] { --sc: #E8508A; --ss: #FDEAF1; --si: #B8336A; }
+body[data-sec="data"] { --sc: #6B7A90; --ss: #EEF1F5; --si: #4A5568; }
+body[data-sec][data-route] { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); --accent: var(--si); --accent-soft: var(--ss); }
+body { background: #F7F7F4; }
+
+.site-head { background: #fff; border-bottom: 1px solid #ECECEC; box-shadow: 0 2px 10px rgba(0, 0, 0, .03); position: relative; z-index: 25; }
+.site-head-in { display: flex; align-items: center; gap: 28px; height: 78px; padding: 0 28px; }
+.site-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--text); flex: none; min-width: 236px; }
+.site-logo:hover { text-decoration: none; }
+.logo-mark { position: relative; width: 42px; height: 42px; flex: none; }
+.logo-mark i { position: absolute; width: 22px; height: 22px; border-radius: 60% 40% 60% 40%; opacity: .95; }
+.logo-mark i:nth-child(1) { left: 2px; top: 4px; background: #E8402B; transform: rotate(-20deg); }
+.logo-mark i:nth-child(2) { right: 2px; top: 2px; background: #F7B500; transform: rotate(25deg); }
+.logo-mark i:nth-child(3) { left: 11px; bottom: 1px; background: #2BB673; transform: rotate(60deg); }
+.logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+.logo-text small { font-size: 11.5px; color: #6B6B6B; font-weight: 600; letter-spacing: -.01em; }
+.logo-text b { font-size: 22px; font-weight: 900; letter-spacing: -.04em; color: #1F5FB0; }
+.logo-text b em { font-style: normal; color: #E8402B; }
+.sec-nav { display: flex; align-items: stretch; gap: 6px; height: 100%; flex: 1; justify-content: center; }
+.sec-btn { position: relative; border: 0; background: none; padding: 0 22px; font: inherit; font-size: 17.5px; font-weight: 800; color: #333; cursor: pointer; letter-spacing: -.02em; }
+.sec-btn::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 0; height: 4px; border-radius: 4px 4px 0 0; background: transparent; transition: background .15s; }
+.sec-btn:hover { color: #000; }
+.sec-btn:hover::after { background: #E5E5E5; }
+.sec-field { --c: #F39800; } .sec-emp { --c: #2F7FE0; } .sec-jobs { --c: #2BB673; } .sec-train { --c: #E8508A; } .sec-data { --c: #6B7A90; }
+.sec-btn.on { color: var(--c); }
+.sec-btn.on::after { background: var(--c); }
+
+.app { grid-template-columns: 262px minmax(0, 1fr); }
+.sidebar { background: #fff; border-right: 1px solid #ECECEC; padding: 18px 14px; top: 0; }
+.sec-title { margin: 0 2px 14px; padding: 14px 16px; border-radius: 16px; background: var(--ss); border: 1px solid color-mix(in srgb, var(--sc) 25%, #fff); display: flex; flex-direction: column; gap: 3px; }
+.sec-title b { font-size: 19px; font-weight: 850; color: var(--si); letter-spacing: -.03em; }
+.sec-title span { font-size: 12.5px; color: #5B6270; line-height: 1.45; }
+body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); }
+.side-nav { gap: 6px; }
+.side-nav a { align-items: center; gap: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid #EFEFEF; background: #fff; color: #3A4150; }
+.side-nav a svg { width: 38px; height: 38px; padding: 9px; border-radius: 12px; background: var(--ss); color: var(--si); }
+.side-nav a .sn-t { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.side-nav a .sn-t b { font-size: 15px; font-weight: 750; }
+.side-nav a .sn-t small { font-size: 12px; color: #8A909C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.side-nav a:hover { border-color: color-mix(in srgb, var(--sc) 45%, #fff); background: #fff; box-shadow: 0 3px 10px rgba(0, 0, 0, .05); }
+.side-nav a:hover svg { background: var(--ss); }
+.side-nav a.active { background: var(--ss); border-color: var(--sc); color: var(--si); box-shadow: 0 4px 12px color-mix(in srgb, var(--sc) 18%, transparent); }
+.side-nav a.active svg { background: var(--sc); color: #fff; }
+.side-nav a.active .sn-t small { color: color-mix(in srgb, var(--si) 70%, #fff); }
+.side-nav a.active::before { display: none; }
+.topbar { background: rgba(247, 247, 244, .94); }
+.panel, .kpis { border-radius: 16px; }
+.btn { border-radius: 10px; }
+.chip, .badge, .qlink { border-radius: 999px; }
+.page-title::before { border-radius: 50%; }
+.more-secs { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 4px 2px; border-top: 1px solid var(--line); margin-top: 6px; }
+.more-secs button { border: 1px solid var(--line-strong); background: #fff; border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13.5px; font-weight: 700; }
+.more-secs button.on { background: var(--sc); border-color: var(--sc); color: #fff; }
+
+@media (max-width: 1180px) { .site-logo { min-width: 0; } .sec-btn { padding: 0 12px; font-size: 16px; } .sec-btn::after { left: 10px; right: 10px; } }
+@media (max-width: 860px) {
+  .site-head-in { flex-direction: column; align-items: stretch; height: auto; gap: 6px; padding: 10px 16px 0; }
+  .logo-text b { font-size: 19px; }
+  .sec-nav { justify-content: flex-start; overflow-x: auto; gap: 0; height: 44px; scrollbar-width: none; }
+  .sec-btn { flex: none; font-size: 15px; padding: 0 12px; }
+}
+@media (max-width: 860px) { .app { grid-template-columns: minmax(0, 1fr); } }
+
 </style>
 </head>
 <body>
+<header class="site-head">
+  <div class="site-head-in">
+    <a class="site-logo" href="#/dashboard" aria-label="첫 화면">
+      <span class="logo-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="logo-text"><small>화성시아르딤복지관 직업지원팀</small><b>아르딤 <em>취업지원</em></b></span>
+    </a>
+    <nav class="sec-nav" id="secNav" aria-label="사업 구역"></nav>
+  </div>
+</header>
 <div class="app">
   <aside class="sidebar" aria-label="주 메뉴">
-    <div class="brand">
-      <div class="brand-mark" aria-hidden="true">A</div>
-      <div>
-        <div class="brand-name">아르딤 취업지원</div>
-        <div class="brand-sub">화성시아르딤복지관 직업지원팀</div>
-      </div>
-    </div>
+    <div class="sec-title" id="secTitle"></div>
     <nav class="side-nav" id="sideNav"></nav>
     <div class="side-foot" id="sideFoot"></div>
   </aside>
@@ -2414,7 +2484,7 @@ table.tbl { font-size: 14.5px; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.08 14:44";</script>
+<script>window.APP_VERSION = "2026.10.15 10:39";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -4762,7 +4832,7 @@ window.V = (() => {
     const f = ui.sched;
     const tabs = `<div class="chips sched-tabs" role="tablist"><button type="button" role="tab" class="chip ${f.view !== 'train' ? 'on' : ''}" data-act="sched-view" data-v="work">📅 업무 일정</button><button type="button" role="tab" class="chip ${f.view === 'train' ? 'on' : ''}" data-act="sched-view" data-v="train">🗓 직업훈련 일정표 <small>JOB이음터 · 일과놀이반</small></button></div>`;
     if (f.view === 'train') return `
-      <div class="page-head"><div><h1 class="page-title">일정</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">직업훈련 일정표</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
       ${tabs}<div id="tpBox"></div>`;
     const all = S.view().events.filter(x => !x.done);
     const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
@@ -8931,7 +9001,33 @@ window.App = (() => {
     ['orders', '출장·특근', 'trip'],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
+    ['training', '직업훈련 일정표', 'cal'],
   ];
+  /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
+  const SECS = [
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'orders'], desc: '현장중심직업재활센터 · 사업체 개발·실적·출장' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
+    { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
+    { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
+    { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
+  ];
+  const SEC_HINT = {
+    dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
+    schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
+    contacts: () => '사업체 연락·방문', perf: () => '월 목표·실적표', orders: () => '출장·특근 명령부·여비', attend: () => `참여자 ${S.get().jobPeople.length}명`, training: () => 'JOB이음터 · 일과놀이반', data: () => '백업·가져오기·권한',
+  };
+  const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
+  const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
+  let secKey = lsGetSec() || 'field';
+  /** 지금 구역: 보고 있는 화면이 들어 있는 구역 (지금 구역에 없으면 그 화면이 있는 첫 구역) */
+  function curSec() {
+    const n = (r => (['biz', 'network', 'cards'].includes(r) ? 'biz' : r))(route());
+    const cur = SECS.find(x => x.k === secKey);
+    if (cur && cur.items.includes(n)) return cur;
+    const hit = SECS.find(x => x.items.includes(n)) || SECS[0];
+    secKey = hit.k; lsSetSec(hit.k);
+    return hit;
+  }
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   const route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
   // 사업체·기관·명함은 한 메뉴(사업체·네트워크)의 탭: 주소는 #/biz · #/network · #/cards 그대로
@@ -9020,9 +9116,16 @@ window.App = (() => {
     // 데이터 관리는 관리자에게만 보인다 (팀원은 등록·수정·삭제만)
     applyPermClasses();
     const n = navOf(r);
-    $('#sideNav').innerHTML = NAV.filter(([k]) => (k !== 'data' || S.isAdmin()) && canSee(k)).map(([k, l, ic, cnt]) => `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span>${cnt ? `<span class="count">${cnt()}</span>` : ''}</a>`).join('');
-    const moreActive = ['network', 'schedule', 'contacts', 'perf', 'orders', 'attend', 'data'].includes(r);
-    $('#bottomNav').innerHTML = MOBILE.filter(([k]) => !MENU_NAME[k] || S.level(k) >= 1).map(([k, l, ic]) => `<a href="#/${k}" class="${r === k ? 'active' : ''}">${V.I[ic]}${l}</a>`).join('') +
+    const sec = curSec();
+    const seeSec = x => (x.k === 'data' ? S.isAdmin() : x.items.some(k => canSee(k === 'training' ? 'schedule' : k)));
+    $('#secNav').innerHTML = SECS.filter(seeSec).map(x => `<button type="button" class="sec-btn sec-${x.k} ${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}" ${x.k === sec.k ? 'aria-current="true"' : ''}>${x.label}</button>`).join('');
+    $('#secTitle').innerHTML = `<b>${U.esc(sec.label)}</b><span>${U.esc(sec.desc)}</span>`;
+    const byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
+    $('#sideNav').innerHTML = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
+    const mItems = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).slice(0, 4);
+    const moreActive = !mItems.includes(n);
+    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', orders: '출장', attend: '출석부', training: '일정표', data: '데이터' };
+    $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
     $('#demoBanner').hidden = !S.get().isDemo;
@@ -9062,15 +9165,17 @@ window.App = (() => {
   function render() {
     const r = route();
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
+    document.body.dataset.sec = curSec().k; // 구역 색
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
+      training: [() => { V.ui.sched.view = 'train'; return V.schedPage(); }, bindSched],
 
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
       network: [V.netPage, bindNet],
-      schedule: [V.schedPage, bindSched],
+      schedule: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched],
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
@@ -9326,7 +9431,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { training: '직업훈련 일정표', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -9841,7 +9946,8 @@ window.App = (() => {
     if (document.querySelector('.more-sheet')) return closeMore();
     const el = document.createElement('div');
     el.className = 'more-sheet';
-    el.innerHTML = '<a href="#/network">기관·네트워크</a><a href="#/attend">출석부</a><a href="#/schedule">일정</a><a href="#/contacts">연락이력</a><a href="#/perf">실적</a><a href="#/orders">출장·특근 명령부</a>' + (S.isAdmin() ? '<a href="#/data">데이터 관리</a>' : '');
+    const sec = curSec(), byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
+    el.innerHTML = sec.items.slice(4).map(k => `<a href="#/${k}">${byKey[k][1]}</a>`).join('') + '<div class="more-secs">' + SECS.filter(x => x.k !== 'data' || S.isAdmin()).map(x => `<button type="button" class="${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}">${x.label}</button>`).join('') + '</div>';
     document.body.appendChild(el);
   }
 
@@ -9920,7 +10026,22 @@ window.App = (() => {
       const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
-    'sched-view': el => { V.ui.sched.view = el.dataset.v; render(); },
+    'sched-view': el => { location.hash = el.dataset.v === 'train' ? '#/training' : '#/schedule'; },
+    /** 상단 구역 바꾸기: 보기 범위를 그 사업 직원으로, 지도는 그 사업 지도로 맞추고 첫 기능으로 간다 */
+    sec: el => {
+      const x = SECS.find(s => s.k === el.dataset.sec); if (!x) return;
+      closeMore();
+      secKey = x.k; lsSetSec(x.k);
+      if (x.prog) {
+        const has = S.staff().some(st => st.program === x.prog);
+        S.setScope(has ? 'p:' + x.prog : 'all');
+        const P = D.PROGRAM[x.prog];
+        Object.assign(V.ui.map, { mode: 'ours', prog: P && P.map ? x.prog : '', solo: null });
+      }
+      const first = x.items.find(k => canSee(k === 'training' ? 'schedule' : k)) || x.items[0];
+      const target = '#/' + hrefOf(first);
+      if (location.hash === target) render(); else location.hash = target;
+    },
     'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
     'tp-color': el => TR.setColor(el.dataset.color),
     'tp-merge': () => TR.toggleMerge(),
