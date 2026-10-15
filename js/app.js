@@ -122,6 +122,14 @@ window.App = (() => {
     D.PERM_MENUS.forEach(([m]) => { const l = S.level(m); document.body.classList.toggle(`ro-${m}`, l < 2); document.body.classList.toggle(`nodel-${m}`, l < 3); });
   }
 
+  /** 브이월드처럼 제목 위에 '홈 › 구역 › 메뉴' 길 표시 */
+  function crumb(r) {
+    const head = view.querySelector('.page-head'); if (!head || head.querySelector('.crumb')) return;
+    const item = NAV.find(x => x[0] === navOf(r)), sec = curSec();
+    const nav = document.createElement('nav'); nav.className = 'crumb'; nav.setAttribute('aria-label', '현재 위치');
+    nav.innerHTML = `<a href="#/dashboard">홈</a><span>›</span><b>${U.esc(sec.label)}</b>${item && item[1] !== sec.label ? `<span>›</span><b class="here">${U.esc(item[1])}</b>` : ''}`;
+    head.prepend(nav);
+  }
   /* ---------- Nav ---------- */
   function renderNav() {
     const r = route();
@@ -202,6 +210,7 @@ window.App = (() => {
     try {
       view.innerHTML = html();
       after && after();
+      crumb(r);
     } catch (err) {
       console.error(err);
       view.innerHTML = `<div class="panel"><div class="empty"><strong>화면을 그리는 중 문제가 생겼습니다</strong>${U.esc(err.message)}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;

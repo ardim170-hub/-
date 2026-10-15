@@ -1805,3 +1805,42 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 .dd-card span { font-weight: 700; color: var(--text-2); }
 .dd-card b { font-size: 20px; } .dd-card b.warn { color: #C98A1B; }
 .dup-bar .inline { gap: 6px; }
+
+/* ===== 브이월드 포털 스타일: 길 표시 · 회색 안내 상자 · 왼쪽 이름칸 표 · 큰 글씨 ===== */
+body { font-size: 16px; }
+.page-head { flex-wrap: wrap; border-bottom: 2px solid var(--text); padding-bottom: 16px; }
+.crumb { flex: 0 0 100%; order: -1; display: flex; justify-content: flex-end; align-items: center; gap: 6px; font-size: 13.5px; color: var(--text-2); margin-bottom: 2px; }
+.crumb a { color: var(--text-2); text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+.crumb a::before { content: "⌂"; font-size: 15px; }
+.crumb a:hover { color: var(--pi); }
+.crumb b { font-weight: 600; color: var(--text-2); }
+.crumb b.here { color: var(--text); font-weight: 750; }
+.page-title { font-size: 30px; }
+.page-desc { margin-top: 12px; padding: 13px 18px 13px 44px; position: relative; background: #F4F6F9; border: 1px solid #E1E6ED; border-radius: 6px; color: #3D4756; font-size: 15px; line-height: 1.6; }
+.page-desc::before { content: "i"; position: absolute; left: 16px; top: 14px; width: 18px; height: 18px; border-radius: 50%; background: var(--pc, #2F7FE0); color: #fff; font: 800 12px/18px Georgia, serif; text-align: center; }
+.section-title { font-size: 19px; font-weight: 800; display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.section-title::before { content: ""; width: 4px; height: 17px; align-self: center; background: var(--pc, var(--text)); border-radius: 2px; flex: none; }
+.section-title .sub { font-size: 14px; font-weight: 500; }
+.panel { border-color: #DCE2EA; }
+.tbl { font-size: 15px; }
+.tbl th { background: #F4F6F9; color: #2B3440; font-size: 14.5px; font-weight: 700; }
+.btn { font-size: 15px; }
+.input, .select, .textarea { font-size: 15.5px; }
+.sub, .meta { font-size: 14px; }
+/* 등록·수정 양식: 왼쪽 회색 이름칸 + 오른쪽 입력칸 (표처럼) */
+@media (min-width: 720px) {
+  .fsec .frow { grid-template-columns: minmax(0, 1fr) !important; gap: 0 !important; border-top: 2px solid var(--text); }
+  .fsec > h3 { border-bottom: 0; padding-bottom: 0; }
+  .fsec .field { display: grid; grid-template-columns: 150px minmax(0, 1fr); column-gap: 0; border-bottom: 1px solid #E1E6ED; }
+  .fsec .field > label { grid-row: 1 / span 4; display: flex; align-items: center; padding: 10px 14px; background: #F4F6F9; font-size: 14.5px; font-weight: 700; color: #2B3440; border-right: 1px solid #E1E6ED; }
+  .fsec .field > :not(label) { grid-column: 2; margin: 0 12px; }
+  .fsec .field > :nth-child(2) { margin-top: 8px; }
+  .fsec .field > :last-child { margin-bottom: 8px; }
+  .fsec h3 { font-size: 17px; }
+}
+@media (max-width: 640px) { .crumb { justify-content: flex-start; } .page-title { font-size: 25px; } }
+.tbl:not(.pm-tbl):not(.pt-tbl) > tbody > tr > td:first-child { min-width: 170px; }
+@media (min-width: 720px) {
+  .fsec .field > :not(label) { width: auto; min-width: 0; justify-self: stretch; box-sizing: border-box; }
+  .fsec .field > .input, .fsec .field > .select, .fsec .field > .textarea, .fsec .field > .inline { width: calc(100% - 24px); }
+}
