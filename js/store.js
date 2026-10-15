@@ -137,6 +137,7 @@ window.S = (() => {
   let calWarnAt = 0;
   function send(fn, ...args) {
     if (!REMOTE) return Promise.resolve();
+    const quiet = args.length && args[args.length - 1] && args[args.length - 1].quiet === true ? (args.pop(), true) : false;
     pending++;
     setSync('saving');
     return call(fn, ...args)
@@ -149,9 +150,70 @@ window.S = (() => {
       .catch(err => {
         pending--;
         setSync('error', err);
-        App.toast('구글 시트에 저장하지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요. (' + (err && err.message || err) + ')', 'error');
+        if (!quiet) App.toast('구글 시트에 저장하지 못했습니다. 인터넷 연결을 확인하고 새로고침하세요. (' + (err && err.message || err) + ')', 'error');
         throw err;
       });
+  }
+  /* ---------- 보낼 기록 보관함 ----------
+   * 등록·수정·삭제는 먼저 이 컴퓨터(보관함)에 적어 두고 구글 시트로 보낸다.
+   * 인터넷이 끊기거나 서버가 잠깐 막혀도 지워지지 않고, 다시 연결되면 자동으로 다시 보낸다 */
+  const OUTBOX = 'ardim.outbox.v1';
+  let outbox = []; try { outbox = JSON.parse(localStorage.getItem(OUTBOX) || '[]') || []; } catch { outbox = []; }
+  const saveOutbox = () => { try { localStorage.setItem(OUTBOX, JSON.stringify(outbox)); } catch {} };
+  let flushing = false, retryT = null, tries = 0, warned = false;
+  const PERMANENT = /권한이 없습니다|사용자 명단|데이터 관리 화면에서만|관리자만/;
+  function queueApply(ops) {
+    if (!REMOTE || !ops.length) return Promise.resolve();
+    outbox.push({ ops, at: Date.now() });
+    saveOutbox();
+    flush();
+    return Promise.resolve();
+  }
+  async function flush() {
+    if (!REMOTE || flushing || !outbox.length) return;
+    flushing = true; clearTimeout(retryT);
+    while (outbox.length) {
+      // 쌓인 것은 한 번에 묶어 보낸다 (최대 300줄)
+      let n = 0, ops = [];
+      while (n < outbox.length && ops.length + outbox[n].ops.length <= 300) { ops = ops.concat(outbox[n].ops); n++; }
+      if (!n) { n = 1; ops = outbox[0].ops; }
+      try {
+        await send('api_apply', ops, { quiet: true });
+        outbox.splice(0, n); saveOutbox(); tries = 0;
+        if (warned) { warned = false; App.toast('보관해 둔 기록을 구글 시트에 모두 저장했어요.'); }
+      } catch (err) {
+        const msg = String(err && err.message || err);
+        if (PERMANENT.test(msg)) {
+          // 권한 문제는 다시 보내도 안 되므로 빼고 알린다 (묶음이면 하나씩 다시 시도)
+          if (n > 1) { const one = outbox.splice(0, n); outbox.unshift(...one.map(x => ({ ...x, solo: true }))); saveOutbox(); continue; }
+          outbox.shift(); saveOutbox();
+          App.toast('저장하지 못한 기록이 있어요: ' + msg, 'error');
+          continue;
+        }
+        tries++;
+        if (!warned) { warned = true; App.toast(`구글 시트에 아직 저장하지 못했어요. 기록은 이 컴퓨터에 보관해 두었고 자동으로 다시 보낼게요. (${msg})`, 'error'); }
+        retryT = setTimeout(flush, Math.min(60000, 4000 * 2 ** Math.min(tries, 4)));
+        break;
+      }
+    }
+    flushing = false;
+    if (!outbox.length && !pending) setSync('saved');
+    else if (outbox.length) setSync('error', new Error(`저장 대기 ${outboxSize()}건`));
+  }
+  const outboxSize = () => outbox.reduce((a, x) => a + x.ops.length, 0);
+  /** 받아 온 시트 내용 위에 아직 못 보낸 기록을 덮어 화면에서 사라지지 않게 한다 */
+  const SHEET_COL = () => Object.fromEntries(COLS.map(c => [SHEETS[c][0], c]));
+  function applyOutbox(next) {
+    if (!outbox.length) return next;
+    const sc = SHEET_COL();
+    outbox.forEach(({ ops }) => ops.forEach(o => {
+      const col = sc[o.sheet]; if (!col || !next[col]) return;
+      if (o.op === 'del') { next[col] = next[col].filter(x => x.id !== o.id); return; }
+      const rec = fromRow(col, o.row || {}); rec.id = o.id;
+      const i = next[col].findIndex(x => x.id === o.id);
+      if (i >= 0) next[col][i] = { ...next[col][i], ...rec }; else next[col].push(rec);
+    }));
+    return next;
   }
   const opPut = (col, x) => ({ sheet: SHEETS[col][0], op: 'put', id: x.id, row: toRow(col, x) });
   const opDel = (col, id) => ({ sheet: SHEETS[col][0], op: 'del', id });
@@ -202,7 +264,7 @@ window.S = (() => {
       const res = await call('api_load', schema());
       if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
       const before = JSON.stringify(access);
-      const next = fromServer(res);
+      const next = applyOutbox(fromServer(res));
       const sig = JSON.stringify(next);
       if (before !== JSON.stringify(access)) lastSig = ''; // 내 권한이 바뀌면 화면을 다시 그린다
       if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
@@ -214,8 +276,9 @@ window.S = (() => {
   const presence = info => (REMOTE ? call('api_presence', info).catch(() => null) : Promise.resolve(null));
   /** 보내는 중인 저장이 모두 끝날 때까지 기다린다 (최대 20초) */
   async function whenSaved() {
-    for (let i = 0; i < 200 && pending > 0; i++) await new Promise(r => setTimeout(r, 100));
-    return pending === 0;
+    flush();
+    for (let i = 0; i < 200 && (pending > 0 || (outbox.length && flushing)); i++) await new Promise(r => setTimeout(r, 100));
+    return pending === 0 && !outbox.length;
   }
   /** 저장·새로고침 버튼: 내 저장을 끝낸 뒤 구글 시트에서 최신 내용을 다시 받아 화면을 새로 그린다 */
   async function reload() {
@@ -231,11 +294,13 @@ window.S = (() => {
   async function init() {
     if (REMOTE) {
       const res = await call('api_load', schema());
-      state = fromServer(res);
+      state = applyOutbox(fromServer(res));
       lastSig = JSON.stringify(state);
       setSync('saved');
-      setInterval(refresh, 60000);
-      window.addEventListener('focus', refresh);
+      if (outbox.length) setTimeout(flush, 500); // 지난번에 못 보낸 기록부터 보낸다
+      setInterval(refresh, 30000);
+      window.addEventListener('online', flush);
+      window.addEventListener('focus', () => { flush(); refresh(); });
       document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
       return state;
     }
@@ -292,7 +357,7 @@ window.S = (() => {
     commit();
     if ((kind === 'biz' || kind === 'net' || kind === 'card') && rec.address && (rec.approx || rec.lat == null) && (!before || before.address !== rec.address || before.lat == null)) refine(kind, rec.id);
     if (REMOTE) {
-      send('api_apply', [opPut(col, rec)]).catch(() => {});
+      queueApply([opPut(col, rec)]);
       if (photoOp) send(...photoOp).catch(() => {});
     }
     return rec;
@@ -329,7 +394,7 @@ window.S = (() => {
       return rec;
     });
     commit();
-    if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
+    if (REMOTE && recs.length) queueApply(recs.map(r => opPut(col, r)));
     return recs;
   }
 
@@ -345,7 +410,7 @@ window.S = (() => {
       return rec;
     });
     commit();
-    if (REMOTE && recs.length) send('api_apply', recs.map(r => opPut(col, r))).catch(() => {});
+    if (REMOTE && recs.length) queueApply(recs.map(r => opPut(col, r)));
     return recs;
   }
   /** 여러 건 삭제 (되돌리기 가능) */
@@ -356,7 +421,7 @@ window.S = (() => {
     if (!gone.length) return null;
     state[col] = state[col].filter(x => !set.has(x.id));
     commit();
-    if (REMOTE) send('api_apply', gone.map(x => opDel(col, x.id))).catch(() => {});
+    if (REMOTE) queueApply(gone.map(x => opDel(col, x.id)));
     return () => putMany(kind, gone);
   }
 
@@ -376,7 +441,7 @@ window.S = (() => {
     }
     commit();
     if (REMOTE) {
-      send('api_apply', [opDel(col, id), ...removed.acts.map(a => opDel('activities', a.id)), ...removed.evs.map(e => opDel('events', e.id)), ...removed.cards.map(c => opPut('cards', c))]).catch(() => {});
+      queueApply([opDel(col, id), ...removed.acts.map(a => opDel('activities', a.id)), ...removed.evs.map(e => opDel('events', e.id)), ...removed.cards.map(c => opPut('cards', c))]);
       if (kind === 'card' && gone.photo) send('api_delPhoto', id).catch(() => {}); // 되돌리기 시 사진은 복구되지 않음
     }
     return () => { // 되돌리기
@@ -387,7 +452,7 @@ window.S = (() => {
       if (kind === 'card' && REMOTE && gone.photo) gone.photo = photoCache.has(id) ? gone.photo : null;
       commit();
       if (REMOTE) {
-        send('api_apply', [opPut(col, gone), ...removed.acts.map(a => opPut('activities', a)), ...removed.evs.map(e => opPut('events', e)), ...removed.cards.map(c => opPut('cards', c))]).catch(() => {});
+        queueApply([opPut(col, gone), ...removed.acts.map(a => opPut('activities', a)), ...removed.evs.map(e => opPut('events', e)), ...removed.cards.map(c => opPut('cards', c))]);
         if (kind === 'card' && photoCache.has(id)) send('api_putPhoto', id, photoCache.get(id)).catch(() => {});
       }
     };
@@ -467,7 +532,7 @@ window.S = (() => {
     state[col] = state[col].filter(x => x.id !== drop.id);
     upsert(kind, patch); // commit + 저장
     if (REMOTE) {
-      send('api_apply', [...moved.map(([c, r]) => opPut(c, r)), opDel(col, drop.id)]).catch(() => {});
+      queueApply([...moved.map(([c, r]) => opPut(c, r)), opDel(col, drop.id)]);
       if (kind === 'card' && drop.photo) send('api_delPhoto', drop.id).catch(() => {});
     }
     return keep.id;
@@ -784,6 +849,6 @@ window.S = (() => {
     staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
-    sync, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
+    sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
   };
 })();

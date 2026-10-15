@@ -1865,3 +1865,9 @@ body { font-size: 16px; }
 .fill-note { margin-top: 10px; line-height: 1.6; }
 .fill-diff { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .input.just-filled { background: #FFF8E1; border-color: #F3C969; }
+.input.need, .select.need, .textarea.need { border-color: #D9485F !important; box-shadow: 0 0 0 3px rgba(217, 72, 95, .18); }
+#syncState.err { cursor: pointer; }
+.st-sum { padding: 14px 16px; border-radius: 10px; font-size: 17px; font-weight: 800; margin-bottom: 14px; }
+.st-sum.good { background: #E8F6EF; color: #1F7A52; } .st-sum.bad { background: #FDECEF; color: #B4233C; }
+.st-sum small { font-size: 14px; font-weight: 500; }
+.st-tbl th { white-space: nowrap; }

@@ -1011,6 +1011,10 @@ window.V = (() => {
           ${st.isDemo ? '<p><span class="badge warn">예시 데이터 사용 중</span> 실제 업무 전에 비우거나 엑셀로 교체하세요.</p>' : ''}
         </section>
         <section class="panel panel-pad">
+          <h2 class="section-title">🩺 저장 점검 <span class="sub">입력한 기록이 구글 시트에 제대로 쌓이는지 시트마다 확인해요</span></h2>
+          <div class="inline"><button class="btn btn-primary" type="button" data-act="self-test">지금 점검하기</button>${S.REMOTE && S.outboxSize() ? `<button class="btn" type="button" data-act="outbox-flush">못 보낸 기록 ${S.outboxSize()}건 다시 보내기</button>` : ''}<span class="sub">입력은 먼저 이 컴퓨터에 보관한 뒤 구글 시트로 보내요. 인터넷이 끊겨도 지워지지 않고, 연결되면 자동으로 다시 보내요.</span></div>
+        </section>
+        <section class="panel panel-pad">
           <h2 class="section-title">🧹 중복 정리 <span class="sub">이름·전화·사업자번호가 같은 것을 묶어서 하나만 남겨요</span></h2>
           <div class="dd-cards">${[['biz', '사업체'], ['net', '기관'], ['card', '명함']].map(([k, l]) => { const n = S.dupIndex(k).size; return `<div class="dd-card"><span>${l}</span><b class="num ${n ? 'warn' : ''}">${n ? `겹침 ${n}건` : '깔끔함'}</b><button class="btn btn-sm ${n ? 'btn-primary' : ''}" type="button" data-act="dedupe-open" data-kind="${k}" ${n ? '' : 'disabled'}>한 번에 정리</button></div>`; }).join('')}</div>
         </section>

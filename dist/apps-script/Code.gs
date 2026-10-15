@@ -187,6 +187,8 @@ function api_apply(ops) {
       o.linkOnly = true; // 있는 명함의 연결만 바꾼다. 새 명함은 만들지 않는다
       return;
     }
+    // 연락이력에서 처음 보는 사업체명을 쓰면 사업체도 새로 만든다 (연락이력 등록 권한으로 허용, 삭제는 안 됨)
+    if (o.sheet === '사업체' && o.op !== 'del' && level_(acc, 'contacts') >= 2) return;
     requirePerm_(acc, o.sheet, o.op === 'del' ? 3 : 2);
   });
   return withLock_(function () {
@@ -196,6 +198,32 @@ function api_apply(ops) {
     return { ok: true, at: new Date().toISOString(), calErr: calErr };
   });
 }
+/** 저장 점검: 시트마다 시험 줄을 쓰고, 다시 읽고, 지운다. 어느 시트가 왜 안 되는지 돌려준다 */
+function api_selfTest() {
+  var acc = requireMember_();
+  var out = [];
+  Object.keys(SHEET_MENU).forEach(function (name) {
+    var t0 = Date.now(), id = 'TEST_' + t0;
+    var canWrite = SHEET_MENU[name].some(function (m) { return level_(acc, m) >= 2; }) || (name === '사업체' && level_(acc, 'contacts') >= 2);
+    if (!canWrite) { out.push({ sheet: name, ok: null, msg: '이 계정은 등록 권한이 없어 점검하지 않음' }); return; }
+    try {
+      var sh = book_().getSheetByName(name);
+      if (!sh || !sh.getLastColumn()) { out.push({ sheet: name, ok: true, msg: '아직 기록이 없어요 (첫 기록 때 시트가 자동으로 생겨요)' }); return; }
+      withLock_(function () {
+        var h = headers_(sh)[0], row = {}, found = false; row[h] = id;
+        try {
+          writeOps_([{ sheet: name, op: 'put', id: id, row: row }]);
+          if (SpreadsheetApp.flush) SpreadsheetApp.flush();
+          var last = sh.getLastRow();
+          found = last > 1 && sh.getRange(2, 1, last - 1, 1).getDisplayValues().some(function (r) { return r[0] === id; });
+        } finally { writeOps_([{ sheet: name, op: 'del', id: id }]); } // 시험 줄은 꼭 지운다
+        out.push({ sheet: name, ok: found, msg: found ? '쓰기·읽기·지우기 정상 (' + (Date.now() - t0) + 'ms)' : '쓴 줄을 다시 찾지 못했어요. 첫 열이 ID 열인지 확인하세요.' });
+      });
+    } catch (e) { out.push({ sheet: name, ok: false, msg: String(e && e.message || e) }); }
+  });
+  return { me: acc.me, admin: acc.admin, at: new Date().toISOString(), sheets: out };
+}
+
 /** 시트에 줄 저장·삭제 (잠금 안에서 부른다). 시트별로 묶은 ops를 돌려준다 */
 function writeOps_(ops) {
     var bySheet = {};

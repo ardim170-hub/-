@@ -54,7 +54,7 @@ window.R = (() => {
           <label>전화번호<input class="input" name="phone" inputmode="tel"></label>
           <label>담당자<input class="input" name="contactName" placeholder="예: 김재윤 부장"></label>
           <label>직종<input class="input" name="jobType" placeholder="예: 단순 제조 종사원"></label>
-          <label class="grow">결과<input class="input" name="content" required placeholder="예: 전화 안받음 / 장애인 채용 안함"></label>
+          <label class="grow">결과<input class="input" name="content" placeholder="예: 전화 안받음 / 장애인 채용 안함 (비우면 '전화 연락'으로)"></label>
           <label>연락결과<select class="select" name="result">${opts(D.CONTACT_RESULTS, '', '선택')}</select></label>
           <label>상태<select class="select" name="status">${opts(D.CONTACT_STATUS, '연락완료')}</select></label>
           <label class="grow">주소 <span class="sub">(새 사업체일 때)</span><input class="input" name="address"></label>

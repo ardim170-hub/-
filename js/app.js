@@ -173,11 +173,14 @@ window.App = (() => {
     if (!S.REMOTE) { el.hidden = true; return; }
     el.hidden = false;
     const t = sync.at ? `${U.pad(sync.at.getHours())}:${U.pad(sync.at.getMinutes())}` : '';
-    const map = { loading: ['불러오는 중', ''], saving: ['저장 중…', 'busy'], saved: [`저장됨 ${t}`, 'ok'], error: ['저장 오류', 'err'] };
+    const wait = S.outboxSize ? S.outboxSize() : 0;
+    const map = { loading: ['불러오는 중', ''], saving: ['저장 중…', 'busy'], saved: [`저장됨 ${t}`, 'ok'], error: [wait ? `저장 대기 ${wait}건 · 다시 보내기` : '저장 오류', 'err'] };
     const [label, cls] = map[sync.status] || ['', ''];
     el.className = 'sync ' + cls;
     el.textContent = label;
-    el.title = sync.status === 'error' ? '구글 시트와 연결되지 않았습니다. 새로고침해 보세요.' : '팀원이 바꾼 내용은 1분마다, 또는 이 창으로 돌아올 때 반영됩니다.';
+    el.title = sync.status === 'error' ? (wait ? `구글 시트에 아직 못 보낸 기록 ${wait}건이 이 컴퓨터에 보관돼 있어요. 누르면 바로 다시 보내고, 연결되면 자동으로도 보내요. (${(sync.error && sync.error.message) || ''})` : '구글 시트와 연결되지 않았습니다. 새로고침해 보세요.') : '팀원이 바꾼 내용은 30초마다, 또는 이 창으로 돌아올 때 반영됩니다.';
+    el.onclick = sync.status === 'error' && wait ? () => S.flush() : null;
+    el.style.cursor = el.onclick ? 'pointer' : '';
   }
 
   /* ---------- Pages ---------- */
@@ -733,6 +736,19 @@ window.App = (() => {
     let v;
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'selftest') {
+      const r = top.res, ok = r.sheets.filter(x => x.ok === true).length, bad = r.sheets.filter(x => x.ok === false);
+      inner.innerHTML = `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">저장 점검 결과</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+        <p class="sub" style="margin:0">${U.esc(r.me || '')} · ${r.admin ? '관리자' : '사용자'} · 구글 시트에 시험 줄을 쓰고 지워 봤어요.</p></div>
+        <div class="dr-body">
+          <div class="st-sum ${bad.length ? 'bad' : 'good'}">${bad.length ? `⚠ ${bad.length}개 시트에 저장이 안 돼요` : `✅ ${ok}개 시트 모두 정상 저장돼요`}${top.wait ? `<br><small>이 컴퓨터에 아직 못 보낸 기록 ${top.wait}건이 있어요. 아래 '지금 다시 보내기'를 누르세요.</small>` : '<br><small>보관함에 못 보낸 기록도 없어요.</small>'}</div>
+          <table class="tbl st-tbl"><thead><tr><th>시트</th><th>결과</th><th>내용</th></tr></thead><tbody>${r.sheets.map(x => `<tr><th>${U.esc(x.sheet)}</th><td>${x.ok === true ? '<span class="badge success">정상</span>' : x.ok === false ? '<span class="badge dup">안 됨</span>' : '<span class="badge">건너뜀</span>'}</td><td class="wrap">${U.esc(x.msg)}</td></tr>`).join('')}</tbody></table>
+          ${bad.some(x => /Authorization|권한|authoriz/i.test(x.msg)) ? '<p class="form-notice">Apps Script 권한 승인이 필요해 보여요. Apps Script 편집기에서 <b>api_selfTest</b> 함수를 한 번 실행해 권한을 허용한 뒤, 배포 관리 → 새 버전으로 다시 배포하세요.</p>' : ''}
+        </div>
+        <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">닫기</button>${top.wait ? '<button class="btn btn-primary" type="button" data-act="outbox-flush">지금 다시 보내기</button>' : ''}<button class="btn" type="button" data-act="self-test">다시 점검</button></div>`;
       showDrawer();
       return;
     }
@@ -1332,6 +1348,15 @@ window.App = (() => {
       closeDrawer();
       if (location.hash === '#/map') render(); else location.hash = '#/map';
     },
+    'self-test': async () => {
+      if (!S.REMOTE) return toast('지금은 이 브라우저에만 저장하는 파일 버전이에요. 입력하면 바로 이 컴퓨터에 쌓여요. (팀 공유 사이트에서 점검하면 구글 시트 저장을 확인해요)');
+      const fromDrawer = drawerOpen();
+      if (fromDrawer) stack.pop();
+      push({ type: 'loading', title: '저장 점검 중', body: '구글 시트마다 시험 줄을 쓰고 지워 보는 중이에요. 10~30초 걸려요.' }, false);
+      try { const res = await S.call('api_selfTest'); replaceTop({ type: 'selftest', res, wait: S.outboxSize() }); }
+      catch (err) { closeDrawer(); toast('점검하지 못했어요: ' + (err && err.message || err) + ' — Code.gs를 새로 붙여 넣고 새 버전으로 배포했는지 확인하세요.', 'error'); }
+    },
+    'outbox-flush': async () => { await S.flush(); const n = S.outboxSize(); toast(n ? `아직 ${n}건을 못 보냈어요. 인터넷 연결을 확인해 주세요.` : '보관해 둔 기록을 모두 저장했어요.', n ? 'error' : ''); if (stack[stack.length - 1]?.type === 'selftest') { stack[stack.length - 1].wait = n; renderDrawer(); } },
     'dedupe-open': el => { const kind = el.dataset.kind; push({ type: 'dedupe', kind, groups: dedupeGroups(kind) }, false); },
     'dedupe-on': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'dedupe') return; const g = top.groups[+el.dataset.g]; g.on = !g.on; renderDrawer(true); },
     'dedupe-keep': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'dedupe') return; top.groups[+el.dataset.g].keep = el.dataset.id; renderDrawer(true); },
@@ -2067,7 +2092,8 @@ window.App = (() => {
       }
       if (form.dataset.form === 'ct-add') {
         const fd = Object.fromEntries(new FormData(form).entries());
-        if (!fd.name.trim() || !fd.content.trim()) return toast('사업체명과 결과를 입력하세요.', 'error');
+        if (!fd.name.trim()) { form.elements.name.focus(); return toast('사업체명을 입력하세요.', 'error'); }
+        if (!fd.content.trim()) fd.content = fd.result || `${fd.type || '전화'} 연락`; // 결과를 비워도 기록은 남긴다
         if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); }
         fd.jobUrl = R.jobLink(fd.jobUrl);
         const b = R.addContact(fd);
@@ -2104,6 +2130,15 @@ window.App = (() => {
         toast('활동을 기록했습니다.');
       }
     });
+    // 빈 필수 칸 때문에 '추가'가 안 될 때, 어느 칸인지 크게 알려 준다
+    let invalidAt = 0;
+    document.addEventListener('invalid', ev => {
+      const el = ev.target; el.classList.add('need');
+      el.addEventListener('input', () => el.classList.remove('need'), { once: true });
+      if (Date.now() - invalidAt < 800) return; invalidAt = Date.now();
+      const lab = el.closest('label, .field'); const name = lab ? (lab.querySelector('label') || lab).firstChild.textContent.replace('*', '').trim() : '';
+      toast(`${name ? `'${name}'` : '빨간'} 칸을 채워야 추가돼요.`, 'error');
+    }, true);
     window.addEventListener('hashchange', () => { if (drawerOpen()) closeDrawer(); render(); view.focus({ preventScroll: true }); window.scrollTo(0, 0); });
     S.subscribe(() => {
       // 표 안에서 칸을 고칠 때는 화면 전체를 다시 그리지 않아 입력 위치가 유지되게 한다
