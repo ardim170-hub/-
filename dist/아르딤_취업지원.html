@@ -2404,6 +2404,23 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 .cal-bar .sub { flex: 1 1 300px; }
 .gcal-btn { text-decoration: none; font-size: 15px; }
 .gcal-btn:hover { text-decoration: none; background: var(--surface-2); }
+.link-panel .lk { padding: 14px 0; border-top: 1px solid var(--line); }
+.link-panel .lk:first-of-type { border-top: 0; }
+.link-panel .lk h3 { font-size: 15.5px; margin: 0 0 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.link-panel .lk .sub { margin: 0 0 8px; line-height: 1.6; }
+.bf-ul { list-style: none; margin: 0; padding: 0; }
+.bf-ul li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.bf-ul li:first-child { border-top: 0; }
+.bf-ul li a { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge.gcal-src { height: 18px; font-size: 10.5px; background: #E8F0FE; color: #1A73E8; }
+.link-panel .lk { padding: 14px 0; border-top: 1px solid var(--line); }
+.link-panel .lk:first-of-type { border-top: 0; }
+.link-panel .lk h3 { font-size: 15.5px; margin: 0 0 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.link-panel .lk .sub { margin: 0 0 8px; line-height: 1.6; }
+.bf-ul { list-style: none; margin: 6px 0; padding: 0; }
+.bf-ul li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.bf-ul li:first-child { border-top: 0; }
+.badge.gcal-src { height: 18px; font-size: 10.5px; background: #E8F0FE; color: #1A73E8; }
 
 </style>
 </head>
@@ -2492,7 +2509,7 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.15 10:53";</script>
+<script>window.APP_VERSION = "2026.10.15 11:04";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3025,7 +3042,7 @@ window.S = (() => {
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
-    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원']]],
+    events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
@@ -3995,7 +4012,13 @@ window.M = (() => {
   async function geocode(address) {
     const q = String(address || '').trim();
     if (!q) return null;
-    if (vworldKey()) {
+    if (S.REMOTE) {
+      // 공유 사이트: 서버가 브이월드 → 카카오 → 구글 지도 순서로 찾아 준다
+      const r = await S.call('api_geocode', q).catch(() => null);
+      if (r && r.error) console.warn('주소 검색:', r.error);
+      if (r && r.lat) return { lat: +r.lat.toFixed(6), lng: +r.lng.toFixed(6), label: r.label, approx: !!r.approx };
+    }
+    if (vworldKey() && !S.REMOTE) {
       if (S.REMOTE) {
         // 공유 사이트: 구글 서버가 등록한 사이트 주소로 대신 물어본다
         const r = await S.call('api_geocode', q).catch(() => null);
@@ -4041,6 +4064,11 @@ window.M = (() => {
   async function roadRoute(a, b) {
     const key = [a.lat, a.lng, b.lat, b.lng].join(',');
     if (routeCache.has(key)) return routeCache.get(key);
+    // 카카오 키가 있으면 카카오 길찾기(실제 도로)로
+    if (S.REMOTE && S.get().settings.kakaoOn === 'Y') {
+      const r = await S.call('api_route', { lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }).catch(() => null);
+      if (r && r.km) { routeCache.set(key, r); return r; }
+    }
     try {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 10000);
@@ -4899,6 +4927,28 @@ window.V = (() => {
     if (calOn()) return `<div class="cal-bar on">📅 <b>구글 캘린더와 연결됨</b><span class="sub">${e(S.get().settings.calName || calId())} · 여기서 일정을 추가·수정·삭제하면 캘린더에도 자동으로 반영돼요</span><a class="btn btn-sm" href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(calId())}" target="_blank" rel="noopener">구글 캘린더 열기</a></div>`;
     return `<div class="cal-bar">📅 <b>구글 캘린더 연결 안 됨</b><span class="sub">${S.REMOTE ? (S.isAdmin() ? '데이터 관리 → 구글 캘린더에서 팀 캘린더를 연결하면 일정이 자동으로 들어가요.' : '관리자가 데이터 관리에서 연결하면 자동으로 들어가요.') : '팀 공유(구글 시트) 버전에서 연결할 수 있어요.'} 지금은 일정마다 📅 버튼으로 한 건씩 넣을 수 있어요.</span>${S.REMOTE && S.isAdmin() ? '<a class="btn btn-sm btn-primary" href="#/data" data-act="cal-goto">연결하러 가기</a>' : ''}</div>`;
   }
+  /** 데이터 관리: 구글·카카오 연결 (캘린더 외) */
+  function linkPanel() {
+    if (!S.REMOTE || !S.isAdmin()) return '';
+    const st = S.get().settings;
+    const on = (k, v = 'Y') => st[k] === v;
+    return `<section class="panel panel-pad link-panel">
+      <h2 class="section-title">🔗 카카오 지도 · 자동 백업 · 아침 메일</h2>
+      <div class="lk"><h3>🗺 카카오 지도 키 ${on('kakaoOn') ? '<span class="badge success">사용 중</span>' : '<span class="badge">없음</span>'}</h3>
+        <p class="sub">무료 키 하나로 <b>주소 → 정확한 위치</b>와 <b>실제 도로 거리(유류비)</b>를 계산해요. 키가 없으면 구글 지도(무료)로 위치만 찾아요.<br>
+        받는 법: developers.kakao.com 로그인 → 내 애플리케이션 → 애플리케이션 추가 → <b>앱 키의 REST API 키</b> 복사 · 같은 화면 <b>카카오맵</b> 사용 설정 ON · 도로 거리는 <b>카카오모빌리티 길찾기</b>도 사용 신청(무료 한도).</p>
+        <div class="acc-add"><input class="input" id="kakaoKey" type="password" placeholder="${on('kakaoOn') ? '저장됨 (바꾸려면 새 키 입력)' : 'REST API 키 붙여넣기'}" autocomplete="off" aria-label="카카오 REST API 키"><button class="btn btn-primary" type="button" data-act="kakao-save">시험하고 저장</button>${on('kakaoOn') ? '<button class="btn btn-ghost" type="button" data-act="kakao-off">지우기</button>' : ''}<button class="btn" type="button" data-act="nopos-refind" title="대략 위치·위치 없는 곳을 다시 찾아요">📍 위치 다시 찾기</button></div></div>
+      <div class="lk"><h3>💾 자동 백업 <span class="sub" id="gLastBackup">${st.lastBackup ? '마지막 ' + e(st.lastBackup) : ''}</span></h3>
+        <p class="sub">자동 작업을 켜면 <b>매일 새벽 2시</b>에 시트 전체를 드라이브 "아르딤 취업지원 백업" 폴더에 복사해요 (30개 보관). 실수로 지워도 되살릴 수 있어요.</p>
+        <div class="inline"><button class="btn" type="button" data-act="backup-now">지금 백업</button><button class="btn btn-ghost" type="button" data-act="backup-list">백업 목록</button><label class="check"><input type="checkbox" data-act="backup-toggle" ${on('backupOn', 'N') ? '' : 'checked'}>매일 자동 백업</label></div><div id="gBackups"></div></div>
+      <div class="lk"><h3>✉️ 아침 메일 ${on('mailOn') ? '<span class="badge success">켜짐</span>' : '<span class="badge">꺼짐</span>'}</h3>
+        <p class="sub">평일 아침 8시에 각자에게 <b>오늘 일정 · 지난 미완료 · 재연락할 곳</b>을 메일로 보내요. 위 <b>사용 권한</b>에 넣은 <b>이름이 직원 이름과 같아야</b> 그 사람 일정이 들어가요.</p>
+        <div class="inline"><label class="check"><input type="checkbox" data-act="mail-toggle" ${on('mailOn') ? 'checked' : ''}>아침 메일 보내기</label><button class="btn btn-ghost" type="button" data-act="mail-test">나에게 미리 보내기</button></div></div>
+      <div class="lk lk-auto"><h3>⏰ 자동 작업 <span id="gAuto">${on('autoOn') ? `<span class="badge success">켜짐</span>${st.autoBy ? ` <span class="sub">(${e(st.autoBy)} 계정으로 실행)</span>` : ''}` : '<span class="badge">꺼짐</span>'}</span></h3>
+        <p class="sub">켜면 <b>15분마다 구글 캘린더 가져오기 · 새벽 2시 백업 · 평일 8시 아침 메일</b>이 사이트를 안 열어도 저절로 돌아가요. 켠 사람 계정으로 실행되니 관리자 한 명만 켜면 돼요.</p>
+        <div class="inline"><button class="btn ${on('autoOn') ? '' : 'btn-primary'}" type="button" data-act="auto-on">${on('autoOn') ? '내 계정으로 다시 켜기' : '자동 작업 켜기'}</button>${on('autoOn') ? '<button class="btn btn-ghost" type="button" data-act="auto-off">끄기</button>' : ''}</div></div>
+    </section>`;
+  }
   /** 데이터 관리의 구글 캘린더 연결 칸 */
   function calPanel() {
     if (!S.REMOTE) return `<section class="panel panel-pad"><h2 class="section-title">📅 구글 캘린더 연결</h2><p class="sub" style="margin:8px 0 0">팀 공유(구글 시트·Apps Script) 버전에서 연결할 수 있어요. 이 브라우저 전용 버전에서는 일정마다 📅 버튼으로 구글 캘린더에 한 건씩 넣을 수 있어요.</p></section>`;
@@ -4913,7 +4963,8 @@ window.V = (() => {
       </ol>
       <div class="acc-add"><input class="input" id="calIdIn" value="${e(calId())}" placeholder="캘린더 ID (예: abc123@group.calendar.google.com)" aria-label="캘린더 ID" autocomplete="off">
         <button class="btn btn-primary" type="button" data-act="cal-check">연결 확인·저장</button>
-        ${calOn() ? '<button class="btn" type="button" data-act="cal-push">지금까지 일정 보내기</button><button class="btn btn-ghost" type="button" data-act="cal-off">연결 끊기</button>' : ''}</div>
+        ${calOn() ? '<button class="btn" type="button" data-act="cal-push">지금까지 일정 보내기</button><button class="btn" type="button" data-act="cal-pull">캘린더에서 지금 가져오기</button><button class="btn btn-ghost" type="button" data-act="cal-off">연결 끊기</button>' : ''}</div>
+      ${calOn() ? `<label class="check" style="margin-top:8px"><input type="checkbox" data-act="cal-pull-toggle" ${S.get().settings.calPull === 'N' ? '' : 'checked'}>구글 캘린더(휴대폰)에서 직접 넣은 일정도 사이트로 가져오기 <span class="sub">(일정 화면을 열 때, 그리고 자동 작업이 켜져 있으면 15분마다)</span></label>` : ''}
       ${calOn() ? `<p class="sub" style="margin:8px 0 0">연결된 캘린더: <b>${e(S.get().settings.calName || calId())}</b>. 일정을 추가·수정·삭제하면 자동으로 반영되고, 시간이 있으면 1시간짜리, 없으면 종일 일정으로 들어가요. 장소에는 사업체·기관 주소가 들어가요.</p>` : ''}
       <p class="sub" style="margin:6px 0 0">처음 연결하면 사이트를 다시 열 때 구글이 <b>"캘린더 권한 허용"</b>을 한 번 물어봐요. 팀원도 각자 한 번 허용해야 해요.</p>
     </section>`;
@@ -4924,7 +4975,7 @@ window.V = (() => {
     const who = evStaff(ev);
     return `<div class="ev ${ev.done ? 'done' : ''}" style="--c:${staffColor(who)}">
       <input type="checkbox" aria-label="완료 표시" data-act="ev-toggle" data-id="${ev.id}" ${ev.done ? 'checked' : ''}>
-      <div class="ev-when">${U.md(ev.date)} ${e(ev.time || '')}</div>
+      <div class="ev-when">${U.md(ev.date)} ${e(ev.time || '')}${ev.src === '구글 캘린더' ? ' <span class="badge gcal-src" title="구글 캘린더에서 넣은 일정">구글</span>' : ''}</div>
       <div style="min-width:0"><div class="ev-title"><span class="ev-who">${who ? e(who) : '팀 공통'}</span>${e(ev.title)}</div>
         <div class="ev-target">${t ? `<span data-act="open" data-kind="${ev.targetType}" data-id="${t.id}">${e(t.name)}</span> · ` : ''}${e(ev.type)}${ev.memo ? ' · ' + e(ev.memo) : ''}</div></div>
       <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}${calOn() ? '' : `<a class="icon-btn gcal-btn" href="${e(gcalUrl(ev))}" target="_blank" rel="noopener" title="구글 캘린더에 추가" aria-label="구글 캘린더에 추가">📅</a>`}<button class="icon-btn" type="button" aria-label="일정 수정" title="수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button><button class="icon-btn ev-del" type="button" aria-label="일정 삭제" title="삭제" data-act="ev-del" data-id="${ev.id}">${I.close}</button></div>
@@ -5168,6 +5219,7 @@ window.V = (() => {
       ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.<br><span class="sub">내 계정: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · 관리자가 되어야 한다면 이 주소를 관리자에게 알려 주세요.</span></div>` : ''}
       <div class="data-grid">
         ${calPanel()}
+        ${linkPanel()}
         ${S.REMOTE && admin ? `<section class="panel panel-pad staff-editor">
           <h2 class="section-title">사용 권한 <span class="sub">바꾸면 바로 저장돼요</span></h2>
           <p>지금 로그인: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · <span class="badge success">관리자</span></p>
@@ -9238,6 +9290,7 @@ window.App = (() => {
     const r = route();
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     document.body.dataset.sec = curSec().k; // 구역 색
+    if (r === 'schedule' || r === 'dashboard') maybeCalPull(false);
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
@@ -9676,6 +9729,15 @@ window.App = (() => {
     drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false');
     $('#scrim').hidden = false;
     document.body.style.overflow = 'hidden';
+  }
+  /** 구글 캘린더에서 넣은 일정 가져오기 (3분에 한 번까지) */
+  let calPullAt = 0;
+  function maybeCalPull(force) {
+    const st = S.get().settings;
+    if (!S.REMOTE || !st.calId || st.calPull === 'N') return Promise.resolve(null);
+    if (!force && Date.now() - calPullAt < 180000) return Promise.resolve(null);
+    calPullAt = Date.now();
+    return S.call('api_calPull').then(r => { if (r && (r.added || r.changed || r.removed)) return S.reload().then(() => r); return r; }).catch(err => { if (force) throw err; return null; });
   }
   function closeDrawer() {
     stack = [];
@@ -10687,6 +10749,47 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
+    'cal-pull': async el => {
+      el.disabled = true;
+      try { const r = await maybeCalPull(true); toast(r ? `구글 캘린더에서 새로 ${r.added}건, 바뀐 것 ${r.changed}건, 지운 것 ${r.removed}건을 반영했어요.` : '가져올 일정이 없어요.'); }
+      catch (err) { toast('가져오지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false;
+    },
+    'cal-pull-toggle': async el => { await S.saveSettings({ calPull: el.checked ? '' : 'N' }); toast(el.checked ? '캘린더 일정도 가져와요.' : '캘린더 일정은 가져오지 않아요.'); },
+    'kakao-save': async el => {
+      const key = ($('#kakaoKey')?.value || '').trim();
+      if (!key) return toast('카카오 REST API 키를 붙여넣어 주세요.', 'error');
+      el.disabled = true;
+      try { await S.call('api_setKakaoKey', key); await S.reload(); toast('카카오 키를 저장했어요. 이제 주소 위치와 도로 거리를 카카오로 계산해요.'); render(); }
+      catch (err) { toast('저장하지 못했어요: ' + (err.message || err), 'error'); el.disabled = false; }
+    },
+    'kakao-off': async () => { await S.call('api_setKakaoKey', ''); await S.reload(); toast('카카오 키를 지웠어요.'); render(); },
+    'backup-now': async el => {
+      el.disabled = true; el.textContent = '백업 중…';
+      try { const r = await S.call('api_backupNow'); toast(`백업했어요: ${r.name}`, '', { action: { label: '열기', run: () => window.open(r.url, '_blank') } }); A['backup-list'](); }
+      catch (err) { toast('백업하지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false; el.textContent = '지금 백업';
+    },
+    'backup-list': async () => {
+      const box = $('#gBackups'); if (!box) return;
+      box.textContent = '불러오는 중…';
+      try { const r = await S.call('api_backupList'); box.innerHTML = `<ul class="bf-ul">${r.list.map(f => `<li><a href="${U.esc(f.url)}" target="_blank" rel="noopener">💾 ${U.esc(f.name)}</a></li>`).join('') || '<li class="sub">아직 백업이 없어요.</li>'}</ul><a class="sub" href="${U.esc(r.folder)}" target="_blank" rel="noopener">백업 폴더 열기 ↗</a>`; }
+      catch (err) { box.textContent = '못 불러왔어요: ' + (err.message || err); }
+    },
+    'backup-toggle': async el => { await S.saveSettings({ backupOn: el.checked ? '' : 'N' }); toast(el.checked ? '매일 자동 백업해요 (자동 작업이 켜져 있어야 해요).' : '자동 백업을 껐어요.'); },
+    'mail-toggle': async el => { await S.saveSettings({ mailOn: el.checked ? 'Y' : '' }); toast(el.checked ? '평일 아침 8시에 메일을 보내요 (자동 작업이 켜져 있어야 해요).' : '아침 메일을 껐어요.'); render(); },
+    'mail-test': async el => {
+      el.disabled = true;
+      try { const r = await S.call('api_mailTest'); toast(r.sent ? '내 메일함을 확인해 보세요. 미리보기를 보냈어요.' : '사용 권한에서 내 계정에 이름을 넣어 주세요. 그 이름으로 일정을 찾아요.', r.sent ? '' : 'error'); }
+      catch (err) { toast('보내지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false;
+    },
+    'auto-on': async el => {
+      el.disabled = true;
+      try { await S.call('api_autoSetup', true); await S.reload(); toast('자동 작업을 켰어요: 15분마다 캘린더 가져오기 · 새벽 2시 백업 · 평일 8시 아침 메일(켠 경우)'); render(); }
+      catch (err) { toast('켜지 못했어요: ' + (err.message || err), 'error'); el.disabled = false; }
+    },
+    'auto-off': async () => { await S.call('api_autoSetup', false); await S.reload(); toast('자동 작업을 껐어요.'); render(); },
     'cal-goto': () => { setTimeout(() => document.querySelector('.cal-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300); },
     'cal-check': async () => {
       const id = ($('#calIdIn')?.value || '').trim();

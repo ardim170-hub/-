@@ -190,6 +190,14 @@ function api_apply(ops) {
     requirePerm_(acc, o.sheet, o.op === 'del' ? 3 : 2);
   });
   return withLock_(function () {
+    var bySheet = writeOps_(ops);
+    // 일정은 연결한 구글 캘린더에도 반영 (실패해도 시트 저장은 그대로)
+    var calErr = bySheet['일정'] ? calApply_(bySheet['일정']) : '';
+    return { ok: true, at: new Date().toISOString(), calErr: calErr };
+  });
+}
+/** 시트에 줄 저장·삭제 (잠금 안에서 부른다). 시트별로 묶은 ops를 돌려준다 */
+function writeOps_(ops) {
     var bySheet = {};
     (ops || []).forEach(function (o) { (bySheet[o.sheet] = bySheet[o.sheet] || []).push(o); });
     Object.keys(bySheet).forEach(function (name) {
@@ -225,16 +233,14 @@ function api_apply(ops) {
       });
       dels.sort(function (a, b) { return b - a; }).forEach(function (r) { sh.deleteRow(r); });
     });
-    // 일정은 연결한 구글 캘린더에도 반영 (실패해도 시트 저장은 그대로)
-    var calErr = bySheet['일정'] ? calApply_(bySheet['일정']) : '';
-    return { ok: true, at: new Date().toISOString(), calErr: calErr };
-  });
+    return bySheet;
 }
 
 /* ================= 구글 캘린더 연결 =================
  * 설정 'calId' = 팀 캘린더 ID. 사이트 일정을 추가·수정·삭제하면 그 캘린더에도 똑같이 반영한다.
  * 웹앱은 '접속한 사람' 권한으로 실행되므로, 팀 캘린더를 팀원 모두에게 '일정 변경' 권한으로 공유해 둔다.
  * 사이트 일정 ID ↔ 캘린더 일정 ID 짝은 스크립트 속성 'cal:<일정ID>'에 둔다. */
+var CAL_MARK = '아르딤 취업지원 사이트에서 만든 일정 (사이트에서 고치면 여기도 바뀌어요)';
 function calOf_(id) {
   id = String(id || '').trim();
   if (!id) return null;
@@ -266,7 +272,7 @@ function calPut_(cal, props, row, places) {
   if (old) { try { var ev0 = cal.getEventById(old); if (ev0) ev0.deleteEvent(); } catch (e) { /* 이미 지워졌으면 그대로 */ } }
   var place = places[row['대상ID']] || null;
   var title = (row['완료(Y/N)'] === 'Y' ? '✔ ' : '') + (row['유형'] ? '[' + row['유형'] + '] ' : '') + (row['제목'] || '(제목 없음)') + (row['담당 직원'] ? ' · ' + row['담당 직원'] : '');
-  var desc = [row['메모'], place ? '대상: ' + place.name : '', '아르딤 취업지원 사이트에서 만든 일정 (사이트에서 고치면 여기도 바뀌어요)'].filter(function (x) { return x; }).join('\n');
+  var desc = [row['메모'], place ? '대상: ' + place.name : '', CAL_MARK].filter(function (x) { return x; }).join('\n');
   var opt = { description: desc, location: place && place.addr ? place.addr : '' };
   var tm = calTime_(row['시간']);
   var ev;
@@ -447,9 +453,74 @@ function api_setAiKey(key) {
 function api_geocode(address) {
   requireMember_();
   var st = readSettings_();
-  var key = String(st.vworldKey || '').trim();
   var q = String(address || '').trim();
-  if (!key || !q) return null;
+  if (!q) return null;
+  var v = String(st.vworldKey || '').trim() ? vworldGeocode_(q, st) : null;
+  if (v && v.lat) return v;
+  return kakaoGeocode_(q) || googleGeocode_(q) || v;
+}
+
+/* ---------- 카카오 (무료 REST 키: 카카오 디벨로퍼스) ----------
+ * 키는 스크립트 속성 KAKAO_REST_KEY에 두고 브라우저로 내려보내지 않는다.
+ * 주소 → 위치: 카카오 로컬, 도로 거리·시간: 카카오모빌리티 길찾기 */
+var KAKAO_PROP = 'KAKAO_REST_KEY';
+function kakaoKey_() { return PropertiesService.getScriptProperties().getProperty(KAKAO_PROP) || ''; }
+function kakaoGet_(url) {
+  var key = kakaoKey_();
+  if (!key) return null;
+  var res = UrlFetchApp.fetch(url, { headers: { Authorization: 'KakaoAK ' + key }, muteHttpExceptions: true });
+  var code = res.getResponseCode();
+  if (code === 401 || code === 403) throw new Error('카카오 키가 맞지 않거나 이 기능이 꺼져 있어요 (' + code + ')');
+  return code === 200 ? JSON.parse(res.getContentText() || '{}') : null;
+}
+function kakaoGeocode_(q) {
+  try {
+    var j = kakaoGet_('https://dapi.kakao.com/v2/local/search/address.json?size=1&query=' + encodeURIComponent(q));
+    var d = j && j.documents && j.documents[0];
+    if (d) return { lat: Number(d.y), lng: Number(d.x), label: d.address_name || q, by: 'kakao', approx: d.address_type === 'REGION' };
+    j = kakaoGet_('https://dapi.kakao.com/v2/local/search/keyword.json?size=1&query=' + encodeURIComponent(q));
+    d = j && j.documents && j.documents[0];
+    if (d) return { lat: Number(d.y), lng: Number(d.x), label: d.place_name || q, by: 'kakao' };
+  } catch (e) { /* 키 없음·오류면 다음 방법 */ }
+  return null;
+}
+/** 관리자: 카카오 REST 키 저장 (빈 값이면 지움). 저장 전에 주소 하나로 시험한다 */
+function api_setKakaoKey(key) {
+  requireAdmin_();
+  var props = PropertiesService.getScriptProperties();
+  key = String(key || '').trim();
+  if (!key) { props.deleteProperty(KAKAO_PROP); withLock_(function () { writeSettings_({ kakaoOn: '' }); }); return { ok: true, on: false }; }
+  var old = kakaoKey_();
+  props.setProperty(KAKAO_PROP, key);
+  try {
+    var j = kakaoGet_('https://dapi.kakao.com/v2/local/search/address.json?size=1&query=' + encodeURIComponent('경기도 화성시 향남읍 도이1길 104'));
+    if (!j) throw new Error('카카오 응답이 없어요');
+  } catch (e) { if (old) props.setProperty(KAKAO_PROP, old); else props.deleteProperty(KAKAO_PROP); throw e; }
+  withLock_(function () { writeSettings_({ kakaoOn: 'Y' }); });
+  return { ok: true, on: true };
+}
+/** 두 곳 사이 자동차 도로 거리(km)·시간(분)·경로 */
+function api_route(a, b) {
+  requireMember_();
+  var j = kakaoGet_('https://apis-navi.kakaomobility.com/v1/directions?priority=RECOMMEND&origin=' + a.lng + ',' + a.lat + '&destination=' + b.lng + ',' + b.lat);
+  var r = j && j.routes && j.routes[0];
+  if (!r || r.result_code !== 0) return null;
+  var path = [];
+  (r.sections || []).forEach(function (sec) { (sec.roads || []).forEach(function (rd) { for (var i = 0; i + 1 < rd.vertexes.length; i += 2) path.push([rd.vertexes[i + 1], rd.vertexes[i]]); }); });
+  return { km: r.summary.distance / 1000, min: Math.round(r.summary.duration / 60), path: path, by: 'kakao' };
+}
+/** 구글 지도(Apps Script 지도 서비스, 키 필요 없음)로 주소 → 위치 */
+function googleGeocode_(q) {
+  try {
+    var r = Maps.newGeocoder().setRegion('kr').setLanguage('ko').geocode(q);
+    var hit = r && r.status === 'OK' && r.results && r.results[0];
+    if (!hit) return null;
+    var g = hit.geometry || {};
+    return { lat: Number(g.location.lat), lng: Number(g.location.lng), label: hit.formatted_address || q, by: 'google', approx: g.location_type === 'APPROXIMATE' };
+  } catch (e) { return null; }
+}
+function vworldGeocode_(q, st) {
+  var key = String(st.vworldKey || '').trim();
   var domain = String(st.vworldDomain || 'https://script.google.com').trim();
   var types = ['road', 'parcel'];
   for (var i = 0; i < types.length; i++) {
@@ -483,4 +554,158 @@ function api_claude(body) {
   try { json = JSON.parse(text); } catch (e) { return { error: { message: 'AI 응답을 읽지 못했습니다 (HTTP ' + res.getResponseCode() + ')' } }; }
   if (res.getResponseCode() >= 300) return { error: json.error || { message: 'HTTP ' + res.getResponseCode() } };
   return json;
+}
+
+
+function subFolder_(parent, name) {
+  var it = parent.getFoldersByName(name);
+  return it.hasNext() ? it.next() : parent.createFolder(name);
+}
+
+/* ================= 자동 백업 (구글 드라이브) ================= */
+function backupFolder_() {
+  var st = readSettings_();
+  if (st.backupFolderId) { try { return DriveApp.getFolderById(st.backupFolderId); } catch (e) { /* 다시 만든다 */ } }
+  var parents = DriveApp.getFileById(book_().getId()).getParents();
+  var base = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
+  var f = subFolder_(base, '아르딤 취업지원 백업');
+  withLock_(function () { writeSettings_({ backupFolderId: f.getId() }); });
+  return f;
+}
+/** 시트 전체를 백업 폴더에 복사하고 30개보다 오래된 것은 휴지통으로 */
+function backupNow_() {
+  var ss = book_(), folder = backupFolder_();
+  var name = '백업 ' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm') + ' · ' + ss.getName();
+  var copy = DriveApp.getFileById(ss.getId()).makeCopy(name, folder);
+  var list = [], it = folder.getFiles();
+  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed()) list.push(f); }
+  list.sort(function (a, b) { return b.getDateCreated() - a.getDateCreated(); }).slice(30).forEach(function (f) { f.setTrashed(true); });
+  withLock_(function () { writeSettings_({ lastBackup: Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd HH:mm') }); });
+  return { name: name, url: copy.getUrl() };
+}
+function api_backupNow() { requireAdmin_(); return backupNow_(); }
+function api_backupList() {
+  requireAdmin_();
+  var folder = backupFolder_(), out = [], it = folder.getFiles();
+  while (it.hasNext()) { var f = it.next(); if (!f.isTrashed()) out.push({ name: f.getName(), url: f.getUrl(), at: f.getDateCreated().getTime() }); }
+  out.sort(function (a, b) { return b.at - a.at; });
+  return { folder: folder.getUrl(), list: out.slice(0, 10) };
+}
+
+/* ================= 구글 캘린더 → 사이트 (가져오기) =================
+ * 팀 캘린더에서 직접 넣은 일정을 사이트 일정(출처: 구글 캘린더)으로 가져온다.
+ * 사이트에서 만든 일정은 사이트가 기준이고, 캘린더에서 만든 일정은 캘린더가 기준(고치거나 지우면 따라온다). */
+var CAL_SRC = '구글 캘린더';
+function calTitle_(t, staff) {
+  var s = String(t || '').replace(/^✔\s*/, '');
+  var type = '';
+  var m = s.match(/^\[([^\]]+)\]\s*/);
+  if (m) { type = m[1]; s = s.slice(m[0].length); }
+  var who = '';
+  staff.forEach(function (n) { if (n && s.slice(-(n.length + 3)) === ' · ' + n) { who = n; s = s.slice(0, -(n.length + 3)); } });
+  return { title: s.trim() || '(제목 없음)', type: type, staff: who };
+}
+function calPull_() {
+  var st = readSettings_();
+  if (!st.calId || st.calPull === 'N') return { added: 0, changed: 0, removed: 0, off: true };
+  var cal = calOf_(st.calId), props = PropertiesService.getScriptProperties();
+  var now = Date.now(), from = new Date(now - 30 * 86400000), to = new Date(now + 120 * 86400000);
+  var fmt = function (d, f) { return Utilities.formatDate(d, 'Asia/Seoul', f); };
+  var gevs = cal.getEvents(from, to);
+  var all = props.getProperties(), rev = {};
+  Object.keys(all).forEach(function (k) { if (k.indexOf('cal:') === 0) rev[all[k]] = k.slice(4); });
+  var staff = readSheet_('직원').map(function (r) { return r['이름']; });
+  var rows = {};
+  readSheet_('일정').forEach(function (r) { rows[r['일정ID']] = r; });
+  var ops = [], seen = {}, added = 0, changed = 0, removed = 0;
+  gevs.forEach(function (ge) {
+    var gid = ge.getId(); seen[gid] = 1;
+    var sid = rev[gid];
+    var row = sid && rows[sid];
+    if (row && row['출처'] !== CAL_SRC) return; // 사이트에서 만든 일정은 사이트가 기준
+    if (!sid && String(ge.getDescription() || '').indexOf(CAL_MARK) >= 0) return; // 짝을 잃은 사이트 일정
+    var allDay = ge.isAllDayEvent(), start = allDay ? ge.getAllDayStartDate() : ge.getStartTime();
+    var p = calTitle_(ge.getTitle(), staff);
+    var next = { '날짜': fmt(start, 'yyyy-MM-dd'), '시간': allDay ? '' : fmt(start, 'HH:mm'), '제목': p.title, '유형': p.type || (row && row['유형']) || '기타', '메모': String(ge.getDescription() || '').replace(CAL_MARK, '').trim(), '담당 직원': p.staff || (row && row['담당 직원']) || '', '출처': CAL_SRC };
+    if (!row) {
+      sid = 'G' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, gid)).replace(/[^A-Za-z0-9]/g, '').slice(0, 10);
+      props.setProperty('cal:' + sid, gid);
+      next['일정ID'] = sid; next['완료(Y/N)'] = 'N'; next['대상 구분(biz/net)'] = ''; next['대상ID'] = '';
+      ops.push({ sheet: '일정', op: 'put', id: sid, row: next }); added++;
+      return;
+    }
+    var diff = Object.keys(next).some(function (k) { return String(row[k] || '') !== String(next[k] || ''); });
+    if (diff) { next['일정ID'] = sid; ops.push({ sheet: '일정', op: 'put', id: sid, row: next }); changed++; }
+  });
+  // 캘린더에서 지운 일정 (가져온 것만, 확인한 기간 안)
+  var f0 = fmt(from, 'yyyy-MM-dd'), t0 = fmt(to, 'yyyy-MM-dd');
+  Object.keys(rows).forEach(function (sid) {
+    var r = rows[sid];
+    if (r['출처'] !== CAL_SRC || r['날짜'] < f0 || r['날짜'] > t0) return;
+    var gid = props.getProperty('cal:' + sid);
+    if (!gid || !seen[gid]) { ops.push({ sheet: '일정', op: 'del', id: sid }); props.deleteProperty('cal:' + sid); removed++; }
+  });
+  if (ops.length) withLock_(function () { writeOps_(ops); });
+  return { added: added, changed: changed, removed: removed };
+}
+function api_calPull() { requireMember_(); return calPull_(); }
+
+/* ================= 아침 메일 (Gmail) =================
+ * 평일 아침, 사용 권한에 이름을 넣은 사람에게 '오늘 일정 · 지난 미완료 · 재연락할 곳'을 보낸다 */
+function morningMail_(onlyTo) {
+  var st = readSettings_();
+  var names = {}; try { names = JSON.parse(st.accNames || '{}') || {}; } catch (e) { names = {}; }
+  var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+  var evs = readSheet_('일정'), acts = readSheet_('활동기록');
+  var places = calPlaces_();
+  var esc = function (x) { return String(x || '').replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); };
+  var sent = 0;
+  Object.keys(names).forEach(function (email) {
+    if (onlyTo && email !== onlyTo) return;
+    var name = names[email];
+    var mine = function (r) { return r['담당 직원'] === name || (!r['담당 직원'] && !onlyTo); };
+    var todayList = evs.filter(function (r) { return r['날짜'] === today && r['완료(Y/N)'] !== 'Y' && (r['담당 직원'] === name || !r['담당 직원']); }).sort(function (a, b) { return String(a['시간']).localeCompare(String(b['시간'])); });
+    var late = evs.filter(function (r) { return r['날짜'] < today && r['완료(Y/N)'] !== 'Y' && r['담당 직원'] === name; });
+    var recall = acts.filter(function (r) { return r['상태'] === '재연락' && r['담당 직원'] === name; }).slice(-10);
+    if (!todayList.length && !late.length && !recall.length && !onlyTo) return;
+    var li = function (r) { var p = places[r['대상ID']]; return '<li><b>' + esc(r['시간'] || '종일') + '</b> ' + esc(r['제목']) + (p ? ' · ' + esc(p.name) + (p.addr ? ' <span style="color:#888">(' + esc(p.addr) + ')</span>' : '') : '') + '</li>'; };
+    var html = '<div style="font-family:sans-serif;font-size:14px;line-height:1.6">'
+      + '<h2 style="color:#F39800;margin:0 0 8px">' + esc(name) + '님, 오늘(' + today + ') 일정 ' + todayList.length + '건</h2>'
+      + (todayList.length ? '<ul>' + todayList.map(li).join('') + '</ul>' : '<p>오늘 일정이 없어요.</p>')
+      + (late.length ? '<h3 style="color:#D9485F">지난 미완료 일정 ' + late.length + '건</h3><ul>' + late.slice(0, 10).map(function (r) { return '<li>' + esc(r['날짜']) + ' · ' + esc(r['제목']) + '</li>'; }).join('') + '</ul>' : '')
+      + (recall.length ? '<h3 style="color:#2F7FE0">재연락할 곳 ' + recall.length + '곳</h3><ul>' + recall.map(function (r) { var p = places[r['대상ID']]; return '<li>' + esc(p ? p.name : '') + ' · ' + esc(r['내용']) + ' <span style="color:#888">(' + esc(r['날짜']) + ')</span></li>'; }).join('') + '</ul>' : '')
+      + '<p style="color:#888;font-size:12px">아르딤 취업지원 사이트에서 보낸 메일 · 데이터 관리 → 구글 연결에서 끌 수 있어요.</p></div>';
+    MailApp.sendEmail({ to: email, subject: '[아르딤] ' + today + ' 오늘 일정 ' + todayList.length + '건' + (recall.length ? ' · 재연락 ' + recall.length + '곳' : ''), htmlBody: html, name: '아르딤 취업지원' });
+    sent++;
+  });
+  return { sent: sent };
+}
+function api_mailTest() { var acc = requireAdmin_(); if (!acc.me) throw new Error('내 계정 메일을 알 수 없어요.'); return morningMail_(acc.me); }
+
+/* ================= 자동 작업 (트리거) =================
+ * 관리자가 한 번 켜면: 매일 새벽 2시 백업, 15분마다 캘린더 가져오기, 평일 아침 8시 메일 */
+var CRON = ['cron_daily', 'cron_cal', 'cron_morning'];
+function cron_daily() { try { if (readSettings_().backupOn !== 'N') backupNow_(); } catch (e) { console.error(e); } }
+function cron_cal() { try { calPull_(); } catch (e) { console.error(e); } }
+function cron_morning() {
+  var d = +Utilities.formatDate(new Date(), 'Asia/Seoul', 'u'); // 1=월 … 7=일
+  if (d >= 6) return;
+  try { if (readSettings_().mailOn === 'Y') morningMail_(''); } catch (e) { console.error(e); }
+}
+function api_autoSetup(on) {
+  var acc = requireAdmin_();
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (CRON.indexOf(t.getHandlerFunction()) >= 0) ScriptApp.deleteTrigger(t); });
+  if (on) {
+    ScriptApp.newTrigger('cron_daily').timeBased().everyDays(1).atHour(2).inTimezone('Asia/Seoul').create();
+    ScriptApp.newTrigger('cron_cal').timeBased().everyMinutes(15).create();
+    ScriptApp.newTrigger('cron_morning').timeBased().everyDays(1).atHour(8).inTimezone('Asia/Seoul').create();
+  }
+  withLock_(function () { writeSettings_({ autoOn: on ? 'Y' : '', autoBy: on ? acc.me : '' }); });
+  return api_autoStatus();
+}
+function api_autoStatus() {
+  requireAdmin_();
+  var mine = ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); }).filter(function (h) { return CRON.indexOf(h) >= 0; });
+  var st = readSettings_();
+  return { on: st.autoOn === 'Y', by: st.autoBy || '', mine: mine, lastBackup: st.lastBackup || '' };
 }

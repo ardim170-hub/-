@@ -192,7 +192,13 @@ window.M = (() => {
   async function geocode(address) {
     const q = String(address || '').trim();
     if (!q) return null;
-    if (vworldKey()) {
+    if (S.REMOTE) {
+      // 공유 사이트: 서버가 브이월드 → 카카오 → 구글 지도 순서로 찾아 준다
+      const r = await S.call('api_geocode', q).catch(() => null);
+      if (r && r.error) console.warn('주소 검색:', r.error);
+      if (r && r.lat) return { lat: +r.lat.toFixed(6), lng: +r.lng.toFixed(6), label: r.label, approx: !!r.approx };
+    }
+    if (vworldKey() && !S.REMOTE) {
       if (S.REMOTE) {
         // 공유 사이트: 구글 서버가 등록한 사이트 주소로 대신 물어본다
         const r = await S.call('api_geocode', q).catch(() => null);
@@ -238,6 +244,11 @@ window.M = (() => {
   async function roadRoute(a, b) {
     const key = [a.lat, a.lng, b.lat, b.lng].join(',');
     if (routeCache.has(key)) return routeCache.get(key);
+    // 카카오 키가 있으면 카카오 길찾기(실제 도로)로
+    if (S.REMOTE && S.get().settings.kakaoOn === 'Y') {
+      const r = await S.call('api_route', { lat: a.lat, lng: a.lng }, { lat: b.lat, lng: b.lng }).catch(() => null);
+      if (r && r.km) { routeCache.set(key, r); return r; }
+    }
     try {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 10000);

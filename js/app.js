@@ -177,6 +177,7 @@ window.App = (() => {
     const r = route();
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     document.body.dataset.sec = curSec().k; // 구역 색
+    if (r === 'schedule' || r === 'dashboard') maybeCalPull(false);
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
@@ -615,6 +616,15 @@ window.App = (() => {
     drawer.classList.add('open'); drawer.setAttribute('aria-hidden', 'false');
     $('#scrim').hidden = false;
     document.body.style.overflow = 'hidden';
+  }
+  /** 구글 캘린더에서 넣은 일정 가져오기 (3분에 한 번까지) */
+  let calPullAt = 0;
+  function maybeCalPull(force) {
+    const st = S.get().settings;
+    if (!S.REMOTE || !st.calId || st.calPull === 'N') return Promise.resolve(null);
+    if (!force && Date.now() - calPullAt < 180000) return Promise.resolve(null);
+    calPullAt = Date.now();
+    return S.call('api_calPull').then(r => { if (r && (r.added || r.changed || r.removed)) return S.reload().then(() => r); return r; }).catch(err => { if (force) throw err; return null; });
   }
   function closeDrawer() {
     stack = [];
@@ -1626,6 +1636,47 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
+    'cal-pull': async el => {
+      el.disabled = true;
+      try { const r = await maybeCalPull(true); toast(r ? `구글 캘린더에서 새로 ${r.added}건, 바뀐 것 ${r.changed}건, 지운 것 ${r.removed}건을 반영했어요.` : '가져올 일정이 없어요.'); }
+      catch (err) { toast('가져오지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false;
+    },
+    'cal-pull-toggle': async el => { await S.saveSettings({ calPull: el.checked ? '' : 'N' }); toast(el.checked ? '캘린더 일정도 가져와요.' : '캘린더 일정은 가져오지 않아요.'); },
+    'kakao-save': async el => {
+      const key = ($('#kakaoKey')?.value || '').trim();
+      if (!key) return toast('카카오 REST API 키를 붙여넣어 주세요.', 'error');
+      el.disabled = true;
+      try { await S.call('api_setKakaoKey', key); await S.reload(); toast('카카오 키를 저장했어요. 이제 주소 위치와 도로 거리를 카카오로 계산해요.'); render(); }
+      catch (err) { toast('저장하지 못했어요: ' + (err.message || err), 'error'); el.disabled = false; }
+    },
+    'kakao-off': async () => { await S.call('api_setKakaoKey', ''); await S.reload(); toast('카카오 키를 지웠어요.'); render(); },
+    'backup-now': async el => {
+      el.disabled = true; el.textContent = '백업 중…';
+      try { const r = await S.call('api_backupNow'); toast(`백업했어요: ${r.name}`, '', { action: { label: '열기', run: () => window.open(r.url, '_blank') } }); A['backup-list'](); }
+      catch (err) { toast('백업하지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false; el.textContent = '지금 백업';
+    },
+    'backup-list': async () => {
+      const box = $('#gBackups'); if (!box) return;
+      box.textContent = '불러오는 중…';
+      try { const r = await S.call('api_backupList'); box.innerHTML = `<ul class="bf-ul">${r.list.map(f => `<li><a href="${U.esc(f.url)}" target="_blank" rel="noopener">💾 ${U.esc(f.name)}</a></li>`).join('') || '<li class="sub">아직 백업이 없어요.</li>'}</ul><a class="sub" href="${U.esc(r.folder)}" target="_blank" rel="noopener">백업 폴더 열기 ↗</a>`; }
+      catch (err) { box.textContent = '못 불러왔어요: ' + (err.message || err); }
+    },
+    'backup-toggle': async el => { await S.saveSettings({ backupOn: el.checked ? '' : 'N' }); toast(el.checked ? '매일 자동 백업해요 (자동 작업이 켜져 있어야 해요).' : '자동 백업을 껐어요.'); },
+    'mail-toggle': async el => { await S.saveSettings({ mailOn: el.checked ? 'Y' : '' }); toast(el.checked ? '평일 아침 8시에 메일을 보내요 (자동 작업이 켜져 있어야 해요).' : '아침 메일을 껐어요.'); render(); },
+    'mail-test': async el => {
+      el.disabled = true;
+      try { const r = await S.call('api_mailTest'); toast(r.sent ? '내 메일함을 확인해 보세요. 미리보기를 보냈어요.' : '사용 권한에서 내 계정에 이름을 넣어 주세요. 그 이름으로 일정을 찾아요.', r.sent ? '' : 'error'); }
+      catch (err) { toast('보내지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false;
+    },
+    'auto-on': async el => {
+      el.disabled = true;
+      try { await S.call('api_autoSetup', true); await S.reload(); toast('자동 작업을 켰어요: 15분마다 캘린더 가져오기 · 새벽 2시 백업 · 평일 8시 아침 메일(켠 경우)'); render(); }
+      catch (err) { toast('켜지 못했어요: ' + (err.message || err), 'error'); el.disabled = false; }
+    },
+    'auto-off': async () => { await S.call('api_autoSetup', false); await S.reload(); toast('자동 작업을 껐어요.'); render(); },
     'cal-goto': () => { setTimeout(() => document.querySelector('.cal-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300); },
     'cal-check': async () => {
       const id = ($('#calIdIn')?.value || '').trim();
