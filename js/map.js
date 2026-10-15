@@ -7,14 +7,21 @@ window.M = (() => {
     { key: 'esri', label: '일반 지도', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr: 'Tiles &copy; Esri', maxNativeZoom: 18 },
     { key: 'sat', label: '위성 사진', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Imagery &copy; Esri', maxNativeZoom: 18 },
     { key: 'osm', label: 'OpenStreetMap', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', maxNativeZoom: 19 },
-    { key: 'vworld', label: '브이월드', needsKey: true, url: key => `https://api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
+    { key: 'vworld', label: '브이월드 (한국 지도)', needsKey: true, url: key => `https://api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
+    { key: 'vworld-sat', label: '브이월드 항공사진', needsKey: true, url: key => `https://api.vworld.kr/req/wmts/1.0.0/${key}/Satellite/{z}/{y}/{x}.jpeg`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
     { key: 'none', label: '배경 없음 (경계만)' },
   ];
   const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 */ } };
   const vworldKey = () => (window.S && S.get() && S.get().settings.vworldKey) || '';
   const available = () => BASES.filter(b => !b.needsKey || vworldKey());
-  const baseKey = () => { const k = lsGet('ardim.basemap'); return available().some(b => b.key === k) ? k : 'esri'; };
+  // 브이월드 키가 있으면 처음부터 브이월드(한국 지도). 지도에서 직접 고른 배경이 있으면 그것
+  const baseKey = () => {
+    const k = lsGet('ardim.basemap'), ok = available().some(b => b.key === k);
+    if (ok && lsGet('ardim.basemap.picked') === '1') return k;
+    if (vworldKey()) return 'vworld';
+    return ok ? k : 'esri';
+  };
 
   const maps = new Map();
   let tilesOk = null; // null: 모름, true: 배경 지도 받아옴, false: 못 받아옴
@@ -78,7 +85,7 @@ window.M = (() => {
     L.control.layers(layers, null, { position: 'topright', collapsed: !opts.showLayers }).addTo(map);
     map.on('baselayerchange', e => {
       map._arBase = e.layer._arKey;
-      lsSet('ardim.basemap', map._arBase);
+      lsSet('ardim.basemap', map._arBase); lsSet('ardim.basemap.picked', '1');
       tilesOk = null;
       if (map._arBase === 'none') note.remove();
       bl.style();

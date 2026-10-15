@@ -1730,7 +1730,9 @@ window.App = (() => {
       const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
       if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();
       await S.saveSettings(patch);
-      toast('브이월드 키를 저장했습니다. 아래 "주소 찾기 시험"으로 확인해 보세요. 지도 배경 목록에도 브이월드가 나타납니다.');
+      try { localStorage.removeItem('ardim.basemap.picked'); } catch { /* 저장 불가 */ }
+      toast(patch.vworldKey ? '브이월드 키를 저장했어요. 이제 지도 배경이 브이월드(한국 지도)로 나와요. 아래 "주소 찾기 시험"으로도 확인해 보세요.' : '브이월드 키를 지웠어요.');
+      render();
     },
     'vworld-test': async el => {
       el.disabled = true; el.textContent = '찾는 중…';

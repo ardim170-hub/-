@@ -1846,7 +1846,7 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.15 11:04";</script>
+<script>window.APP_VERSION = "2026.10.15 11:23";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -3133,14 +3133,21 @@ window.M = (() => {
     { key: 'esri', label: '일반 지도', url: 'https:\/\/server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', attr: 'Tiles &copy; Esri', maxNativeZoom: 18 },
     { key: 'sat', label: '위성 사진', url: 'https:\/\/server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr: 'Imagery &copy; Esri', maxNativeZoom: 18 },
     { key: 'osm', label: 'OpenStreetMap', url: 'https:\/\/tile.openstreetmap.org/{z}/{x}/{y}.png', attr: '&copy; <a href="https:\/\/www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>', maxNativeZoom: 19 },
-    { key: 'vworld', label: '브이월드', needsKey: true, url: key => `https:\/\/api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
+    { key: 'vworld', label: '브이월드 (한국 지도)', needsKey: true, url: key => `https:\/\/api.vworld.kr/req/wmts/1.0.0/${key}/Base/{z}/{y}/{x}.png`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
+    { key: 'vworld-sat', label: '브이월드 항공사진', needsKey: true, url: key => `https:\/\/api.vworld.kr/req/wmts/1.0.0/${key}/Satellite/{z}/{y}/{x}.jpeg`, attr: '&copy; 국토교통부 브이월드', maxNativeZoom: 19 },
     { key: 'none', label: '배경 없음 (경계만)' },
   ];
   const lsGet = k => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* 저장 불가 */ } };
   const vworldKey = () => (window.S && S.get() && S.get().settings.vworldKey) || '';
   const available = () => BASES.filter(b => !b.needsKey || vworldKey());
-  const baseKey = () => { const k = lsGet('ardim.basemap'); return available().some(b => b.key === k) ? k : 'esri'; };
+  // 브이월드 키가 있으면 처음부터 브이월드(한국 지도). 지도에서 직접 고른 배경이 있으면 그것
+  const baseKey = () => {
+    const k = lsGet('ardim.basemap'), ok = available().some(b => b.key === k);
+    if (ok && lsGet('ardim.basemap.picked') === '1') return k;
+    if (vworldKey()) return 'vworld';
+    return ok ? k : 'esri';
+  };
 
   const maps = new Map();
   let tilesOk = null; // null: 모름, true: 배경 지도 받아옴, false: 못 받아옴
@@ -3204,7 +3211,7 @@ window.M = (() => {
     L.control.layers(layers, null, { position: 'topright', collapsed: !opts.showLayers }).addTo(map);
     map.on('baselayerchange', e => {
       map._arBase = e.layer._arKey;
-      lsSet('ardim.basemap', map._arBase);
+      lsSet('ardim.basemap', map._arBase); lsSet('ardim.basemap.picked', '1');
       tilesOk = null;
       if (map._arBase === 'none') note.remove();
       bl.style();
@@ -4612,8 +4619,9 @@ window.V = (() => {
         ` : ''}
         ${admin ? `
         <section class="panel panel-pad">
-          <h2 class="section-title">지도 배경</h2>
-          <p>지도 오른쪽 위 버튼에서 일반 지도·위성 사진·OpenStreetMap·배경 없음 중 고를 수 있고, 고른 것은 이 PC에서 기억합니다. 한글 지명이 잘 나오는 <b>브이월드</b>를 쓰려면 <a href="https:\/\/www.vworld.kr/dev/v4api.do" target="_blank" rel="noopener">브이월드 오픈API</a>에서 무료 인증키를 받아 넣으세요. 키를 받을 때 등록하는 사이트 주소가 실제 여는 주소와 달라도 되는지는 브이월드 발급 조건을 확인하세요.</p>
+          <h2 class="section-title">🗺 지도 배경: 브이월드 (한국 지도) ${S.get().settings.vworldKey ? '<span class="badge success">사용 중</span>' : '<span class="badge">키 없음</span>'}</h2>
+          <p>국토교통부 브이월드 지도는 카카오·네이버처럼 <b>한글 도로명·건물·지명</b>이 자세히 나와요. 무료 키를 넣으면 <b>모든 지도 배경이 브이월드</b>로 바뀌어요(지도 오른쪽 위 버튼에서 항공사진·다른 지도로도 바꿀 수 있어요).</p>
+          <ol class="steps-help"><li><a href="https:\/\/www.vworld.kr/dev/v4dv_apikey_s001.do" target="_blank" rel="noopener">브이월드 오픈API → 인증키 발급</a> (회원가입 후 무료, 바로 발급)</li><li>활용 API는 <b>WMTS/TMS(2D 지도)</b>와 <b>지오코더(주소 검색)</b>를 고르고, 서비스 URL에 <b>${S.REMOTE ? 'https:\/\/script.google.com' : '이 사이트 주소'}</b>를 넣어요</li><li>받은 인증키를 아래에 붙여넣고 저장 → 지도 화면을 다시 열면 브이월드로 나와요</li></ol>
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
           ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https:\/\/script.google.com')}" placeholder="https:\/\/script.google.com"></label>` : ''}
           ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
@@ -10149,7 +10157,9 @@ window.App = (() => {
       const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
       if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();
       await S.saveSettings(patch);
-      toast('브이월드 키를 저장했습니다. 아래 "주소 찾기 시험"으로 확인해 보세요. 지도 배경 목록에도 브이월드가 나타납니다.');
+      try { localStorage.removeItem('ardim.basemap.picked'); } catch { /* 저장 불가 */ }
+      toast(patch.vworldKey ? '브이월드 키를 저장했어요. 이제 지도 배경이 브이월드(한국 지도)로 나와요. 아래 "주소 찾기 시험"으로도 확인해 보세요.' : '브이월드 키를 지웠어요.');
+      render();
     },
     'vworld-test': async el => {
       el.disabled = true; el.textContent = '찾는 중…';

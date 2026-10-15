@@ -1062,8 +1062,9 @@ window.V = (() => {
         ` : ''}
         ${admin ? `
         <section class="panel panel-pad">
-          <h2 class="section-title">지도 배경</h2>
-          <p>지도 오른쪽 위 버튼에서 일반 지도·위성 사진·OpenStreetMap·배경 없음 중 고를 수 있고, 고른 것은 이 PC에서 기억합니다. 한글 지명이 잘 나오는 <b>브이월드</b>를 쓰려면 <a href="https://www.vworld.kr/dev/v4api.do" target="_blank" rel="noopener">브이월드 오픈API</a>에서 무료 인증키를 받아 넣으세요. 키를 받을 때 등록하는 사이트 주소가 실제 여는 주소와 달라도 되는지는 브이월드 발급 조건을 확인하세요.</p>
+          <h2 class="section-title">🗺 지도 배경: 브이월드 (한국 지도) ${S.get().settings.vworldKey ? '<span class="badge success">사용 중</span>' : '<span class="badge">키 없음</span>'}</h2>
+          <p>국토교통부 브이월드 지도는 카카오·네이버처럼 <b>한글 도로명·건물·지명</b>이 자세히 나와요. 무료 키를 넣으면 <b>모든 지도 배경이 브이월드</b>로 바뀌어요(지도 오른쪽 위 버튼에서 항공사진·다른 지도로도 바꿀 수 있어요).</p>
+          <ol class="steps-help"><li><a href="https://www.vworld.kr/dev/v4dv_apikey_s001.do" target="_blank" rel="noopener">브이월드 오픈API → 인증키 발급</a> (회원가입 후 무료, 바로 발급)</li><li>활용 API는 <b>WMTS/TMS(2D 지도)</b>와 <b>지오코더(주소 검색)</b>를 고르고, 서비스 URL에 <b>${S.REMOTE ? 'https://script.google.com' : '이 사이트 주소'}</b>를 넣어요</li><li>받은 인증키를 아래에 붙여넣고 저장 → 지도 화면을 다시 열면 브이월드로 나와요</li></ol>
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
           ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https://script.google.com')}" placeholder="https://script.google.com"></label>` : ''}
           ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
