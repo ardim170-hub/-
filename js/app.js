@@ -98,7 +98,7 @@ window.App = (() => {
   function gateOf(act, el) {
     const d = el.dataset || {};
     if (act === 'edit' || act === 'edit-loc' || act === 'map-move') return [[KIND_MENU[d.kind], 2]];
-    if (act === 'map-add-here') return [[d.kind === 'net' ? 'network' : 'biz', 2]];
+    if (act === 'map-add-here' || act === 'place-add') return [[d.kind === 'net' ? 'network' : 'biz', 2]];
     if (act === 'delete' || act === 'merge') return [[KIND_MENU[d.kind], 3]];
     if (act === 'triage') return d.to === 'personal' ? [['cards', 2]] : [['cards', 2], [KIND_MENU[d.to], 2]];
     if (act === 'act-del') { const x = S.find('act', d.id); return [[x && x.targetType === 'net' ? 'network' : 'biz', 3]]; }
@@ -177,6 +177,8 @@ window.App = (() => {
     const r = route();
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     document.body.dataset.sec = curSec().k; // 구역 색
+    // 지도는 지금 구역의 사업만 (현장중심이면 현장중심 지도만)
+    { const sp = curSec().prog, P = sp && D.PROGRAM[sp]; if (P && P.map) { V.ui.map.prog = sp; V.ui.map.lock = true; } else V.ui.map.lock = false; }
     if (r === 'schedule' || r === 'dashboard') maybeCalPull(false);
     closeMore();
     const pages = {
@@ -252,6 +254,10 @@ window.App = (() => {
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
     // 두 곳 찍기 중에 빈 곳을 찍으면 그 자리를 출발·도착으로 쓴다
     // 오른쪽 클릭(휴대폰은 길게 누르기)은 언제든 "여기에 추가"
+    const labels = () => { const on = bigMap.getZoom() >= 14; $('#bigMap')?.classList.toggle('labels-on', on); };
+    bigMap.on('zoomend', labels); labels();
+    bigMap.on('popupopen', ev => { const s = ev.popup._source; if (s && s._icon) s._icon.classList.add('mk-sel'); });
+    bigMap.on('popupclose', ev => { const s = ev.popup._source; if (s && s._icon) s._icon.classList.remove('mk-sel'); });
     bigMap.on('contextmenu', ev => { if (S.can('biz', 2) || S.can('network', 2)) addHerePopup(ev.latlng); });
     bigMap.on('click', ev => {
       if (V.ui.map.addMode && !V.ui.map.pick) { addHerePopup(ev.latlng); A['map-addmode'](); return; }
@@ -305,7 +311,10 @@ window.App = (() => {
     // 이 달 발굴은 맨 위에 그린다
     shown.sort((a, b) => (a.month ? 1 : 0) - (b.month ? 1 : 0)).forEach(({ kind, x, month }) => {
       const m = (kind === 'biz' ? M.bizMarker(x, month) : kind === 'net' ? M.netMarker(x) : M.cardMarker(x))
-        .bindTooltip(label(kind, x), { direction: 'top', offset: [0, -6] });
+        // 이름표: 가까이 보면 늘, 멀리서는 마우스를 올린 핀만 (네이버 지도처럼)
+        .bindTooltip(label(kind, x), { permanent: true, direction: 'bottom', offset: [0, 4], className: 'mk-label', interactive: false });
+      m.on('mouseover', () => m.getTooltip()?.getElement()?.classList.add('hov'));
+      m.on('mouseout', () => m.getTooltip()?.getElement()?.classList.remove('hov'));
       // 두 곳 찍기 중에는 말풍선 대신 바로 출발·도착으로 고른다
       if (f.pick) m.on('click', ev => { L.DomEvent.stop(ev); pickRoute({ kind, id: x.id }); });
       else m.bindPopup(M.popupHtml(kind, x), { autoPanPaddingTopLeft: [20, 70] });
@@ -401,7 +410,12 @@ window.App = (() => {
   function newPreset(el) {
     const d = el.dataset || {};
     const out = {};
-    if (d.lat && d.lng) { out.lat = +d.lat; out.lng = +d.lng; out.area = D.areaAt(+d.lat, +d.lng) || ''; }
+    if (d.lat && d.lng) { out.lat = +d.lat; out.lng = +d.lng; out.area = D.areaAt(+d.lat, +d.lng) || ''; out.approx = false; }
+    if (d.address) out.address = d.address;
+    if (d.pname) out.name = d.pname;
+    if (d.phone) out.phone = d.phone;
+    if (d.cat && d.kind !== 'net') out.industry = d.cat;
+    if (d.kind === 'net' && d.pname) out.category = D.guessCategory(d.pname);
     const prog = d.programs || (route() === 'map' ? V.ui.map.prog : '');
     if (prog) out.programs = [prog];
     return out;
@@ -412,7 +426,42 @@ window.App = (() => {
     const area = D.areaAt(lat, lng);
     const prog = V.ui.map.prog && D.PROGRAM[V.ui.map.prog];
     L.popup({ className: 'add-pop' }).setLatLng(latlng).setContent(`<div class="pop"><div class="pop-kind">여기에 추가</div><div class="pop-name">${area ? U.esc(area) : '화성시 밖'}</div>${prog ? `<div class="pop-meta">${U.esc(prog.map)} 지도에 넣어요</div>` : ''}
+      <div class="pop-addr" id="addHereAddr">📍 주소 찾는 중…</div>
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="map-add-here" data-kind="biz" data-lat="${lat}" data-lng="${lng}">사업체 개발 등록</button><button class="btn btn-sm" type="button" data-act="map-add-here" data-kind="net" data-lat="${lat}" data-lng="${lng}">기관 등록</button></div></div>`).openOn(bigMap);
+    M.revGeo(lat, lng).then(r => {
+      const box = $('#addHereAddr'); if (!box) return;
+      const addr = r && (r.road || r.addr);
+      box.innerHTML = addr ? `📍 ${U.esc(addr)}${r.bldg ? ` <b>${U.esc(r.bldg)}</b>` : ''}` : '주소를 찾지 못했어요 (등록 후 직접 적어 주세요)';
+      if (addr) document.querySelectorAll('.add-pop [data-act="map-add-here"]').forEach(b => { b.dataset.address = addr; });
+    });
+  }
+  /* ---------- 네이버 지도처럼: 장소 검색 → 결과 → 카드 → 등록 ---------- */
+  let placeList = [], placeMarker = null;
+  async function placeSearch(q) {
+    const box = $('#placeRes'); if (!box) return;
+    V.ui.map.pq = q;
+    if (!q) { box.hidden = true; return; }
+    box.hidden = false; box.innerHTML = '<div class="ps-empty">찾는 중…</div>';
+    const r = S.search(q);
+    const mine = [...r.biz.map(x => ['biz', x]), ...r.net.map(x => ['net', x])].slice(0, 4);
+    placeList = await M.placeSearch(q);
+    const reg = p => { const k = U.orgKey(p.name); return S.get().businesses.find(b => U.orgKey(b.name) === k) || S.get().networks.find(n => U.orgKey(n.name) === k); };
+    box.innerHTML = `<div class="ps-head"><b>'${U.esc(q)}' 검색 결과</b><button class="icon-btn" type="button" data-act="place-close" aria-label="닫기">${V.I.close}</button></div>
+      ${mine.length ? `<div class="ps-sec">등록된 곳</div>${mine.map(([k, x]) => `<button type="button" class="ps-item mine" data-act="map-focus" data-kind="${k}" data-id="${x.id}"><b>${U.esc(x.name)}</b><span>${U.esc(k === 'biz' ? (x.industry || '사업체') : (x.category || '기관'))} · ${U.esc(x.address || x.area || '')}</span><em>등록됨</em></button>`).join('')}` : ''}
+      <div class="ps-sec">새로 찾은 곳 ${placeList.length ? `<span class="sub">${placeList.length}곳</span>` : ''}</div>
+      ${placeList.length ? placeList.map((p, i) => { const g = reg(p); return `<button type="button" class="ps-item" data-act="place-pick" data-i="${i}"><b>${U.esc(p.name)}</b><span>${U.esc([p.cat, p.road || p.addr].filter(Boolean).join(' · '))}</span>${p.phone ? `<span>📞 ${U.esc(p.phone)}</span>` : ''}${g ? '<em>등록됨</em>' : ''}</button>`; }).join('')
+        : `<div class="ps-empty">찾지 못했어요. 주소(예: 향남읍 발안로 1)나 다른 이름으로 찾아보세요.${S.REMOTE && S.get().settings.kakaoOn !== 'Y' ? '<br><span class="sub">데이터 관리에 카카오 키를 넣으면 상호명으로도 잘 찾아요.</span>' : ''}</div>`}`;
+  }
+  function placeCard(p) {
+    const k = U.orgKey(p.name);
+    const g = S.get().businesses.find(b => U.orgKey(b.name) === k) || S.get().networks.find(n => U.orgKey(n.name) === k) || (p.phone && S.get().businesses.find(b => b.phone && b.phone.replace(/\D/g, '') === p.phone.replace(/\D/g, '')));
+    const kind = g ? (S.get().businesses.includes(g) ? 'biz' : 'net') : '';
+    const data = `data-lat="${p.lat}" data-lng="${p.lng}" data-pname="${U.esc(p.name)}" data-address="${U.esc(p.road || p.addr || '')}" data-phone="${U.esc(p.phone || '')}" data-cat="${U.esc(p.cat === '주소' ? '' : p.cat || '')}"`;
+    return `<div class="pop place-pop"><div class="pop-kind">${U.esc(p.cat || '장소')}</div><div class="pop-name">${U.esc(p.name)}</div>
+      ${p.road ? `<div class="pop-addr">📍 ${U.esc(p.road)}</div>` : ''}${p.addr && p.addr !== p.road ? `<div class="pop-meta">지번 ${U.esc(p.addr)}</div>` : ''}
+      ${p.phone ? `<div class="pop-addr">📞 <a href="tel:${U.esc(p.phone.replace(/[^0-9+]/g, ''))}">${U.esc(p.phone)}</a></div>` : ''}
+      ${g ? `<div class="pop-meta" style="margin-top:6px">이미 등록된 <b>${U.esc(g.name)}</b>이 있어요.</div><div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${g.id}">상세 보기</button></div>`
+        : `<div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="place-add" data-kind="biz" ${data}>사업체로 등록</button><button class="btn btn-sm" type="button" data-act="place-add" data-kind="net" ${data}>기관으로 등록</button></div>`}</div>`;
   }
   /** 출석부: 표를 다시 그려도 가로·세로 스크롤 자리를 지킨다 */
   function bindAttend() {
@@ -1002,6 +1051,20 @@ window.App = (() => {
     'new-biz': (el, fd) => push({ type: 'form', kind: 'biz', preset: newPreset(el) }, fd),
     'new-net': (el, fd) => push({ type: 'form', kind: 'net', preset: newPreset(el) }, fd),
     // 지도에서 찍은 자리에 바로 등록 (위치·읍면동·사업 구분이 미리 채워진다)
+    'place-close': () => { const b = $('#placeRes'); if (b) b.hidden = true; if (placeMarker) { placeMarker.remove(); placeMarker = null; } },
+    'place-pick': el => {
+      const p = placeList[+el.dataset.i]; if (!p || !bigMap) return;
+      if (placeMarker) placeMarker.remove();
+      placeMarker = L.marker([p.lat, p.lng], { icon: L.divIcon({ className: '', html: '<div class="place-pin"></div>', iconSize: [26, 34], iconAnchor: [13, 34] }) }).addTo(bigMap);
+      placeMarker.bindPopup(placeCard(p), { autoPanPaddingTopLeft: [360, 70] }).openPopup();
+      bigMap.setView([p.lat, p.lng], Math.max(bigMap.getZoom(), 16));
+      document.querySelectorAll('#placeRes .ps-item').forEach(b => b.classList.toggle('on', b === el));
+    },
+    'place-add': el => {
+      bigMap?.closePopup();
+      if (placeMarker) { placeMarker.remove(); placeMarker = null; }
+      A[el.dataset.kind === 'net' ? 'new-net' : 'new-biz'](el, false);
+    },
     'map-add-here': el => {
       bigMap?.closePopup();
       A[el.dataset.kind === 'net' ? 'new-net' : 'new-biz'](el, false);
@@ -1967,6 +2030,7 @@ window.App = (() => {
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
       }
+      if (form.dataset.form === 'place-q') { placeSearch(($('#placeQ')?.value || '').trim()); return; }
       if (form.dataset.form === 'quick-log') {
         const fd = Object.fromEntries(new FormData(form).entries());
         if (!fd.content.trim()) { form.elements.content.focus(); return toast('기록할 내용을 입력하세요.', 'error'); }

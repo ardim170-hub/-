@@ -709,3 +709,63 @@ function api_autoStatus() {
   var st = readSettings_();
   return { on: st.autoOn === 'Y', by: st.autoBy || '', mine: mine, lastBackup: st.lastBackup || '' };
 }
+
+/* ================= 지도에서 장소 찾기 · 찍은 곳 주소 (네이버 지도처럼 찾아서 바로 등록) ================= */
+function vworldDomain_(st) { return String(st.vworldDomain || 'https://script.google.com').trim(); }
+/** 장소·주소 검색: 카카오 → 브이월드 → 구글 순서. [{ name, cat, addr, road, phone, lat, lng, by }] */
+function api_placeSearch(q) {
+  requireMember_();
+  q = String(q || '').trim();
+  if (!q) return [];
+  var out = [];
+  try {
+    var j = kakaoGet_('https://dapi.kakao.com/v2/local/search/keyword.json?size=15&x=126.83&y=37.2&query=' + encodeURIComponent(q));
+    (j && j.documents || []).forEach(function (d) { out.push({ name: d.place_name, cat: String(d.category_name || '').split('>').pop().trim(), addr: d.address_name, road: d.road_address_name, phone: d.phone, lat: +d.y, lng: +d.x, by: 'kakao' }); });
+    if (!out.length) {
+      j = kakaoGet_('https://dapi.kakao.com/v2/local/search/address.json?size=10&query=' + encodeURIComponent(q));
+      (j && j.documents || []).forEach(function (d) { out.push({ name: d.address_name, cat: '주소', addr: d.address_name, road: d.road_address && d.road_address.address_name, phone: '', lat: +d.y, lng: +d.x, by: 'kakao' }); });
+    }
+  } catch (e) { /* 카카오 키 없음 */ }
+  var st = readSettings_(), key = String(st.vworldKey || '').trim();
+  if (!out.length && key) {
+    ['place', 'address'].forEach(function (type) {
+      if (out.length) return;
+      try {
+        var url = 'https://api.vworld.kr/req/search?service=search&request=search&version=2.0&crs=EPSG:4326&size=15&page=1&format=json&errorformat=json&type=' + type
+          + (type === 'address' ? '&category=road' : '') + '&key=' + encodeURIComponent(key) + '&domain=' + encodeURIComponent(vworldDomain_(st)) + '&query=' + encodeURIComponent(q);
+        var r = JSON.parse(UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getContentText() || '{}').response || {};
+        ((r.result && r.result.items) || []).forEach(function (it) {
+          var a = it.address || {};
+          out.push({ name: it.title || a.road || a.parcel || q, cat: type === 'place' ? String(it.category || '').split('>').pop().trim() : '주소', addr: a.parcel || '', road: a.road || '', phone: '', lat: +it.point.y, lng: +it.point.x, by: 'vworld' });
+        });
+      } catch (e) { /* 다음 방법 */ }
+    });
+  }
+  if (!out.length) { var g = googleGeocode_(q); if (g) out.push({ name: q, cat: '주소', addr: g.label, road: '', phone: '', lat: g.lat, lng: g.lng, by: 'google' }); }
+  return out;
+}
+/** 찍은 자리의 주소: 카카오 → 브이월드 → 구글 */
+function api_revGeo(lat, lng) {
+  requireMember_();
+  try {
+    var j = kakaoGet_('https://dapi.kakao.com/v2/local/geo/coord2address.json?x=' + lng + '&y=' + lat);
+    var d = j && j.documents && j.documents[0];
+    if (d) return { road: d.road_address ? d.road_address.address_name : '', addr: d.address ? d.address.address_name : '', bldg: d.road_address ? d.road_address.building_name : '' };
+  } catch (e) { /* 다음 방법 */ }
+  var st = readSettings_(), key = String(st.vworldKey || '').trim();
+  if (key) {
+    try {
+      var url = 'https://api.vworld.kr/req/address?service=address&request=getAddress&version=2.0&crs=epsg:4326&format=json&type=both&point=' + lng + ',' + lat + '&key=' + encodeURIComponent(key) + '&domain=' + encodeURIComponent(vworldDomain_(st));
+      var r = JSON.parse(UrlFetchApp.fetch(url, { muteHttpExceptions: true }).getContentText() || '{}').response || {};
+      if (r.status === 'OK' && r.result && r.result.length) {
+        var road = r.result.filter(function (x) { return x.type === 'road'; })[0], par = r.result.filter(function (x) { return x.type === 'parcel'; })[0];
+        return { road: road ? road.text : '', addr: par ? par.text : '', bldg: '' };
+      }
+    } catch (e) { /* 다음 방법 */ }
+  }
+  try {
+    var g = Maps.newGeocoder().setLanguage('ko').reverseGeocode(lat, lng);
+    if (g && g.status === 'OK' && g.results && g.results[0]) return { road: '', addr: String(g.results[0].formatted_address || '').replace(/^대한민국\s*/, ''), bldg: '' };
+  } catch (e) { /* 없음 */ }
+  return null;
+}

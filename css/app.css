@@ -1749,3 +1749,27 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 .bf-ul li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
 .bf-ul li:first-child { border-top: 0; }
 .badge.gcal-src { height: 18px; font-size: 10.5px; background: #E8F0FE; color: #1A73E8; }
+/* 지도: 네이버 지도처럼 검색창·결과·장소 카드·이름표 */
+.place-box { position: absolute; top: 10px; left: 54px; z-index: 450; width: min(360px, calc(100% - 120px)); }
+.ps-form { display: flex; gap: 0; box-shadow: 0 3px 12px rgba(0, 0, 0, .18); border-radius: 10px; overflow: hidden; }
+.ps-form .input { border: 0; border-radius: 0; height: 44px; font-size: 15px; flex: 1; min-width: 0; }
+.ps-form .btn { border-radius: 0; height: 44px; min-width: 48px; }
+.ps-res { margin-top: 6px; background: #fff; border-radius: 10px; box-shadow: 0 6px 20px rgba(0, 0, 0, .18); max-height: min(60vh, 520px); overflow: auto; }
+.ps-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 8px 8px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #fff; }
+.ps-sec { padding: 8px 14px 4px; font-size: 12px; font-weight: 700; color: var(--text-2); }
+.ps-item { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; border: 0; border-bottom: 1px solid #F1F2F4; background: #fff; padding: 10px 14px; cursor: pointer; position: relative; font: inherit; }
+.ps-item b { font-size: 15px; color: #1A73E8; }
+.ps-item.mine b { color: var(--text); }
+.ps-item span { font-size: 12.5px; color: var(--text-2); }
+.ps-item em { position: absolute; right: 12px; top: 10px; font-style: normal; font-size: 11px; font-weight: 700; color: #1F9D6B; background: #E6F6EF; border-radius: 999px; padding: 1px 8px; }
+.ps-item:hover, .ps-item.on { background: #F5F8FE; }
+.ps-empty { padding: 14px; font-size: 13.5px; color: var(--text-2); }
+.map-solo { top: 64px; }
+.place-pin { width: 26px; height: 34px; background: #E8402B; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, .35); margin-left: 0; }
+.pop-addr { font-size: 13px; margin-top: 4px; }
+.pop-links { display: flex; gap: 10px; margin: 6px 0 2px; font-size: 12.5px; font-weight: 700; }
+.leaflet-tooltip.mk-label { display: none; background: rgba(255, 255, 255, .92); border: 0; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); border-radius: 4px; padding: 1px 6px; font-size: 11.5px; font-weight: 700; color: #222; font-family: var(--font); }
+.leaflet-tooltip.mk-label::before { display: none; }
+.labels-on .leaflet-tooltip.mk-label, .leaflet-tooltip.mk-label.hov { display: block; }
+.leaflet-marker-icon.mk-sel { z-index: 1000 !important; filter: drop-shadow(0 0 4px rgba(26, 115, 232, .9)); }
+@media (max-width: 860px) { .place-box { left: 50px; width: calc(100% - 64px); } }

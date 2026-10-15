@@ -157,6 +157,9 @@ window.M = (() => {
       : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
     return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', employ: '지원고용 진행', training: '현장훈련 진행', net: '기관', home: '우리 복지관' }[tone]}</div>
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
+      ${x.address ? `<div class="pop-addr">📍 ${U.esc(x.address)} <button class="linklike" type="button" data-act="copy" data-v="${U.esc(x.address)}">복사</button></div>` : ''}
+      ${x.phone ? `<div class="pop-addr">📞 <a href="tel:${U.esc(String(x.phone).replace(/[^0-9+]/g, ''))}">${U.esc(x.phone)}</a></div>` : ''}
+      <div class="pop-links"><a href="${naverSearch(x)}" target="_blank" rel="noopener">네이버 지도</a><a href="${kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a></div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
       <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div>
@@ -269,8 +272,21 @@ window.M = (() => {
     } catch { return null; }
   }
 
+  /** 장소·주소 검색 (공유 사이트: 서버가 카카오 → 브이월드 → 구글 순서로) */
+  async function placeSearch(q) {
+    if (S.REMOTE) return (await S.call('api_placeSearch', q).catch(() => [])) || [];
+    try {
+      const j = await (await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=8&countrycodes=kr&accept-language=ko&q=${encodeURIComponent(q)}`)).json();
+      return j.map(x => ({ name: x.display_name.split(',')[0], cat: x.type || '', addr: x.display_name, road: '', phone: '', lat: +x.lat, lng: +x.lon, by: 'osm' }));
+    } catch { return []; }
+  }
+  /** 찍은 자리의 주소 */
+  async function revGeo(lat, lng) {
+    if (S.REMOTE) return S.call('api_revGeo', lat, lng).catch(() => null);
+    try { const j = await (await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&accept-language=ko&lat=${lat}&lon=${lng}`)).json(); return j && j.display_name ? { road: '', addr: j.display_name, bldg: '' } : null; } catch { return null; }
+  }
   const kakaoLink = x => `https://map.kakao.com/link/map/${encodeURIComponent(x.name)},${x.lat},${x.lng}`;
   const naverSearch = x => `https://map.naver.com/p/search/${encodeURIComponent(x.address || x.name)}`;
 
-  return { BASES, create, guBounds, distKm, estimate, roadRoute, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
+  return { placeSearch, revGeo, BASES, create, guBounds, distKm, estimate, roadRoute, naverRoute, kakaoRoute, bizColor, bizMarker, netMarker, cardMarker, hasPos, popupHtml, picker, geocode, kakaoLink, naverSearch };
 })();

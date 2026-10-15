@@ -480,8 +480,8 @@ window.V = (() => {
         <div class="inline"><button class="btn" type="button" data-act="new-net" ${f.prog ? `data-programs="${e(f.prog)}"` : ''}>+ 기관 등록</button><button class="btn btn-primary" type="button" data-act="new-biz" ${f.prog ? `data-programs="${e(f.prog)}"` : ''}>+ 사업체 발굴 등록</button></div>
       </div>
       <div class="map-bar"><div class="chips map-progs" role="tablist" aria-label="사업별 지도">
-        <button type="button" role="tab" class="chip ${f.mode === 'ours' && !f.prog ? 'on' : ''}" data-act="map-prog" data-prog="" aria-selected="${f.mode === 'ours' && !f.prog}">전체 지도</button>
-        ${D.PROGRAMS.filter(p => p.map).map(p => `<button type="button" role="tab" class="chip prog-tab ${f.mode === 'ours' && f.prog === p.key ? 'on' : ''}" data-act="map-prog" data-prog="${e(p.key)}" style="--c:${p.hex}" aria-selected="${f.mode === 'ours' && f.prog === p.key}"><span class="dot"></span>${e(p.map)} 지도 <span class="n">${progCount(p.key)}</span></button>`).join('')}
+        ${f.lock ? `<button type="button" role="tab" class="chip ${f.mode === 'ours' ? 'on' : ''}" data-act="map-mode" data-mode="ours">${e(D.PROGRAM[f.prog].map)} 지도 <span class="n">${progCount(f.prog)}</span></button>` : `<button type="button" role="tab" class="chip ${f.mode === 'ours' && !f.prog ? 'on' : ''}" data-act="map-prog" data-prog="" aria-selected="${f.mode === 'ours' && !f.prog}">전체 지도</button>`}
+        ${D.PROGRAMS.filter(p => p.map && !f.lock).map(p => `<button type="button" role="tab" class="chip prog-tab ${f.mode === 'ours' && f.prog === p.key ? 'on' : ''}" data-act="map-prog" data-prog="${e(p.key)}" style="--c:${p.hex}" aria-selected="${f.mode === 'ours' && f.prog === p.key}"><span class="dot"></span>${e(p.map)} 지도 <span class="n">${progCount(p.key)}</span></button>`).join('')}
         <button type="button" role="tab" class="chip ${f.mode === 'city' ? 'on' : ''}" data-act="map-mode" data-mode="city" aria-selected="${f.mode === 'city'}">화성시 대시보드</button>
       </div>
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
@@ -504,6 +504,10 @@ window.V = (() => {
           </div>
           <div class="map-canvas">
             <div class="map-box" id="bigMap"></div>
+            <div class="place-box" id="placeBox">
+              <form class="ps-form" data-form="place-q" autocomplete="off" role="search"><input class="input" id="placeQ" type="search" placeholder="장소·주소 검색 → 바로 등록 (예: 다이소 마도점)" value="${e(f.pq || '')}" aria-label="장소·주소 검색"><button class="btn btn-primary" type="submit" aria-label="검색">🔍</button></form>
+              <div class="ps-res" id="placeRes" hidden></div>
+            </div>
             <div class="map-solo" id="mapSolo">${soloBar()}</div>
             <div class="map-legend map-key map-float">
               <span><i class="dot-lg" style="--c:${D.MAP_COLORS.biz}"></i>사업체 개발</span>
