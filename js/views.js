@@ -648,6 +648,7 @@ window.V = (() => {
         <div><h1 class="page-title">일정</h1><div class="page-desc">직원별로 일정을 적고, 추가·수정·삭제합니다. 사업체 방문, 면접 동행, 기관 행사 등.</div></div>
         <div class="inline"><button class="btn" type="button" data-act="ev-import">📂 엑셀·한글로 일정 불러오기</button><button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button></div>
       </div>
+      ${calBar()}
       ${tabs}
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
@@ -659,6 +660,48 @@ window.V = (() => {
         <section class="panel cal-panel" id="calBox"></section>
       </div>`;
   }
+  /* ---------- 구글 캘린더 ---------- */
+  const calId = () => String(S.get().settings.calId || '').trim();
+  const calOn = () => S.REMOTE && !!calId();
+  /** 연결 없이도 한 건씩 넣는 '구글 캘린더에 추가' 주소 (구글이 일정 만들기 화면을 열어 준다) */
+  function gcalUrl(ev) {
+    const t = S.targetOf(ev);
+    const d = String(ev.date || '').replace(/-/g, '');
+    const m = String(ev.time || '').replace(/\s/g, '').match(/(오전|오후)?(\d{1,2})(?:[:시.](\d{1,2}))?/);
+    let dates = `${d}/${U.addDays(ev.date, 1).replace(/-/g, '')}`;
+    if (m && /\d/.test(ev.time || '')) {
+      let h = +m[2]; const mi = +(m[3] || 0);
+      if (m[1] === '오후' && h < 12) h += 12; if (!m[1] && h >= 1 && h <= 7) h += 12;
+      const p2 = n => String(n).padStart(2, '0');
+      dates = `${d}T${p2(h)}${p2(mi)}00/${d}T${p2(Math.min(23, h + 1))}${p2(mi)}00`;
+    }
+    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${ev.type ? '[' + ev.type + '] ' : ''}${ev.title}`, dates, ctz: 'Asia/Seoul', details: [ev.memo, t ? '대상: ' + t.name : ''].filter(Boolean).join('\n'), location: (t && t.address) || '' });
+    return 'https://calendar.google.com/calendar/render?' + q.toString();
+  }
+  /** 일정 화면 위의 연결 상태 줄 */
+  function calBar() {
+    if (calOn()) return `<div class="cal-bar on">📅 <b>구글 캘린더와 연결됨</b><span class="sub">${e(S.get().settings.calName || calId())} · 여기서 일정을 추가·수정·삭제하면 캘린더에도 자동으로 반영돼요</span><a class="btn btn-sm" href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(calId())}" target="_blank" rel="noopener">구글 캘린더 열기</a></div>`;
+    return `<div class="cal-bar">📅 <b>구글 캘린더 연결 안 됨</b><span class="sub">${S.REMOTE ? (S.isAdmin() ? '데이터 관리 → 구글 캘린더에서 팀 캘린더를 연결하면 일정이 자동으로 들어가요.' : '관리자가 데이터 관리에서 연결하면 자동으로 들어가요.') : '팀 공유(구글 시트) 버전에서 연결할 수 있어요.'} 지금은 일정마다 📅 버튼으로 한 건씩 넣을 수 있어요.</span>${S.REMOTE && S.isAdmin() ? '<a class="btn btn-sm btn-primary" href="#/data" data-act="cal-goto">연결하러 가기</a>' : ''}</div>`;
+  }
+  /** 데이터 관리의 구글 캘린더 연결 칸 */
+  function calPanel() {
+    if (!S.REMOTE) return `<section class="panel panel-pad"><h2 class="section-title">📅 구글 캘린더 연결</h2><p class="sub" style="margin:8px 0 0">팀 공유(구글 시트·Apps Script) 버전에서 연결할 수 있어요. 이 브라우저 전용 버전에서는 일정마다 📅 버튼으로 구글 캘린더에 한 건씩 넣을 수 있어요.</p></section>`;
+    if (!S.isAdmin()) return '';
+    return `<section class="panel panel-pad cal-panel">
+      <h2 class="section-title">📅 구글 캘린더 연결 ${calOn() ? '<span class="badge success">연결됨</span>' : '<span class="badge">연결 안 됨</span>'}</h2>
+      <ol class="steps-help">
+        <li>구글 캘린더(calendar.google.com) 왼쪽 <b>다른 캘린더 +</b> → <b>새 캘린더 만들기</b> → 이름 예: "아르딤 직업지원팀"</li>
+        <li>만든 캘린더의 <b>설정 및 공유</b> → <b>특정 사용자와 공유</b>에 팀원 계정을 넣고 권한을 <b>"일정 변경"</b>으로</li>
+        <li>같은 화면 아래 <b>캘린더 통합 → 캘린더 ID</b>(…@group.calendar.google.com)를 복사해 아래에 붙여넣고 <b>연결 확인·저장</b></li>
+        <li>지금까지 넣은 일정도 보내려면 <b>지금까지 일정 보내기</b> (최근 90일 이후 일정)</li>
+      </ol>
+      <div class="acc-add"><input class="input" id="calIdIn" value="${e(calId())}" placeholder="캘린더 ID (예: abc123@group.calendar.google.com)" aria-label="캘린더 ID" autocomplete="off">
+        <button class="btn btn-primary" type="button" data-act="cal-check">연결 확인·저장</button>
+        ${calOn() ? '<button class="btn" type="button" data-act="cal-push">지금까지 일정 보내기</button><button class="btn btn-ghost" type="button" data-act="cal-off">연결 끊기</button>' : ''}</div>
+      ${calOn() ? `<p class="sub" style="margin:8px 0 0">연결된 캘린더: <b>${e(S.get().settings.calName || calId())}</b>. 일정을 추가·수정·삭제하면 자동으로 반영되고, 시간이 있으면 1시간짜리, 없으면 종일 일정으로 들어가요. 장소에는 사업체·기관 주소가 들어가요.</p>` : ''}
+      <p class="sub" style="margin:6px 0 0">처음 연결하면 사이트를 다시 열 때 구글이 <b>"캘린더 권한 허용"</b>을 한 번 물어봐요. 팀원도 각자 한 번 허용해야 해요.</p>
+    </section>`;
+  }
   function evRow(ev) {
     const t = S.targetOf(ev);
     const d = U.dday(ev.date);
@@ -668,7 +711,7 @@ window.V = (() => {
       <div class="ev-when">${U.md(ev.date)} ${e(ev.time || '')}</div>
       <div style="min-width:0"><div class="ev-title"><span class="ev-who">${who ? e(who) : '팀 공통'}</span>${e(ev.title)}</div>
         <div class="ev-target">${t ? `<span data-act="open" data-kind="${ev.targetType}" data-id="${t.id}">${e(t.name)}</span> · ` : ''}${e(ev.type)}${ev.memo ? ' · ' + e(ev.memo) : ''}</div></div>
-      <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}<button class="icon-btn" type="button" aria-label="일정 수정" title="수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button><button class="icon-btn ev-del" type="button" aria-label="일정 삭제" title="삭제" data-act="ev-del" data-id="${ev.id}">${I.close}</button></div>
+      <div class="inline">${ev.done ? '<span class="badge success">완료</span>' : `<span class="badge ${d.tone} num">${d.label}</span>`}${calOn() ? '' : `<a class="icon-btn gcal-btn" href="${e(gcalUrl(ev))}" target="_blank" rel="noopener" title="구글 캘린더에 추가" aria-label="구글 캘린더에 추가">📅</a>`}<button class="icon-btn" type="button" aria-label="일정 수정" title="수정" data-act="edit-event" data-id="${ev.id}">${I.edit}</button><button class="icon-btn ev-del" type="button" aria-label="일정 삭제" title="삭제" data-act="ev-del" data-id="${ev.id}">${I.close}</button></div>
     </div>`;
   }
   /** 일정 화면의 직원 칩으로 거른 일정 */
@@ -908,6 +951,7 @@ window.V = (() => {
       <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
       ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.<br><span class="sub">내 계정: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · 관리자가 되어야 한다면 이 주소를 관리자에게 알려 주세요.</span></div>` : ''}
       <div class="data-grid">
+        ${calPanel()}
         ${S.REMOTE && admin ? `<section class="panel panel-pad staff-editor">
           <h2 class="section-title">사용 권한 <span class="sub">바꾸면 바로 저장돼요</span></h2>
           <p>지금 로그인: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · <span class="badge success">관리자</span></p>

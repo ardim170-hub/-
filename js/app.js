@@ -1626,6 +1626,27 @@ window.App = (() => {
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
     'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
+    'cal-goto': () => { setTimeout(() => document.querySelector('.cal-panel')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 300); },
+    'cal-check': async () => {
+      const id = ($('#calIdIn')?.value || '').trim();
+      if (!id) return toast('캘린더 ID를 붙여넣어 주세요. (캘린더 설정 → 캘린더 통합 → 캘린더 ID)', 'error');
+      try {
+        const r = await S.call('api_calCheck', id);
+        await S.saveSettings({ calId: r.id || id, calName: r.name || '' });
+        toast(`'${r.name}' 캘린더에 연결했어요. 이제 일정을 넣으면 캘린더에도 들어가요.`);
+        render();
+      } catch (err) { toast('연결하지 못했어요: ' + (err.message || err) + ' — 배포를 새 버전으로 했는지, 캘린더 권한을 허용했는지도 확인하세요.', 'error'); }
+    },
+    'cal-push': async el => {
+      el.disabled = true; el.textContent = '보내는 중…';
+      try { const r = await S.call('api_calPushAll'); toast(`일정 ${r.sent}건을 구글 캘린더에 보냈어요.`); }
+      catch (err) { toast('보내지 못했어요: ' + (err.message || err), 'error'); }
+      el.disabled = false; el.textContent = '지금까지 일정 보내기';
+    },
+    'cal-off': async () => {
+      if (!(await confirmBox('구글 캘린더 연결을 끊을까요?', '이미 캘린더에 들어간 일정은 그대로 남고, 앞으로 바뀌는 일정만 반영되지 않아요.', '연결 끊기'))) return;
+      await S.saveSettings({ calId: '', calName: '' }); toast('연결을 끊었어요.'); render();
+    },
     'acc-add': async () => {
       const inp = $('#accNew');
       const email = inp.value.trim().toLowerCase();

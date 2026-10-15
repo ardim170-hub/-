@@ -134,12 +134,18 @@ window.S = (() => {
   const setSync = (status, error = null) => { sync.status = status; sync.error = error; if (status === 'saved') sync.at = new Date(); syncListeners.forEach(fn => fn(sync)); };
   const call = (fn, ...args) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
   let pending = 0;
+  let calWarnAt = 0;
   function send(fn, ...args) {
     if (!REMOTE) return Promise.resolve();
     pending++;
     setSync('saving');
     return call(fn, ...args)
-      .then(r => { if (--pending === 0) setSync('saved'); return r; })
+      .then(r => {
+        if (--pending === 0) setSync('saved');
+        // 일정은 저장됐지만 구글 캘린더 반영이 안 된 경우 (1분에 한 번만 알림)
+        if (r && r.calErr && Date.now() - calWarnAt > 60000) { calWarnAt = Date.now(); App.toast('일정은 저장했지만 구글 캘린더에는 못 넣었어요: ' + r.calErr, 'error'); }
+        return r;
+      })
       .catch(err => {
         pending--;
         setSync('error', err);

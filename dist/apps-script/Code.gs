@@ -225,8 +225,98 @@ function api_apply(ops) {
       });
       dels.sort(function (a, b) { return b - a; }).forEach(function (r) { sh.deleteRow(r); });
     });
-    return { ok: true, at: new Date().toISOString() };
+    // 일정은 연결한 구글 캘린더에도 반영 (실패해도 시트 저장은 그대로)
+    var calErr = bySheet['일정'] ? calApply_(bySheet['일정']) : '';
+    return { ok: true, at: new Date().toISOString(), calErr: calErr };
   });
+}
+
+/* ================= 구글 캘린더 연결 =================
+ * 설정 'calId' = 팀 캘린더 ID. 사이트 일정을 추가·수정·삭제하면 그 캘린더에도 똑같이 반영한다.
+ * 웹앱은 '접속한 사람' 권한으로 실행되므로, 팀 캘린더를 팀원 모두에게 '일정 변경' 권한으로 공유해 둔다.
+ * 사이트 일정 ID ↔ 캘린더 일정 ID 짝은 스크립트 속성 'cal:<일정ID>'에 둔다. */
+function calOf_(id) {
+  id = String(id || '').trim();
+  if (!id) return null;
+  var cal = id === 'primary' ? CalendarApp.getDefaultCalendar() : CalendarApp.getCalendarById(id);
+  if (!cal) throw new Error('캘린더를 찾지 못했어요. 캘린더 ID를 확인하고, 이 계정에 그 캘린더의 "일정 변경" 권한이 있는지 확인하세요.');
+  return cal;
+}
+/** '14:00', '오후 2시', '10시 30분' → [시, 분]. 모르면 null (종일 일정) */
+function calTime_(t) {
+  var s = String(t || '').replace(/\s/g, '');
+  var m = s.match(/(오전|오후)?(\d{1,2})(?:[:시.](\d{1,2}))?/);
+  if (!m || !/\d/.test(s)) return null;
+  var h = +m[2], mi = +(m[3] || 0);
+  if (m[1] === '오후' && h < 12) h += 12;
+  if (!m[1] && h >= 1 && h <= 7) h += 12; // 1~7시는 오후로 본다 (근무시간)
+  return h <= 23 && mi <= 59 ? [h, mi] : null;
+}
+function calPlaces_() {
+  var o = {};
+  readSheet_('사업체').forEach(function (r) { o[r['사업체ID']] = { name: r['사업체명'], addr: r['주소'] }; });
+  readSheet_('네트워크').forEach(function (r) { o[r['기관ID']] = { name: r['기관명'], addr: r['주소'] }; });
+  return o;
+}
+function calPut_(cal, props, row, places) {
+  var id = String(row['일정ID'] || '');
+  var d = String(row['날짜'] || '').match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (!id || !d) return;
+  var old = props.getProperty('cal:' + id);
+  if (old) { try { var ev0 = cal.getEventById(old); if (ev0) ev0.deleteEvent(); } catch (e) { /* 이미 지워졌으면 그대로 */ } }
+  var place = places[row['대상ID']] || null;
+  var title = (row['완료(Y/N)'] === 'Y' ? '✔ ' : '') + (row['유형'] ? '[' + row['유형'] + '] ' : '') + (row['제목'] || '(제목 없음)') + (row['담당 직원'] ? ' · ' + row['담당 직원'] : '');
+  var desc = [row['메모'], place ? '대상: ' + place.name : '', '아르딤 취업지원 사이트에서 만든 일정 (사이트에서 고치면 여기도 바뀌어요)'].filter(function (x) { return x; }).join('\n');
+  var opt = { description: desc, location: place && place.addr ? place.addr : '' };
+  var tm = calTime_(row['시간']);
+  var ev;
+  if (tm) {
+    var st = new Date(+d[1], +d[2] - 1, +d[3], tm[0], tm[1]);
+    ev = cal.createEvent(title, st, new Date(st.getTime() + 60 * 60 * 1000), opt);
+  } else {
+    ev = cal.createAllDayEvent(title, new Date(+d[1], +d[2] - 1, +d[3]), opt);
+  }
+  props.setProperty('cal:' + id, ev.getId());
+}
+function calDel_(cal, props, id) {
+  var gid = props.getProperty('cal:' + id);
+  if (!gid) return;
+  try { var ev = cal.getEventById(gid); if (ev) ev.deleteEvent(); } catch (e) { /* 이미 없음 */ }
+  props.deleteProperty('cal:' + id);
+}
+/** api_apply에서 부른다. 오류는 글로 돌려준다 */
+function calApply_(ops) {
+  var calId = readSettings_().calId;
+  if (!calId) return '';
+  try {
+    var cal = calOf_(calId), props = PropertiesService.getScriptProperties();
+    var places = ops.some(function (o) { return o.op !== 'del'; }) ? calPlaces_() : {};
+    var rows = {};
+    readSheet_('일정').forEach(function (r) { rows[r['일정ID']] = r; });
+    ops.forEach(function (o) { if (o.op === 'del') calDel_(cal, props, o.id); else if (rows[o.id]) calPut_(cal, props, rows[o.id], places); });
+    return '';
+  } catch (e) { return String(e && e.message || e); }
+}
+/** 연결 확인: 캘린더 이름을 돌려준다 */
+function api_calCheck(calId) {
+  requireAdmin_();
+  var cal = calOf_(calId);
+  return { name: cal.getName(), id: cal.getId() };
+}
+/** 지금까지의 일정(최근 90일 이후)을 캘린더에 한 번에 보낸다 */
+function api_calPushAll() {
+  requireAdmin_();
+  var calId = readSettings_().calId;
+  if (!calId) throw new Error('먼저 캘린더 ID를 넣고 저장하세요.');
+  var cal = calOf_(calId), props = PropertiesService.getScriptProperties(), places = calPlaces_();
+  var from = Utilities.formatDate(new Date(Date.now() - 90 * 86400000), 'Asia/Seoul', 'yyyy-MM-dd');
+  var n = 0, t0 = Date.now();
+  readSheet_('일정').forEach(function (r) {
+    if (Date.now() - t0 > 270000) return; // 실행 시간 제한(6분) 안에서
+    if (String(r['날짜']) < from) return;
+    calPut_(cal, props, r, places); n++;
+  });
+  return { sent: n };
 }
 
 /** 전체 교체 (엑셀 가져오기, 예시 데이터, 전체 삭제). payload = { sheets: { 이름: [행] }, settings: {} } */
