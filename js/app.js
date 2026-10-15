@@ -453,7 +453,7 @@ window.App = (() => {
     if (!S.REMOTE || !online.length) { box.hidden = true; return; }
     box.hidden = false;
     const me = S.accessInfo().me;
-    const label = p => p.name || (p.email ? p.email.split('@')[0] : '사용자');
+    const label = p => V.accName(p.email) || p.name || (p.email ? p.email.split('@')[0] : '사용자');
     const ago = at => { const s = Math.round((Date.now() - at) / 1000); return s < 60 ? '지금' : `${Math.floor(s / 60)}분 전`; };
     const sorted = [...online].sort((a, b) => (b.email === me) - (a.email === me) || b.at - a.at);
     box.innerHTML = `<button type="button" class="presence-btn" data-act="presence-toggle" aria-haspopup="true" title="지금 사이트를 쓰고 있는 사람">
@@ -1634,8 +1634,10 @@ window.App = (() => {
       const rows = V.accRows();
       if (email === owner || rows.some(r => r.email === email)) return toast('이미 목록에 있어요.', 'error');
       rows.push({ email, admin: $('#accNewRole').value === 'admin' });
+      const nm = ($('#accNewName')?.value || '').trim();
+      if (nm) await S.saveSettings({ accNames: JSON.stringify({ ...V.accNames(), [email]: nm }) });
       await saveAcc(rows);
-      toast(`${email}을(를) ${$('#accNewRole')?.value === 'admin' ? '관리자' : '사용자'}로 추가했습니다.`);
+      toast(`${V.accName(email) ? V.accName(email) + ' (' + email + ')' : email}을(를) 추가했습니다.`);
     },
     'acc-perm-open': el => { V.ui.accOpen = V.ui.accOpen === el.dataset.email ? '' : el.dataset.email; render(); },
     'acc-preset': async el => {
@@ -1647,7 +1649,7 @@ window.App = (() => {
     'acc-del': async el => {
       const email = el.dataset.email;
       if (email === S.accessInfo().me) return toast('자기 자신은 뺄 수 없어요. 다른 관리자가 빼 주세요.', 'error');
-      if (!(await confirmBox('목록에서 뺄까요?', `${email}은(는) 이제 이 사이트에 들어올 수 없게 됩니다${V.accRows().length <= 1 ? ' (목록이 비면 복지관 계정 누구나 들어올 수 있어요)' : ''}.`, '빼기'))) return;
+      if (!(await confirmBox('목록에서 뺄까요?', `${V.accName(email) ? V.accName(email) + ' (' + email + ')' : email}은(는) 이제 이 사이트에 들어올 수 없게 됩니다${V.accRows().length <= 1 ? ' (목록이 비면 복지관 계정 누구나 들어올 수 있어요)' : ''}.`, '빼기'))) return;
       await saveAcc(V.accRows().filter(r => r.email !== email));
       await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
@@ -1794,6 +1796,13 @@ window.App = (() => {
         let cur = {};
         try { cur = (JSON.parse(S.get().settings.perms || '{}') || {})[email] || {}; } catch { cur = {}; }
         savePerms(email, { ...cur, [menu]: el.value }).then(() => toast(`${email}: ${Object.fromEntries(D.PERM_MENUS)[menu]} → ${Object.fromEntries(D.PERM_LEVELS)[el.value]}`));
+        return;
+      }
+      if (el.dataset.chg === 'acc-name') {
+        inlineEdit = false;
+        const map = { ...V.accNames() }, email = el.dataset.email.toLowerCase(), v = el.value.trim();
+        if (v) map[email] = v; else delete map[email];
+        S.saveSettings({ accNames: JSON.stringify(map) }).then(() => toast(v ? `${email} → ${v}` : `${email} 이름을 지웠어요.`));
         return;
       }
       if (el.dataset.chg === 'acc-role') {

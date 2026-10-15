@@ -890,6 +890,10 @@ window.V = (() => {
       <p class="sub" style="margin:6px 0 0">숨김 = 메뉴가 안 보여요 · 보기만 = 볼 수만 있어요 · 등록·수정 = 삭제만 못 해요 · 삭제까지 = 전부. 구글 시트 서버에서도 같은 기준으로 막고, 그 사람 화면에는 1분 안에 반영돼요.</p></li>`;
   }
   /** 사용 권한 목록: 관리자·사용자 이메일을 한 줄씩 */
+  /** 계정 이메일 → 이름 (설정 '계정 이름') */
+  function accNames() { const v = S.get().settings.accNames; if (v && typeof v === 'object') return v; try { return JSON.parse(v || '{}') || {}; } catch { return {}; } }
+  const accName = email => accNames()[String(email || '').toLowerCase()] || '';
+  const nameIn = email => `<input class="input sm acc-name" list="accStaffList" value="${e(accName(email))}" placeholder="이름" data-chg="acc-name" data-email="${e(email)}" aria-label="${e(email)} 이름">`;
   function accRows() {
     const st = S.get().settings;
     const split = v => String(v || '').toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@'));
@@ -910,8 +914,8 @@ window.V = (() => {
           <p class="sub" style="margin:0">관리자는 설정·직원 목록·AI 키·엑셀 전체 교체·사용 권한을 바꿀 수 있고, 사용자는 등록·수정만 해요.
             <b>목록에 한 명이라도 있으면 목록에 있는 사람만</b> 들어올 수 있어요. 비어 있으면 복지관 계정 누구나 들어와요.</p>
           <ul class="acc-list">
-            ${acc.owner ? `<li class="acc-owner"><span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
-            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li><span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}</span>
+            ${acc.owner ? `<li class="acc-owner">${nameIn(acc.owner)}<span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
+            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li>${nameIn(r.email)}<span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}</span>
               <select class="select sm" data-chg="acc-role" data-email="${e(r.email)}" aria-label="${e(r.email)} 권한"><option value="admin" ${r.admin ? 'selected' : ''}>관리자</option><option value="user" ${r.admin ? '' : 'selected'}>사용자</option></select>
               ${r.admin ? '' : `<button class="btn btn-sm perm-btn ${ui.accOpen === r.email ? 'on' : ''}" type="button" data-act="acc-perm-open" data-email="${e(r.email)}">메뉴 권한 ▾</button>`}
               <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button>
@@ -919,7 +923,8 @@ window.V = (() => {
               ${!r.admin && ui.accOpen === r.email ? permPanel(r.email) : ''}`).join('')}
             ${!accRows().some(r => r.email !== acc.owner) ? '<li class="sub acc-empty">아직 추가한 사람이 없어요.</li>' : ''}
           </ul>
-          <div class="acc-add"><input class="input" id="accNew" type="email" inputmode="email" autocomplete="off" placeholder="추가할 구글 계정 이메일 (예: ardim169@ardim.or.kr)" aria-label="추가할 이메일"><select class="select" id="accNewRole" aria-label="권한"><option value="user">사용자</option><option value="admin">관리자</option></select><button class="btn btn-primary" type="button" data-act="acc-add">+ 추가</button></div>
+          <datalist id="accStaffList">${S.staff().map(x => `<option value="${e(x.name)}">`).join('')}</datalist>
+          <div class="acc-add"><input class="input acc-name" id="accNewName" list="accStaffList" autocomplete="off" placeholder="이름 (예: 김정배)" aria-label="추가할 사람 이름"><input class="input" id="accNew" type="email" inputmode="email" autocomplete="off" placeholder="추가할 구글 계정 이메일 (예: ardim169@ardim.or.kr)" aria-label="추가할 이메일"><select class="select" id="accNewRole" aria-label="권한"><option value="user">사용자</option><option value="admin">관리자</option></select><button class="btn btn-primary" type="button" data-act="acc-add">+ 추가</button></div>
         </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
@@ -1191,5 +1196,5 @@ window.V = (() => {
     });
   }
 
-  return { I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

@@ -155,7 +155,10 @@ window.S = (() => {
     const next = { version: 1 };
     for (const col of COLS) next[col] = (res.sheets[SHEETS[col][0]] || []).map(r => fromRow(col, r)).filter(o => keepRow(col, o));
     const st = res.settings || {};
+    // 설정 시트의 항목을 모두 읽는다 (유류비·특근비 단가·실적 목표·소속·계정 이름 등). JSON 항목은 normalize에서 풀어 쓴다
+    const { isDemo: _demo, ...rest } = st;
     next.settings = {
+      ...rest,
       orgName: st.orgName || '', cityMapUrl: st.cityMapUrl ?? null, links: st.links || null, vworldKey: st.vworldKey || '', vworldDomain: st.vworldDomain || '', perfByProgram: st.perfByProgram || null,
       admins: st.admins || '', members: st.members || '', perms: st.perms || '',
       staff: (res.sheets[STAFF_SHEET[0]] || []).map(r => ({ name: r['이름'], program: r['소속 사업'] || '' })),
@@ -169,7 +172,13 @@ window.S = (() => {
     const sheets = {};
     for (const col of COLS) sheets[SHEETS[col][0]] = s[col].map(x => toRow(col, x));
     sheets[STAFF_SHEET[0]] = s.settings.staff.map(x => ({ '이름': x.name, '소속 사업': x.program || '' }));
-    return { sheets, settings: { orgName: s.settings.orgName, cityMapUrl: s.settings.cityMapUrl || '', links: JSON.stringify(s.settings.links || []), vworldKey: s.settings.vworldKey || '', vworldDomain: s.settings.vworldDomain || '', fuelEff: s.settings.fuelEff || '', fuelPrice: s.settings.fuelPrice || '', perfGoal: typeof s.settings.perfGoal === 'string' ? s.settings.perfGoal : s.settings.perfGoal ? JSON.stringify(s.settings.perfGoal) : '', perfByProgram: JSON.stringify(s.settings.perfByProgram || {}), programs: JSON.stringify(s.settings.programs || []), isDemo: s.isDemo ? 'Y' : '', ...(access.admin ? { admins: s.settings.admins || '', members: s.settings.members || '', perms: s.settings.perms || '' } : {}) } };
+    // 설정은 항목을 빠짐없이 보낸다 (직원은 따로 '직원' 시트). 글자가 아닌 값은 JSON 글자로
+    const settings = {};
+    Object.entries(s.settings).forEach(([k, v]) => { if (k === 'staff' || v === undefined) return; settings[k] = v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v); });
+    settings.cityMapUrl = s.settings.cityMapUrl || '';
+    settings.isDemo = s.isDemo ? 'Y' : '';
+    if (!access.admin) { delete settings.admins; delete settings.members; delete settings.perms; }
+    return { sheets, settings };
   }
   /** 팀 공유 모드의 사용 권한. 파일 버전은 늘 관리자 */
   let access = { me: '', owner: '', admin: true, perms: {} };
