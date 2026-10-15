@@ -2545,6 +2545,29 @@ body { font-size: 16px; }
 .st-sum small { font-size: 14px; font-weight: 500; }
 .st-tbl th { white-space: nowrap; }
 
+/* 직원별 고정 색: 이름 앞 점, 표 줄 왼쪽 띠 */
+.sdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex: none; }
+.sc-row > td:first-child { box-shadow: inset 5px 0 0 var(--sc, transparent); padding-left: 14px; }
+.sc-sel { border-left: 5px solid var(--sc, var(--line)) !important; font-weight: 700; min-width: 96px; }
+.od-tbl td { white-space: nowrap; }
+.od-tbl td .input, .od-tbl td .select { min-width: 0; }
+.od-tbl td:nth-child(2) .select { min-width: 104px; }
+/* 담당자별 명령부 카드: 이름이 깨지지 않게 넓히고 버튼은 아래로 */
+.od-each-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+.od-each-item { flex-wrap: wrap; border-top: 4px solid var(--sc, var(--line)) !important; border-radius: 8px !important; padding: 10px 12px; }
+.od-each-name { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; min-width: 0; }
+.od-each-name b { font-size: 16px; }
+.od-each-item .inline { margin-left: auto; }
+.od-staff .chip { white-space: nowrap; }
+.sc-list { display: flex; flex-direction: column; gap: 8px; }
+.sc-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.sc-item.on { border-color: #E8A0AC; background: #FFF5F6; }
+.sc-item input { margin-top: 5px; }
+.sc-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sc-main b { font-size: 16px; }
+.btn-danger.btn-primary { background: #C8364E; border-color: #C8364E; }
+.sc-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
 </style>
 </head>
 <body>
@@ -2632,7 +2655,7 @@ body { font-size: 16px; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.15 14:13";</script>
+<script>window.APP_VERSION = "2026.10.15 18:43";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3743,6 +3766,8 @@ window.S = (() => {
     if (scope.startsWith('s:')) return name === scope.slice(2);
     return true;
   }
+  /** 지금 보는 범위의 직원 (현장중심이면 장애인개발원 소속만) */
+  const staffHere = () => { const l = staff().filter(x => staffInScope(x.name)); return l.length ? l : staff(); };
   function scopeLabel() {
     if (scope.startsWith('p:')) return scope.slice(2);
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
@@ -3997,7 +4022,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -4531,7 +4556,7 @@ window.V = (() => {
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
   const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(p.key)}">${e(p.short)}</span>` : ''; };
-  const staffTag = name => name ? `<span class="staff-tag">${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
+  const staffTag = name => name ? `<span class="staff-tag">${staffDot(name)}${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
   const scopeNote = () => S.getScope() === 'all' ? '' : ` · <b>${e(S.scopeLabel())}</b> 기준`;
   const ddayBadge = date => { const d = U.dday(date); return `<span class="badge ${d.tone} num">${d.label}</span>`; };
   const primaryContact = (kind, id) => S.cardsOf(kind, id)[0] || null;
@@ -5092,6 +5117,8 @@ window.V = (() => {
   /** 직원마다 고정 색 (일정 점·이름표) */
   const STAFF_COLORS = ['#2563EB', '#E8590C', '#0E9384', '#7C4DDB', '#C2255C', '#2F9E62', '#B08800', '#475467'];
   const staffColor = name => { const i = S.staff().findIndex(s => s.name === name); return i < 0 ? '#9AA3B2' : STAFF_COLORS[i % STAFF_COLORS.length]; };
+  /** 이름 앞 색 점 */
+  const staffDot = name => (name ? `<span class="sdot" style="background:${staffColor(name)}"></span>` : '');
   /** 일정의 담당: 적어 둔 직원, 없으면 관련 사업체·기관 담당 */
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
@@ -5111,7 +5138,7 @@ window.V = (() => {
       ${tabs}
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
-        ${S.staff().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
+        ${S.staffHere().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
         <button type="button" class="chip ${f.who === '-' ? 'on' : ''}" data-act="sched-who" data-who="-">팀 공통 <span class="n">${n('-')}</span></button>
       </div>
       <div class="sched">
@@ -5466,6 +5493,10 @@ window.V = (() => {
           ${st.isDemo ? '<p><span class="badge warn">예시 데이터 사용 중</span> 실제 업무 전에 비우거나 엑셀로 교체하세요.</p>' : ''}
         </section>
         <section class="panel panel-pad">
+          <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
+          <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>
+        </section>
+        <section class="panel panel-pad">
           <h2 class="section-title">🩺 저장 점검 <span class="sub">입력한 기록이 구글 시트에 제대로 쌓이는지 시트마다 확인해요</span></h2>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="self-test">지금 점검하기</button>${S.REMOTE && S.outboxSize() ? `<button class="btn" type="button" data-act="outbox-flush">못 보낸 기록 ${S.outboxSize()}건 다시 보내기</button>` : ''}<span class="sub">입력은 먼저 이 컴퓨터에 보관한 뒤 구글 시트로 보내요. 인터넷이 끊겨도 지워지지 않고, 연결되면 자동으로 다시 보내요.</span></div>
         </section>
@@ -5739,7 +5770,7 @@ window.V = (() => {
     });
   }
 
-  return { accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { staffColor, staffDot, accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
 
 </script>
@@ -6983,7 +7014,7 @@ window.R = (() => {
           <button class="btn btn-primary" type="button" data-act="ct-copy-report" ${visits.length ? '' : 'disabled'}>${V.I.copy}보고용 시트용 복사</button></div>
         <p class="sub perf-help">보고용 시트의 <b>방문 사업체 수</b> 표에서 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 업체명 · 주소 · 연락처/담당자 · 결과 · 현장훈련 유/무 · 절차)</p>
         ${visits.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th>날짜</th><th>업체명</th><th>주소</th><th>연락처/담당자</th><th>결과</th><th>현장훈련 유/무</th><th>절차</th></tr></thead><tbody>
-          ${visits.map(({ a, b }) => `<tr><td class="num">${U.dateDot(a.date)}</td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+          ${visits.map(({ a, b }) => `<tr class="sc-row" style="--sc:${V.staffColor(a.staff)}" title="${e(a.staff || '')}"><td class="num">${U.dateDot(a.date)}</td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
             <td>${e(phoneOf(b))}<div class="meta">${e(a.contactName || contactOf(b))}</div></td><td class="wrap">${e(a.content)}</td>
             <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="training">${opts(['유', '무'], a.training, '-')}</select></td>
             <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="procedure">${opts(D.PROCEDURES, a.procedure, '-')}</select></td></tr>`).join('')}
@@ -6995,7 +7026,7 @@ window.R = (() => {
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
       ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
-        ${rows.map(({ a, b }, i) => `<tr><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+        ${rows.map(({ a, b }, i) => `<tr class="sc-row" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
@@ -7251,7 +7282,7 @@ window.R = (() => {
       return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
     };
     const staffBar = staffManager(all);
-    const staffOpts = sel => opts([...new Set([...S.staff().map(s => s.name), sel].filter(Boolean))], sel);
+    const staffOpts = sel => opts([...new Set([...S.staffHere().map(s => s.name), sel].filter(Boolean))], sel);
     const cell = (t, k, attrs = '') => `<input class="input sm" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] || '')}" ${attrs}>`;
     const trip = f.kind === '출장';
     const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
@@ -7270,15 +7301,15 @@ window.R = (() => {
       ${`<div class="panel-pad od-each">
         <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
           <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 파일</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}"><span><b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근비·식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
+        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}" style="--sc:${V.staffColor(s)}"><span class="od-each-name">${V.staffDot(s)}<b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근비·식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
       </div>`}
       <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
       ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
         ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>식비</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
         : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th>식비</th><th>여비(식비)</th><th></th>'}</tr></thead><tbody>
-        ${list.map(t => `<tr>
+        ${list.map(t => `<tr class="sc-row" style="--sc:${V.staffColor(t.staff)}">
           <td>${cell(t, 'date', 'type="date"')}</td>
-          <td><select class="select sm" data-chg="trip-field" data-id="${t.id}" data-field="staff">${staffOpts(t.staff)}</select></td>
+          <td><select class="select sm sc-sel" data-chg="trip-field" data-id="${t.id}" data-field="staff">${staffOpts(t.staff)}</select></td>
           ${trip ? `<td>${cell(t, 'place')}</td><td>${cell(t, 'purpose')}</td>
             <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
             <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
@@ -7295,12 +7326,12 @@ window.R = (() => {
   function staffManager(all) {
     const f = ui.orders;
     const admin = S.isAdmin();
-    const staff = S.staff();
+    const staff = S.staffHere();
     const cnt = n => all.filter(t => (t.staff || '(담당자 없음)') === n).length;
     return `<div class="panel-pad od-staff">
       <b>담당자</b>
       <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
-      ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
+      ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${V.staffDot(s.name)}${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
       ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option>${e(p.key)}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
     </div>`;
   }
@@ -7321,7 +7352,7 @@ window.R = (() => {
       : [md(t.date), t.staff, t.dept || '직업', t.time, [t.purpose, t.note].filter(Boolean).join(' / ')]));
   };
   /** 담당자별 명령부: 직원 목록의 모든 사람(이 달 기록이 없으면 빈 양식) + 목록에 없는 이름으로 적힌 줄 */
-  const orderStaff = () => { const f = ui.orders; return [...new Set([...S.staff().map(s => s.name), ...trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')])]; };
+  const orderStaff = () => { const f = ui.orders; return [...new Set([...S.staffHere().map(s => s.name), ...trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')])]; };
   const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
   /** staff를 주면 그 담당자 줄만 모아 결재란이 따로 있는 한 장을 만든다. 없으면 전체 */
   /* 명령부 양식: 칸 너비는 늘 같은 비율(%)로 고정하고, 표는 최소 MIN_ROWS 줄(빈 줄 채움)로 매달 같은 모양.
@@ -7362,7 +7393,7 @@ window.R = (() => {
   /* ---------- 여러 달 한꺼번에 (사람 → 달 → 출장·특근 순서) ---------- */
   const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while ((y < y2 || (y === y2 && m <= m2)) && out.length < 24) { out.push(`${y}-${U.pad(m)}`); m++; if (m > 12) { m = 1; y++; } } return out; };
   /** 직원 목록 + 명령부에 적힌 이름 (목록에 없는 사람도 고를 수 있게) */
-  const bulkNames = () => [...new Set([...S.staff().map(x => x.name), ...S.get().trips.map(t => t.staff).filter(Boolean)])];
+  const bulkNames = () => [...new Set([...S.staffHere().map(x => x.name), ...S.get().trips.map(t => t.staff).filter(Boolean)])];
   function bulkState() {
     const f = ui.orders;
     if (!f.bulk) {
@@ -10124,6 +10155,40 @@ window.App = (() => {
     document.body.style.overflow = '';
     setTimeout(() => { if (!drawerOpen()) $('#drawerInner').innerHTML = ''; }, 250);
   }
+  /* ---------- 담당자 정리: 고른 직원의 이름과 그 사람이 담당한 기록을 지운다 ---------- */
+  function staffRecords(name) {
+    const st = S.get(), none = name === '';
+    const mine = x => (none ? !x.staff : x.staff === name);
+    const biz = st.businesses.filter(mine), net = st.networks.filter(mine);
+    const ids = new Set([...biz.map(b => 'biz' + b.id), ...net.map(n => 'net' + n.id)]);
+    const onT = x => x.targetType && ids.has(x.targetType + x.targetId);
+    return {
+      biz, net,
+      cards: st.cards.filter(c => c.linkType && ids.has(c.linkType + c.linkId)),
+      acts: st.activities.filter(a => (none ? false : a.staff === name) || onT(a)),
+      evs: st.events.filter(x => (none ? false : x.staff === name) || onT(x)),
+      perfs: none ? [] : st.perfs.filter(mine), trips: none ? [] : st.trips.filter(mine),
+    };
+  }
+  function staffCleanHtml(st) {
+    const rows = [...S.staff().map(x => x.name), ''].map(n => {
+      const r = staffRecords(n), tot = r.biz.length + r.net.length + r.acts.length + r.evs.length + r.perfs.length + r.trips.length;
+      if (n === '' && !r.biz.length && !r.net.length) return '';
+      const prog = n ? S.programOf(n) : '';
+      return `<label class="sc-item ${st.pick.has(n) ? 'on' : ''}"><input type="checkbox" data-act="sc-pick" data-name="${U.esc(n)}" ${st.pick.has(n) ? 'checked' : ''}>
+        <span class="sc-main"><span class="sc-top">${n ? V.staffDot(n) : ''}<b>${n ? U.esc(n) : '(담당 직원 없음)'}</b> <span class="sub">${n ? U.esc(prog || '소속 미지정') : '담당 칸이 빈 사업체·기관'}</span></span>
+        <span class="meta">사업체 ${r.biz.length} · 기관 ${r.net.length} · 연결 명함 ${r.cards.length} · 활동 ${r.acts.length} · 일정 ${r.evs.length} · 실적 ${r.perfs.length} · 출장·특근 ${r.trips.length}${tot ? '' : ' · 기록 없음'}</span>
+        ${r.biz.length ? `<span class="meta">사업체: ${r.biz.slice(0, 6).map(b => U.esc(b.name)).join(', ')}${r.biz.length > 6 ? ` 외 ${r.biz.length - 6}곳` : ''}</span>` : ''}</span></label>`;
+    }).join('');
+    const n = st.pick.size;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">담당자 정리</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">고른 직원이 담당한 <b>사업체·기관과 그 활동·일정·연결 명함, 실적·출장·특근 기록</b>을 지우고, 직원 목록에서도 뺍니다.</p></div>
+      <div class="dr-body"><div class="sc-list">${rows}</div>
+        <label class="check" style="margin-top:12px"><input type="checkbox" data-act="sc-keepname" ${st.keepName ? 'checked' : ''}>직원 이름은 목록에 남기기 (기록만 지우기)</label>
+        <p class="form-notice" style="margin-top:12px">지운 기록은 되돌릴 수 없어요. 필요하면 먼저 <b>엑셀로 내보내기</b>로 백업해 두세요.</p></div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary btn-danger" type="button" data-act="sc-commit" ${n ? '' : 'disabled'}>고른 ${n}명 정리</button></div>`;
+  }
+
   /* ---------- 중복 한 번에 정리 ----------
    * 이름·전화·사업자번호(명함은 휴대전화·이메일·이름+소속)가 같은 것끼리 묶고, 묶음마다 하나만 남긴다 */
   const DEDUPE_WHAT = { biz: '사업체', net: '기관', card: '명함' };
@@ -10165,6 +10230,11 @@ window.App = (() => {
     let v;
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'staffclean') {
+      inner.innerHTML = staffCleanHtml(top);
       showDrawer();
       return;
     }
@@ -10776,6 +10846,33 @@ window.App = (() => {
       Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', prog: '', biz: true, net: true, card: el.dataset.kind === 'card' ? true : V.ui.map.card, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), solo: { kind: el.dataset.kind, id: el.dataset.id }, focus: { kind: el.dataset.kind, id: el.dataset.id } });
       closeDrawer();
       if (location.hash === '#/map') render(); else location.hash = '#/map';
+    },
+    'staff-clean': () => {
+      // 현장중심(장애인개발원) 소속이 아닌 직원을 미리 골라 둔다
+      const keep = new Set(S.staff().filter(x => x.program === '장애인개발원').map(x => x.name));
+      push({ type: 'staffclean', pick: new Set(S.staff().map(x => x.name).filter(n => !keep.has(n))), keepName: false }, false);
+    },
+    'sc-pick': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'staffclean') return; const n = el.dataset.name; top.pick.has(n) ? top.pick.delete(n) : top.pick.add(n); renderDrawer(true); },
+    'sc-keepname': () => { const top = stack[stack.length - 1]; if (top && top.type === 'staffclean') { top.keepName = !top.keepName; renderDrawer(true); } },
+    'sc-commit': async () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'staffclean') return;
+      const names = [...top.pick];
+      const all = names.map(staffRecords);
+      const sum = k => all.reduce((a, r) => a + r[k].length, 0);
+      const label = names.map(n => n || '(담당 없음)').join(', ');
+      if (!(await confirmBox(`${label} 정리할까요?`, `사업체 ${sum('biz')}곳 · 기관 ${sum('net')}곳 · 연결 명함 ${sum('cards')}장 · 활동 ${sum('acts')}건 · 일정 ${sum('evs')}건 · 실적 ${sum('perfs')}건 · 출장·특근 ${sum('trips')}건을 지웁니다.${top.keepName ? '' : ' 직원 목록에서도 뺍니다.'} 되돌릴 수 없어요.`, '지우기'))) return;
+      const ids = k => [...new Set(all.flatMap(r => r[k].map(x => x.id)))];
+      S.removeMany('act', ids('acts')); S.removeMany('ev', ids('evs')); S.removeMany('card', ids('cards'));
+      S.removeMany('perf', ids('perfs')); S.removeMany('trip', ids('trips'));
+      S.removeMany('biz', ids('biz')); S.removeMany('net', ids('net'));
+      const drop = new Set(names.filter(Boolean));
+      if (!top.keepName && drop.size) {
+        const left = S.staff().filter(x => !drop.has(x.name));
+        if (left.length) await S.saveSettings({ staff: left });
+      }
+      closeDrawer();
+      toast(`${label} 정리를 마쳤어요. 사업체 ${sum('biz')}곳 · 활동 ${sum('acts')}건을 지웠어요.`);
+      render();
     },
     'self-test': async () => {
       if (!S.REMOTE) return toast('지금은 이 브라우저에만 저장하는 파일 버전이에요. 입력하면 바로 이 컴퓨터에 쌓여요. (팀 공유 사이트에서 점검하면 구글 시트 저장을 확인해요)');

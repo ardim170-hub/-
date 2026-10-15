@@ -76,7 +76,7 @@ window.V = (() => {
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
   const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(p.key)}">${e(p.short)}</span>` : ''; };
-  const staffTag = name => name ? `<span class="staff-tag">${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
+  const staffTag = name => name ? `<span class="staff-tag">${staffDot(name)}${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
   const scopeNote = () => S.getScope() === 'all' ? '' : ` · <b>${e(S.scopeLabel())}</b> 기준`;
   const ddayBadge = date => { const d = U.dday(date); return `<span class="badge ${d.tone} num">${d.label}</span>`; };
   const primaryContact = (kind, id) => S.cardsOf(kind, id)[0] || null;
@@ -637,6 +637,8 @@ window.V = (() => {
   /** 직원마다 고정 색 (일정 점·이름표) */
   const STAFF_COLORS = ['#2563EB', '#E8590C', '#0E9384', '#7C4DDB', '#C2255C', '#2F9E62', '#B08800', '#475467'];
   const staffColor = name => { const i = S.staff().findIndex(s => s.name === name); return i < 0 ? '#9AA3B2' : STAFF_COLORS[i % STAFF_COLORS.length]; };
+  /** 이름 앞 색 점 */
+  const staffDot = name => (name ? `<span class="sdot" style="background:${staffColor(name)}"></span>` : '');
   /** 일정의 담당: 적어 둔 직원, 없으면 관련 사업체·기관 담당 */
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
@@ -656,7 +658,7 @@ window.V = (() => {
       ${tabs}
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
-        ${S.staff().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
+        ${S.staffHere().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
         <button type="button" class="chip ${f.who === '-' ? 'on' : ''}" data-act="sched-who" data-who="-">팀 공통 <span class="n">${n('-')}</span></button>
       </div>
       <div class="sched">
@@ -1011,6 +1013,10 @@ window.V = (() => {
           ${st.isDemo ? '<p><span class="badge warn">예시 데이터 사용 중</span> 실제 업무 전에 비우거나 엑셀로 교체하세요.</p>' : ''}
         </section>
         <section class="panel panel-pad">
+          <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
+          <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>
+        </section>
+        <section class="panel panel-pad">
           <h2 class="section-title">🩺 저장 점검 <span class="sub">입력한 기록이 구글 시트에 제대로 쌓이는지 시트마다 확인해요</span></h2>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="self-test">지금 점검하기</button>${S.REMOTE && S.outboxSize() ? `<button class="btn" type="button" data-act="outbox-flush">못 보낸 기록 ${S.outboxSize()}건 다시 보내기</button>` : ''}<span class="sub">입력은 먼저 이 컴퓨터에 보관한 뒤 구글 시트로 보내요. 인터넷이 끊겨도 지워지지 않고, 연결되면 자동으로 다시 보내요.</span></div>
         </section>
@@ -1284,5 +1290,5 @@ window.V = (() => {
     });
   }
 
-  return { accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { staffColor, staffDot, accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();

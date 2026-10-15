@@ -695,6 +695,40 @@ window.App = (() => {
     document.body.style.overflow = '';
     setTimeout(() => { if (!drawerOpen()) $('#drawerInner').innerHTML = ''; }, 250);
   }
+  /* ---------- 담당자 정리: 고른 직원의 이름과 그 사람이 담당한 기록을 지운다 ---------- */
+  function staffRecords(name) {
+    const st = S.get(), none = name === '';
+    const mine = x => (none ? !x.staff : x.staff === name);
+    const biz = st.businesses.filter(mine), net = st.networks.filter(mine);
+    const ids = new Set([...biz.map(b => 'biz' + b.id), ...net.map(n => 'net' + n.id)]);
+    const onT = x => x.targetType && ids.has(x.targetType + x.targetId);
+    return {
+      biz, net,
+      cards: st.cards.filter(c => c.linkType && ids.has(c.linkType + c.linkId)),
+      acts: st.activities.filter(a => (none ? false : a.staff === name) || onT(a)),
+      evs: st.events.filter(x => (none ? false : x.staff === name) || onT(x)),
+      perfs: none ? [] : st.perfs.filter(mine), trips: none ? [] : st.trips.filter(mine),
+    };
+  }
+  function staffCleanHtml(st) {
+    const rows = [...S.staff().map(x => x.name), ''].map(n => {
+      const r = staffRecords(n), tot = r.biz.length + r.net.length + r.acts.length + r.evs.length + r.perfs.length + r.trips.length;
+      if (n === '' && !r.biz.length && !r.net.length) return '';
+      const prog = n ? S.programOf(n) : '';
+      return `<label class="sc-item ${st.pick.has(n) ? 'on' : ''}"><input type="checkbox" data-act="sc-pick" data-name="${U.esc(n)}" ${st.pick.has(n) ? 'checked' : ''}>
+        <span class="sc-main"><span class="sc-top">${n ? V.staffDot(n) : ''}<b>${n ? U.esc(n) : '(담당 직원 없음)'}</b> <span class="sub">${n ? U.esc(prog || '소속 미지정') : '담당 칸이 빈 사업체·기관'}</span></span>
+        <span class="meta">사업체 ${r.biz.length} · 기관 ${r.net.length} · 연결 명함 ${r.cards.length} · 활동 ${r.acts.length} · 일정 ${r.evs.length} · 실적 ${r.perfs.length} · 출장·특근 ${r.trips.length}${tot ? '' : ' · 기록 없음'}</span>
+        ${r.biz.length ? `<span class="meta">사업체: ${r.biz.slice(0, 6).map(b => U.esc(b.name)).join(', ')}${r.biz.length > 6 ? ` 외 ${r.biz.length - 6}곳` : ''}</span>` : ''}</span></label>`;
+    }).join('');
+    const n = st.pick.size;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">담당자 정리</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">고른 직원이 담당한 <b>사업체·기관과 그 활동·일정·연결 명함, 실적·출장·특근 기록</b>을 지우고, 직원 목록에서도 뺍니다.</p></div>
+      <div class="dr-body"><div class="sc-list">${rows}</div>
+        <label class="check" style="margin-top:12px"><input type="checkbox" data-act="sc-keepname" ${st.keepName ? 'checked' : ''}>직원 이름은 목록에 남기기 (기록만 지우기)</label>
+        <p class="form-notice" style="margin-top:12px">지운 기록은 되돌릴 수 없어요. 필요하면 먼저 <b>엑셀로 내보내기</b>로 백업해 두세요.</p></div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary btn-danger" type="button" data-act="sc-commit" ${n ? '' : 'disabled'}>고른 ${n}명 정리</button></div>`;
+  }
+
   /* ---------- 중복 한 번에 정리 ----------
    * 이름·전화·사업자번호(명함은 휴대전화·이메일·이름+소속)가 같은 것끼리 묶고, 묶음마다 하나만 남긴다 */
   const DEDUPE_WHAT = { biz: '사업체', net: '기관', card: '명함' };
@@ -736,6 +770,11 @@ window.App = (() => {
     let v;
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'staffclean') {
+      inner.innerHTML = staffCleanHtml(top);
       showDrawer();
       return;
     }
@@ -1347,6 +1386,33 @@ window.App = (() => {
       Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', prog: '', biz: true, net: true, card: el.dataset.kind === 'card' ? true : V.ui.map.card, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), solo: { kind: el.dataset.kind, id: el.dataset.id }, focus: { kind: el.dataset.kind, id: el.dataset.id } });
       closeDrawer();
       if (location.hash === '#/map') render(); else location.hash = '#/map';
+    },
+    'staff-clean': () => {
+      // 현장중심(장애인개발원) 소속이 아닌 직원을 미리 골라 둔다
+      const keep = new Set(S.staff().filter(x => x.program === '장애인개발원').map(x => x.name));
+      push({ type: 'staffclean', pick: new Set(S.staff().map(x => x.name).filter(n => !keep.has(n))), keepName: false }, false);
+    },
+    'sc-pick': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'staffclean') return; const n = el.dataset.name; top.pick.has(n) ? top.pick.delete(n) : top.pick.add(n); renderDrawer(true); },
+    'sc-keepname': () => { const top = stack[stack.length - 1]; if (top && top.type === 'staffclean') { top.keepName = !top.keepName; renderDrawer(true); } },
+    'sc-commit': async () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'staffclean') return;
+      const names = [...top.pick];
+      const all = names.map(staffRecords);
+      const sum = k => all.reduce((a, r) => a + r[k].length, 0);
+      const label = names.map(n => n || '(담당 없음)').join(', ');
+      if (!(await confirmBox(`${label} 정리할까요?`, `사업체 ${sum('biz')}곳 · 기관 ${sum('net')}곳 · 연결 명함 ${sum('cards')}장 · 활동 ${sum('acts')}건 · 일정 ${sum('evs')}건 · 실적 ${sum('perfs')}건 · 출장·특근 ${sum('trips')}건을 지웁니다.${top.keepName ? '' : ' 직원 목록에서도 뺍니다.'} 되돌릴 수 없어요.`, '지우기'))) return;
+      const ids = k => [...new Set(all.flatMap(r => r[k].map(x => x.id)))];
+      S.removeMany('act', ids('acts')); S.removeMany('ev', ids('evs')); S.removeMany('card', ids('cards'));
+      S.removeMany('perf', ids('perfs')); S.removeMany('trip', ids('trips'));
+      S.removeMany('biz', ids('biz')); S.removeMany('net', ids('net'));
+      const drop = new Set(names.filter(Boolean));
+      if (!top.keepName && drop.size) {
+        const left = S.staff().filter(x => !drop.has(x.name));
+        if (left.length) await S.saveSettings({ staff: left });
+      }
+      closeDrawer();
+      toast(`${label} 정리를 마쳤어요. 사업체 ${sum('biz')}곳 · 활동 ${sum('acts')}건을 지웠어요.`);
+      render();
     },
     'self-test': async () => {
       if (!S.REMOTE) return toast('지금은 이 브라우저에만 저장하는 파일 버전이에요. 입력하면 바로 이 컴퓨터에 쌓여요. (팀 공유 사이트에서 점검하면 구글 시트 저장을 확인해요)');

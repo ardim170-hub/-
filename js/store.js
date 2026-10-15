@@ -592,6 +592,8 @@ window.S = (() => {
     if (scope.startsWith('s:')) return name === scope.slice(2);
     return true;
   }
+  /** 지금 보는 범위의 직원 (현장중심이면 장애인개발원 소속만) */
+  const staffHere = () => { const l = staff().filter(x => staffInScope(x.name)); return l.length ? l : staff(); };
   function scopeLabel() {
     if (scope.startsWith('p:')) return scope.slice(2);
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
@@ -846,7 +848,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },

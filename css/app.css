@@ -1871,3 +1871,26 @@ body { font-size: 16px; }
 .st-sum.good { background: #E8F6EF; color: #1F7A52; } .st-sum.bad { background: #FDECEF; color: #B4233C; }
 .st-sum small { font-size: 14px; font-weight: 500; }
 .st-tbl th { white-space: nowrap; }
+
+/* 직원별 고정 색: 이름 앞 점, 표 줄 왼쪽 띠 */
+.sdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex: none; }
+.sc-row > td:first-child { box-shadow: inset 5px 0 0 var(--sc, transparent); padding-left: 14px; }
+.sc-sel { border-left: 5px solid var(--sc, var(--line)) !important; font-weight: 700; min-width: 96px; }
+.od-tbl td { white-space: nowrap; }
+.od-tbl td .input, .od-tbl td .select { min-width: 0; }
+.od-tbl td:nth-child(2) .select { min-width: 104px; }
+/* 담당자별 명령부 카드: 이름이 깨지지 않게 넓히고 버튼은 아래로 */
+.od-each-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+.od-each-item { flex-wrap: wrap; border-top: 4px solid var(--sc, var(--line)) !important; border-radius: 8px !important; padding: 10px 12px; }
+.od-each-name { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; min-width: 0; }
+.od-each-name b { font-size: 16px; }
+.od-each-item .inline { margin-left: auto; }
+.od-staff .chip { white-space: nowrap; }
+.sc-list { display: flex; flex-direction: column; gap: 8px; }
+.sc-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.sc-item.on { border-color: #E8A0AC; background: #FFF5F6; }
+.sc-item input { margin-top: 5px; }
+.sc-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sc-main b { font-size: 16px; }
+.btn-danger.btn-primary { background: #C8364E; border-color: #C8364E; }
+.sc-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
