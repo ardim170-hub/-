@@ -1788,3 +1788,20 @@ body[data-sec] .side-nav a { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); 
 .pm-v small { color: var(--text-2); margin-left: 4px; }
 @media (max-width: 640px) { .pm-year { grid-template-columns: 1fr; } }
 .pm-tbl thead th small { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-2); }
+
+/* 중복 한 번에 정리 */
+.dd-body { display: flex; flex-direction: column; gap: 12px; }
+.dd-grp { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
+.dd-grp.off { opacity: .55; }
+.dd-gh { display: flex; align-items: center; gap: 8px; font-size: 15px; margin-bottom: 6px; cursor: pointer; }
+.dd-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+.dd-item:hover { background: var(--surface-2); }
+.dd-item.keep { background: color-mix(in srgb, var(--pi) 9%, transparent); }
+.dd-item input { margin-top: 4px; }
+.dd-main { display: flex; flex-direction: column; min-width: 0; font-size: 15px; }
+.dd-main .meta { font-size: 13px; }
+.dd-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.dd-card { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); }
+.dd-card span { font-weight: 700; color: var(--text-2); }
+.dd-card b { font-size: 20px; } .dd-card b.warn { color: #C98A1B; }
+.dup-bar .inline { gap: 6px; }

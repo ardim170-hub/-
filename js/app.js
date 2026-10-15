@@ -99,7 +99,8 @@ window.App = (() => {
     const d = el.dataset || {};
     if (act === 'edit' || act === 'edit-loc' || act === 'map-move') return [[KIND_MENU[d.kind], 2]];
     if (act === 'map-add-here' || act === 'place-add') return [[d.kind === 'net' ? 'network' : 'biz', 2]];
-    if (act === 'delete' || act === 'merge') return [[KIND_MENU[d.kind], 3]];
+    if (act === 'delete' || act === 'merge' || act === 'dedupe-open') return [[KIND_MENU[d.kind], 3]];
+    if (act === 'dedupe-commit') { const top = stack[stack.length - 1]; return [[KIND_MENU[top && top.kind] || 'biz', 3]]; }
     if (act === 'triage') return d.to === 'personal' ? [['cards', 2]] : [['cards', 2], [KIND_MENU[d.to], 2]];
     if (act === 'act-del') { const x = S.find('act', d.id); return [[x && x.targetType === 'net' ? 'network' : 'biz', 3]]; }
     if (act === 'focus-log') { const top = stack[stack.length - 1]; return [[KIND_MENU[top && top.kind] || 'biz', 2]]; }
@@ -682,6 +683,38 @@ window.App = (() => {
     document.body.style.overflow = '';
     setTimeout(() => { if (!drawerOpen()) $('#drawerInner').innerHTML = ''; }, 250);
   }
+  /* ---------- 중복 한 번에 정리 ----------
+   * 이름·전화·사업자번호(명함은 휴대전화·이메일·이름+소속)가 같은 것끼리 묶고, 묶음마다 하나만 남긴다 */
+  const DEDUPE_WHAT = { biz: '사업체', net: '기관', card: '명함' };
+  function dedupeGroups(kind) {
+    const idx = S.dupIndex(kind), seen = new Set(), groups = [];
+    const filled = x => Object.values(x).filter(v => v != null && v !== '' && !(Array.isArray(v) && !v.length)).length
+      + (kind === 'card' ? (x.photo ? 5 : 0) : S.get().activities.filter(a => a.targetType === kind && a.targetId === x.id).length * 2);
+    idx.forEach((_, id) => {
+      if (seen.has(id)) return;
+      const g = [], q = [id]; seen.add(id);
+      while (q.length) { const cur = q.shift(); const x = S.find(kind, cur); if (x) g.push(x); (idx.get(cur) || []).forEach(d => { if (!seen.has(d.x.id)) { seen.add(d.x.id); q.push(d.x.id); } }); }
+      if (g.length < 2) return;
+      g.sort((a, b) => filled(b) - filled(a) || String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+      const why = [...new Set(g.flatMap(x => (idx.get(x.id) || []).flatMap(d => d.why)))];
+      groups.push({ items: g, keep: g[0].id, on: true, why });
+    });
+    return groups;
+  }
+  function dedupeHtml(st) {
+    const e = U.esc;
+    const what = DEDUPE_WHAT[st.kind], n = st.groups.filter(g => g.on).reduce((a, g) => a + g.items.length - 1, 0);
+    const meta = x => (st.kind === 'card' ? [x.org, x.mobile, x.email] : [x.address, x.phone, x.bizNo]).filter(Boolean).map(e).join(' · ');
+    const acts = x => (st.kind === 'card' ? '' : S.get().activities.filter(a => a.targetType === st.kind && a.targetId === x.id).length);
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${what} 중복 한 번에 정리</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">겹치는 묶음 <b>${st.groups.length}개</b>. 묶음마다 <b>남길 것</b>을 고르면 나머지의 빈 칸·${st.kind === 'card' ? '정보' : '활동 기록·일정·명함'}을 옮기고 지워요.</p></div>
+      <div class="dr-body dd-body">${st.groups.length ? st.groups.map((g, gi) => `<section class="dd-grp ${g.on ? '' : 'off'}">
+          <label class="dd-gh"><input type="checkbox" data-act="dedupe-on" data-g="${gi}" ${g.on ? 'checked' : ''}><b>묶음 ${gi + 1}</b> <span class="sub">${e(g.why.join(' · '))} · ${g.items.length}건</span>${g.on ? '' : ' <span class="badge">건너뜀</span>'}</label>
+          ${g.items.map(x => `<label class="dd-item ${g.keep === x.id ? 'keep' : ''}"><input type="radio" name="dd${gi}" data-act="dedupe-keep" data-g="${gi}" data-id="${x.id}" ${g.keep === x.id ? 'checked' : ''} ${g.on ? '' : 'disabled'}>
+            <span class="dd-main"><b>${e(x.name)}</b>${g.keep === x.id ? ' <span class="badge accent">남김</span>' : g.on ? ' <span class="badge dup">합쳐서 지움</span>' : ''}<span class="meta">${meta(x) || '정보 없음'}${acts(x) ? ` · 활동 ${acts(x)}건` : ''}${x.createdAt ? ` · 등록 ${U.dateDot(String(x.createdAt).slice(0, 10))}` : ''}</span></span></label>`).join('')}
+        </section>`).join('') : `<p class="empty">겹치는 ${what}가 없어요. 깔끔해요 👍</p>`}</div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">닫기</button><button class="btn btn-primary" type="button" data-act="dedupe-commit" ${n ? '' : 'disabled'}>${n}건 합쳐서 정리</button></div>`;
+  }
   function renderDrawer(keepScroll) {
     const top = stack[stack.length - 1];
     if (!top) return closeDrawer();
@@ -691,6 +724,11 @@ window.App = (() => {
     let v;
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'dedupe') {
+      inner.innerHTML = dedupeHtml(top);
       showDrawer();
       return;
     }
@@ -1279,6 +1317,20 @@ window.App = (() => {
       Object.assign(V.ui.map, { mode: 'ours', gu: '', q: '', prog: '', biz: true, net: true, card: el.dataset.kind === 'card' ? true : V.ui.map.card, noPos: false, stages: new Set(D.STAGES.map(s => s.key)), solo: { kind: el.dataset.kind, id: el.dataset.id }, focus: { kind: el.dataset.kind, id: el.dataset.id } });
       closeDrawer();
       if (location.hash === '#/map') render(); else location.hash = '#/map';
+    },
+    'dedupe-open': el => { const kind = el.dataset.kind; push({ type: 'dedupe', kind, groups: dedupeGroups(kind) }, false); },
+    'dedupe-on': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'dedupe') return; const g = top.groups[+el.dataset.g]; g.on = !g.on; renderDrawer(true); },
+    'dedupe-keep': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'dedupe') return; top.groups[+el.dataset.g].keep = el.dataset.id; renderDrawer(true); },
+    'dedupe-commit': async () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'dedupe') return;
+      const what = DEDUPE_WHAT[top.kind], gs = top.groups.filter(g => g.on);
+      const n = gs.reduce((a, g) => a + g.items.length - 1, 0);
+      if (!n || !(await confirmBox(`${what} ${n}건을 합칠까요?`, `묶음 ${gs.length}개에서 '남김'으로 고른 것만 남기고, 나머지 ${n}건의 내용을 옮긴 뒤 지웁니다. 되돌릴 수 없으니 필요하면 먼저 엑셀로 받아 두세요.`, '합쳐서 정리'))) return;
+      let done = 0;
+      gs.forEach(g => g.items.forEach(x => { if (x.id !== g.keep && S.find(top.kind, x.id) && S.find(top.kind, g.keep)) { S.merge(top.kind, g.keep, x.id); done++; } }));
+      closeDrawer();
+      toast(`${what} 중복 ${done}건을 합쳐서 정리했습니다.`);
+      render();
     },
     'dup-toggle': el => { const f = V.ui[el.dataset.kind === 'card' ? 'cards' : el.dataset.kind]; f.dup = !f.dup; render(); },
     'cards-of': el => {

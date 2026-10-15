@@ -290,7 +290,7 @@ window.V = (() => {
   /** 중복 의심 표시 · 지원고용 표시 */
   const dupTag = (idx, id) => (idx.has(id) ? ` <span class="badge dup" title="${e(idx.get(id).map(d => d.x.name + ' (' + d.why.join(', ') + ')').join(' / '))}">중복?</span>` : '');
   const supTag = b => S.supportOf(b).types.map(t => ` <span class="badge ${t === '지원고용' ? 'employ' : 'training'}">${t}</span>`).join('');
-  const dupBar = (kind, n, on) => (n ? `<div class="dup-bar"><span>${{ biz: '사업체', net: '기관', card: '명함' }[kind]} <b>${n}</b>건이 다른 것과 겹쳐 보여요. 같은 곳이면 상세 화면에서 합칠 수 있어요.</span><button class="btn btn-sm" type="button" data-act="dup-toggle" data-kind="${kind}">${on ? '전체 보기' : '겹치는 것만 보기'}</button></div>` : '');
+  const dupBar = (kind, n, on) => (n ? `<div class="dup-bar"><span>${{ biz: '사업체', net: '기관', card: '명함' }[kind]} <b>${n}</b>건이 다른 것과 겹쳐 보여요. <b>한 번에 정리</b>로 묶음마다 하나만 남길 수 있어요.</span><span class="inline"><button class="btn btn-sm" type="button" data-act="dup-toggle" data-kind="${kind}">${on ? '전체 보기' : '겹치는 것만 보기'}</button><button class="btn btn-sm btn-primary" type="button" data-act="dedupe-open" data-kind="${kind}">한 번에 정리</button></span></div>` : '');
   function dupSec(kind, x) {
     const list = S.dupIndex(kind).get(x.id) || [];
     if (!list.length) return '';
@@ -1009,6 +1009,10 @@ window.V = (() => {
           <h2 class="section-title">현재 데이터</h2>
           <div class="stat-line"><span>사업체 <b>${st.businesses.length}</b></span><span>네트워크 <b>${st.networks.length}</b></span><span>명함 <b>${st.cards.length}</b></span><span>활동 기록 <b>${st.activities.length}</b></span><span>일정 <b>${st.events.length}</b></span></div>
           ${st.isDemo ? '<p><span class="badge warn">예시 데이터 사용 중</span> 실제 업무 전에 비우거나 엑셀로 교체하세요.</p>' : ''}
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">🧹 중복 정리 <span class="sub">이름·전화·사업자번호가 같은 것을 묶어서 하나만 남겨요</span></h2>
+          <div class="dd-cards">${[['biz', '사업체'], ['net', '기관'], ['card', '명함']].map(([k, l]) => { const n = S.dupIndex(k).size; return `<div class="dd-card"><span>${l}</span><b class="num ${n ? 'warn' : ''}">${n ? `겹침 ${n}건` : '깔끔함'}</b><button class="btn btn-sm ${n ? 'btn-primary' : ''}" type="button" data-act="dedupe-open" data-kind="${k}" ${n ? '' : 'disabled'}>한 번에 정리</button></div>`; }).join('')}</div>
         </section>
         <section class="panel panel-pad">
           <h2 class="section-title">엑셀로 내보내기</h2>
