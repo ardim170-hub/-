@@ -893,7 +893,12 @@ window.App = (() => {
       registerFromCard(saved, res.extra.to, res.extra.name, res.extra.cat, false);
       return;
     }
-    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: `${saved.source || '발굴'}로 사업체 등록`, staff: saved.staff || S.me() });
+    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: saved.source ? `${saved.source}에서 찾아 사업체 등록` : '사업체 발굴 등록', staff: saved.staff || S.me() });
+    // 간단 등록에서 담당자를 쓰면 명함도 만들어 이 사업체에 연결한다
+    if (!id && kind === 'biz' && res.extra && res.extra.contact) {
+      const ct = res.extra.contact, mob = /^01/.test(ct.phone.replace(/\D/g, ''));
+      S.upsert('card', { name: ct.name, title: ct.title, org: saved.name, mobile: mob ? ct.phone : '', phone: mob ? '' : ct.phone, email: '', address: saved.address || '', linkType: 'biz', linkId: saved.id, metAt: saved.discoveredAt || U.today(), metWhere: saved.source || '', tags: ['사업체 담당자'], memo: '' });
+    }
     mapToast(kind, saved, id ? '저장했습니다.' : '등록했습니다.');
     stack.pop();
     if (!id && kind !== 'ev' && !stack.length) stack.push({ type: 'detail', kind, id: saved.id });

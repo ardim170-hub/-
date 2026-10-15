@@ -59,9 +59,49 @@ window.F = (() => {
   /* ---------- 사업체 ---------- */
   const notice = t => t ? `<div class="form-notice">${e(t)}</div>` : '';
   function biz(b, preset = {}, focus) {
-    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '현장 발굴', placements: 0, ...preset };
-    return {
-      html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" data-focus="${e(focus || '')}" novalidate>${notice(preset._notice)}
+    const x = b || { stage: '발굴', discoveredAt: U.today(), staff: S.me(), source: '', placements: 0, ...preset };
+    // 새로 등록할 때는 간단 등록(이름·주소·담당자·개발 사이트·비고)만 보이고 나머지는 '자세히'에 접어 둔다
+    const quick = !b;
+    const srcSel = `<select class="select" id="f_source" name="source">${V.opts([...new Set([...D.SOURCES, ...(x.source ? [x.source] : [])])], x.source, '선택')}</select>`;
+    const body = quick ? `
+        <div class="fsec quick-sec"><h3>간단 등록 <span class="sub">이것만 쓰면 사업체·명함·지도에 한 번에 들어가요</span></h3><div class="frow">
+          ${field('사업체명', inp('name', x.name, 'required autocomplete="off"'), { req: true, full: true, name: 'name', for: 'f_name' })}
+          ${field('개발 사이트', srcSel, { for: 'f_source', hint: '어디서 찾은 사업체인지 (고용24, 알바몬 등)' })}
+          ${field('담당자 이름', inp('cName', preset.cName, 'autocomplete="off" placeholder="예: 홍길동"'), { for: 'f_cName', hint: '쓰면 명함에도 자동으로 들어가요' })}
+          ${field('담당자 직함', inp('cTitle', preset.cTitle, 'placeholder="예: 인사팀장"'), { for: 'f_cTitle' })}
+          ${field('담당자 연락처', inp('cPhone', preset.cPhone, 'type="tel" inputmode="tel" placeholder="010-0000-0000 또는 031-000-0000"'), { for: 'f_cPhone' })}
+          ${field('비고', ta('memo', x.memo, 'rows="3" placeholder="예: 고용24 공고 보고 전화, 포장 2명 채용 중, 공고 링크"'), { full: true, for: 'f_memo' })}
+        </div></div>
+        ${locationSection(x)}
+        <details class="more-fields" ${preset.industry || preset.bizNo || preset.ceo || preset.phone ? 'open' : ''}><summary>자세히 입력 <span class="sub">(선택) 업종·사업자번호·채용 정보·담당 직원 등</span></summary>
+        <div class="fsec"><h3>사업체 정보</h3><div class="frow">
+          ${field('업종', `<input class="input" id="f_industry" name="industry" list="indList" value="${e(x.industry || '')}"><datalist id="indList">${D.INDUSTRY_LIST.map(i => `<option value="${e(i)}">`).join('')}</datalist>`, { for: 'f_industry' })}
+          ${field('상시근로자 수', inp('employees', x.employees || '', 'type="number" min="0" inputmode="numeric"'), { for: 'f_employees', hint: '50명 이상이면 장애인 의무고용 대상(3.1%)으로 표시됩니다.' })}
+          ${field('사업자등록번호', inp('bizNo', x.bizNo, 'placeholder="000-00-00000"'), { for: 'f_bizNo' })}
+          ${field('대표자', inp('ceo', x.ceo), { for: 'f_ceo' })}
+          ${field('대표 전화', inp('phone', x.phone, 'type="tel" inputmode="tel" placeholder="031-000-0000"'), { for: 'f_phone' })}
+          ${field('홈페이지', inp('homepage', x.homepage, 'placeholder="www..."'), { for: 'f_homepage' })}
+        </div></div>
+        <div class="fsec"><h3>채용 정보</h3><div class="frow">
+          ${field('진행 단계', sel('stage', D.STAGES.map(s => s.key), x.stage), { for: 'f_stage' })}
+          ${field('진행 사업', `<div class="sup-pick">${D.SUPPORT_TYPES.map(t => `<label class="sup-opt sup-${t === '지원고용' ? 'employ' : 'training'}"><input type="checkbox" name="support" value="${t}" ${(x.support || []).includes(t) ? 'checked' : ''}><span>${D.SUPPORT_LABEL[t]}</span></label>`).join('')}</div>`, { full: true, hint: '지도에 지원고용은 빨강, 현장훈련은 보라로 표시돼요. 채용연계가 되면 주황이에요.' })}
+          ${field('채용 연계 인원', inp('placements', x.placements || 0, 'type="number" min="0" inputmode="numeric"'), { for: 'f_placements' })}
+          ${field('가능 직무', inp('jobs', x.jobs, 'placeholder="예: 포장, 검수, 사무 보조"'), { full: true, for: 'f_jobs' })}
+          ${field('근무 조건', inp('workConditions', x.workConditions, 'placeholder="예: 주 5일, 09:00~16:00"'), { full: true, for: 'f_workConditions' })}
+          ${field('복리후생(기타)', inp('welfare', x.welfare, 'placeholder="예: 중식 제공, 통근버스"'), { full: true, for: 'f_welfare' })}
+          ${field('실적 진행도', sel('progress', D.PROCEDURES, x.progress, '자동 (방문·직무분석지 기록으로 판단)'), { full: true, for: 'f_progress' })}
+          ${field('편의시설·고려사항', ta('accessibility', x.accessibility, 'rows="2" placeholder="예: 엘리베이터 있음, 서서 하는 작업, 통근버스 운영"'), { full: true, for: 'f_accessibility' })}
+        </div></div>
+        <div class="fsec"><h3>기초 조사</h3><div class="frow">
+          ${field('조사 내용', ta('research', x.research, 'rows="7" placeholder="회사 개요, 규모, 주요 제품, 최근 채용 공고, 장애인 고용 관련 내용, 참고할 점, 출처 등"'), { full: true, for: 'f_research', hint: '사업체 상세 화면의 검색 버튼(네이버·구글·사람인 등)으로 찾은 내용을 정리해 두세요.' })}
+          ${field('조사일', inp('researchAt', x.researchAt, 'type="date"'), { for: 'f_researchAt' })}
+        </div></div>
+        <div class="fsec"><h3>운영 정보</h3><div class="frow">
+          ${field('발굴일', inp('discoveredAt', x.discoveredAt, 'type="date"'), { for: 'f_discoveredAt' })}
+          ${field('담당 직원', staffSel(x.staff), { for: 'f_staff' })}
+          ${progPick(x)}
+        </div></div>
+        </details>` : `
         <div class="fsec"><h3>기본 정보</h3><div class="frow">
           ${field('사업체명', inp('name', x.name, 'required autocomplete="off"'), { req: true, full: true, name: 'name', for: 'f_name' })}
           ${field('업종', `<input class="input" id="f_industry" name="industry" list="indList" value="${e(x.industry || '')}"><datalist id="indList">${D.INDUSTRY_LIST.map(i => `<option value="${e(i)}">`).join('')}</datalist>`, { for: 'f_industry' })}
@@ -93,6 +133,9 @@ window.F = (() => {
           ${progPick(x)}
           ${field('메모', ta('memo', x.memo, 'rows="3" placeholder="예: 인사팀장 통화는 오후 2시 이후"'), { full: true, for: 'f_memo' })}
         </div></div>
+`;
+    return {
+      html: head(b ? '사업체 정보 수정' : '사업체 발굴 등록') + `<div class="dr-body"><form class="form" id="entityForm" data-form="biz" data-id="${b ? b.id : ''}" data-focus="${e(focus || '')}" novalidate>${notice(preset._notice)}${body}
       </form></div>` + foot(b ? '저장' : '등록'),
       after: form => bindLocation(form),
     };
@@ -136,9 +179,11 @@ window.F = (() => {
           <div class="photo-drop" id="photoDrop">
             <img id="photoPreview" ${S.photo(x) ? `src="${S.photo(x)}"` : 'hidden'} alt="명함 사진 미리보기">
             <span id="photoHint">${x.photo ? '' : '명함을 찍은 사진을 올려 두면 원본을 다시 확인할 수 있어요.'}</span>
-            <div class="inline"><label class="btn btn-sm" for="f_photoFile">사진 선택</label>${x.photo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="photo-clear">사진 삭제</button>' : ''}</div>
+            <div class="inline"><label class="btn btn-sm btn-primary" for="f_fillFile">📷 사진·파일(PDF)로 내용 채우기</label><label class="btn btn-sm" for="f_photoFile">사진만 넣기</label>${x.photo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="photo-clear">사진 삭제</button>' : ''}</div>
             <input type="file" id="f_photoFile" accept="image/*" capture="environment" hidden>
+            <input type="file" id="f_fillFile" accept="image/*,application/pdf,.pdf" hidden>
           </div>
+          <div id="fillNote"></div>
           <input type="hidden" name="photo" value="">
         </div>
         <div class="fsec"><h3>인적 정보</h3><div class="frow">
@@ -194,6 +239,44 @@ window.F = (() => {
             form.elements.photo.value = data; prev.src = data; prev.hidden = false;
             form.querySelector('#photoHint').textContent = '';
           } catch { App.toast('사진을 읽지 못했습니다. JPG나 PNG 파일인지 확인하세요.', 'error'); }
+        });
+        // 명함 사진·PDF를 읽어 빈 칸을 채운다. 이미 쓴 칸과 다르면 바꿀지 고르게 한다
+        const FILL = [['name', '이름'], ['title', '직함'], ['org', '소속'], ['dept', '부서'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소']];
+        const note = form.querySelector('#fillNote');
+        const setPhoto = data => { if (!data) return; form.elements.photo.value = data; prev.src = data; prev.hidden = false; form.querySelector('#photoHint').textContent = ''; };
+        const fill = (r, from) => {
+          const filled = [], diff = [];
+          FILL.forEach(([k, l]) => {
+            const v = String(r[k] || '').trim(), el = form.elements[k]; if (!v || !el) return;
+            if (!el.value.trim()) { el.value = v; filled.push(l); el.classList.add('just-filled'); }
+            else if (el.value.trim() !== v) diff.push([k, l, v]);
+          });
+          const memo = [r.fax && `팩스 ${r.fax}`, r.homepage && `홈페이지 ${r.homepage}`].filter(Boolean).join('\n');
+          if (memo && !form.elements.memo.value.includes(memo)) form.elements.memo.value = [form.elements.memo.value, memo].filter(Boolean).join('\n');
+          note.innerHTML = `<div class="form-notice fill-note">${from}에서 읽었어요. ${filled.length ? `<b>${filled.join('·')}</b> 칸을 채웠어요.` : '새로 채울 빈 칸은 없었어요.'}${diff.length ? `<div class="fill-diff">이미 쓴 것과 다른 내용: ${diff.map(([, l, v]) => `${l} <b>${e(v)}</b>`).join(', ')} <button class="btn btn-sm" type="button" id="fillApply">명함 내용으로 바꾸기</button></div>` : ''} 저장을 눌러야 반영돼요.</div>`;
+          const ap = note.querySelector('#fillApply');
+          if (ap) ap.onclick = () => { diff.forEach(([k, , v]) => { form.elements[k].value = v; form.elements[k].classList.add('just-filled'); }); ap.closest('.fill-diff').innerHTML = '명함 내용으로 바꿨어요.'; };
+        };
+        form.querySelector('#f_fillFile').addEventListener('change', async ev => {
+          const f = ev.target.files[0]; ev.target.value = '';
+          if (!f) return;
+          const pdf = /pdf$/i.test(f.type) || /\.pdf$/i.test(f.name);
+          note.innerHTML = '<div class="form-notice">명함을 읽는 중이에요… 5~20초 걸려요.</div>';
+          try {
+            if (pdf) {
+              let pages = []; try { ({ pages } = await DT.pdfPages(f, 3)); } catch {}
+              setPhoto(pages[0] && pages[0].img);
+              let r = null;
+              if (AI.available()) { try { const data = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(f); }); r = (await AI.readCardsPdf(data))[0] || null; } catch {} }
+              if (!r && pages[0]) { const c = DT.parseCard(pages.map(p => p.text).join('\n')); if (DT.isCard(c)) r = c; }
+              if (r) return fill(r, `PDF(${f.name})`);
+              note.innerHTML = `<div class="form-notice">PDF에서 이름·연락처를 찾지 못했어요${pages[0] && !pages[0].text.trim() ? ' (스캔한 그림이라 글자가 없어요)' : ''}. 첫 쪽을 사진으로 넣어 두었으니 보면서 채워 주세요.</div>`;
+            } else {
+              setPhoto(await resizeImage(f, 1000, .72));
+              if (!AI.available()) { note.innerHTML = '<div class="form-notice">사진을 넣었어요. 사진 글자를 자동으로 읽으려면 데이터 관리 › AI 도우미에 키를 넣어 주세요. PDF 명함은 키 없이도 읽어요.</div>'; return; }
+              fill(await AI.readCard(await resizeImage(f, 1600, .85)), '사진');
+            }
+          } catch (err) { note.innerHTML = `<div class="form-notice">명함을 읽지 못했어요 (${e(err.message || err)}). 보면서 직접 채워 주세요.</div>`; }
         });
         form.elements.link.addEventListener('change', () => {
           const [k, id] = form.elements.link.value.split(':');
@@ -257,6 +340,8 @@ window.F = (() => {
     const pos = () => ({ lat: fd.lat ? +fd.lat : null, lng: fd.lng ? +fd.lng : null, approx: !!fd.approx });
     if (kind === 'biz') {
       need('name', '사업체명을 입력하세요.');
+      const cn = (fd.cName || '').trim(), cp = (fd.cPhone || '').trim();
+      if (!form.dataset.id && (cn || cp)) extra = { contact: { name: cn || '담당자', title: (fd.cTitle || '').trim(), phone: cp } };
       obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');

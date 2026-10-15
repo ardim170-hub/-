@@ -1852,3 +1852,16 @@ body { font-size: 16px; }
 .logo-tag b { font-size: 17px; font-weight: 850; color: #1F4E9A; letter-spacing: -.02em; }
 @media (max-width: 1180px) { .logo-img { height: 38px; } }
 @media (max-width: 760px) { .logo-img { height: 32px; } .logo-tag { display: none; } }
+
+/* 간단 등록 + 자세히 */
+.quick-sec > h3 { font-size: 17px; color: var(--text); }
+.quick-sec > h3 .sub { font-weight: 500; margin-left: 6px; }
+.more-fields { border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.more-fields > summary { cursor: pointer; padding: 12px 14px; font-weight: 750; font-size: 15.5px; list-style: none; }
+.more-fields > summary::before { content: "＋ "; color: var(--pi, var(--text-2)); }
+.more-fields[open] > summary::before { content: "－ "; }
+.more-fields[open] > summary { border-bottom: 1px solid var(--line); }
+.more-fields > .fsec { padding: 14px; }
+.fill-note { margin-top: 10px; line-height: 1.6; }
+.fill-diff { margin-top: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.input.just-filled { background: #FFF8E1; border-color: #F3C969; }
