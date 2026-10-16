@@ -634,12 +634,14 @@ window.S = (() => {
   function setMe(v) { lsSet('ardim.me', v); notify(); }
   function staffInScope(name, sc = scope) {
     if (sc === 'all') return true;
-    if (sc.startsWith('p:')) return programOf(name) === sc.slice(2);
+    if (sc.startsWith('p:')) { const pg = programOf(name); return pg === sc.slice(2) || (!pg && !!name && staff().some(x => x.name === name)); } // 소속을 아직 안 정한 직원은 모든 구역에
     if (sc.startsWith('s:')) return name === sc.slice(2);
     return true;
   }
   /** 지금 보는 범위의 직원 (현장중심이면 장애인개발원 소속만) */
-  const staffHere = () => { const l = staff().filter(x => staffInScope(x.name)); return l.length ? l : staff(); };
+  /** 지금 보는 구역(소속)의 직원만. 구역에 직원이 없으면 빈 목록 (다른 구역 직원으로 저장되지 않게) */
+  const staffHere = () => (scope === 'all' ? staff() : staff().filter(x => staffInScope(x.name)));
+  const inScope = (name, sc = scope) => staffInScope(name, sc);
   function scopeLabel() {
     if (scope.startsWith('p:')) return scope.slice(2);
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
@@ -896,7 +898,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },

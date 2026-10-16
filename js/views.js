@@ -562,7 +562,9 @@ window.V = (() => {
     if (f.biz && S.can('biz', 1)) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
     st.networks.forEach(n => { if ((f.net && S.can('network', 1)) || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
-    if (f.card && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
+    // 어디에도 연결 안 된 명함은 사업체 개발(현장중심) 지도에만 (다른 구역 지도에 섞이지 않게)
+    const cardsHere = ['all', 'p:장애인개발원'].includes(S.getScope()) || S.getScope().startsWith('s:');
+    if (f.card && cardsHere && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
     return items.filter(({ kind, x, home }) => home || ((!f.prog || kind === 'card' || S.programsOf(x).includes(f.prog)) && (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }

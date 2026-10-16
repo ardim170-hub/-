@@ -1118,12 +1118,14 @@ window.S = (() => {
   function setMe(v) { lsSet('ardim.me', v); notify(); }
   function staffInScope(name, sc = scope) {
     if (sc === 'all') return true;
-    if (sc.startsWith('p:')) return programOf(name) === sc.slice(2);
+    if (sc.startsWith('p:')) { const pg = programOf(name); return pg === sc.slice(2) || (!pg && !!name && staff().some(x => x.name === name)); } // 소속을 아직 안 정한 직원은 모든 구역에
     if (sc.startsWith('s:')) return name === sc.slice(2);
     return true;
   }
   /** 지금 보는 범위의 직원 (현장중심이면 장애인개발원 소속만) */
-  const staffHere = () => { const l = staff().filter(x => staffInScope(x.name)); return l.length ? l : staff(); };
+  /** 지금 보는 구역(소속)의 직원만. 구역에 직원이 없으면 빈 목록 (다른 구역 직원으로 저장되지 않게) */
+  const staffHere = () => (scope === 'all' ? staff() : staff().filter(x => staffInScope(x.name)));
+  const inScope = (name, sc = scope) => staffInScope(name, sc);
   function scopeLabel() {
     if (scope.startsWith('p:')) return scope.slice(2);
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
@@ -1380,7 +1382,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -2400,7 +2402,9 @@ window.V = (() => {
     if (f.biz && S.can('biz', 1)) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
     st.networks.forEach(n => { if ((f.net && S.can('network', 1)) || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
-    if (f.card && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
+    // 어디에도 연결 안 된 명함은 사업체 개발(현장중심) 지도에만 (다른 구역 지도에 섞이지 않게)
+    const cardsHere = ['all', 'p:장애인개발원'].includes(S.getScope()) || S.getScope().startsWith('s:');
+    if (f.card && cardsHere && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
     return items.filter(({ kind, x, home }) => home || ((!f.prog || kind === 'card' || S.programsOf(x).includes(f.prog)) && (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }

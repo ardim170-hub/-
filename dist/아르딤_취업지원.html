@@ -2595,6 +2595,9 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .pt-place:hover { border-color: var(--line); }
 .pt-place:focus { border-color: var(--accent); background: #fff; outline: none; }
 .pt-place::placeholder { font-weight: 500; color: #98A2B3; }
+.sec-staff { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+.sec-staff > b { margin-right: 4px; }
+.sec-staff-chip { display: inline-flex; align-items: center; gap: 2px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-weight: 700; }
 
 </style>
 </head>
@@ -2683,7 +2686,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.16 11:27";</script>
+<script>window.APP_VERSION = "2026.10.16 11:36";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3836,12 +3839,14 @@ window.S = (() => {
   function setMe(v) { lsSet('ardim.me', v); notify(); }
   function staffInScope(name, sc = scope) {
     if (sc === 'all') return true;
-    if (sc.startsWith('p:')) return programOf(name) === sc.slice(2);
+    if (sc.startsWith('p:')) { const pg = programOf(name); return pg === sc.slice(2) || (!pg && !!name && staff().some(x => x.name === name)); } // 소속을 아직 안 정한 직원은 모든 구역에
     if (sc.startsWith('s:')) return name === sc.slice(2);
     return true;
   }
   /** 지금 보는 범위의 직원 (현장중심이면 장애인개발원 소속만) */
-  const staffHere = () => { const l = staff().filter(x => staffInScope(x.name)); return l.length ? l : staff(); };
+  /** 지금 보는 구역(소속)의 직원만. 구역에 직원이 없으면 빈 목록 (다른 구역 직원으로 저장되지 않게) */
+  const staffHere = () => (scope === 'all' ? staff() : staff().filter(x => staffInScope(x.name)));
+  const inScope = (name, sc = scope) => staffInScope(name, sc);
   function scopeLabel() {
     if (scope.startsWith('p:')) return scope.slice(2);
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
@@ -4098,7 +4103,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -5118,7 +5123,9 @@ window.V = (() => {
     if (f.biz && S.can('biz', 1)) st.businesses.filter(b => f.stages.has(b.stage)).forEach(b => items.push({ kind: 'biz', x: b }));
     // 우리 복지관(금색 별)은 기준점이라 네트워크를 꺼도, 구·검색으로 걸러도 늘 보인다
     st.networks.forEach(n => { if ((f.net && S.can('network', 1)) || S.isHome(n)) items.push({ kind: 'net', x: n, home: S.isHome(n) }); });
-    if (f.card && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
+    // 어디에도 연결 안 된 명함은 사업체 개발(현장중심) 지도에만 (다른 구역 지도에 섞이지 않게)
+    const cardsHere = ['all', 'p:장애인개발원'].includes(S.getScope()) || S.getScope().startsWith('s:');
+    if (f.card && cardsHere && S.can('cards', 1)) st.cards.filter(c => !c.linkType && !(c.tags || []).includes('개인')).forEach(c => items.push({ kind: 'card', x: c }));
     return items.filter(({ kind, x, home }) => home || ((!f.prog || kind === 'card' || S.programsOf(x).includes(f.prog)) && (!f.gu || D.guOf(x.area) === f.gu) && U.match(f.q, x.name, x.org, x.area, D.guOf(x.area), x.industry, x.category)))
       .map(it => ({ ...it, month: it.kind === 'biz' && inMonth(it.x, f.month) }));
   }
@@ -7039,9 +7046,10 @@ window.R = (() => {
   const contactOf = b => { const c = S.cardsOf('biz', b.id)[0]; return c ? `${c.name}${c.title ? ' ' + c.title : ''}` : ''; };
   const phoneOf = b => b.phone || (S.cardsOf('biz', b.id)[0] || {}).phone || (S.cardsOf('biz', b.id)[0] || {}).mobile || '';
   /** 이 달 사업체 연락 기록 (전화·방문·이메일·미팅) */
-  function contactRows(month, v = S.view()) {
+  /** 연락이력은 그 구역 담당자가 남긴 것만 (다른 구역 직원이 같은 사업체에 연락한 기록은 그 구역 화면에) */
+  function contactRows(month, v = S.view(), sc = S.getScope()) {
     return v.activities
-      .filter(a => a.targetType === 'biz' && CONTACT_TYPES.includes(a.type) && a.date.startsWith(month))
+      .filter(a => a.targetType === 'biz' && CONTACT_TYPES.includes(a.type) && a.date.startsWith(month) && S.inScope(a.staff, sc))
       .map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.a.id.localeCompare(y.a.id));
   }
@@ -7056,6 +7064,18 @@ window.R = (() => {
     };
   }
 
+  /** 이 구역 담당자: 이름표(색) + 빼기 ×, 이름 넣고 + 추가 (관리자). 고른 사람만 연락이력 상담자로 고를 수 있다 */
+  function secStaffBar() {
+    const sc = S.getScope(), prog = sc.startsWith('p:') ? sc.slice(2) : '';
+    if (!prog) return '';
+    const list = S.staffHere(), admin = S.isAdmin(), label = ({ '장애인개발원': '현장중심' })[prog] || prog;
+    return `<section class="panel panel-pad sec-staff">
+      <b>${e(label)} 담당자</b>
+      ${list.length ? list.map(x => `<span class="sec-staff-chip">${V.staffDot(x.name)}${e(x.name)}${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(x.name)}" aria-label="${e(x.name)} 빼기" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('') : '<span class="sub">아직 이 구역 담당자가 없어요. 이름을 넣고 추가해야 연락 기록을 넣을 수 있어요.</span>'}
+      ${admin ? `<span class="od-staff-add"><input class="input sm" id="secStaffNew" placeholder="담당자 이름" style="width:130px"><button class="btn btn-sm" type="button" data-act="sec-staff-add" data-prog="${e(prog)}">+ 추가</button></span>` : '<span class="sub">담당자 추가·빼기는 관리자만 할 수 있어요.</span>'}
+    </section>`;
+  }
+
   function contactsPage() {
     const f = ui.contacts;
     const names = S.get().businesses.map(b => b.name);
@@ -7067,6 +7087,7 @@ window.R = (() => {
       <div class="toolbar perf-bar">${monthNav('ct-month', f.month)}
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
       </div>
+      ${secStaffBar()}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 사업체명은 사업체 개발에 자동으로 등록됩니다</span></h2>
         <form class="perf-form" data-form="ct-add" autocomplete="off">
@@ -7656,8 +7677,8 @@ window.R = (() => {
 
   /* ---------- 달별 엑셀 정리: 연락이력·방문·실적·출장·특근·신규 사업체·일정·명함을 달마다 한 파일로 ---------- */
   const byDate = k => (x, y) => String(x[k] || '').localeCompare(String(y[k] || ''));
-  function monthData(month, v = S.view()) {
-    const contact = contactRows(month, v).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
+  function monthData(month, v = S.view(), sc = S.getScope()) {
+    const contact = contactRows(month, v, sc).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
     const perf = [
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
       ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
@@ -7710,7 +7731,7 @@ window.R = (() => {
   const toAoa = rows => { const head = rows[0] ? Object.keys(rows[0]) : null; return { head, rows: rows.map(r => Object.values(r).map(x => (x == null ? '' : String(x)))) }; };
   const sheet = (name, rows, head) => { const t = toAoa(rows); return { name, head: t.head || head, rows: t.rows }; };
   function archiveFiles(month, sc) {
-    const v = S.view(sc), d = monthData(month, v);
+    const v = S.view(sc), d = monthData(month, v, sc);
     const bizActs = v.activities.filter(a => a.targetType === 'biz' && (a.date || '').startsWith(month)).map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date)).map(({ a, b }) => ({ '날짜': a.date, '유형': a.type, '사업체명': b.name, '진행 단계': b.stage || '', '내용': a.content || '', '실적 세부사업': (S.perfOf(a) || {}).item || '', '담당 직원': a.staff || '' }));
     const status = v.businesses.map(b => { const la = S.lastAct('biz', b.id); return { '사업체명': b.name, '진행 단계': b.stage || '', '최초 등록일': S.bizFirst(b) || b.discoveredAt || '', '업종': b.industry || '', '주소': b.address || '', '대표 전화': b.phone || '', '사업체 담당자': contactOf(b), '가능 직무': b.jobs || '', '발굴 경로': b.source || '', '담당 직원': b.staff || '', '최근 활동': la ? `${la.date} ${la.type}` : '' }; }).sort((x, y) => x['최초 등록일'].localeCompare(y['최초 등록일']));
@@ -9792,7 +9813,7 @@ window.App = (() => {
     const sel = $('#scopeSel');
     const staff = S.staff();
     const cur = S.getScope();
-    const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key));
+    const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key) || S.getScope() === 'p:' + p.key); // 지금 구역은 담당자가 없어도 보이게
     sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
       progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
       `<optgroup label="직원별">${staff.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>`;
@@ -10896,8 +10917,8 @@ window.App = (() => {
       closeMore();
       secKey = x.k; lsSetSec(x.k);
       if (x.prog) {
-        const has = S.staff().some(st => st.program === x.prog);
-        S.setScope(has ? 'p:' + x.prog : 'all');
+        // 구역마다 그 구역 기록만 (담당자가 아직 없어도 다른 구역 기록을 보여 주지 않는다)
+        S.setScope('p:' + x.prog);
         const P = D.PROGRAM[x.prog];
         Object.assign(V.ui.map, { mode: 'ours', prog: P && P.map ? x.prog : '', solo: null });
       }
@@ -11476,6 +11497,17 @@ window.App = (() => {
       if (R.ui.orders.who === name) R.ui.orders.who = '';
       toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
     },
+    'sec-staff-add': async el => {
+      if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
+      const inp = $('#secStaffNew'), name = ((inp && inp.value) || '').trim(), prog = el.dataset.prog;
+      if (!name) return inp && inp.focus();
+      const ex = S.staff().find(s => s.name === name);
+      if (ex && ex.program === prog) return toast(`${name}은(는) 이미 이 구역 담당자예요.`, 'error');
+      if (ex && !(await confirmBox(`${name}을(를) 이 구역으로 옮길까요?`, `${name}은(는) 지금 '${ex.program || '소속 없음'}' 담당자예요. '${prog}'(으)로 바꾸면 그쪽 화면에서는 빠져요.`, '옮기기'))) return;
+      await S.saveSettings({ staff: ex ? S.staff().map(s => (s.name === name ? { ...s, program: prog } : s)) : [...S.staff(), { name, program: prog }] });
+      toast(`${name}을(를) ${prog} 담당자로 ${ex ? '옮겼어요' : '추가했어요'}. 바로 상담자로 고를 수 있어요.`);
+      render();
+    },
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'tv-save-set': async () => {
       const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
@@ -11875,6 +11907,7 @@ window.App = (() => {
       if (form.dataset.form === 'ct-add') {
         const fd = Object.fromEntries(new FormData(form).entries());
         if (!fd.name.trim()) { form.elements.name.focus(); return toast('사업체명을 입력하세요.', 'error'); }
+        if (!fd.staff) return toast('이 구역 담당자가 없어요. 위 담당자 칸에서 이름을 추가한 뒤 기록하세요.', 'error');
         if (!fd.content.trim()) fd.content = fd.result || `${fd.type || '전화'} 연락`; // 결과를 비워도 기록은 남긴다
         if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); }
         fd.jobUrl = R.jobLink(fd.jobUrl);
@@ -12033,6 +12066,8 @@ window.App = (() => {
         throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다.${bad}${errs ? ` 오류: ${errs}.` : ''} ${parts ? 'app1~app3.html' : 'index.html'}을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
       }
       bindGlobal();
+      // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
+      { const sp = curSec().prog, sc = S.getScope(); if (sp && sc !== 'p:' + sp && !(sc.startsWith('s:') && S.programOf(sc.slice(2)) === sp)) S.setScope('p:' + sp); }
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);

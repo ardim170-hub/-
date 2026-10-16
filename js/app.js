@@ -158,7 +158,7 @@ window.App = (() => {
     const sel = $('#scopeSel');
     const staff = S.staff();
     const cur = S.getScope();
-    const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key));
+    const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key) || S.getScope() === 'p:' + p.key); // 지금 구역은 담당자가 없어도 보이게
     sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
       progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
       `<optgroup label="직원별">${staff.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>`;
@@ -1262,8 +1262,8 @@ window.App = (() => {
       closeMore();
       secKey = x.k; lsSetSec(x.k);
       if (x.prog) {
-        const has = S.staff().some(st => st.program === x.prog);
-        S.setScope(has ? 'p:' + x.prog : 'all');
+        // 구역마다 그 구역 기록만 (담당자가 아직 없어도 다른 구역 기록을 보여 주지 않는다)
+        S.setScope('p:' + x.prog);
         const P = D.PROGRAM[x.prog];
         Object.assign(V.ui.map, { mode: 'ours', prog: P && P.map ? x.prog : '', solo: null });
       }
@@ -1842,6 +1842,17 @@ window.App = (() => {
       if (R.ui.orders.who === name) R.ui.orders.who = '';
       toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
     },
+    'sec-staff-add': async el => {
+      if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
+      const inp = $('#secStaffNew'), name = ((inp && inp.value) || '').trim(), prog = el.dataset.prog;
+      if (!name) return inp && inp.focus();
+      const ex = S.staff().find(s => s.name === name);
+      if (ex && ex.program === prog) return toast(`${name}은(는) 이미 이 구역 담당자예요.`, 'error');
+      if (ex && !(await confirmBox(`${name}을(를) 이 구역으로 옮길까요?`, `${name}은(는) 지금 '${ex.program || '소속 없음'}' 담당자예요. '${prog}'(으)로 바꾸면 그쪽 화면에서는 빠져요.`, '옮기기'))) return;
+      await S.saveSettings({ staff: ex ? S.staff().map(s => (s.name === name ? { ...s, program: prog } : s)) : [...S.staff(), { name, program: prog }] });
+      toast(`${name}을(를) ${prog} 담당자로 ${ex ? '옮겼어요' : '추가했어요'}. 바로 상담자로 고를 수 있어요.`);
+      render();
+    },
     'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
     'tv-save-set': async () => {
       const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
@@ -2241,6 +2252,7 @@ window.App = (() => {
       if (form.dataset.form === 'ct-add') {
         const fd = Object.fromEntries(new FormData(form).entries());
         if (!fd.name.trim()) { form.elements.name.focus(); return toast('사업체명을 입력하세요.', 'error'); }
+        if (!fd.staff) return toast('이 구역 담당자가 없어요. 위 담당자 칸에서 이름을 추가한 뒤 기록하세요.', 'error');
         if (!fd.content.trim()) fd.content = fd.result || `${fd.type || '전화'} 연락`; // 결과를 비워도 기록은 남긴다
         if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); }
         fd.jobUrl = R.jobLink(fd.jobUrl);
@@ -2399,6 +2411,8 @@ window.App = (() => {
         throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다.${bad}${errs ? ` 오류: ${errs}.` : ''} ${parts ? 'app1~app3.html' : 'index.html'}을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
       }
       bindGlobal();
+      // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
+      { const sp = curSec().prog, sc = S.getScope(); if (sp && sc !== 'p:' + sp && !(sc.startsWith('s:') && S.programOf(sc.slice(2)) === sp)) S.setScope('p:' + sp); }
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);

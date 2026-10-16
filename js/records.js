@@ -17,9 +17,10 @@ window.R = (() => {
   const contactOf = b => { const c = S.cardsOf('biz', b.id)[0]; return c ? `${c.name}${c.title ? ' ' + c.title : ''}` : ''; };
   const phoneOf = b => b.phone || (S.cardsOf('biz', b.id)[0] || {}).phone || (S.cardsOf('biz', b.id)[0] || {}).mobile || '';
   /** 이 달 사업체 연락 기록 (전화·방문·이메일·미팅) */
-  function contactRows(month, v = S.view()) {
+  /** 연락이력은 그 구역 담당자가 남긴 것만 (다른 구역 직원이 같은 사업체에 연락한 기록은 그 구역 화면에) */
+  function contactRows(month, v = S.view(), sc = S.getScope()) {
     return v.activities
-      .filter(a => a.targetType === 'biz' && CONTACT_TYPES.includes(a.type) && a.date.startsWith(month))
+      .filter(a => a.targetType === 'biz' && CONTACT_TYPES.includes(a.type) && a.date.startsWith(month) && S.inScope(a.staff, sc))
       .map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.a.id.localeCompare(y.a.id));
   }
@@ -34,6 +35,18 @@ window.R = (() => {
     };
   }
 
+  /** 이 구역 담당자: 이름표(색) + 빼기 ×, 이름 넣고 + 추가 (관리자). 고른 사람만 연락이력 상담자로 고를 수 있다 */
+  function secStaffBar() {
+    const sc = S.getScope(), prog = sc.startsWith('p:') ? sc.slice(2) : '';
+    if (!prog) return '';
+    const list = S.staffHere(), admin = S.isAdmin(), label = ({ '장애인개발원': '현장중심' })[prog] || prog;
+    return `<section class="panel panel-pad sec-staff">
+      <b>${e(label)} 담당자</b>
+      ${list.length ? list.map(x => `<span class="sec-staff-chip">${V.staffDot(x.name)}${e(x.name)}${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(x.name)}" aria-label="${e(x.name)} 빼기" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('') : '<span class="sub">아직 이 구역 담당자가 없어요. 이름을 넣고 추가해야 연락 기록을 넣을 수 있어요.</span>'}
+      ${admin ? `<span class="od-staff-add"><input class="input sm" id="secStaffNew" placeholder="담당자 이름" style="width:130px"><button class="btn btn-sm" type="button" data-act="sec-staff-add" data-prog="${e(prog)}">+ 추가</button></span>` : '<span class="sub">담당자 추가·빼기는 관리자만 할 수 있어요.</span>'}
+    </section>`;
+  }
+
   function contactsPage() {
     const f = ui.contacts;
     const names = S.get().businesses.map(b => b.name);
@@ -45,6 +58,7 @@ window.R = (() => {
       <div class="toolbar perf-bar">${monthNav('ct-month', f.month)}
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
       </div>
+      ${secStaffBar()}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 사업체명은 사업체 개발에 자동으로 등록됩니다</span></h2>
         <form class="perf-form" data-form="ct-add" autocomplete="off">
@@ -634,8 +648,8 @@ window.R = (() => {
 
   /* ---------- 달별 엑셀 정리: 연락이력·방문·실적·출장·특근·신규 사업체·일정·명함을 달마다 한 파일로 ---------- */
   const byDate = k => (x, y) => String(x[k] || '').localeCompare(String(y[k] || ''));
-  function monthData(month, v = S.view()) {
-    const contact = contactRows(month, v).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
+  function monthData(month, v = S.view(), sc = S.getScope()) {
+    const contact = contactRows(month, v, sc).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
     const perf = [
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
       ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
@@ -688,7 +702,7 @@ window.R = (() => {
   const toAoa = rows => { const head = rows[0] ? Object.keys(rows[0]) : null; return { head, rows: rows.map(r => Object.values(r).map(x => (x == null ? '' : String(x)))) }; };
   const sheet = (name, rows, head) => { const t = toAoa(rows); return { name, head: t.head || head, rows: t.rows }; };
   function archiveFiles(month, sc) {
-    const v = S.view(sc), d = monthData(month, v);
+    const v = S.view(sc), d = monthData(month, v, sc);
     const bizActs = v.activities.filter(a => a.targetType === 'biz' && (a.date || '').startsWith(month)).map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date)).map(({ a, b }) => ({ '날짜': a.date, '유형': a.type, '사업체명': b.name, '진행 단계': b.stage || '', '내용': a.content || '', '실적 세부사업': (S.perfOf(a) || {}).item || '', '담당 직원': a.staff || '' }));
     const status = v.businesses.map(b => { const la = S.lastAct('biz', b.id); return { '사업체명': b.name, '진행 단계': b.stage || '', '최초 등록일': S.bizFirst(b) || b.discoveredAt || '', '업종': b.industry || '', '주소': b.address || '', '대표 전화': b.phone || '', '사업체 담당자': contactOf(b), '가능 직무': b.jobs || '', '발굴 경로': b.source || '', '담당 직원': b.staff || '', '최근 활동': la ? `${la.date} ${la.type}` : '' }; }).sort((x, y) => x['최초 등록일'].localeCompare(y['최초 등록일']));

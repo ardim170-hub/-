@@ -1922,3 +1922,6 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .pt-place:hover { border-color: var(--line); }
 .pt-place:focus { border-color: var(--accent); background: #fff; outline: none; }
 .pt-place::placeholder { font-weight: 500; color: #98A2B3; }
+.sec-staff { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+.sec-staff > b { margin-right: 4px; }
+.sec-staff-chip { display: inline-flex; align-items: center; gap: 2px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-weight: 700; }
