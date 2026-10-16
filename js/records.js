@@ -50,6 +50,7 @@ window.R = (() => {
         <form class="perf-form" data-form="ct-add" autocomplete="off">
           <label>날짜<input class="input" type="date" name="date" value="${f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
           <label>방식<select class="select" name="type">${opts(CONTACT_TYPES, '전화')}</select></label>
+          <label>상담자<select class="select" name="staff">${S.staffHere().map(x => `<option ${x.name === S.me() ? 'selected' : ''}>${e(x.name)}</option>`).join('')}</select></label>
           <label class="grow">사업체명<input class="input" name="name" list="ctBizList" required placeholder="예: (주)한결테크"></label>
           <label>전화번호<input class="input" name="phone" inputmode="tel"></label>
           <label>담당자<input class="input" name="contactName" placeholder="예: 김재윤 부장"></label>

@@ -1068,7 +1068,16 @@ window.S = (() => {
   let scope = lsGet('ardim.scope') || 'all';
   const getScope = () => scope;
   function setScope(v) { scope = v; lsSet('ardim.scope', v); notify(); }
-  function me() { const m = lsGet('ardim.me'); return staff().some(s => s.name === m) ? m : (staff()[0]?.name || ''); }
+  /** 이 PC를 쓰는 사람: 고른 사람이 지금 보는 구역(예: 현장중심) 직원이면 그 사람, 아니면 로그인한 계정의 이름, 그것도 아니면 구역의 첫 직원.
+   *  (다른 구역 직원 이름으로 저장되면 지금 화면에 안 보이는 일을 막는다) */
+  function me() {
+    const m = lsGet('ardim.me'), here = staffHere(), inHere = n => here.some(s => s.name === n);
+    if (m && staff().some(s => s.name === m) && inHere(m)) return m;
+    let names = {}; try { const v = state.settings.accNames; names = (v && typeof v === 'object') ? v : JSON.parse(v || '{}') || {}; } catch { names = {}; }
+    const acc = names[String(access.me || '').toLowerCase()];
+    if (acc && inHere(acc)) return acc;
+    return (here[0] || staff()[0] || {}).name || '';
+  }
   function setMe(v) { lsSet('ardim.me', v); notify(); }
   function staffInScope(name, sc = scope) {
     if (sc === 'all') return true;
