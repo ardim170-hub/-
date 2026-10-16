@@ -15,9 +15,10 @@ var PHOTO_CHUNK = 45000; // 셀 하나에 5만 자까지 들어가므로 나눠 
 function doGet() {
   // 화면 파일은 1MB 제한 때문에 index(뼈대) + style + app1~app3 으로 나눠 두고 여기서 합친다
   return HtmlService.createTemplateFromFile('index').evaluate()
-    .setTitle('아르딤 취업지원')
+    .setTitle('화성시 아르딤복지관 직업지원팀')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-    .setFaviconUrl('https://ssl.gstatic.com/docs/spreadsheets/favicon3.ico');
+    // 탭 아이콘: 복지관 로고 심볼 (GitHub 공개 저장소의 assets/favicon.png, 바뀌지 않게 커밋 주소로 고정)
+    .setFaviconUrl('https://raw.githubusercontent.com/ardim170-hub/-/183ba21486d494520e3107fe6c996c1eb6ba4c14/assets/favicon.png');
 }
 
 /** index.html 안의 <?!= include('style'); ?> 자리에 그 파일 내용을 그대로 넣는다 */
