@@ -2589,6 +2589,12 @@ input, select, textarea, button { font-family: var(--font); }
 .pt-wk { align-self: end; padding-bottom: 10px; white-space: nowrap; }
 .sc-move { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: 10px; display: flex; flex-direction: column; gap: 6px; }
 tr.pt-new td { animation: ptNew 2.4s ease-out; }
+/* 실적표 직접 입력 줄: 사업체·기관 이름을 굵게 (방문·전화 기록 줄과 같은 모양) */
+.pt-place-row { display: flex; align-items: center; gap: 8px; }
+.pt-place { flex: 1; min-width: 0; border: 1px solid transparent; background: transparent; border-radius: 6px; padding: 2px 6px; margin-left: -6px; font: inherit; font-size: 15px; font-weight: 800; color: var(--text); }
+.pt-place:hover { border-color: var(--line); }
+.pt-place:focus { border-color: var(--accent); background: #fff; outline: none; }
+.pt-place::placeholder { font-weight: 500; color: #98A2B3; }
 
 </style>
 </head>
@@ -2677,7 +2683,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.16 11:23";</script>
+<script>window.APP_VERSION = "2026.10.16 11:27";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3212,7 +3218,7 @@ window.S = (() => {
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
-  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
+  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
@@ -3545,6 +3551,18 @@ window.S = (() => {
       if (newStaff.length) await saveSettings({ staff: [...state.settings.staff, ...newStaff] });
     } else if (newStaff.length) await saveSettings({ staff: [...state.settings.staff, ...newStaff] });
     return { added, staff: newStaff.length, total: ops.length };
+  }
+  /** 예전 직접 입력 실적: 비고에 '사업체 · 내용'으로 붙여 넣던 것을 사업체·기관 칸으로 나눈다 (사업체개발은 비고 전체가 이름) */
+  function splitPerfPlaces() {
+    const fix = state.perfs.filter(p => !p.place && p.note).map(p => {
+      const i = p.note.indexOf(' · ');
+      if (i > 0) return { id: p.id, place: p.note.slice(0, i), note: p.note.slice(i + 3) };
+      if (p.item === '사업체개발' && p.note.length <= 40 && !/\n/.test(p.note)) return { id: p.id, place: p.note, note: '' };
+      if (p.note.length <= 15 && !/\s/.test(p.note.trim())) return { id: p.id, place: p.note.trim(), note: '' }; // 띄어쓰기 없는 짧은 이름 (예: 이항섭)
+      return null;
+    }).filter(Boolean);
+    if (fix.length) putMany('perf', fix);
+    return fix.length;
   }
   async function saveSettings(patch) {
     Object.assign(state.settings, patch);
@@ -3942,7 +3960,7 @@ window.S = (() => {
     if (!def) return [];
     const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => ({
       kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
-      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: p.note || '', src: `직접 입력 · ${p.staff || ''}`,
+      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: [p.place, p.note].filter(Boolean).join(' · '), src: `직접 입력 · ${p.staff || ''}`,
     }));
     if (withActs) {
       const groups = new Map();
@@ -4078,7 +4096,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
@@ -5449,7 +5467,7 @@ window.V = (() => {
     const manRow = m => `<tr class="pt-row man sc-row${flash(m.id)}" style="--sc:${staffColor(m.staff)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
       <td><input class="input sm pt-date" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
-      <td class="pt-what"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
+      <td class="pt-what"><div class="pt-place-row"><input class="pt-place" value="${e(m.place || '')}" data-chg="pf-field" data-id="${m.id}" data-field="place" placeholder="사업체·기관·이름" aria-label="사업체·기관"><span class="meta">직접 입력</span></div><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
       <td>${whoSel('pf-field', m.id, m.staff)}<div class="meta">직접 입력</div></td>
       <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
     let total = 0, totalP = 0;
@@ -7642,7 +7660,7 @@ window.R = (() => {
     const contact = contactRows(month, v).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
     const perf = [
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
-      ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
+      ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
     ].sort(byDate('날짜'));
     const tr = kind => v.trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((x, y) => (x.date || '').localeCompare(y.date || '') || (x.staff || '').localeCompare(y.staff || ''));
     const trip = tr('출장').map(t => ({ '출장일': t.date, '성명': t.staff || '', '출장지': t.place || '', '출장용무': t.purpose || '', '방법': t.method || '', '출장시간': t.time || '', '출장복명': (t.report || []).join(', '), '비고': t.note || '', '식비': t.meal || '' }));
@@ -9834,6 +9852,8 @@ window.App = (() => {
     // 지도는 지금 구역의 사업만 (현장중심이면 현장중심 지도만)
     { const sp = curSec().prog, P = sp && D.PROGRAM[sp]; if (P && P.map) { V.ui.map.prog = sp; V.ui.map.lock = true; } else V.ui.map.lock = false; }
     if (r === 'schedule' || r === 'dashboard') maybeCalPull(false);
+    // 예전 실적 줄의 사업체 이름을 비고에서 '사업체·기관' 칸으로 한 번 옮긴다
+    if (r === 'perf' && !perfSplitDone && S.can('perf', 2)) { perfSplitDone = true; setTimeout(() => { const n = S.splitPerfPlaces(); if (n) toast(`예전 실적 ${n}줄의 사업체 이름을 굵은 칸으로 옮겼어요.`); }, 300); }
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
@@ -11877,7 +11897,14 @@ window.App = (() => {
         if (!U.isDate(fd.date)) return toast('사업날짜를 입력하세요.', 'error');
         const item = fd.item, name = (fd.name || '').trim(), note = (fd.note || '').trim();
         const k = U.orgKey(name);
-        const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
+        let b = name && S.get().businesses.find(x => U.orgKey(x.name) === k);
+        const n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
+        // 사업체개발인데 처음 보는 이름이면 사업체로 바로 등록한다 (목록·지도에도 나오고 실적표에 굵게 표시)
+        let newBiz = false;
+        if (!b && !n && name && item === '사업체개발') {
+          b = S.upsert('biz', { name, stage: '발굴', discoveredAt: fd.date, staff: fd.staff || S.me(), source: '실적 입력', placements: 0, phone: '', address: '' });
+          newBiz = true;
+        }
         const people = fd.people ? +fd.people : '';
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
         // 끝 날짜가 있으면 그날까지 날마다 한 줄씩 (주말·공휴일은 빼고, '주말 포함'이면 주말도)
@@ -11891,12 +11918,12 @@ window.App = (() => {
             days.push(d);
           }
           if (!days.length) return toast('그 기간에 넣을 날이 없어요. (주말·공휴일은 빼고 세요)', 'error');
-          if (!(await confirmBox(`${days.length}일에 한 줄씩 넣을까요?`, `${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])} ${fd.withWeekend ? '' : '평일 '}${days.length}일 · ${item} · ${who}${name ? ` · ${name}` : ''}`, `${days.length}줄 넣기`))) return;
+          if (!(await confirmBox(`${days.length}일에 한 줄씩 넣을까요?`, `${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])} ${fd.withWeekend ? '' : '평일 '}${days.length}일 · ${item} · ${who}${name ? ` · ${name}` : ''}`, `${days.length}줄 넣기`))) { if (newBiz) S.remove('biz', b.id); return; }
           clearDraft('perf-add');
           const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
           Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
           if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people })));
-          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, note].filter(Boolean).join(' · '), staff: who })));
+          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
           return;
         }
@@ -11907,9 +11934,9 @@ window.App = (() => {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
           rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people });
         } else {
-          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), note: [name, note].filter(Boolean).join(' · '), staff: who });
+          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who });
         }
-        toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${name && !(b || n) ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+        toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${newBiz ? ` '${name}'을(를) 사업체로 새로 등록했어요. 주소를 넣으면 지도에도 나와요.` : ''}`);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
@@ -11963,7 +11990,7 @@ window.App = (() => {
 
   /* ---------- 구글 드라이브 달별 정리 ---------- */
   const prevYm = () => { const t = U.parse(U.today()); const d = new Date(t.getFullYear(), t.getMonth() - 1, 1); return `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; };
-  let archiving = false;
+  let archiving = false, perfSplitDone = false;
   let xlsxMode = 'merge';
   async function archiveSync(months, onStep) {
     if (archiving) throw new Error('이미 정리하는 중이에요.');

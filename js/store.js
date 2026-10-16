@@ -16,7 +16,7 @@ window.S = (() => {
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
-  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원']]];
+  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
@@ -349,6 +349,18 @@ window.S = (() => {
       if (newStaff.length) await saveSettings({ staff: [...state.settings.staff, ...newStaff] });
     } else if (newStaff.length) await saveSettings({ staff: [...state.settings.staff, ...newStaff] });
     return { added, staff: newStaff.length, total: ops.length };
+  }
+  /** 예전 직접 입력 실적: 비고에 '사업체 · 내용'으로 붙여 넣던 것을 사업체·기관 칸으로 나눈다 (사업체개발은 비고 전체가 이름) */
+  function splitPerfPlaces() {
+    const fix = state.perfs.filter(p => !p.place && p.note).map(p => {
+      const i = p.note.indexOf(' · ');
+      if (i > 0) return { id: p.id, place: p.note.slice(0, i), note: p.note.slice(i + 3) };
+      if (p.item === '사업체개발' && p.note.length <= 40 && !/\n/.test(p.note)) return { id: p.id, place: p.note, note: '' };
+      if (p.note.length <= 15 && !/\s/.test(p.note.trim())) return { id: p.id, place: p.note.trim(), note: '' }; // 띄어쓰기 없는 짧은 이름 (예: 이항섭)
+      return null;
+    }).filter(Boolean);
+    if (fix.length) putMany('perf', fix);
+    return fix.length;
   }
   async function saveSettings(patch) {
     Object.assign(state.settings, patch);
@@ -746,7 +758,7 @@ window.S = (() => {
     if (!def) return [];
     const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => ({
       kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
-      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: p.note || '', src: `직접 입력 · ${p.staff || ''}`,
+      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: [p.place, p.note].filter(Boolean).join(' · '), src: `직접 입력 · ${p.staff || ''}`,
     }));
     if (withActs) {
       const groups = new Map();
@@ -882,7 +894,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

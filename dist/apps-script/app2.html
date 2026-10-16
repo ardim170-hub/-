@@ -1794,7 +1794,7 @@ window.R = (() => {
     const contact = contactRows(month, v).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
     const perf = [
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
-      ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
+      ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
     ].sort(byDate('날짜'));
     const tr = kind => v.trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((x, y) => (x.date || '').localeCompare(y.date || '') || (x.staff || '').localeCompare(y.staff || ''));
     const trip = tr('출장').map(t => ({ '출장일': t.date, '성명': t.staff || '', '출장지': t.place || '', '출장용무': t.purpose || '', '방법': t.method || '', '출장시간': t.time || '', '출장복명': (t.report || []).join(', '), '비고': t.note || '', '식비': t.meal || '' }));

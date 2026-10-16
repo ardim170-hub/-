@@ -911,7 +911,7 @@ window.V = (() => {
     const manRow = m => `<tr class="pt-row man sc-row${flash(m.id)}" style="--sc:${staffColor(m.staff)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
       <td><input class="input sm pt-date" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
-      <td class="pt-what"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
+      <td class="pt-what"><div class="pt-place-row"><input class="pt-place" value="${e(m.place || '')}" data-chg="pf-field" data-id="${m.id}" data-field="place" placeholder="사업체·기관·이름" aria-label="사업체·기관"><span class="meta">직접 입력</span></div><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
       <td>${whoSel('pf-field', m.id, m.staff)}<div class="meta">직접 입력</div></td>
       <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
     let total = 0, totalP = 0;

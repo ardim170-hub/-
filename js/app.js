@@ -218,6 +218,8 @@ window.App = (() => {
     // 지도는 지금 구역의 사업만 (현장중심이면 현장중심 지도만)
     { const sp = curSec().prog, P = sp && D.PROGRAM[sp]; if (P && P.map) { V.ui.map.prog = sp; V.ui.map.lock = true; } else V.ui.map.lock = false; }
     if (r === 'schedule' || r === 'dashboard') maybeCalPull(false);
+    // 예전 실적 줄의 사업체 이름을 비고에서 '사업체·기관' 칸으로 한 번 옮긴다
+    if (r === 'perf' && !perfSplitDone && S.can('perf', 2)) { perfSplitDone = true; setTimeout(() => { const n = S.splitPerfPlaces(); if (n) toast(`예전 실적 ${n}줄의 사업체 이름을 굵은 칸으로 옮겼어요.`); }, 300); }
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
@@ -2261,7 +2263,14 @@ window.App = (() => {
         if (!U.isDate(fd.date)) return toast('사업날짜를 입력하세요.', 'error');
         const item = fd.item, name = (fd.name || '').trim(), note = (fd.note || '').trim();
         const k = U.orgKey(name);
-        const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
+        let b = name && S.get().businesses.find(x => U.orgKey(x.name) === k);
+        const n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
+        // 사업체개발인데 처음 보는 이름이면 사업체로 바로 등록한다 (목록·지도에도 나오고 실적표에 굵게 표시)
+        let newBiz = false;
+        if (!b && !n && name && item === '사업체개발') {
+          b = S.upsert('biz', { name, stage: '발굴', discoveredAt: fd.date, staff: fd.staff || S.me(), source: '실적 입력', placements: 0, phone: '', address: '' });
+          newBiz = true;
+        }
         const people = fd.people ? +fd.people : '';
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
         // 끝 날짜가 있으면 그날까지 날마다 한 줄씩 (주말·공휴일은 빼고, '주말 포함'이면 주말도)
@@ -2275,12 +2284,12 @@ window.App = (() => {
             days.push(d);
           }
           if (!days.length) return toast('그 기간에 넣을 날이 없어요. (주말·공휴일은 빼고 세요)', 'error');
-          if (!(await confirmBox(`${days.length}일에 한 줄씩 넣을까요?`, `${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])} ${fd.withWeekend ? '' : '평일 '}${days.length}일 · ${item} · ${who}${name ? ` · ${name}` : ''}`, `${days.length}줄 넣기`))) return;
+          if (!(await confirmBox(`${days.length}일에 한 줄씩 넣을까요?`, `${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])} ${fd.withWeekend ? '' : '평일 '}${days.length}일 · ${item} · ${who}${name ? ` · ${name}` : ''}`, `${days.length}줄 넣기`))) { if (newBiz) S.remove('biz', b.id); return; }
           clearDraft('perf-add');
           const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
           Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
           if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people })));
-          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, note].filter(Boolean).join(' · '), staff: who })));
+          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
           return;
         }
@@ -2291,9 +2300,9 @@ window.App = (() => {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
           rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people });
         } else {
-          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), note: [name, note].filter(Boolean).join(' · '), staff: who });
+          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who });
         }
-        toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${name && !(b || n) ? ' (등록되지 않은 이름이라 직접 입력으로 넣었어요)' : ''}`);
+        toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${newBiz ? ` '${name}'을(를) 사업체로 새로 등록했어요. 주소를 넣으면 지도에도 나와요.` : ''}`);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
@@ -2347,7 +2356,7 @@ window.App = (() => {
 
   /* ---------- 구글 드라이브 달별 정리 ---------- */
   const prevYm = () => { const t = U.parse(U.today()); const d = new Date(t.getFullYear(), t.getMonth() - 1, 1); return `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; };
-  let archiving = false;
+  let archiving = false, perfSplitDone = false;
   let xlsxMode = 'merge';
   async function archiveSync(months, onStep) {
     if (archiving) throw new Error('이미 정리하는 중이에요.');
