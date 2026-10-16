@@ -2575,6 +2575,19 @@ body { font-size: 16px; }
 .arc-tree { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 10px 14px; background: #F4F6F9; border: 1px solid #E1E6ED; border-radius: 8px; font-size: 14.5px; }
 .arc-tree span { padding: 2px 8px; background: #fff; border: 1px solid #DCE2EA; border-radius: 999px; }
 
+/* 글씨체 통일: 입력 칸·글 상자·고르기 칸도 사이트와 같은 글씨(Pretendard)·같은 크기 */
+input, select, textarea, button { font-family: var(--font); }
+.input, .select, .textarea, textarea.input { font-family: var(--font); font-size: 15px; color: var(--text); letter-spacing: -0.005em; }
+.input.sm, .select.sm, textarea.input.sm { font-size: 14.5px; }
+.ct-txt { font-size: 14.5px; line-height: 1.5; padding: 6px 10px; min-height: 36px; }
+.input::placeholder, .textarea::placeholder { color: #98A2B3; font-family: var(--font); }
+/* 실적표: 사업체 이름과 내용 줄 맞춤 */
+.pt-what b.link { font-size: 15px; }
+.pt-what .meta { font-size: 13px; }
+.pt-tbl td { vertical-align: middle; }
+.pt-item { width: 100%; }
+.pt-wk { align-self: end; padding-bottom: 10px; white-space: nowrap; }
+
 </style>
 </head>
 <body>
@@ -2662,7 +2675,7 @@ body { font-size: 16px; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.16 10:31";</script>
+<script>window.APP_VERSION = "2026.10.16 10:35";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -5371,6 +5384,8 @@ window.V = (() => {
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)} · 넣으면 아래 실적표의 그 항목 칸에 한 줄 추가돼요</span></h2>
         <form class="perf-form" data-form="perf-add" autocomplete="off">
           <label>사업날짜<input class="input" type="date" name="date" value="${f.lastDate && f.lastDate.startsWith(f.month) ? f.lastDate : f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
+          <label>끝 날짜 <span class="sub">(매일 나간 훈련 등)</span><input class="input" type="date" name="dateTo" title="비우면 하루만. 고르면 사업날짜부터 끝 날짜까지 날마다 한 줄씩 들어가요"></label>
+          <label class="check pt-wk"><input type="checkbox" name="withWeekend">주말 포함</label>
           <label>세부사업명<select class="select" name="item">${def.items.map(i => `<option ${f.lastItem === i ? 'selected' : ''}>${e(i)}</option>`).join('')}</select></label>
           <label class="grow">사업체·기관 <span class="sub">(있는 곳이면 그 기록으로)</span><input class="input" name="name" list="ptNames" placeholder="비워도 돼요"></label>
           <label>담당 전문인력<select class="select" name="staff">${pros.map(n => `<option ${n === (f.lastStaff || S.me()) ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
@@ -5431,7 +5446,7 @@ window.V = (() => {
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
-          <colgroup><col style="width:170px"><col style="width:150px"><col><col style="width:140px"><col style="width:44px"></colgroup>
+          <colgroup><col style="width:210px"><col style="width:160px"><col><col style="width:150px"><col style="width:44px"></colgroup>
           <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>담당</th><th></th></tr></thead>
           <tbody>${body}</tbody></table></div>
         <p class="sub perf-help">칸을 고치면 바로 저장돼요. 세부사업 칸을 바꾸면 그 항목으로 옮겨지고, "실적에서 빼기"를 고르면 빠져요. 구글 시트 <b>실적(기타)</b>에는 위 <b>구글 시트용 복사</b>로 붙여 넣으세요(같은 날·같은 항목 기록은 한 줄로 묶여요).</p>
@@ -11758,7 +11773,7 @@ window.App = (() => {
         S.upsert('trip', { id, report: D.TRIP_REPORTS.filter(r => set.has(r)) });
       }
     });
-    document.addEventListener('submit', ev => {
+    document.addEventListener('submit', async ev => {
       const form = ev.target;
       ev.preventDefault();
       if (form.id === 'entityForm') { const k = KIND_MENU[form.dataset.form]; if (!allowed(k ? [[k, 2]] : null)) return; const m = form.elements.regMode?.value; if ((m === 'net' || m === 'biz') && !allowed([[KIND_MENU[m], 2]])) return; return onSubmit(form); }
@@ -11804,6 +11819,26 @@ window.App = (() => {
         const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
         const people = fd.people ? +fd.people : '';
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
+        // 끝 날짜가 있으면 그날까지 날마다 한 줄씩 (주말·공휴일은 빼고, '주말 포함'이면 주말도)
+        if (U.isDate(fd.dateTo) && fd.dateTo > fd.date) {
+          const days = [];
+          for (let d = fd.date; d <= fd.dateTo && days.length < 93; d = U.addDays(d, 1)) {
+            const wd = U.parse(d).getDay();
+            if (!fd.withWeekend && (wd === 0 || wd === 6)) continue;
+            let hol = []; try { hol = window.AT ? (AT.meta(d.slice(0, 7)).holidays || []).map(Number) : []; } catch { hol = []; }
+            if (!fd.withWeekend && hol.includes(+d.slice(8, 10))) continue;
+            days.push(d);
+          }
+          if (!days.length) return toast('그 기간에 넣을 날이 없어요. (주말·공휴일은 빼고 세요)', 'error');
+          if (!(await confirmBox(`${days.length}일에 한 줄씩 넣을까요?`, `${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])} ${fd.withWeekend ? '' : '평일 '}${days.length}일 · ${item} · ${who}${name ? ` · ${name}` : ''}`, `${days.length}줄 넣기`))) return;
+          clearDraft('perf-add');
+          const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
+          Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
+          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people })));
+          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, note].filter(Boolean).join(' · '), staff: who })));
+          toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
+          return;
+        }
         clearDraft('perf-add');
         Object.assign(V.ui.perf, { lastItem: item, lastDate: fd.date, lastStaff: who, flash: newId }); // 다시 그릴 때 고른 항목·날짜를 그대로 두고 새 줄을 표시
         let rec;

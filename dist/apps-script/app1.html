@@ -2674,6 +2674,8 @@ window.V = (() => {
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)} · 넣으면 아래 실적표의 그 항목 칸에 한 줄 추가돼요</span></h2>
         <form class="perf-form" data-form="perf-add" autocomplete="off">
           <label>사업날짜<input class="input" type="date" name="date" value="${f.lastDate && f.lastDate.startsWith(f.month) ? f.lastDate : f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
+          <label>끝 날짜 <span class="sub">(매일 나간 훈련 등)</span><input class="input" type="date" name="dateTo" title="비우면 하루만. 고르면 사업날짜부터 끝 날짜까지 날마다 한 줄씩 들어가요"></label>
+          <label class="check pt-wk"><input type="checkbox" name="withWeekend">주말 포함</label>
           <label>세부사업명<select class="select" name="item">${def.items.map(i => `<option ${f.lastItem === i ? 'selected' : ''}>${e(i)}</option>`).join('')}</select></label>
           <label class="grow">사업체·기관 <span class="sub">(있는 곳이면 그 기록으로)</span><input class="input" name="name" list="ptNames" placeholder="비워도 돼요"></label>
           <label>담당 전문인력<select class="select" name="staff">${pros.map(n => `<option ${n === (f.lastStaff || S.me()) ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
@@ -2734,7 +2736,7 @@ window.V = (() => {
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
-          <colgroup><col style="width:170px"><col style="width:150px"><col><col style="width:140px"><col style="width:44px"></colgroup>
+          <colgroup><col style="width:210px"><col style="width:160px"><col><col style="width:150px"><col style="width:44px"></colgroup>
           <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>담당</th><th></th></tr></thead>
           <tbody>${body}</tbody></table></div>
         <p class="sub perf-help">칸을 고치면 바로 저장돼요. 세부사업 칸을 바꾸면 그 항목으로 옮겨지고, "실적에서 빼기"를 고르면 빠져요. 구글 시트 <b>실적(기타)</b>에는 위 <b>구글 시트용 복사</b>로 붙여 넣으세요(같은 날·같은 항목 기록은 한 줄로 묶여요).</p>

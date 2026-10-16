@@ -2185,7 +2185,7 @@ window.App = (() => {
         S.upsert('trip', { id, report: D.TRIP_REPORTS.filter(r => set.has(r)) });
       }
     });
-    document.addEventListener('submit', ev => {
+    document.addEventListener('submit', async ev => {
       const form = ev.target;
       ev.preventDefault();
       if (form.id === 'entityForm') { const k = KIND_MENU[form.dataset.form]; if (!allowed(k ? [[k, 2]] : null)) return; const m = form.elements.regMode?.value; if ((m === 'net' || m === 'biz') && !allowed([[KIND_MENU[m], 2]])) return; return onSubmit(form); }
@@ -2231,6 +2231,26 @@ window.App = (() => {
         const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
         const people = fd.people ? +fd.people : '';
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
+        // 끝 날짜가 있으면 그날까지 날마다 한 줄씩 (주말·공휴일은 빼고, '주말 포함'이면 주말도)
+        if (U.isDate(fd.dateTo) && fd.dateTo > fd.date) {
+          const days = [];
+          for (let d = fd.date; d <= fd.dateTo && days.length < 93; d = U.addDays(d, 1)) {
+            const wd = U.parse(d).getDay();
+            if (!fd.withWeekend && (wd === 0 || wd === 6)) continue;
+            let hol = []; try { hol = window.AT ? (AT.meta(d.slice(0, 7)).holidays || []).map(Number) : []; } catch { hol = []; }
+            if (!fd.withWeekend && hol.includes(+d.slice(8, 10))) continue;
+            days.push(d);
+          }
+          if (!days.length) return toast('그 기간에 넣을 날이 없어요. (주말·공휴일은 빼고 세요)', 'error');
+          if (!(await confirmBox(`${days.length}일에 한 줄씩 넣을까요?`, `${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])} ${fd.withWeekend ? '' : '평일 '}${days.length}일 · ${item} · ${who}${name ? ` · ${name}` : ''}`, `${days.length}줄 넣기`))) return;
+          clearDraft('perf-add');
+          const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
+          Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
+          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people })));
+          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', note: [name, note].filter(Boolean).join(' · '), staff: who })));
+          toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
+          return;
+        }
         clearDraft('perf-add');
         Object.assign(V.ui.perf, { lastItem: item, lastDate: fd.date, lastStaff: who, flash: newId }); // 다시 그릴 때 고른 항목·날짜를 그대로 두고 새 줄을 표시
         let rec;

@@ -1901,3 +1901,16 @@ body { font-size: 16px; }
 .mx-row label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .arc-tree { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 10px 14px; background: #F4F6F9; border: 1px solid #E1E6ED; border-radius: 8px; font-size: 14.5px; }
 .arc-tree span { padding: 2px 8px; background: #fff; border: 1px solid #DCE2EA; border-radius: 999px; }
+
+/* 글씨체 통일: 입력 칸·글 상자·고르기 칸도 사이트와 같은 글씨(Pretendard)·같은 크기 */
+input, select, textarea, button { font-family: var(--font); }
+.input, .select, .textarea, textarea.input { font-family: var(--font); font-size: 15px; color: var(--text); letter-spacing: -0.005em; }
+.input.sm, .select.sm, textarea.input.sm { font-size: 14.5px; }
+.ct-txt { font-size: 14.5px; line-height: 1.5; padding: 6px 10px; min-height: 36px; }
+.input::placeholder, .textarea::placeholder { color: #98A2B3; font-family: var(--font); }
+/* 실적표: 사업체 이름과 내용 줄 맞춤 */
+.pt-what b.link { font-size: 15px; }
+.pt-what .meta { font-size: 13px; }
+.pt-tbl td { vertical-align: middle; }
+.pt-item { width: 100%; }
+.pt-wk { align-self: end; padding-bottom: 10px; white-space: nowrap; }
