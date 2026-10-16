@@ -2588,6 +2588,7 @@ input, select, textarea, button { font-family: var(--font); }
 .pt-item { width: 100%; }
 .pt-wk { align-self: end; padding-bottom: 10px; white-space: nowrap; }
 .sc-move { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: 10px; display: flex; flex-direction: column; gap: 6px; }
+tr.pt-new td { animation: ptNew 2.4s ease-out; }
 
 </style>
 </head>
@@ -2676,7 +2677,7 @@ input, select, textarea, button { font-family: var(--font); }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.16 10:43";</script>
+<script>window.APP_VERSION = "2026.10.16 11:23";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3453,11 +3454,14 @@ window.S = (() => {
 
   let lastSig = '';
   let aiServer = false;
+  let writeSeq = 0, refreshT = null; // 이 컴퓨터에서 바꿀 때마다 1씩 는다
   async function refresh() {
     if (!REMOTE || pending) return;
+    const seq = writeSeq;
     try {
       const res = await call('api_load', schema());
-      if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
+      // 불러오는 사이에 이 컴퓨터에서 입력·저장이 있었으면, 받은 내용은 그 전 것이라 버리고 잠시 뒤 다시 받는다
+      if (pending || seq !== writeSeq || outbox.length) { clearTimeout(refreshT); refreshT = setTimeout(refresh, 4000); return; }
       const before = JSON.stringify(access);
       const next = applyOutbox(fromServer(res));
       const sig = JSON.stringify(next);
@@ -3507,7 +3511,7 @@ window.S = (() => {
 
   const get = () => state;
   function notify() { listeners.forEach(fn => fn()); }
-  function commit() { persistLocal(); if (REMOTE) lastSig = JSON.stringify(state); notify(); }
+  function commit() { writeSeq++; persistLocal(); if (REMOTE) lastSig = JSON.stringify(state); notify(); }
   const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
   async function replace(next) {
     next = normalize(next);
@@ -7096,7 +7100,7 @@ window.R = (() => {
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
       ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
-        ${rows.map(({ a, b }, i) => `<tr class="sc-row" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+        ${rows.map(({ a, b }, i) => `<tr class="sc-row${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
@@ -7127,7 +7131,8 @@ window.R = (() => {
       else if (b.stage === '접촉' && fd.type === '방문') patch.stage = '방문상담';
       if (Object.keys(patch).length) S.upsert('biz', { id: b.id, ...patch });
     }
-    S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', jobUrl: (fd.jobUrl || '').trim(), perf: '', people: '' });
+    const act = S.upsert('act', { targetType: 'biz', targetId: b.id, date: fd.date, type: fd.type, content: fd.content.trim(), staff: me, contactName: fd.contactName || '', jobType: fd.jobType || '', result: fd.result || '', status: fd.status || '', jobUrl: (fd.jobUrl || '').trim(), perf: '', people: '' });
+    ui.contacts.flash = act.id;
     return b;
   }
   /** 공고 사이트 이름 (버튼에 표시) */
@@ -11854,7 +11859,15 @@ window.App = (() => {
         if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); }
         fd.jobUrl = R.jobLink(fd.jobUrl);
         clearDraft('ct-add'); // 저장하면 쓰던 칸은 비운다 (다시 그리기 전에)
+        if (U.isDate(fd.date) && fd.date.slice(0, 7) !== R.ui.contacts.month) R.ui.contacts.month = fd.date.slice(0, 7); // 넣은 달의 목록으로
         const b = R.addContact(fd);
+        const fl = R.ui.contacts.flash;
+        setTimeout(() => {
+          const row = document.querySelector(`#ctResults [data-row="${fl}"]`);
+          if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          else toast('기록은 저장했는데 지금 보는 범위(위쪽 소속 선택)에서는 안 보여요. 범위를 "전체 팀"으로 바꿔 확인하세요.', 'error');
+        }, 120);
+        setTimeout(() => { if (R.ui.contacts.flash === fl) { R.ui.contacts.flash = null; document.querySelector(`#ctResults [data-row="${fl}"]`)?.classList.remove('pt-new'); } }, 4000);
         toast(`${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
         return;

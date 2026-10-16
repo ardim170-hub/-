@@ -258,11 +258,14 @@ window.S = (() => {
 
   let lastSig = '';
   let aiServer = false;
+  let writeSeq = 0, refreshT = null; // 이 컴퓨터에서 바꿀 때마다 1씩 는다
   async function refresh() {
     if (!REMOTE || pending) return;
+    const seq = writeSeq;
     try {
       const res = await call('api_load', schema());
-      if (pending) return; // 불러오는 사이 저장이 시작되면 다음 기회에
+      // 불러오는 사이에 이 컴퓨터에서 입력·저장이 있었으면, 받은 내용은 그 전 것이라 버리고 잠시 뒤 다시 받는다
+      if (pending || seq !== writeSeq || outbox.length) { clearTimeout(refreshT); refreshT = setTimeout(refresh, 4000); return; }
       const before = JSON.stringify(access);
       const next = applyOutbox(fromServer(res));
       const sig = JSON.stringify(next);
@@ -312,7 +315,7 @@ window.S = (() => {
 
   const get = () => state;
   function notify() { listeners.forEach(fn => fn()); }
-  function commit() { persistLocal(); if (REMOTE) lastSig = JSON.stringify(state); notify(); }
+  function commit() { writeSeq++; persistLocal(); if (REMOTE) lastSig = JSON.stringify(state); notify(); }
   const subscribe = fn => { listeners.add(fn); return () => listeners.delete(fn); };
   async function replace(next) {
     next = normalize(next);

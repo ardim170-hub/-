@@ -2852,7 +2852,15 @@ window.App = (() => {
         if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https:\/\/…)를 복사해 붙여 넣으세요.', 'error'); }
         fd.jobUrl = R.jobLink(fd.jobUrl);
         clearDraft('ct-add'); // 저장하면 쓰던 칸은 비운다 (다시 그리기 전에)
+        if (U.isDate(fd.date) && fd.date.slice(0, 7) !== R.ui.contacts.month) R.ui.contacts.month = fd.date.slice(0, 7); // 넣은 달의 목록으로
         const b = R.addContact(fd);
+        const fl = R.ui.contacts.flash;
+        setTimeout(() => {
+          const row = document.querySelector(`#ctResults [data-row="${fl}"]`);
+          if (row) row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+          else toast('기록은 저장했는데 지금 보는 범위(위쪽 소속 선택)에서는 안 보여요. 범위를 "전체 팀"으로 바꿔 확인하세요.', 'error');
+        }, 120);
+        setTimeout(() => { if (R.ui.contacts.flash === fl) { R.ui.contacts.flash = null; document.querySelector(`#ctResults [data-row="${fl}"]`)?.classList.remove('pt-new'); } }, 4000);
         toast(`${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
         return;

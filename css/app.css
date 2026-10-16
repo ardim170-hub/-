@@ -1915,3 +1915,4 @@ input, select, textarea, button { font-family: var(--font); }
 .pt-item { width: 100%; }
 .pt-wk { align-self: end; padding-bottom: 10px; white-space: nowrap; }
 .sc-move { margin-top: 14px; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: 10px; display: flex; flex-direction: column; gap: 6px; }
+tr.pt-new td { animation: ptNew 2.4s ease-out; }
