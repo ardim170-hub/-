@@ -1,7 +1,0 @@
-{
-  "name": "ardim-crm",
-  "private": true,
-  "description": "아르딤 취업지원 CRM 빌드 도구",
-  "scripts": { "build": "node scripts/build.mjs" },
-  "devDependencies": { "esbuild": "0.24.0" }
-}

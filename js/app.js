@@ -2329,7 +2329,12 @@ window.App = (() => {
     }
     try {
       const missing = ['U', 'D', 'S', 'M', 'V', 'F', 'SV', 'R'].filter(k => !window[k]);
-      if (missing.length) throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다. index.html을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
+      if (missing.length) {
+        const parts = window.__parts, order = parts ? parts.join(' → ') : '';
+        const bad = parts && order !== 'app1 → app2 → app3' ? ` 파일이 읽힌 순서: ${order} (app1 → app2 → app3 이어야 해요. 파일 이름과 내용이 맞는지 확인하세요).` : '';
+        const errs = (window.__errs || []).slice(0, 3).join(' / ');
+        throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다.${bad}${errs ? ` 오류: ${errs}.` : ''} ${parts ? 'app1~app3.html' : 'index.html'}을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
+      }
       bindGlobal();
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
