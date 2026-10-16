@@ -8,7 +8,11 @@ import vm from 'node:vm';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const read = p => readFileSync(join(root, p), 'utf8');
-const inlineJs = (p, forGas) => `<script>\n${(forGas ? gasSafe(read(p)) : read(p)).replace(/<\/script/gi, '<\\/script')}\n</script>`;
+/* Apps Script 파일은 1MB를 넘으면 저장되지 않으므로, 공유 버전은 esbuild로 줄인다(주석·공백 제거). 글자는 utf8 그대로 */
+let esb = null;
+try { esb = await import('esbuild'); } catch { console.warn('⚠ esbuild가 없어 줄이지 않고 만듭니다. (npm i 후 다시 빌드하세요)'); }
+const mini = (code, loader) => (esb ? esb.transformSync(code, { loader, minify: true, charset: 'utf8', target: 'es2020', legalComments: 'none' }).code : code);
+const inlineJs = (p, forGas) => `<script>\n${(forGas ? gasSafe(mini(read(p), 'js')) : read(p)).replace(/<\/script/gi, '<\\/script')}\n</script>`;
 
 /* Apps Script는 페이지를 내보낼 때 JS의 // 주석을 지우는데, '…' "…" 문자열만 알고 `…` 템플릿 문자열은 모른다.
  * 그래서 `https://…` 같은 템플릿 안의 // 뒤를 주석으로 잘라 버려 코드가 깨진다.
@@ -47,7 +51,7 @@ const CDN = {
 
 function build(useCdn) {
   return src
-    .replace(/<link rel="stylesheet" href="((?:css|vendor)\/[^"]+)">/g, (_, p) => (useCdn && CDN[p]) || `<style>\n${read(p)}\n</style>`)
+    .replace(/<link rel="stylesheet" href="((?:css|vendor)\/[^"]+)">/g, (_, p) => (useCdn && CDN[p]) || `<style>\n${useCdn ? mini(read(p), 'css') : read(p)}\n</style>`)
     .replace(/<script src="((?:js|vendor)\/[^"]+)"><\/script>/g, (_, p) => (useCdn && CDN[p]) || inlineJs(p, useCdn));
 }
 
