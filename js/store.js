@@ -325,6 +325,28 @@ window.S = (() => {
     }
     state = next; commit();
   }
+  /** 엑셀 합치기: 지금 데이터는 그대로 두고, 파일에만 있는 줄(ID 기준)을 더한다. 직원 이름도 없는 사람만 더한다 */
+  async function mergeIn(next) {
+    next = normalize(next);
+    const added = {}, ops = [];
+    for (const col of COLS) {
+      const have = new Set(state[col].map(x => x.id));
+      const fresh = (next[col] || []).filter(x => x.id && !have.has(x.id));
+      if (col === 'cards') fresh.forEach(c => { if (c.photo === 'Y') c.photo = null; }); // 사진은 파일에 없으므로 비운다
+      if (!fresh.length) continue;
+      state[col].push(...fresh);
+      added[col] = fresh.length;
+      fresh.forEach(x => ops.push(opPut(col, x)));
+    }
+    const names = new Set(state.settings.staff.map(x => x.name));
+    const newStaff = (next.settings.staff || []).filter(x => x.name && !names.has(x.name));
+    commit();
+    if (REMOTE) {
+      for (let i = 0; i < ops.length; i += 300) queueApply(ops.slice(i, i + 300));
+      if (newStaff.length) await saveSettings({ staff: [...state.settings.staff, ...newStaff] });
+    } else if (newStaff.length) await saveSettings({ staff: [...state.settings.staff, ...newStaff] });
+    return { added, staff: newStaff.length, total: ops.length };
+  }
   async function saveSettings(patch) {
     Object.assign(state.settings, patch);
     normalize(state);
@@ -857,7 +879,7 @@ window.S = (() => {
   const isHome = n => /아르딤/.test(n.name || '');
 
   return {
-    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
+    REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, staffHere, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,

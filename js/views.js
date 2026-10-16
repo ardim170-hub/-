@@ -1047,9 +1047,9 @@ window.V = (() => {
         ${admin ? `
         <section class="panel panel-pad">
           <h2 class="section-title">엑셀에서 가져오기</h2>
-          <p>내보내기 양식과 같은 시트·열 이름의 엑셀을 올리면 <b>현재 데이터 전체를 교체</b>합니다. 위도·경도가 비어 있으면 읍면동 중심 위치로 표시합니다.</p>
+          <p>이 사이트에서 내보낸 엑셀(같은 시트·열 이름)을 올려요. <b>합치기</b>는 지금 데이터는 그대로 두고 파일에만 있는 기록을 더해요(같은 기록은 두 번 들어가지 않아요). <b>전체 교체</b>는 지금 데이터를 모두 지우고 파일 내용으로 바꿔요.</p>
           <input type="file" id="xlsxFile" accept=".xlsx,.xls" hidden>
-          <button class="btn" type="button" data-act="xlsx-import">엑셀 파일 선택</button>
+          <div class="inline"><button class="btn btn-primary" type="button" data-act="xlsx-import" data-mode="merge">엑셀 합치기 (추천)</button><button class="btn" type="button" data-act="xlsx-import" data-mode="replace">엑셀로 전체 교체</button></div>
         </section>
         ` : ''}
         <section class="panel panel-pad">
