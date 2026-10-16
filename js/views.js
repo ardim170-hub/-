@@ -1012,6 +1012,19 @@ window.V = (() => {
           <div class="stat-line"><span>사업체 <b>${st.businesses.length}</b></span><span>네트워크 <b>${st.networks.length}</b></span><span>명함 <b>${st.cards.length}</b></span><span>활동 기록 <b>${st.activities.length}</b></span><span>일정 <b>${st.events.length}</b></span></div>
           ${st.isDemo ? '<p><span class="badge warn">예시 데이터 사용 중</span> 실제 업무 전에 비우거나 엑셀로 교체하세요.</p>' : ''}
         </section>
+        <section class="panel panel-pad arc-panel">
+          <h2 class="section-title">📁 구글 드라이브 달별 정리 <span class="sub">현장중심 기록을 분류 폴더 · 달별 파일로 알아서 정리해요</span></h2>
+          <div class="arc-tree"><b>아르딤 취업지원 정리</b> › <b>현장중심</b> › <span>사업체 개발</span> · <span>연락이력</span> · <span>실적</span> · <span>출장·특근</span> · <span>일정·명함</span> › <span class="num">2026-10 연락이력</span> 같은 달별 파일</div>
+          ${S.REMOTE ? `<p class="sub" style="margin:6px 0 10px">${st.settings.archiveAt ? `마지막 정리 ${(() => { const d = new Date(st.settings.archiveAt); return isNaN(d) ? '' : `${d.getFullYear()}.${U.pad(d.getMonth() + 1)}.${U.pad(d.getDate())} ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`; })()}${st.settings.archiveBy ? ` · ${U.esc(accName(st.settings.archiveBy) || st.settings.archiveBy)}` : ''}` : '아직 정리한 적 없어요. 아래 "지금까지 전부 정리"를 한 번 눌러 주세요.'} · 자동 정리 <b>${st.settings.archiveAuto === 'N' ? '꺼짐' : '켜짐'}</b> (관리자가 사이트를 열면 하루 한 번 이번 달·지난달 파일을 새로 고쳐요. 같은 파일을 고쳐 쓰니 링크가 그대로예요)</p>
+          <div class="inline"><button class="btn btn-primary" type="button" data-act="archive-now" data-all="1">지금까지 전부 정리</button><button class="btn" type="button" data-act="archive-now">이번 달·지난달만 지금 정리</button>${st.settings.archiveFolderId ? `<a class="btn" href="https://drive.google.com/drive/folders/${U.esc(st.settings.archiveFolderId)}" target="_blank" rel="noopener">📂 폴더 열기</a>` : ''}<button class="btn btn-ghost" type="button" data-act="archive-toggle">자동 정리 ${st.settings.archiveAuto === 'N' ? '켜기' : '끄기'}</button></div>`
+          : '<p class="sub" style="margin:6px 0 0">팀 공유 사이트(구글 시트 연결)에서 쓸 수 있어요. 지금 버전에서는 아래 <b>달별 엑셀 정리</b>로 파일을 받아 보관하세요.</p>'}
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">📊 달별 엑셀 정리 <span class="sub">연락이력·방문 사업체·실적·출장·특근·신규 사업체·일정·명함을 달마다 시트로 나눠 한 파일로</span></h2>
+          <div class="inline mx-row"><label>시작 달 <input class="input" type="month" id="mxFrom" value="${U.today().slice(0, 7)}"></label><label>끝 달 <input class="input" type="month" id="mxTo" value="${U.today().slice(0, 7)}"></label>
+            <button class="btn btn-primary" type="button" data-act="month-xlsx">시작 달 한 달 파일</button><button class="btn" type="button" data-act="month-xlsx" data-range="1">기간 전체 한 파일 (월별 요약 포함)</button></div>
+          <p class="sub" style="margin:8px 0 0">지금 보는 범위(${e(S.scopeLabel())}) 기준이에요. 팀 공유 사이트는 매달 1일 새벽에 지난달 정리 파일이 구글 드라이브 '아르딤 취업지원 월별 정리' 폴더에 자동으로 만들어져요(자동 작업을 켠 경우).</p>
+        </section>
         <section class="panel panel-pad">
           <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
           <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>

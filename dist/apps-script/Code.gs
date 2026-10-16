@@ -714,6 +714,50 @@ function api_mailTest() { var acc = requireAdmin_(); if (!acc.me) throw new Erro
  * 관리자가 한 번 켜면: 매일 새벽 2시 백업, 15분마다 캘린더 가져오기, 평일 아침 8시 메일 */
 var CRON = ['cron_daily', 'cron_cal', 'cron_morning'];
 function cron_daily() { try { if (readSettings_().backupOn !== 'N') backupNow_(); } catch (e) { console.error(e); } }
+
+/* ================= 달별 정리 파일 (구글 드라이브) =================
+ * 화면에서 만든 표를 받아 '아르딤 취업지원 정리 / 현장중심 / 연락이력 / 2026-10 연락이력' 처럼 폴더별·달별 시트 파일로 쓴다.
+ * 같은 이름 파일이 있으면 내용만 새로 고친다 (링크가 바뀌지 않음) */
+function archiveRoot_() {
+  var st = readSettings_();
+  if (st.archiveFolderId) { try { return DriveApp.getFolderById(st.archiveFolderId); } catch (e) { /* 다시 만든다 */ } }
+  var parents = DriveApp.getFileById(book_().getId()).getParents();
+  var f = subFolder_(parents.hasNext() ? parents.next() : DriveApp.getRootFolder(), '아르딤 취업지원 정리');
+  withLock_(function () { writeSettings_({ archiveFolderId: f.getId() }); });
+  return f;
+}
+function api_archiveWrite(p) {
+  var acc = requireMember_();
+  if (!p || !p.section || !p.files) throw new Error('보낼 내용이 없어요.');
+  var root = archiveRoot_(), sec = subFolder_(root, String(p.section));
+  var out = [];
+  p.files.forEach(function (f) {
+    var folder = subFolder_(sec, String(f.folder));
+    var it = folder.getFilesByName(String(f.name)), ss;
+    if (it.hasNext()) ss = SpreadsheetApp.openById(it.next().getId());
+    else { ss = SpreadsheetApp.create(String(f.name)); DriveApp.getFileById(ss.getId()).moveTo(folder); }
+    var names = f.sheets.map(function (t) { return String(t.name); });
+    f.sheets.forEach(function (t, i) {
+      var sh = ss.getSheetByName(String(t.name)) || ss.insertSheet(String(t.name), i);
+      var fl = sh.getFilter(); if (fl) fl.remove();
+      sh.clear();
+      var head = t.head.map(String);
+      var rows = (t.rows || []).map(function (r) { return head.map(function (_, c) { return r[c] == null ? '' : String(r[c]); }); });
+      var data = [head].concat(rows.length ? rows : [[t.empty || '(기록 없음)'].concat(head.slice(1).map(function () { return ''; }))]);
+      if (sh.getMaxColumns() < head.length) sh.insertColumnsAfter(sh.getMaxColumns(), head.length - sh.getMaxColumns());
+      if (sh.getMaxRows() < data.length) sh.insertRowsAfter(sh.getMaxRows(), data.length - sh.getMaxRows());
+      sh.getRange(1, 1, data.length, head.length).setNumberFormat('@').setValues(data);
+      sh.getRange(1, 1, 1, head.length).setFontWeight('bold').setBackground('#EEF2F7');
+      sh.setFrozenRows(1);
+      if (rows.length) sh.getRange(1, 1, data.length, head.length).createFilter();
+      try { sh.autoResizeColumns(1, head.length); } catch (e) { /* 너비 조절 실패는 무시 */ }
+    });
+    ss.getSheets().forEach(function (sh) { if (names.indexOf(sh.getName()) < 0 && ss.getSheets().length > 1) ss.deleteSheet(sh); });
+    out.push({ name: f.name, url: ss.getUrl() });
+  });
+  withLock_(function () { writeSettings_({ archiveAt: new Date().toISOString(), archiveBy: acc.me }); });
+  return { root: root.getUrl(), files: out };
+}
 function cron_cal() { try { calPull_(); } catch (e) { console.error(e); } }
 function cron_morning() {
   var d = +Utilities.formatDate(new Date(), 'Asia/Seoul', 'u'); // 1=월 … 7=일

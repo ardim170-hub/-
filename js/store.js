@@ -586,10 +586,10 @@ window.S = (() => {
   function setScope(v) { scope = v; lsSet('ardim.scope', v); notify(); }
   function me() { const m = lsGet('ardim.me'); return staff().some(s => s.name === m) ? m : (staff()[0]?.name || ''); }
   function setMe(v) { lsSet('ardim.me', v); notify(); }
-  function staffInScope(name) {
-    if (scope === 'all') return true;
-    if (scope.startsWith('p:')) return programOf(name) === scope.slice(2);
-    if (scope.startsWith('s:')) return name === scope.slice(2);
+  function staffInScope(name, sc = scope) {
+    if (sc === 'all') return true;
+    if (sc.startsWith('p:')) return programOf(name) === sc.slice(2);
+    if (sc.startsWith('s:')) return name === sc.slice(2);
     return true;
   }
   /** 지금 보는 범위의 직원 (현장중심이면 장애인개발원 소속만) */
@@ -600,22 +600,24 @@ window.S = (() => {
     return '전체 팀';
   }
   /** 현재 보기 범위(전체 팀/소속/직원)에 해당하는 데이터 */
-  function view() {
-    if (scope === 'all') return state;
-    const biz = state.businesses.filter(b => staffInScope(b.staff));
-    const net = state.networks.filter(n => staffInScope(n.staff));
+  function view(sc = scope) {
+    if (sc === 'all') return state;
+    const inSc = n => staffInScope(n, sc);
+    const biz = state.businesses.filter(b => inSc(b.staff));
+    const net = state.networks.filter(n => inSc(n.staff));
     const ids = new Set([...biz.map(b => 'biz' + b.id), ...net.map(n => 'net' + n.id)]);
     const inT = x => !x.targetType || ids.has(x.targetType + x.targetId);
     return {
       ...state,
       businesses: biz, networks: net,
       cards: state.cards.filter(c => !c.linkType || ids.has(c.linkType + c.linkId)),
-      activities: state.activities.filter(a => staffInScope(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
-      events: state.events.filter(x => (x.staff ? staffInScope(x.staff) : inT(x))),
-      perfs: state.perfs.filter(p => staffInScope(p.staff)),
-      trips: state.trips.filter(t => staffInScope(t.staff)),
+      activities: state.activities.filter(a => inSc(a.staff) || (a.targetType && ids.has(a.targetType + a.targetId))),
+      events: state.events.filter(x => (x.staff ? inSc(x.staff) : inT(x))),
+      perfs: state.perfs.filter(p => inSc(p.staff)),
+      trips: state.trips.filter(t => inSc(t.staff)),
     };
   }
+
 
   /* ---------- 파생 조회 ---------- */
   const actsOf = (kind, id) => state.activities.filter(a => a.targetType === kind && a.targetId === id).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));

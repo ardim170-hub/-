@@ -1896,3 +1896,8 @@ body { font-size: 16px; }
 .sc-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .sc-li { box-shadow: inset 4px 0 0 var(--sc, transparent); padding-left: 12px !important; }
 .sc-row > th:first-child { box-shadow: inset 5px 0 0 var(--sc, transparent); padding-left: 14px; white-space: nowrap; }
+.logo-tag { font-size: 24px; font-weight: 850; color: #1F4E9A; letter-spacing: -.03em; line-height: 1; padding-left: 16px; }
+@media (max-width: 1180px) { .logo-tag { font-size: 20px; } }
+.mx-row label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.arc-tree { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 10px 14px; background: #F4F6F9; border: 1px solid #E1E6ED; border-radius: 8px; font-size: 14.5px; }
+.arc-tree span { padding: 2px 8px; background: #fff; border: 1px solid #DCE2EA; border-radius: 999px; }

@@ -17,8 +17,8 @@ window.R = (() => {
   const contactOf = b => { const c = S.cardsOf('biz', b.id)[0]; return c ? `${c.name}${c.title ? ' ' + c.title : ''}` : ''; };
   const phoneOf = b => b.phone || (S.cardsOf('biz', b.id)[0] || {}).phone || (S.cardsOf('biz', b.id)[0] || {}).mobile || '';
   /** 이 달 사업체 연락 기록 (전화·방문·이메일·미팅) */
-  function contactRows(month) {
-    return S.view().activities
+  function contactRows(month, v = S.view()) {
+    return v.activities
       .filter(a => a.targetType === 'biz' && CONTACT_TYPES.includes(a.type) && a.date.startsWith(month))
       .map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.a.id.localeCompare(y.a.id));
@@ -40,7 +40,7 @@ window.R = (() => {
     return `
       <div class="page-head">
         <div><h1 class="page-title">연락이력</h1><div class="page-desc">사업체 연락·방문을 한 줄씩 기록하고, 공유 시트의 연락이력·보고용 시트 모양 그대로 복사합니다.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="ct-paste">붙여넣기·엑셀 파일로 한 번에 가져오기</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="ct-paste">붙여넣기·엑셀 파일로 한 번에 가져오기</button><button class="btn btn-primary" type="button" data-act="month-xlsx" data-month="${f.month}">📊 ${V.monthLabel(f.month)} 엑셀로 정리</button></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('ct-month', f.month)}
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
@@ -630,5 +630,86 @@ window.R = (() => {
     }));
   }
 
-  return { ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, readFileCells, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  /* ---------- 달별 엑셀 정리: 연락이력·방문·실적·출장·특근·신규 사업체·일정·명함을 달마다 한 파일로 ---------- */
+  const byDate = k => (x, y) => String(x[k] || '').localeCompare(String(y[k] || ''));
+  function monthData(month, v = S.view()) {
+    const contact = contactRows(month, v).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
+    const perf = [
+      ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
+      ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
+    ].sort(byDate('날짜'));
+    const tr = kind => v.trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((x, y) => (x.date || '').localeCompare(y.date || '') || (x.staff || '').localeCompare(y.staff || ''));
+    const trip = tr('출장').map(t => ({ '출장일': t.date, '성명': t.staff || '', '출장지': t.place || '', '출장용무': t.purpose || '', '방법': t.method || '', '출장시간': t.time || '', '출장복명': (t.report || []).join(', '), '비고': t.note || '', '식비': t.meal || '' }));
+    const ot = tr('특근').map(t => ({ '특근일자': t.date, '성명': t.staff || '', '부서명': t.dept || '직업', '특근시간': t.time || '', '업무내용': t.purpose || '', '비고': t.note || '', '식비': t.meal || '' }));
+    const newBiz = v.businesses.filter(b => (S.bizFirst(b) || b.discoveredAt || '').startsWith(month)).map(b => ({ '최초 등록일': S.bizFirst(b) || b.discoveredAt || '', '사업체명': b.name, '업종': b.industry || '', '진행 단계': b.stage || '', '주소': b.address || '', '대표 전화': b.phone || '', '사업체 담당자': contactOf(b), '발굴 경로': b.source || '', '가능 직무': b.jobs || '', '담당 직원': b.staff || '', '메모': b.memo || '' })).sort(byDate('최초 등록일'));
+    const ev = v.events.filter(x => (x.date || '').startsWith(month)).map(x => { const t = S.targetOf(x); return { '날짜': x.date, '시간': x.time || '', '유형': x.type || '', '제목': x.title || '', '사업체·기관': t ? t.name : '', '담당': x.staff || (t && t.staff) || '', '완료': x.done ? 'Y' : '', '메모': x.memo || '' }; }).sort(byDate('날짜'));
+    const cards = v.cards.filter(c => (c.metAt || '').startsWith(month)).map(c => ({ '받은 날': c.metAt, '이름': c.name, '직함': c.title || '', '소속': c.org || '', '휴대전화': c.mobile || '', '사무실 전화': c.phone || '', '이메일': c.email || '', '받은 곳': c.metWhere || '' })).sort(byDate('받은 날'));
+    return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, trip, ot, newBiz, ev, cards };
+  }
+  const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['trip', '관내출장'], ['ot', '특근'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
+  function sheetOf(rows, head) {
+    const ws = rows.length ? XLSX.utils.json_to_sheet(rows, { header: head }) : XLSX.utils.aoa_to_sheet([head, ['(기록 없음)']]);
+    ws['!cols'] = head.map(h => ({ wch: Math.min(45, Math.max(String(h).length * 2 + 2, ...rows.map(r => String(r[h] ?? '').replace(/[^\x00-\x7f]/g, 'xx').length + 2))) }));
+    if (rows.length) ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rows.length, c: head.length - 1 } }) };
+    return ws;
+  }
+  const HEADS = d => Object.fromEntries(BOOK.map(([k]) => [k, d[k][0] ? Object.keys(d[k][0]) : null]));
+  /** months: ['2026-10'] 한 달이면 그 달 파일, 여러 달이면 한 해 파일(시트마다 '월' 칸 + 월별 요약) */
+  function monthBook(months) {
+    const wb = XLSX.utils.book_new();
+    const per = months.map(m => [m, monthData(m)]);
+    const headOf = k => { const hit = per.find(([, d]) => d[k].length); return hit ? Object.keys(hit[1][k][0]) : ({ contact: ['날짜', '방식', '사업체명', '주소', '전화번호', '담당자', '직종', '결과', '연락결과', '상태', '상담자'], visit: ['날짜', '사업체명', '주소', '결과'], perf: ['날짜', '사업', '세부사업', '사업체·기관', '내용', '담당', '구분'], trip: ['출장일', '성명', '출장지', '출장용무', '방법', '출장시간', '출장복명', '비고', '식비'], ot: ['특근일자', '성명', '부서명', '특근시간', '업무내용', '비고', '식비'], newBiz: ['최초 등록일', '사업체명', '업종', '진행 단계', '주소', '대표 전화', '사업체 담당자', '발굴 경로', '담당 직원'], ev: ['날짜', '시간', '유형', '제목', '사업체·기관', '담당', '완료', '메모'], cards: ['받은 날', '이름', '직함', '소속', '휴대전화', '사무실 전화', '이메일', '받은 곳'] })[k]; };
+    const label = m => `${+m.slice(5, 7)}월`;
+    const one = months.length === 1;
+    // 요약
+    const sumRow = d => [new Set(d.contact.map(r => r['사업체명'])).size, d.contact.length, d.visit.length, d.contact.filter(r => r['연락결과'] === '채용의향 있음').length, d.contact.filter(r => r['상태'] === '재연락').length, d.perf.length, d.trip.length, d.ot.length, d.newBiz.length, d.ev.length, d.cards.length];
+    const sumHead = ['연락한 사업체(곳)', '연락 건수', '방문', '채용의향 있음', '재연락 필요', '실적 줄', '관내출장', '특근', '신규 사업체', '일정', '받은 명함'];
+    const sum = one ? [['항목', `${months[0].slice(0, 4)}년 ${label(months[0])}`], ...sumHead.map((h, i) => [h, sumRow(per[0][1])[i]])]
+      : [['월', ...sumHead], ...per.map(([m, d]) => [label(m), ...sumRow(d)]), ['합계', ...sumHead.map((_, i) => per.reduce((a, [, d]) => a + sumRow(d)[i], 0))]];
+    const ws0 = XLSX.utils.aoa_to_sheet([[`아르딤 취업지원 ${one ? `${months[0].slice(0, 4)}년 ${label(months[0])}` : `${months[0].slice(0, 4)}년 ${label(months[0])}~${label(months[months.length - 1])}`} 정리 · ${S.scopeLabel()} · 만든 날 ${U.today()}`], [], ...sum]);
+    ws0['!cols'] = [{ wch: 18 }, ...sumHead.map(() => ({ wch: 13 }))];
+    XLSX.utils.book_append_sheet(wb, ws0, '요약');
+    BOOK.forEach(([k, name]) => {
+      const head = headOf(k);
+      const rows = one ? per[0][1][k] : per.flatMap(([m, d]) => d[k].map(r => ({ '월': label(m), ...r })));
+      XLSX.utils.book_append_sheet(wb, sheetOf(rows, one ? head : ['월', ...head]), name);
+    });
+    // 한 해 파일에는 달마다 연락이력 시트도 따로 (시트에 바로 붙여 넣기 좋게)
+    if (!one) per.filter(([, d]) => d.contact.length).forEach(([m, d]) => XLSX.utils.book_append_sheet(wb, sheetOf(d.contact, headOf('contact')), `${label(m)} 연락이력`));
+    const file = one ? `아르딤_월별정리_${months[0]}.xlsx` : `아르딤_월별정리_${months[0].slice(0, 4)}년_${label(months[0])}-${label(months[months.length - 1])}.xlsx`;
+    XLSX.writeFile(wb, file);
+    return { file, rows: per.reduce((a, [, d]) => a + BOOK.reduce((b, [k]) => b + d[k].length, 0), 0) };
+  }
+
+  /* ---------- 구글 드라이브 달별 정리: 구역 / 분류 폴더 / 'YYYY-MM 분류' 파일 ---------- */
+  const ARCHIVE_SECTIONS = [{ section: '현장중심', scope: 'p:장애인개발원' }];
+  const toAoa = rows => { const head = rows[0] ? Object.keys(rows[0]) : null; return { head, rows: rows.map(r => Object.values(r).map(x => (x == null ? '' : String(x)))) }; };
+  const sheet = (name, rows, head) => { const t = toAoa(rows); return { name, head: t.head || head, rows: t.rows }; };
+  function archiveFiles(month, sc) {
+    const v = S.view(sc), d = monthData(month, v);
+    const bizActs = v.activities.filter(a => a.targetType === 'biz' && (a.date || '').startsWith(month)).map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
+      .sort((x, y) => x.a.date.localeCompare(y.a.date)).map(({ a, b }) => ({ '날짜': a.date, '유형': a.type, '사업체명': b.name, '진행 단계': b.stage || '', '내용': a.content || '', '실적 세부사업': (S.perfOf(a) || {}).item || '', '담당 직원': a.staff || '' }));
+    const status = v.businesses.map(b => { const la = S.lastAct('biz', b.id); return { '사업체명': b.name, '진행 단계': b.stage || '', '최초 등록일': S.bizFirst(b) || b.discoveredAt || '', '업종': b.industry || '', '주소': b.address || '', '대표 전화': b.phone || '', '사업체 담당자': contactOf(b), '가능 직무': b.jobs || '', '발굴 경로': b.source || '', '담당 직원': b.staff || '', '최근 활동': la ? `${la.date} ${la.type}` : '' }; }).sort((x, y) => x['최초 등록일'].localeCompare(y['최초 등록일']));
+    const sheetRows = window.GL ? S.perfTable(month, GL.SET, true, v).map(r => ({ '사업날짜': r.date, '대분류': r.big, '중분류': r.mid, '세부사업명': r.item, '비고': r.note, '출처': r.src })) : [];
+    const ym = month;
+    const files = [
+      { folder: '사업체 개발', name: `${ym} 사업체 개발`, has: d.newBiz.length + bizActs.length, sheets: [sheet('신규 등록 사업체', d.newBiz, ['최초 등록일', '사업체명']), sheet('사업체 활동', bizActs, ['날짜', '유형', '사업체명']), sheet('사업체 현황(만든 날 기준)', status, ['사업체명'])] },
+      { folder: '연락이력', name: `${ym} 연락이력`, has: d.contact.length, sheets: [sheet('연락이력', d.contact, ['날짜', '사업체명']), sheet('방문 사업체(보고용)', d.visit, ['날짜', '사업체명'])] },
+      { folder: '실적', name: `${ym} 실적`, has: d.perf.length, sheets: [sheet('실적 목록', d.perf, ['날짜', '세부사업']), sheet('구글 시트용(실적 기타)', sheetRows, ['사업날짜', '세부사업명'])] },
+      { folder: '출장·특근', name: `${ym} 출장·특근`, has: d.trip.length + d.ot.length, sheets: [sheet('관내출장', d.trip, ['출장일', '성명']), sheet('특근', d.ot, ['특근일자', '성명'])] },
+      { folder: '일정·명함', name: `${ym} 일정·명함`, has: d.ev.length + d.cards.length, sheets: [sheet('일정', d.ev, ['날짜', '제목']), sheet('받은 명함', d.cards, ['받은 날', '이름'])] },
+    ];
+    return files.filter(f => f.has).map(({ has, ...f }) => f); // eslint-disable-line no-unused-vars
+  }
+  /** 기록이 있는 달 (가장 이른 달부터 이번 달까지) */
+  function archiveMonths(sc) {
+    const v = S.view(sc);
+    const ds = [...v.activities.map(a => a.date), ...v.perfs.map(p => p.date), ...v.trips.map(t => t.date), ...v.events.map(x => x.date), ...v.cards.map(c => c.metAt), ...v.businesses.map(b => S.bizFirst(b) || b.discoveredAt)].filter(x => /^\d{4}-\d{2}/.test(x || '')).sort();
+    if (!ds.length) return [];
+    const out = []; let [y, m] = ds[0].slice(0, 7).split('-').map(Number); const end = U.today().slice(0, 7);
+    while (`${y}-${U.pad(m)}` <= end && out.length < 60) { out.push(`${y}-${U.pad(m)}`); if (++m > 12) { m = 1; y++; } }
+    return out;
+  }
+
+  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, readFileCells, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();

@@ -185,6 +185,32 @@ window.App = (() => {
 
   /* ---------- Pages ---------- */
   let bigMap = null, markerIndex = {}, markerGroup = null;
+  /* ---------- 쓰다 만 입력 지키기 ----------
+   * 다른 창에서 전화번호를 찾고 돌아오면 최신 내용을 받아 화면을 다시 그리는데,
+   * 그때 추가 칸에 쓰던 글이 지워지지 않게 칸마다 적어 두었다가 다시 채운다 (저장하면 비움) */
+  const drafts = (() => { try { return JSON.parse(sessionStorage.getItem('ardim.drafts') || '{}') || {}; } catch { return {}; } })();
+  const saveDrafts = () => { try { sessionStorage.setItem('ardim.drafts', JSON.stringify(drafts)); } catch {} };
+  const clearDraft = name => { if (drafts[name]) { delete drafts[name]; saveDrafts(); } };
+  const noteDraft = ev => {
+    const el = ev.target, f = el && el.closest && el.closest('#view form[data-form]');
+    if (!f || !el.name || el.type === 'file' || el.type === 'checkbox' || el.type === 'radio' || f.dataset.form === 'place-q') return;
+    (drafts[f.dataset.form] ||= {})[el.name] = el.value; saveDrafts();
+  };
+  document.addEventListener('input', noteDraft, true);
+  document.addEventListener('change', noteDraft, true);
+  function keepDrafts(fn) {
+    const a = document.activeElement, f = a && a.closest && a.closest('#view form[data-form]');
+    const focus = f && a.name ? { form: f.dataset.form, name: a.name, s: a.selectionStart, e: a.selectionEnd } : null;
+    fn();
+    view.querySelectorAll('form[data-form]').forEach(fm => {
+      const d = drafts[fm.dataset.form]; if (!d) return;
+      Object.entries(d).forEach(([k, v]) => { const el = fm.querySelector(`[name="${k}"]`); if (el && el.value !== v) el.value = v; });
+    });
+    if (focus) {
+      const el = view.querySelector(`form[data-form="${focus.form}"] [name="${focus.name}"]`);
+      if (el) { el.focus({ preventScroll: true }); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} }
+    }
+  }
   function render() {
     const r = route();
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
@@ -211,8 +237,7 @@ window.App = (() => {
     let [html, after] = pages[r] || pages.dashboard;
     if (MENU_NAME[r] && S.level(r) < 1) [html, after] = [() => `<div class="panel"><div class="empty"><strong>${MENU_NAME[r]} 메뉴는 볼 권한이 없어요</strong>관리자에게 권한을 요청하세요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`, null];
     try {
-      view.innerHTML = html();
-      after && after();
+      keepDrafts(() => { view.innerHTML = html(); after && after(); });
       crumb(r);
     } catch (err) {
       console.error(err);
@@ -1414,6 +1439,36 @@ window.App = (() => {
       toast(`${label} 정리를 마쳤어요. 사업체 ${sum('biz')}곳 · 활동 ${sum('acts')}건을 지웠어요.`);
       render();
     },
+    'month-xlsx': el => {
+      if (!window.XLSX) return toast('엑셀 도구를 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침하세요.', 'error');
+      let months;
+      if (el.dataset.range) {
+        const a = ($('#mxFrom') || {}).value, b = ($('#mxTo') || {}).value;
+        if (!a || !b) return toast('시작 달과 끝 달을 고르세요.', 'error');
+        const [from, to] = a <= b ? [a, b] : [b, a];
+        months = []; let [y, m] = from.split('-').map(Number);
+        while (`${y}-${U.pad(m)}` <= to && months.length < 24) { months.push(`${y}-${U.pad(m)}`); if (++m > 12) { m = 1; y++; } }
+      } else months = [el.dataset.month || ($('#mxFrom') || {}).value || U.today().slice(0, 7)];
+      try {
+        const r = R.monthBook(months);
+        toast(`${r.file} 파일을 만들었어요. (${r.rows}줄 · 요약·연락이력·방문·실적·출장·특근·신규 사업체·일정·명함 시트)`);
+      } catch (err) { console.error(err); toast('엑셀 파일을 만들지 못했어요: ' + err.message, 'error'); }
+    },
+    'archive-now': async el => {
+      if (!S.REMOTE) return toast('구글 드라이브 정리는 팀 공유 사이트(구글 시트 연결)에서 돼요. 이 버전에서는 위 "달별 엑셀 정리"로 파일을 받아 주세요.');
+      const all = el.dataset.all === '1';
+      const months = all ? [...new Set(R.ARCHIVE_SECTIONS.flatMap(sec => R.archiveMonths(sec.scope)))].sort() : [prevYm(), U.today().slice(0, 7)];
+      if (all && !(await confirmBox(`${months.length}개월을 정리할까요?`, `${months[0]} ~ ${months[months.length - 1]} 기록을 구글 드라이브 '아르딤 취업지원 정리' 폴더에 달별 파일로 만들어요. 달마다 몇 초씩 걸려요. 창을 닫지 마세요.`, '정리 시작'))) return;
+      el.disabled = true; const label = el.textContent;
+      try {
+        await S.whenSaved();
+        const r = await archiveSync(months, (i, n, m) => { el.textContent = `정리 중… ${i}/${n} (${m})`; });
+        toast(`구글 드라이브에 정리 파일 ${r.n}개를 만들거나 새로 고쳤어요.`, '', r.root ? { action: { label: '폴더 열기', run: () => window.open(r.root, '_blank') } } : {});
+        await S.reload().catch(() => {});
+      } catch (err) { toast('드라이브에 정리하지 못했어요: ' + (err && err.message || err) + ' — Code.gs를 새로 붙여 넣고 새 버전으로 배포했는지 확인하세요.', 'error'); }
+      finally { el.disabled = false; el.textContent = label; render(); }
+    },
+    'archive-toggle': async () => { const on = S.get().settings.archiveAuto === 'N'; await S.saveSettings({ archiveAuto: on ? '' : 'N' }); toast(on ? '자동 정리를 켰어요. 관리자가 사이트를 열면 하루 한 번 이번 달·지난달 파일을 새로 고쳐요.' : '자동 정리를 껐어요.'); render(); },
     'self-test': async () => {
       if (!S.REMOTE) return toast('지금은 이 브라우저에만 저장하는 파일 버전이에요. 입력하면 바로 이 컴퓨터에 쌓여요. (팀 공유 사이트에서 점검하면 구글 시트 저장을 확인해요)');
       const fromDrawer = drawerOpen();
@@ -2162,6 +2217,7 @@ window.App = (() => {
         if (!fd.content.trim()) fd.content = fd.result || `${fd.type || '전화'} 연락`; // 결과를 비워도 기록은 남긴다
         if ((fd.jobUrl || '').trim() && !R.jobLink(fd.jobUrl)) { form.elements.jobUrl.focus(); return toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); }
         fd.jobUrl = R.jobLink(fd.jobUrl);
+        clearDraft('ct-add'); // 저장하면 쓰던 칸은 비운다 (다시 그리기 전에)
         const b = R.addContact(fd);
         toast(`${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
@@ -2175,6 +2231,7 @@ window.App = (() => {
         const b = name && S.get().businesses.find(x => U.orgKey(x.name) === k), n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
         const people = fd.people ? +fd.people : '';
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
+        clearDraft('perf-add');
         Object.assign(V.ui.perf, { lastItem: item, lastDate: fd.date, lastStaff: who, flash: newId }); // 다시 그릴 때 고른 항목·날짜를 그대로 두고 새 줄을 표시
         let rec;
         if (b || n) {
@@ -2235,6 +2292,32 @@ window.App = (() => {
     });
   }
 
+  /* ---------- 구글 드라이브 달별 정리 ---------- */
+  const prevYm = () => { const t = U.parse(U.today()); const d = new Date(t.getFullYear(), t.getMonth() - 1, 1); return `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; };
+  let archiving = false;
+  async function archiveSync(months, onStep) {
+    if (archiving) throw new Error('이미 정리하는 중이에요.');
+    archiving = true;
+    let n = 0, root = '', i = 0;
+    try {
+      const jobs = R.ARCHIVE_SECTIONS.flatMap(sec => months.map(m => [sec, m]));
+      for (const [sec, m] of jobs) {
+        i++;
+        const files = R.archiveFiles(m, sec.scope);
+        if (onStep) onStep(i, jobs.length, m, files.length);
+        if (!files.length) continue;
+        const r = await S.call('api_archiveWrite', { section: sec.section, files });
+        n += r.files.length; root = r.root;
+      }
+    } finally { archiving = false; }
+    return { n, root };
+  }
+  async function archiveAuto() {
+    const st = S.get().settings;
+    if (!S.REMOTE || !S.isAdmin() || st.archiveAuto === 'N' || (st.archiveAt || '').slice(0, 10) === U.today()) return;
+    if (!(await S.whenSaved())) return;
+    try { await archiveSync([prevYm(), U.today().slice(0, 7)]); } catch (err) { console.warn('드라이브 정리 실패', err); }
+  }
   async function start() {
     view.innerHTML = `<div class="skel" style="height:28px;width:180px;margin-bottom:18px"></div><div class="skel" style="height:110px;margin-bottom:18px"></div><div class="skel" style="height:320px"></div>`;
     try {
@@ -2251,6 +2334,7 @@ window.App = (() => {
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);
+      setTimeout(archiveAuto, 8000); // 관리자가 열면 하루 한 번 이번 달·지난달 정리 파일을 드라이브에 새로 고친다
       window.addEventListener('hashchange', () => setTimeout(pingPresence, 300));
       document.addEventListener('click', ev => { if (!ev.target.closest('#presence')) { const m = $('#presenceMenu'); if (m) m.hidden = true; } });
     } catch (err) {
