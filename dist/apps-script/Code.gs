@@ -14,10 +14,16 @@ var PHOTO_SHEET = '명함사진';
 var PHOTO_CHUNK = 45000; // 셀 하나에 5만 자까지 들어가므로 나눠 저장
 
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('index')
+  // 화면 파일은 1MB 제한 때문에 index(뼈대) + style + app1~app3 으로 나눠 두고 여기서 합친다
+  return HtmlService.createTemplateFromFile('index').evaluate()
     .setTitle('아르딤 취업지원')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setFaviconUrl('https://ssl.gstatic.com/docs/spreadsheets/favicon3.ico');
+}
+
+/** index.html 안의 <?!= include('style'); ?> 자리에 그 파일 내용을 그대로 넣는다 */
+function include(name) {
+  return HtmlService.createHtmlOutputFromFile(name).getContent();
 }
 
 function book_() {

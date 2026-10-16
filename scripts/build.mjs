@@ -65,9 +65,28 @@ const single = join(root, 'dist', '아르딤_취업지원.html');
 writeFileSync(single, build(false));
 const gasHtml = build(true);
 checkGas(gasHtml);
-writeFileSync(join(root, 'dist', 'apps-script', 'index.html'), gasHtml);
+/* Apps Script는 파일 하나가 1MB를 넘으면 저장이 안 되므로 나눈다:
+ * index.html(뼈대) + style.html(CSS) + app1~app3.html(JS, 순서대로 크기를 고르게). Code.gs의 include()가 합친다 */
+const GAS_DIR = join(root, 'dist', 'apps-script');
+const APP_PARTS = 3;
+function splitGas(html) {
+  const styles = [], scripts = [];
+  let out = html.replace(/<style>\n[\s\S]*?\n<\/style>/g, m => { styles.push(m); return styles.length === 1 ? "<?!= include('style'); ?>" : ''; });
+  out = out.replace(/<script>\n[\s\S]*?\n<\/script>/g, m => { scripts.push(m); return scripts.length === 1 ? Array.from({ length: APP_PARTS }, (_, i) => `<?!= include('app${i + 1}'); ?>`).join('\n') : ''; });
+  const total = scripts.reduce((a, x) => a + x.length, 0), parts = Array.from({ length: APP_PARTS }, () => []);
+  let acc = 0;
+  scripts.forEach(x => { const k = Math.min(APP_PARTS - 1, Math.floor(acc / (total / APP_PARTS))); parts[k].push(x); acc += x.length; });
+  if (out.includes('<?') && (out.match(/<\?/g) || []).length !== APP_PARTS + 1) throw new Error('index.html 뼈대에 템플릿 기호(<?)가 더 있습니다');
+  return { index: out, files: { style: styles.join('\n'), ...Object.fromEntries(parts.map((p, i) => [`app${i + 1}`, p.join('\n')])) } };
+}
+const parts = splitGas(gasHtml);
+writeFileSync(join(GAS_DIR, 'index.html'), parts.index);
+for (const [n, c] of Object.entries(parts.files)) writeFileSync(join(GAS_DIR, `${n}.html`), c);
+const big = Object.entries({ index: parts.index, ...parts.files }).map(([n, c]) => [n, Buffer.byteLength(c)]);
+console.log('Apps Script 파일: ' + big.map(([n, b]) => `${n}.html ${Math.round(b / 1024)}KB`).join(' · '));
+if (big.some(([, b]) => b > 950000)) throw new Error('1MB에 가까운 파일이 있습니다. APP_PARTS를 늘리세요.');
 copyFileSync(join(root, 'apps-script', 'Code.gs'), join(root, 'dist', 'apps-script', 'Code.gs'));
 copyFileSync(join(root, 'apps-script', 'appsscript.json'), join(root, 'dist', 'apps-script', 'appsscript.json'));
 const kb = p => (readFileSync(p).length / 1024).toFixed(0) + ' KB';
 console.log(`로컬 버전: ${single} (${kb(single)})`);
-console.log(`공유 버전: dist/apps-script/index.html (${kb(join(root, 'dist', 'apps-script', 'index.html'))}), Code.gs, appsscript.json`);
+console.log('공유 버전: dist/apps-script/ (index·style·app1~app3.html, Code.gs, appsscript.json)');
