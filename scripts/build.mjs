@@ -11,8 +11,13 @@ const read = p => readFileSync(join(root, p), 'utf8');
 /* Apps Script 파일은 1MB를 넘으면 저장되지 않으므로, 공유 버전은 esbuild로 줄인다(주석·공백 제거). 글자는 utf8 그대로 */
 let esb = null;
 try { esb = await import('esbuild'); } catch { console.warn('⚠ esbuild가 없어 줄이지 않고 만듭니다. (npm i 후 다시 빌드하세요)'); }
-const mini = (code, loader) => (esb ? esb.transformSync(code, { loader, minify: true, charset: 'utf8', target: 'es2020', legalComments: 'none' }).code : code);
-const inlineJs = (p, forGas) => `<script>\n${(forGas ? gasSafe(mini(read(p), 'js')) : read(p)).replace(/<\/script/gi, '<\\/script')}\n</script>`;
+// 한 줄이 너무 길면 편집기가 버거워하므로 줄바꿈은 남긴다 (JS: 주석 제거·이름 줄임만, CSS: 규칙마다 한 줄)
+const mini = (code, loader) => {
+  if (!esb) return code;
+  if (loader === 'css') return esb.transformSync(code, { loader, minify: true, charset: 'utf8', legalComments: 'none' }).code.replace(/\}/g, '}\n');
+  return esb.transformSync(code, { loader, minifySyntax: true, minifyIdentifiers: true, minifyWhitespace: false, charset: 'utf8', target: 'es2020', legalComments: 'none' }).code;
+};
+const inlineJs = (p, forGas) => `<script>\n${(forGas ? gasSafe(/hwaseong/.test(p) ? read(p) : mini(read(p), 'js')) : read(p)).replace(/<\/script/gi, '<\\/script')}\n</script>`;
 
 /* Apps Script는 페이지를 내보낼 때 JS의 // 주석을 지우는데, '…' "…" 문자열만 알고 `…` 템플릿 문자열은 모른다.
  * 그래서 `https://…` 같은 템플릿 안의 // 뒤를 주석으로 잘라 버려 코드가 깨진다.
