@@ -303,15 +303,25 @@ window.App = (() => {
     bigMap = null;
     if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'), { showLayers: false });
+    markerGroup = null; markerIndex = {};
     refreshMap(true);
     const fx = V.ui.map.focus;
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
     // 두 곳 찍기 중에 빈 곳을 찍으면 그 자리를 출발·도착으로 쓴다
     // 오른쪽 클릭(휴대폰은 길게 누르기)은 언제든 "여기에 추가"
-    const labels = () => { const on = bigMap.getZoom() >= 14; $('#bigMap')?.classList.toggle('labels-on', on); };
-    bigMap.on('zoomend', labels); labels();
-    bigMap.on('popupopen', ev => { const s = ev.popup._source; if (s && s._icon) s._icon.classList.add('mk-sel'); });
+    bigMap.on('zoomend', mapLabels); mapLabels();
+    bigMap.on('popupopen', ev => { const s = ev.popup._source; if (s && s._icon) s._icon.classList.add('mk-sel'); if (s && s._arKey) selPlace(s._arKey.kind, s._arKey.id, true); });
+    // 목록에 마우스를 올리면 지도 점도 같이 표시
+    const list = $('#mapList');
+    let hovKey = '';
+    const hov = key => {
+      if (key === hovKey) return;
+      [hovKey, key].forEach((k, i) => { const m = k && markerIndex[k]; if (!m) return; m._icon?.classList.toggle('mk-hov', !!i); m.getTooltip()?.getElement()?.classList.toggle('hov', !!i); });
+      hovKey = key;
+    };
+    list.addEventListener('mouseover', ev => hov(ev.target.closest('[data-key]')?.dataset.key || ''));
+    list.addEventListener('mouseleave', () => hov(''));
     bigMap.on('popupclose', ev => { const s = ev.popup._source; if (s && s._icon) s._icon.classList.remove('mk-sel'); });
     bigMap.on('contextmenu', ev => { if (S.can('biz', 2) || S.can('network', 2)) addHerePopup(ev.latlng); });
     bigMap.on('click', ev => {
@@ -342,16 +352,55 @@ window.App = (() => {
     cityRO.observe(wrap);
     apply();
   }
+  /** 이름표: 가까이 보거나 점이 적으면 늘 보이게 */
+  function mapLabels() {
+    if (!bigMap) return;
+    const on = bigMap.getZoom() >= 14 || Object.keys(markerIndex).length <= 30;
+    $('#bigMap')?.classList.toggle('labels-on', on);
+  }
+  /** 목록에서 고른 곳 표시 (지도 점을 눌러도 목록이 따라온다) */
+  function selPlace(kind, id, scroll) {
+    V.ui.map.sel = { kind, id };
+    const box = $('#mapList'); if (!box) return;
+    box.querySelectorAll('.map-item.on').forEach(x => x.classList.remove('on'));
+    const it = box.querySelector(`[data-key="${kind + id}"]`);
+    if (!it) return;
+    it.classList.add('on');
+    if (scroll && (it.offsetTop < box.scrollTop || it.offsetTop + it.offsetHeight > box.scrollTop + box.clientHeight)) box.scrollTo({ top: Math.max(0, it.offsetTop - box.clientHeight / 3), behavior: 'smooth' });
+  }
+  /** 고른 곳으로 부드럽게 날아간 뒤 말풍선을 연다 (점은 다시 그리지 않는다) */
+  function focusPlace(kind, id) {
+    const key = kind + id;
+    const m = markerIndex[key];
+    if (!m || !bigMap) return openDetail(kind, id, false);
+    selPlace(kind, id, false);
+    bigMap.closePopup();
+    const ll = m.getLatLng();
+    let done = false;
+    const open = () => { if (done) return; done = true; markerIndex[key]?.openPopup(); };
+    const px = bigMap.latLngToContainerPoint(ll).distanceTo(bigMap.getSize().divideBy(2));
+    if (bigMap.getZoom() >= 15 && px < 8) open();
+    else {
+      bigMap.once('moveend', open);
+      setTimeout(open, 1200);
+      if (bigMap.getZoom() >= 15 && bigMap.getBounds().pad(-0.1).contains(ll)) bigMap.panTo(ll, { animate: true, duration: 0.35 });
+      else bigMap.flyTo(ll, Math.max(bigMap.getZoom(), 16), { duration: 0.7 });
+    }
+    if (window.innerWidth <= 860) $('#bigMap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  /** 점 모양이 바뀌는 값들. 같으면 그 점은 그대로 둔다 */
+  const markSig = (kind, x, month, pick) => [x.lat, x.lng, kind === 'card' ? (x.org || x.name) : x.name, kind === 'biz' ? `${S.bizTone(x)}${S.supportOf(x).types.length}${x.stage}` : x.status, month ? 1 : 0, pick ? 1 : 0].join('|');
   function refreshMap(fit) {
     const f = V.ui.map;
+    const all = V.mapItems(true);
     const items = V.mapItems();
-    $('#mapList').innerHTML = V.mapList(items);
+    const fd = $('#mapFolder'); if (fd) fd.innerHTML = V.mapFolder(all);
+    const box = $('#mapList');
+    if (box) { const y = box.scrollTop; box.innerHTML = V.mapList(items); box.scrollTop = y; }
     const bar = $('#mapSolo');
     if (bar) { bar.innerHTML = V.soloBar(); bar.hidden = !bar.innerHTML; }
     if (!bigMap) return;
-    if (markerGroup) markerGroup.remove();
-    markerIndex = {};
-    markerGroup = L.featureGroup();
+    if (!markerGroup) { markerGroup = L.featureGroup().addTo(bigMap); markerIndex = {}; }
     const label = (kind, x) => kind === 'card' ? (x.org || x.name) : x.name;
     // 이것만 보기: 고른 곳(+ 길찾기 출발·도착)만 지도에 남긴다
     const so = f.solo && S.find(f.solo.kind, f.solo.id) ? f.solo : (f.solo = null);
@@ -363,20 +412,35 @@ window.App = (() => {
       const x = S.find(so.kind, so.id);
       if (M.hasPos(x)) shown.push({ kind: so.kind, x, home: so.kind === 'net' && S.isHome(x) });
     }
-    // 이 달 발굴은 맨 위에 그린다
-    shown.sort((a, b) => (a.month ? 1 : 0) - (b.month ? 1 : 0)).forEach(({ kind, x, month }) => {
-      const m = (kind === 'biz' ? M.bizMarker(x, month) : kind === 'net' ? M.netMarker(x) : M.cardMarker(x))
+    // 바뀐 점만 새로 만들고, 없어진 점만 뺀다 (열린 말풍선은 그대로)
+    const seen = new Set();
+    shown.forEach(({ kind, x, month }) => {
+      const key = kind + x.id;
+      seen.add(key);
+      const sig = markSig(kind, x, month, f.pick), data = JSON.stringify(x);
+      let m = markerIndex[key];
+      if (m && m._arSig === sig) {
+        if (m._arData !== data) { m._arData = data; if (m.isPopupOpen && m.isPopupOpen()) m.getPopup().update(); m.setTooltipContent(label(kind, x)); }
+        return;
+      }
+      const reopen = m && m.isPopupOpen && m.isPopupOpen();
+      if (m) markerGroup.removeLayer(m);
+      m = (kind === 'biz' ? M.bizMarker(x, month) : kind === 'net' ? M.netMarker(x) : M.cardMarker(x))
         // 이름표: 가까이 보면 늘, 멀리서는 마우스를 올린 핀만 (네이버 지도처럼)
         .bindTooltip(label(kind, x), { permanent: true, direction: 'bottom', offset: [0, 4], className: 'mk-label', interactive: false });
+      m._arSig = sig; m._arData = data; m._arKey = { kind, id: x.id };
       m.on('mouseover', () => m.getTooltip()?.getElement()?.classList.add('hov'));
       m.on('mouseout', () => m.getTooltip()?.getElement()?.classList.remove('hov'));
       // 두 곳 찍기 중에는 말풍선 대신 바로 출발·도착으로 고른다
       if (f.pick) m.on('click', ev => { L.DomEvent.stop(ev); pickRoute({ kind, id: x.id }); });
-      else m.bindPopup(M.popupHtml(kind, x), { autoPanPaddingTopLeft: [20, 70] });
+      // 말풍선 내용은 열 때마다 최신 자료로 만든다
+      else m.bindPopup(() => M.popupHtml(kind, S.find(kind, x.id) || x), { autoPanPaddingTopLeft: [20, 70] });
       m.addTo(markerGroup);
-      markerIndex[kind + x.id] = m;
+      markerIndex[key] = m;
+      if (reopen) m.openPopup();
     });
-    markerGroup.addTo(bigMap);
+    Object.keys(markerIndex).forEach(k => { if (!seen.has(k)) { markerGroup.removeLayer(markerIndex[k]); delete markerIndex[k]; } });
+    mapLabels();
     $('#bigMap')?.classList.toggle('picking', !!f.pick);
     drawRoute();
     if (so) {
@@ -390,6 +454,12 @@ window.App = (() => {
       if (gb) bigMap.fitBounds(gb, { padding: [12, 12] });
       else if (markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     }
+  }
+  /** 자료가 바뀔 때(30초 동기화·주소 찾기 등) 지도는 통째로 다시 그리지 않고 점만 맞춘다. 몰려 오면 한 번에 */
+  let mapSoftT = 0;
+  function softMap() {
+    clearTimeout(mapSoftT);
+    mapSoftT = setTimeout(() => { if (route() === 'map' && $('#mapList')) { refreshMap(false); renderNav(); } else render(); }, 250);
   }
   /** 지도에서 두 곳 찍기: 첫 번째 = 출발, 두 번째 = 도착, 세 번째부터는 새로 시작 */
   function pickRoute(ref) {
@@ -1641,10 +1711,10 @@ window.App = (() => {
       const [y, m] = V.ui.map.month.split('-').map(Number);
       const d = new Date(y, m - 1 + +el.dataset.d, 1);
       V.ui.map.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`;
-      $('#mapMonthLabel').textContent = V.monthLabel(V.ui.map.month);
       refreshMap(false);
     },
-    'map-listmode': () => { V.ui.map.listAll = !V.ui.map.listAll; $('#mapListMode').textContent = V.ui.map.listAll ? '이 달만' : '전체 목록'; refreshMap(false); },
+    'map-tab': el => { V.ui.map.tab = el.dataset.tab; refreshMap(false); $('#mapList').scrollTop = 0; },
+    'map-sort': el => { V.ui.map.sort = el.dataset.sort; refreshMap(false); $('#mapList').scrollTop = 0; },
     'link-add': () => { $('#linkRows').insertAdjacentHTML('beforeend', V.linkRow()); $('#linkRows .staff-row:last-child input').focus(); },
     'save-links': async () => {
       const links = [...document.querySelectorAll('#linkRows .staff-row')].map(r => ({ label: r.querySelector('[name=linkLabel]').value.trim(), url: r.querySelector('[name=linkUrl]').value.trim() })).filter(l => l.label);
@@ -1709,14 +1779,7 @@ window.App = (() => {
       refreshMap(false);
       if (bigMap && markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     },
-    'map-focus': el => {
-      const { kind, id } = el.dataset;
-      const m = markerIndex[kind + id];
-      if (!m || !bigMap) return openDetail(kind, id, false);
-      bigMap.setView(m.getLatLng(), Math.max(bigMap.getZoom(), 15));
-      m.openPopup();
-      if (window.innerWidth <= 860) $('#bigMap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    },
+    'map-focus': el => focusPlace(el.dataset.kind, el.dataset.id),
     'cal-pick': el => { V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
     'cal-move': el => { const [y, m] = V.ui.sched.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.sched.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
     'perf-month': el => { const [y, m] = V.ui.perf.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.perf.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
@@ -2421,6 +2484,7 @@ window.App = (() => {
       }
       if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
       else if (route() === 'schedule' && V.ui.sched.view === 'train' && $('#tpBox') && !drawerOpen()) { bindSched(); renderNav(); }
+      else if (route() === 'map' && V.ui.map.mode !== 'city' && bigMap && $('#mapList')) softMap();
       else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
     });

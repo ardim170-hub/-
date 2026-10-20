@@ -1866,7 +1866,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     hub: { q: '', triage: false },
-    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), listAll: false, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
@@ -2364,15 +2364,8 @@ window.V = (() => {
         </div>
         <div class="map-side">
           <div id="routeBox">${routePanel()}</div>
-          <div class="map-side-head">
-            <div class="month-nav">
-              <button class="icon-btn" type="button" data-act="map-month" data-d="-1" aria-label="이전 달">${I.back}</button>
-              <b class="num" id="mapMonthLabel">${monthLabel(f.month)}</b>
-              <button class="icon-btn" type="button" data-act="map-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button>
-              <button class="btn btn-ghost btn-sm" type="button" data-act="map-listmode" id="mapListMode">${f.listAll ? '이 달만' : '전체 목록'}</button>
-            </div>
-            ${noPos ? `<button type="button" class="nopos-bar ${f.noPos ? 'on' : ''}" data-act="map-nopos">📍 위치가 없어 지도에 안 나오는 곳 <b>${noPos}</b>곳 · ${f.noPos ? '지도 목록으로 돌아가기' : '보고 위치 정하기'}</button>` : ''}
-          </div>
+          ${noPos ? `<div class="map-side-head"><button type="button" class="nopos-bar ${f.noPos ? 'on' : ''}" data-act="map-nopos">📍 위치가 없어 지도에 안 나오는 곳 <b>${noPos}</b>곳 · ${f.noPos ? '지도 목록으로 돌아가기' : '보고 위치 정하기'}</button></div>` : ''}
+          <div class="map-folder" id="mapFolder"></div>
           <div class="map-list" id="mapList"></div>
         </div>
       </section>`}`;
@@ -2396,7 +2389,17 @@ window.V = (() => {
   const monthLabel = m => `${m.slice(0, 4)}년 ${+m.slice(5, 7)}월`;
   const inMonth = (x, m) => (x.discoveredAt || x.since || x.metAt || x.createdAt || '').startsWith(m);
   /** 지도에 찍을 전체 목록 (구·레이어·단계·검색 반영) */
-  function mapItems() {
+  /** 목록 탭: 사업체 / 기관 / 홍보처(홍보·방문처에서 불러온 곳) / 명함 */
+  const isOr = x => !!(window.OR && OR.isTarget(x));
+  const tabOf = ({ kind, x }) => kind === 'biz' ? 'biz' : kind === 'card' ? 'card' : isOr(x) ? 'or' : 'net';
+  const MAP_TABS = [['all', '전체'], ['biz', '사업체'], ['net', '기관'], ['or', '홍보처'], ['card', '명함'], ['month', '이 달 발굴']];
+  const byTab = (items, t) => !t || t === 'all' ? items : items.filter(i => i.home || (t === 'month' ? i.month : tabOf(i) === t));
+  /** 지도에 찍을 목록. allTabs면 탭 거르기 전 (탭 개수 셀 때) */
+  function mapItems(allTabs) {
+    const items = mapItemsAll();
+    return allTabs ? items : byTab(items, ui.map.tab);
+  }
+  function mapItemsAll() {
     const f = ui.map;
     const st = S.view();
     const items = [];
@@ -2436,6 +2439,8 @@ window.V = (() => {
     const from = r ? routeEnd(r.from, true) : null;
     const to = r ? routeEnd(r.to) : null;
     const end = (cls, label, x, ph) => `<span class="${cls}">${label} <b>${x ? e(x.name) : `<span class="sub">${ph}</span>`}</b></span>`;
+    // 길찾기를 안 쓰는 동안은 한 줄로 접어 목록이 위로 오게
+    if (!r && !f.pick) return `<div class="route-box idle mini"><b>🧭 길찾기</b><span class="sub">점을 눌러 <b>여기까지 길찾기</b> 또는 <b>📍 두 곳 찍어 길찾기</b></span></div>`;
     if (!r || !r.to) return `<div class="route-box ${r ? '' : 'idle'}">${head(!!r)}
       <div class="route-ends">${end('from', '출발', from, f.pick ? '지도에서 첫 번째 곳을 찍으세요' : '복지관 (위치 등록 필요)')}${end('to', '도착', null, f.pick ? '두 번째 곳을 찍으세요' : '지도에서 고르기')}</div>
       <p class="sub" style="margin:0">${f.pick ? '지도에서 <b>점(사업체·기관)</b>이나 <b>아무 곳</b>을 차례로 두 번 찍으면 바로 경로를 그리고 오른쪽에 길찾기 창을 띄워요.' : '지도 위 <b>📍 두 곳 찍어 길찾기</b>를 누르고 두 곳을 찍거나, 점을 눌러 <b>여기까지 길찾기</b>를 누르세요.'}</p>
@@ -2466,14 +2471,54 @@ window.V = (() => {
           <div style="min-width:0;flex:1"><div class="name" data-act="open" data-kind="${kind}" data-id="${x.id}">${e(x.name)}</div><div class="meta">${kind === 'biz' ? '사업체' : '기관'} · ${e(x.address || '주소 없음')}</div></div>
           <button class="btn btn-sm btn-primary" type="button" data-act="edit-loc" data-kind="${kind}" data-id="${x.id}">위치 지정</button></div>`).join('')}</div>`;
     }
-    const list = f.listAll ? items : items.filter(i => i.month);
-    if (!list.length) return `<div class="empty"><strong>${f.listAll ? '표시할 곳이 없습니다' : `${monthLabel(f.month)}에 발굴한 사업체가 없습니다`}</strong>${f.listAll ? '레이어나 단계 선택을 확인하세요.' : '다른 달을 보거나 전체 목록을 눌러 보세요.'}</div>`;
-    const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, list.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
-    return groups.map(([g, l]) => `<div class="map-group"><h4>${g ? `<span class="prog-dot" style="--c:${D.GU[g].color}"></span>${g}` : '구 미지정'} <span class="num">${l.length}</span></h4>${l.map(({ kind, x }) => `
-      <div class="map-item ${f.solo && f.solo.kind === kind && f.solo.id === x.id ? 'on' : ''}" data-act="map-solo" data-kind="${kind}" data-id="${x.id}" title="누르면 지도에 이곳만 보여요">
-        <span class="mk ${kind === 'net' && S.isHome(x) ? 'star' : kind !== 'biz' ? 'sq' : ''}" style="--c:${kind === 'biz' ? M.bizColor(x) : kind === 'net' ? (S.isHome(x) ? D.MAP_COLORS.home : D.MAP_COLORS.net) : D.MAP_COLORS.card}"></span>
-        <div style="min-width:0"><div class="name">${e(kind === 'card' ? (x.org || x.name) : x.name)}</div><div class="meta">${kind === 'biz' ? `${e(x.stage)} · ${e(x.industry)} · ${U.md(x.discoveredAt)} 발굴` : kind === 'net' ? `${e(x.category)} · ${e(x.status)}` : `명함 · ${e(x.name)}`} · ${e(x.area || '')}${M.hasPos(x) ? '' : ' · 위치 없음'}</div></div>
-      </div>`).join('')}</div>`).join('');
+    const list = items.filter(i => !i.home || f.tab === 'all');
+    if (!list.length) return `<div class="empty"><strong>${f.tab === 'month' ? `${monthLabel(f.month)}에 발굴한 사업체가 없습니다` : '표시할 곳이 없습니다'}</strong>${f.tab === 'month' ? '◀ ▶ 로 다른 달을 보세요.' : '위쪽 레이어·단계·검색을 확인하세요.'}</div>`;
+    const when = x => x.discoveredAt || x.since || x.metAt || x.createdAt || '';
+    const nm = ({ kind, x }) => kind === 'card' ? (x.org || x.name) : x.name;
+    const sorted = [...list].sort((a, b) => (b.home ? 1 : 0) - (a.home ? 1 : 0) || (f.sort === 'name' ? 0 : String(when(b.x)).localeCompare(String(when(a.x)))) || String(nm(a)).localeCompare(String(nm(b)), 'ko'));
+    if (f.sort !== 'gu') return sorted.map(placeItem).join('');
+    const groups = [...D.GUS.map(g => g.name), ''].map(g => [g, sorted.filter(i => D.guOf(i.x.area) === g)]).filter(([, l]) => l.length);
+    return groups.map(([g, l]) => `<div class="map-group"><h4>${g ? `<span class="prog-dot" style="--c:${D.GU[g].color}"></span>${g}` : '구 미지정'} <span class="num">${l.length}</span></h4>${l.map(placeItem).join('')}</div>`).join('');
+  }
+  /** 네이버 지도 '저장' 목록처럼: 이름(굵게) + 분류, 주소, 표시 몇 개 */
+  function placeItem(it) {
+    const { kind, x, month } = it;
+    const f = ui.map, key = kind + x.id;
+    const on = (f.sel && f.sel.kind === kind && f.sel.id === x.id) || (f.solo && f.solo.kind === kind && f.solo.id === x.id);
+    const home = kind === 'net' && S.isHome(x);
+    const color = kind === 'biz' ? M.bizColor(x) : kind === 'net' ? (home ? D.MAP_COLORS.home : D.MAP_COLORS.net) : D.MAP_COLORS.card;
+    const cat = kind === 'biz' ? (x.industry || '사업체') : kind === 'net' ? (home ? '우리 복지관' : x.category || '기관') : '명함';
+    const tags = [
+      kind === 'biz' ? stageBadge(x.stage) : '',
+      month ? '<span class="pl-tag hot">이 달 발굴</span>' : '',
+      kind === 'net' && !home && x.status ? `<span class="pl-tag">${e(x.status)}</span>` : '',
+      kind === 'net' && isOr(x) ? '<span class="pl-tag or">홍보처</span>' : '',
+      kind === 'card' ? `<span class="pl-tag">${e([x.name, x.title].filter(Boolean).join(' '))}</span>` : '',
+      x.staff ? `<span class="pl-staff">${staffDot(x.staff)}${e(x.staff)}</span>` : '',
+      M.hasPos(x) ? '' : '<span class="pl-tag warn">위치 없음</span>',
+    ].filter(Boolean).join('');
+    return `<div class="map-item pl ${on ? 'on' : ''}" data-act="map-focus" data-kind="${kind}" data-id="${x.id}" data-key="${key}" style="--c:${color}">
+        <span class="mk ${home ? 'star' : kind !== 'biz' ? 'sq' : ''}"></span>
+        <div class="pl-body"><div class="pl-top"><b class="name">${e(kind === 'card' ? (x.org || x.name) : x.name)}</b><span class="pl-cat">${e(cat)}</span></div>
+          <div class="pl-addr">${e(x.address || x.area || '주소 없음')}</div>
+          ${tags ? `<div class="pl-tags">${tags}</div>` : ''}</div>
+        <button type="button" class="pl-solo" data-act="map-solo" data-kind="${kind}" data-id="${x.id}" title="지도에 이곳만 보기" aria-label="지도에 이곳만 보기">👁</button>
+      </div>`;
+  }
+  /** 목록 위 '저장 폴더' 머리: 지도 이름, 개수, 탭, 정렬 */
+  function mapFolder(all) {
+    const f = ui.map;
+    if (f.noPos) return '';
+    const items = all.filter(i => !i.home);
+    const n = t => byTab(items, t).filter(i => !i.home).length;
+    const p = f.prog && D.PROGRAM[f.prog];
+    const tabs = MAP_TABS.filter(([k]) => k === 'all' || k === 'month' || n(k) || f.tab === k);
+    return `<div class="mf-head"><span class="mf-ic" style="--c:${p ? p.hex : '#172033'}">★</span>
+        <div class="mf-t"><b title="${e(p ? `${p.map} 지도` : '화성시 지도')}">${e(p ? `${p.map} 지도` : '화성시 지도')}</b>
+          <div class="mf-row"><span class="sub"><b class="num">${n(f.tab)}</b>곳${f.tab !== 'all' ? ` · 전체 ${items.length}곳` : ''}</span>
+          <span class="mf-sort" role="group" aria-label="정렬">${[['new', '최신순'], ['name', '이름순'], ['gu', '구별']].map(([k, l]) => `<button type="button" class="${f.sort === k ? 'on' : ''}" data-act="map-sort" data-sort="${k}">${l}</button>`).join('')}</span></div></div></div>
+      <div class="mf-tabs" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" class="${f.tab === k ? 'on' : ''}" aria-selected="${f.tab === k}" data-act="map-tab" data-tab="${k}">${l} <span class="num">${n(k)}</span></button>`).join('')}</div>
+      ${f.tab === 'month' ? `<div class="month-nav mf-month"><button class="icon-btn" type="button" data-act="map-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="map-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>` : ''}`;
   }
 
   /* ================= 일정 ================= */
@@ -3152,7 +3197,7 @@ window.V = (() => {
     });
   }
 
-  return { staffColor, staffDot, accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { staffColor, staffDot, accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, mapFolder, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
 
 </script>

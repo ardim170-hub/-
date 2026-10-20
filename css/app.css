@@ -2000,3 +2000,45 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .dp-goal { position: absolute; left: 12%; right: 12%; height: 0; border-top: 2px dashed #8A94A6; z-index: 1; }
 .dp-col-l { font-size: 12.5px; color: var(--text-2); text-align: center; }
 .dp-col.on .dp-col-l { color: var(--text); font-weight: 800; }
+
+/* ---------- 지도 목록: 네이버 지도 '저장' 폴더처럼 ---------- */
+.map-folder { border-bottom: 1px solid var(--line); background: var(--surface); }
+.map-folder:empty { display: none; }
+.mf-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 8px; }
+.mf-ic { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--c); color: #fff; font-size: 16px; }
+.mf-t { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.mf-t > b { font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mf-t .sub { font-size: 12.5px; }
+
+
+.mf-tabs { display: flex; gap: 6px; padding: 0 14px 10px; overflow-x: auto; scrollbar-width: none; }
+.mf-tabs::-webkit-scrollbar { display: none; }
+.mf-tabs button { flex: none; border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 4px 12px; font: inherit; font-size: 13px; cursor: pointer; color: var(--text); white-space: nowrap; }
+.mf-tabs button .num { color: var(--text-2); font-size: 12px; margin-left: 2px; }
+.mf-tabs button.on { background: #172033; border-color: #172033; color: #fff; font-weight: 700; }
+.mf-tabs button.on .num { color: rgba(255,255,255,.8); }
+.mf-month { padding: 0 14px 10px; }
+.map-list { position: relative; }
+.map-item.pl { grid-template-columns: 12px minmax(0, 1fr) auto; align-items: start; padding: 13px 10px 13px 14px; }
+.map-item.pl .mk { background: var(--c); }
+.pl-top { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.pl-top .name { font-size: 15px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pl-cat { flex: none; font-size: 12.5px; color: var(--text-2); max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-addr { font-size: 13px; color: var(--text-2); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-top: 6px; font-size: 12px; }
+.pl-tag { border: 1px solid var(--line-strong); padding: 0 6px; color: var(--text-2); }
+.pl-tag.hot { border-color: #172033; color: #172033; font-weight: 700; }
+.pl-tag.or { border-color: #7C4DDB; color: #7C4DDB; }
+.pl-tag.warn { border-color: var(--danger); color: var(--danger); }
+.pl-staff { display: inline-flex; align-items: center; gap: 4px; color: var(--text-2); white-space: nowrap; }
+.pl-solo { border: 0; background: transparent; cursor: pointer; font-size: 15px; padding: 2px 4px; opacity: .35; }
+.map-item.pl:hover .pl-solo, .map-item.pl.on .pl-solo { opacity: .9; }
+.map-item.pl.on { background: #EEF4FF; box-shadow: inset 4px 0 0 #1D4ED8; }
+.leaflet-marker-icon.mk-hov { z-index: 999 !important; filter: drop-shadow(0 0 5px rgba(29, 78, 216, .85)); transform-origin: center; }
+.route-box.mini { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 8px 12px; font-size: 12.5px; }
+.route-box.mini > b { font-size: 13px; }
+.mf-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 1px; }
+.mf-sort { display: inline-flex; gap: 2px; }
+.mf-sort button { border: 0; background: none; padding: 2px 6px; font: inherit; font-size: 12.5px; color: var(--text-2); cursor: pointer; }
+.mf-sort button.on { color: var(--text); font-weight: 800; }
+.mf-sort button + button::before { content: ''; }
