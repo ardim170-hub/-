@@ -2600,6 +2600,28 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .sec-staff > b { margin-right: 4px; }
 .sec-staff-chip { display: inline-flex; align-items: center; gap: 2px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-weight: 700; }
 
+/* 담당자별 연락 현황 막대 */
+.staff-chart { margin-bottom: 16px; }
+.sc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+.scb-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; color: var(--text-2); }
+.scb-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.scb-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.scb-rows { display: flex; flex-direction: column; gap: 12px; }
+.scb-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 70px 230px; gap: 14px; align-items: center; }
+.scb-name { font-weight: 800; font-size: 15.5px; white-space: nowrap; }
+.scb-track { display: flex; gap: 2px; height: 26px; align-items: stretch; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.scb-seg { display: block; min-width: 4px; }
+.scb-seg:first-child { border-radius: 4px 0 0 4px; }
+.scb-seg:last-child { border-radius: 0 4px 4px 0; }
+.scb-seg:hover { filter: brightness(1.08); }
+.scb-zero { align-self: center; padding-left: 10px; font-size: 13px; color: var(--text-2); }
+.scb-total { font-size: 14px; color: var(--text-2); white-space: nowrap; }
+.scb-total b { font-size: 22px; color: var(--text); margin-right: 2px; }
+.scb-meta { font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.scb-table { margin-top: 12px; }
+.scb-table summary { cursor: pointer; font-weight: 700; color: var(--text-2); font-size: 14px; }
+@media (max-width: 900px) { .scb-row { grid-template-columns: 90px minmax(0, 1fr) 60px; } .scb-meta { grid-column: 2 / -1; } }
+
 </style>
 </head>
 <body>
@@ -2687,7 +2709,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.16 11:54";</script>
+<script>window.APP_VERSION = "2026.10.20 09:24";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -5580,17 +5602,21 @@ window.V = (() => {
         </section>
         <section class="panel panel-pad arc-panel">
           <h2 class="section-title">📁 구글 드라이브 달별 정리 <span class="sub">현장중심 기록을 분류 폴더 · 달별 파일로 알아서 정리해요</span></h2>
-          <div class="arc-tree"><b>아르딤 취업지원 정리</b> › <b>현장중심</b> › <span>사업체 개발</span> · <span>연락이력</span> · <span>실적</span> · <span>출장·특근</span> · <span>일정·명함</span> › <span class="num">2026-10 연락이력</span> 같은 달별 파일</div>
+          <div class="arc-tree"><b>아르딤 취업지원 정리</b> › <b>현장중심</b> › <span>사업체 개발</span> · <span>연락이력</span> · <span>실적</span> · <span>일정·명함</span> › <span class="num">2026-10 연락이력</span> 같은 달별 파일</div>
           ${S.REMOTE ? `<p class="sub" style="margin:6px 0 10px">${st.settings.archiveAt ? `마지막 정리 ${(() => { const d = new Date(st.settings.archiveAt); return isNaN(d) ? '' : `${d.getFullYear()}.${U.pad(d.getMonth() + 1)}.${U.pad(d.getDate())} ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`; })()}${st.settings.archiveBy ? ` · ${U.esc(accName(st.settings.archiveBy) || st.settings.archiveBy)}` : ''}` : '아직 정리한 적 없어요. 아래 "지금까지 전부 정리"를 한 번 눌러 주세요.'} · 자동 정리 <b>${st.settings.archiveAuto === 'N' ? '꺼짐' : '켜짐'}</b> (관리자가 사이트를 열면 하루 한 번 이번 달·지난달 파일을 새로 고쳐요. 같은 파일을 고쳐 쓰니 링크가 그대로예요)</p>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="archive-now" data-all="1">지금까지 전부 정리</button><button class="btn" type="button" data-act="archive-now">이번 달·지난달만 지금 정리</button>${st.settings.archiveFolderId ? `<a class="btn" href="https://drive.google.com/drive/folders/${U.esc(st.settings.archiveFolderId)}" target="_blank" rel="noopener">📂 폴더 열기</a>` : ''}<button class="btn btn-ghost" type="button" data-act="archive-toggle">자동 정리 ${st.settings.archiveAuto === 'N' ? '켜기' : '끄기'}</button></div>`
           : '<p class="sub" style="margin:6px 0 0">팀 공유 사이트(구글 시트 연결)에서 쓸 수 있어요. 지금 버전에서는 아래 <b>달별 엑셀 정리</b>로 파일을 받아 보관하세요.</p>'}
         </section>
         <section class="panel panel-pad">
-          <h2 class="section-title">📊 달별 엑셀 정리 <span class="sub">연락이력·방문 사업체·실적·출장·특근·신규 사업체·일정·명함을 달마다 시트로 나눠 한 파일로</span></h2>
+          <h2 class="section-title">📊 달별 엑셀 정리 <span class="sub">연락이력·방문 사업체·실적·신규 사업체·일정·명함을 달마다 시트로 나눠 한 파일로</span></h2>
           <div class="inline mx-row"><label>시작 달 <input class="input" type="month" id="mxFrom" value="${U.today().slice(0, 7)}"></label><label>끝 달 <input class="input" type="month" id="mxTo" value="${U.today().slice(0, 7)}"></label>
             <button class="btn btn-primary" type="button" data-act="month-xlsx">시작 달 한 달 파일</button><button class="btn" type="button" data-act="month-xlsx" data-range="1">기간 전체 한 파일 (월별 요약 포함)</button></div>
           <p class="sub" style="margin:8px 0 0">지금 보는 범위(${e(S.scopeLabel())}) 기준이에요. 팀 공유 사이트는 매달 1일 새벽에 지난달 정리 파일이 구글 드라이브 '아르딤 취업지원 월별 정리' 폴더에 자동으로 만들어져요(자동 작업을 켠 경우).</p>
         </section>
+        ${st.trips.length ? `<section class="panel panel-pad">
+          <h2 class="section-title">🧾 출장·특근 기록 지우기 <span class="sub">출장명령부는 현장중심 메뉴에서 뺐어요. 남은 기록 ${st.trips.length}건</span></h2>
+          <div class="inline"><button class="btn btn-danger" type="button" data-act="trips-wipe">출장·특근 기록 ${st.trips.length}건 모두 지우기</button><span class="sub">관내·관외출장, 특근 명령부와 여비 계산 기록이 지워져요. 먼저 엑셀로 내보내 두면 안전해요.</span></div>
+        </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
           <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>
@@ -7111,6 +7137,32 @@ window.R = (() => {
       <div id="ctResults"></div>`;
   }
 
+  /* ---------- 담당자별 연락 현황 (상급자 보기용): 사람마다 한 줄, 방식별로 나눈 막대 + 숫자 ---------- */
+  const TYPE_COLOR = { '전화': '#2a78d6', '방문': '#eb6834', '이메일': '#1baf7a', '미팅': '#eda100' }; // 검증한 순서 (색맹 구분 통과)
+  function staffChart(rows, month) {
+    const names = [...new Set([...S.staffHere().map(x => x.name), ...rows.map(r => r.a.staff).filter(Boolean)])];
+    if (!names.length) return '';
+    const by = names.map(n => {
+      const mine = rows.filter(r => r.a.staff === n);
+      const t = Object.fromEntries(CONTACT_TYPES.map(k => [k, mine.filter(r => r.a.type === k).length]));
+      return { n, t, total: mine.length, biz: new Set(mine.map(r => r.b.id)).size, willing: new Set(mine.filter(r => r.a.result === '채용의향 있음').map(r => r.b.id)).size, days: new Set(mine.map(r => r.a.date)).size };
+    });
+    const max = Math.max(1, ...by.map(x => x.total));
+    const legend = CONTACT_TYPES.map(k => `<span><i style="background:${TYPE_COLOR[k]}"></i>${k}</span>`).join('');
+    const bar = x => CONTACT_TYPES.filter(k => x.t[k]).map(k => `<i class="scb-seg" style="width:${x.t[k] / max * 100}%;background:${TYPE_COLOR[k]}" title="${e(x.n)} · ${k} ${x.t[k]}건"></i>`).join('');
+    return `<section class="panel panel-pad staff-chart">
+      <div class="sc-head"><h2 class="section-title">👥 담당자별 연락 현황 <span class="sub">${V.monthLabel(month)} · 누가 얼마나 연락했는지</span></h2><div class="scb-legend">${legend}</div></div>
+      <div class="scb-rows">${by.map(x => `<div class="scb-row">
+        <span class="scb-name">${e(x.n)}</span>
+        <div class="scb-track" role="img" aria-label="${e(x.n)} ${x.total}건: ${CONTACT_TYPES.map(k => `${k} ${x.t[k]}`).join(', ')}">${bar(x) || '<span class="scb-zero">이 달 기록 없음</span>'}</div>
+        <span class="scb-total"><b class="num">${x.total}</b>건</span>
+        <span class="scb-meta">${CONTACT_TYPES.filter(k => x.t[k]).map(k => `${k} ${x.t[k]}`).join(' · ') || '-'}<br>사업체 ${x.biz}곳 · ${x.days}일${x.willing ? ` · 채용의향 ${x.willing}곳` : ''}</span>
+      </div>`).join('')}</div>
+      <details class="scb-table"><summary>표로 보기</summary><div class="table-wrap"><table class="tbl"><thead><tr><th>담당자</th>${CONTACT_TYPES.map(k => `<th class="r">${k}</th>`).join('')}<th class="r">합계</th><th class="r">사업체</th><th class="r">연락한 날</th><th class="r">채용의향</th></tr></thead>
+        <tbody>${by.map(x => `<tr><th>${e(x.n)}</th>${CONTACT_TYPES.map(k => `<td class="r num">${x.t[k]}</td>`).join('')}<td class="r num"><b>${x.total}</b></td><td class="r num">${x.biz}</td><td class="r num">${x.days}</td><td class="r num">${x.willing}</td></tr>`).join('')}</tbody></table></div></details>
+    </section>`;
+  }
+
   function contactsResults() {
     const f = ui.contacts;
     const rows = contactRows(f.month);
@@ -7135,7 +7187,7 @@ window.R = (() => {
         </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)}에 방문 기록이 없습니다</strong>방식을 '방문'으로 골라 기록하면 여기에 나옵니다.</div>`}
       </section>`;
     }
-    return kpi + `<section class="panel">
+    return kpi + staffChart(rows, f.month) + `<section class="panel">
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
@@ -7692,7 +7744,7 @@ window.R = (() => {
     const cards = v.cards.filter(c => (c.metAt || '').startsWith(month)).map(c => ({ '받은 날': c.metAt, '이름': c.name, '직함': c.title || '', '소속': c.org || '', '휴대전화': c.mobile || '', '사무실 전화': c.phone || '', '이메일': c.email || '', '받은 곳': c.metWhere || '' })).sort(byDate('받은 날'));
     return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, trip, ot, newBiz, ev, cards };
   }
-  const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['trip', '관내출장'], ['ot', '특근'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
+  const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
   function sheetOf(rows, head) {
     const ws = rows.length ? XLSX.utils.json_to_sheet(rows, { header: head }) : XLSX.utils.aoa_to_sheet([head, ['(기록 없음)']]);
     ws['!cols'] = head.map(h => ({ wch: Math.min(45, Math.max(String(h).length * 2 + 2, ...rows.map(r => String(r[h] ?? '').replace(/[^\x00-\x7f]/g, 'xx').length + 2))) }));
@@ -7708,8 +7760,8 @@ window.R = (() => {
     const label = m => `${+m.slice(5, 7)}월`;
     const one = months.length === 1;
     // 요약
-    const sumRow = d => [new Set(d.contact.map(r => r['사업체명'])).size, d.contact.length, d.visit.length, d.contact.filter(r => r['연락결과'] === '채용의향 있음').length, d.contact.filter(r => r['상태'] === '재연락').length, d.perf.length, d.trip.length, d.ot.length, d.newBiz.length, d.ev.length, d.cards.length];
-    const sumHead = ['연락한 사업체(곳)', '연락 건수', '방문', '채용의향 있음', '재연락 필요', '실적 줄', '관내출장', '특근', '신규 사업체', '일정', '받은 명함'];
+    const sumRow = d => [new Set(d.contact.map(r => r['사업체명'])).size, d.contact.length, d.visit.length, d.contact.filter(r => r['연락결과'] === '채용의향 있음').length, d.contact.filter(r => r['상태'] === '재연락').length, d.perf.length, d.newBiz.length, d.ev.length, d.cards.length];
+    const sumHead = ['연락한 사업체(곳)', '연락 건수', '방문', '채용의향 있음', '재연락 필요', '실적 줄', '신규 사업체', '일정', '받은 명함'];
     const sum = one ? [['항목', `${months[0].slice(0, 4)}년 ${label(months[0])}`], ...sumHead.map((h, i) => [h, sumRow(per[0][1])[i]])]
       : [['월', ...sumHead], ...per.map(([m, d]) => [label(m), ...sumRow(d)]), ['합계', ...sumHead.map((_, i) => per.reduce((a, [, d]) => a + sumRow(d)[i], 0))]];
     const ws0 = XLSX.utils.aoa_to_sheet([[`아르딤 취업지원 ${one ? `${months[0].slice(0, 4)}년 ${label(months[0])}` : `${months[0].slice(0, 4)}년 ${label(months[0])}~${label(months[months.length - 1])}`} 정리 · ${S.scopeLabel()} · 만든 날 ${U.today()}`], [], ...sum]);
@@ -7742,7 +7794,6 @@ window.R = (() => {
       { folder: '사업체 개발', name: `${ym} 사업체 개발`, has: d.newBiz.length + bizActs.length, sheets: [sheet('신규 등록 사업체', d.newBiz, ['최초 등록일', '사업체명']), sheet('사업체 활동', bizActs, ['날짜', '유형', '사업체명']), sheet('사업체 현황(만든 날 기준)', status, ['사업체명'])] },
       { folder: '연락이력', name: `${ym} 연락이력`, has: d.contact.length, sheets: [sheet('연락이력', d.contact, ['날짜', '사업체명']), sheet('방문 사업체(보고용)', d.visit, ['날짜', '사업체명'])] },
       { folder: '실적', name: `${ym} 실적`, has: d.perf.length, sheets: [sheet('실적 목록', d.perf, ['날짜', '세부사업']), sheet('구글 시트용(실적 기타)', sheetRows, ['사업날짜', '세부사업명'])] },
-      { folder: '출장·특근', name: `${ym} 출장·특근`, has: d.trip.length + d.ot.length, sheets: [sheet('관내출장', d.trip, ['출장일', '성명']), sheet('특근', d.ot, ['특근일자', '성명'])] },
       { folder: '일정·명함', name: `${ym} 일정·명함`, has: d.ev.length + d.cards.length, sheets: [sheet('일정', d.ev, ['날짜', '제목']), sheet('받은 명함', d.cards, ['받은 날', '이름'])] },
     ];
     return files.filter(f => f.has).map(({ has, ...f }) => f); // eslint-disable-line no-unused-vars
@@ -9672,7 +9723,7 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'orders'], desc: '현장중심직업재활센터 · 사업체 개발·실적·출장' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
     { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
@@ -11134,7 +11185,7 @@ window.App = (() => {
       } else months = [el.dataset.month || ($('#mxFrom') || {}).value || U.today().slice(0, 7)];
       try {
         const r = R.monthBook(months);
-        toast(`${r.file} 파일을 만들었어요. (${r.rows}줄 · 요약·연락이력·방문·실적·출장·특근·신규 사업체·일정·명함 시트)`);
+        toast(`${r.file} 파일을 만들었어요. (${r.rows}줄 · 요약·연락이력·방문·실적·신규 사업체·일정·명함 시트)`);
       } catch (err) { console.error(err); toast('엑셀 파일을 만들지 못했어요: ' + err.message, 'error'); }
     },
     'archive-now': async el => {
@@ -11497,6 +11548,15 @@ window.App = (() => {
       await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
       if (R.ui.orders.who === name) R.ui.orders.who = '';
       toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
+    },
+    'trips-wipe': async () => {
+      if (!S.isAdmin()) return toast('관리자만 지울 수 있어요.', 'error');
+      const all = S.get().trips;
+      if (!all.length) return toast('지울 출장·특근 기록이 없어요.');
+      if (!(await confirmBox(`출장·특근 기록 ${all.length}건을 모두 지울까요?`, '관내출장·관외출장·특근 명령부와 여비 계산 기록이 모두 지워져요. 되돌릴 수 없으니 필요하면 먼저 "엑셀로 내보내기"로 백업하세요.', '모두 지우기'))) return;
+      S.removeMany('trip', all.map(t => t.id));
+      toast(`출장·특근 기록 ${all.length}건을 지웠어요.`);
+      render();
     },
     'sec-staff-add': async el => {
       if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');

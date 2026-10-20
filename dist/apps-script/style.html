@@ -1927,4 +1927,26 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .sec-staff > b { margin-right: 4px; }
 .sec-staff-chip { display: inline-flex; align-items: center; gap: 2px; padding: 4px 6px 4px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-weight: 700; }
 
+/* 담당자별 연락 현황 막대 */
+.staff-chart { margin-bottom: 16px; }
+.sc-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+.scb-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; color: var(--text-2); }
+.scb-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.scb-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.scb-rows { display: flex; flex-direction: column; gap: 12px; }
+.scb-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 70px 230px; gap: 14px; align-items: center; }
+.scb-name { font-weight: 800; font-size: 15.5px; white-space: nowrap; }
+.scb-track { display: flex; gap: 2px; height: 26px; align-items: stretch; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.scb-seg { display: block; min-width: 4px; }
+.scb-seg:first-child { border-radius: 4px 0 0 4px; }
+.scb-seg:last-child { border-radius: 0 4px 4px 0; }
+.scb-seg:hover { filter: brightness(1.08); }
+.scb-zero { align-self: center; padding-left: 10px; font-size: 13px; color: var(--text-2); }
+.scb-total { font-size: 14px; color: var(--text-2); white-space: nowrap; }
+.scb-total b { font-size: 22px; color: var(--text); margin-right: 2px; }
+.scb-meta { font-size: 13px; color: var(--text-2); line-height: 1.45; }
+.scb-table { margin-top: 12px; }
+.scb-table summary { cursor: pointer; font-weight: 700; color: var(--text-2); font-size: 14px; }
+@media (max-width: 900px) { .scb-row { grid-template-columns: 90px minmax(0, 1fr) 60px; } .scb-meta { grid-column: 2 / -1; } }
+
 </style>

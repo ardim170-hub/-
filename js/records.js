@@ -81,6 +81,32 @@ window.R = (() => {
       <div id="ctResults"></div>`;
   }
 
+  /* ---------- 담당자별 연락 현황 (상급자 보기용): 사람마다 한 줄, 방식별로 나눈 막대 + 숫자 ---------- */
+  const TYPE_COLOR = { '전화': '#2a78d6', '방문': '#eb6834', '이메일': '#1baf7a', '미팅': '#eda100' }; // 검증한 순서 (색맹 구분 통과)
+  function staffChart(rows, month) {
+    const names = [...new Set([...S.staffHere().map(x => x.name), ...rows.map(r => r.a.staff).filter(Boolean)])];
+    if (!names.length) return '';
+    const by = names.map(n => {
+      const mine = rows.filter(r => r.a.staff === n);
+      const t = Object.fromEntries(CONTACT_TYPES.map(k => [k, mine.filter(r => r.a.type === k).length]));
+      return { n, t, total: mine.length, biz: new Set(mine.map(r => r.b.id)).size, willing: new Set(mine.filter(r => r.a.result === '채용의향 있음').map(r => r.b.id)).size, days: new Set(mine.map(r => r.a.date)).size };
+    });
+    const max = Math.max(1, ...by.map(x => x.total));
+    const legend = CONTACT_TYPES.map(k => `<span><i style="background:${TYPE_COLOR[k]}"></i>${k}</span>`).join('');
+    const bar = x => CONTACT_TYPES.filter(k => x.t[k]).map(k => `<i class="scb-seg" style="width:${x.t[k] / max * 100}%;background:${TYPE_COLOR[k]}" title="${e(x.n)} · ${k} ${x.t[k]}건"></i>`).join('');
+    return `<section class="panel panel-pad staff-chart">
+      <div class="sc-head"><h2 class="section-title">👥 담당자별 연락 현황 <span class="sub">${V.monthLabel(month)} · 누가 얼마나 연락했는지</span></h2><div class="scb-legend">${legend}</div></div>
+      <div class="scb-rows">${by.map(x => `<div class="scb-row">
+        <span class="scb-name">${e(x.n)}</span>
+        <div class="scb-track" role="img" aria-label="${e(x.n)} ${x.total}건: ${CONTACT_TYPES.map(k => `${k} ${x.t[k]}`).join(', ')}">${bar(x) || '<span class="scb-zero">이 달 기록 없음</span>'}</div>
+        <span class="scb-total"><b class="num">${x.total}</b>건</span>
+        <span class="scb-meta">${CONTACT_TYPES.filter(k => x.t[k]).map(k => `${k} ${x.t[k]}`).join(' · ') || '-'}<br>사업체 ${x.biz}곳 · ${x.days}일${x.willing ? ` · 채용의향 ${x.willing}곳` : ''}</span>
+      </div>`).join('')}</div>
+      <details class="scb-table"><summary>표로 보기</summary><div class="table-wrap"><table class="tbl"><thead><tr><th>담당자</th>${CONTACT_TYPES.map(k => `<th class="r">${k}</th>`).join('')}<th class="r">합계</th><th class="r">사업체</th><th class="r">연락한 날</th><th class="r">채용의향</th></tr></thead>
+        <tbody>${by.map(x => `<tr><th>${e(x.n)}</th>${CONTACT_TYPES.map(k => `<td class="r num">${x.t[k]}</td>`).join('')}<td class="r num"><b>${x.total}</b></td><td class="r num">${x.biz}</td><td class="r num">${x.days}</td><td class="r num">${x.willing}</td></tr>`).join('')}</tbody></table></div></details>
+    </section>`;
+  }
+
   function contactsResults() {
     const f = ui.contacts;
     const rows = contactRows(f.month);
@@ -105,7 +131,7 @@ window.R = (() => {
         </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)}에 방문 기록이 없습니다</strong>방식을 '방문'으로 골라 기록하면 여기에 나옵니다.</div>`}
       </section>`;
     }
-    return kpi + `<section class="panel">
+    return kpi + staffChart(rows, f.month) + `<section class="panel">
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
@@ -662,7 +688,7 @@ window.R = (() => {
     const cards = v.cards.filter(c => (c.metAt || '').startsWith(month)).map(c => ({ '받은 날': c.metAt, '이름': c.name, '직함': c.title || '', '소속': c.org || '', '휴대전화': c.mobile || '', '사무실 전화': c.phone || '', '이메일': c.email || '', '받은 곳': c.metWhere || '' })).sort(byDate('받은 날'));
     return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, trip, ot, newBiz, ev, cards };
   }
-  const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['trip', '관내출장'], ['ot', '특근'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
+  const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
   function sheetOf(rows, head) {
     const ws = rows.length ? XLSX.utils.json_to_sheet(rows, { header: head }) : XLSX.utils.aoa_to_sheet([head, ['(기록 없음)']]);
     ws['!cols'] = head.map(h => ({ wch: Math.min(45, Math.max(String(h).length * 2 + 2, ...rows.map(r => String(r[h] ?? '').replace(/[^\x00-\x7f]/g, 'xx').length + 2))) }));
@@ -678,8 +704,8 @@ window.R = (() => {
     const label = m => `${+m.slice(5, 7)}월`;
     const one = months.length === 1;
     // 요약
-    const sumRow = d => [new Set(d.contact.map(r => r['사업체명'])).size, d.contact.length, d.visit.length, d.contact.filter(r => r['연락결과'] === '채용의향 있음').length, d.contact.filter(r => r['상태'] === '재연락').length, d.perf.length, d.trip.length, d.ot.length, d.newBiz.length, d.ev.length, d.cards.length];
-    const sumHead = ['연락한 사업체(곳)', '연락 건수', '방문', '채용의향 있음', '재연락 필요', '실적 줄', '관내출장', '특근', '신규 사업체', '일정', '받은 명함'];
+    const sumRow = d => [new Set(d.contact.map(r => r['사업체명'])).size, d.contact.length, d.visit.length, d.contact.filter(r => r['연락결과'] === '채용의향 있음').length, d.contact.filter(r => r['상태'] === '재연락').length, d.perf.length, d.newBiz.length, d.ev.length, d.cards.length];
+    const sumHead = ['연락한 사업체(곳)', '연락 건수', '방문', '채용의향 있음', '재연락 필요', '실적 줄', '신규 사업체', '일정', '받은 명함'];
     const sum = one ? [['항목', `${months[0].slice(0, 4)}년 ${label(months[0])}`], ...sumHead.map((h, i) => [h, sumRow(per[0][1])[i]])]
       : [['월', ...sumHead], ...per.map(([m, d]) => [label(m), ...sumRow(d)]), ['합계', ...sumHead.map((_, i) => per.reduce((a, [, d]) => a + sumRow(d)[i], 0))]];
     const ws0 = XLSX.utils.aoa_to_sheet([[`아르딤 취업지원 ${one ? `${months[0].slice(0, 4)}년 ${label(months[0])}` : `${months[0].slice(0, 4)}년 ${label(months[0])}~${label(months[months.length - 1])}`} 정리 · ${S.scopeLabel()} · 만든 날 ${U.today()}`], [], ...sum]);
@@ -712,7 +738,6 @@ window.R = (() => {
       { folder: '사업체 개발', name: `${ym} 사업체 개발`, has: d.newBiz.length + bizActs.length, sheets: [sheet('신규 등록 사업체', d.newBiz, ['최초 등록일', '사업체명']), sheet('사업체 활동', bizActs, ['날짜', '유형', '사업체명']), sheet('사업체 현황(만든 날 기준)', status, ['사업체명'])] },
       { folder: '연락이력', name: `${ym} 연락이력`, has: d.contact.length, sheets: [sheet('연락이력', d.contact, ['날짜', '사업체명']), sheet('방문 사업체(보고용)', d.visit, ['날짜', '사업체명'])] },
       { folder: '실적', name: `${ym} 실적`, has: d.perf.length, sheets: [sheet('실적 목록', d.perf, ['날짜', '세부사업']), sheet('구글 시트용(실적 기타)', sheetRows, ['사업날짜', '세부사업명'])] },
-      { folder: '출장·특근', name: `${ym} 출장·특근`, has: d.trip.length + d.ot.length, sheets: [sheet('관내출장', d.trip, ['출장일', '성명']), sheet('특근', d.ot, ['특근일자', '성명'])] },
       { folder: '일정·명함', name: `${ym} 일정·명함`, has: d.ev.length + d.cards.length, sheets: [sheet('일정', d.ev, ['날짜', '제목']), sheet('받은 명함', d.cards, ['받은 날', '이름'])] },
     ];
     return files.filter(f => f.has).map(({ has, ...f }) => f); // eslint-disable-line no-unused-vars

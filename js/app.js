@@ -16,7 +16,7 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'orders'], desc: '현장중심직업재활센터 · 사업체 개발·실적·출장' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
     { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
@@ -1478,7 +1478,7 @@ window.App = (() => {
       } else months = [el.dataset.month || ($('#mxFrom') || {}).value || U.today().slice(0, 7)];
       try {
         const r = R.monthBook(months);
-        toast(`${r.file} 파일을 만들었어요. (${r.rows}줄 · 요약·연락이력·방문·실적·출장·특근·신규 사업체·일정·명함 시트)`);
+        toast(`${r.file} 파일을 만들었어요. (${r.rows}줄 · 요약·연락이력·방문·실적·신규 사업체·일정·명함 시트)`);
       } catch (err) { console.error(err); toast('엑셀 파일을 만들지 못했어요: ' + err.message, 'error'); }
     },
     'archive-now': async el => {
@@ -1841,6 +1841,15 @@ window.App = (() => {
       await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
       if (R.ui.orders.who === name) R.ui.orders.who = '';
       toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
+    },
+    'trips-wipe': async () => {
+      if (!S.isAdmin()) return toast('관리자만 지울 수 있어요.', 'error');
+      const all = S.get().trips;
+      if (!all.length) return toast('지울 출장·특근 기록이 없어요.');
+      if (!(await confirmBox(`출장·특근 기록 ${all.length}건을 모두 지울까요?`, '관내출장·관외출장·특근 명령부와 여비 계산 기록이 모두 지워져요. 되돌릴 수 없으니 필요하면 먼저 "엑셀로 내보내기"로 백업하세요.', '모두 지우기'))) return;
+      S.removeMany('trip', all.map(t => t.id));
+      toast(`출장·특근 기록 ${all.length}건을 지웠어요.`);
+      render();
     },
     'sec-staff-add': async el => {
       if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
