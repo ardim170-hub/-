@@ -1933,6 +1933,7 @@ window.V = (() => {
     const kpi = (label, value, unit, foot, href, tone = '') => `<a class="kpi ${tone ? 'tone-' + tone : ''}" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
       <div class="page-head"><div><h1 class="page-title">대시보드</h1><div class="page-desc">${U.dateKo(U.today())} · ${e(org)}${scopeNote()}</div></div></div>
+      ${window.DP ? DP.panel() : ''}
       ${quickLinks()}
       <section class="panel kpis" aria-label="주요 현황">
         ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz', 'biz')}

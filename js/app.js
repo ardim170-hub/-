@@ -826,6 +826,11 @@ window.App = (() => {
       showDrawer();
       return;
     }
+    if (top.type === 'dpitem') {
+      inner.innerHTML = DP.itemHtml(top);
+      showDrawer();
+      return;
+    }
     if (top.type === 'orprev') {
       inner.innerHTML = OR.previewHtml(top);
       showDrawer();
@@ -1862,6 +1867,16 @@ window.App = (() => {
       if (R.ui.orders.who === name) R.ui.orders.who = '';
       toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
     },
+    'dp-mode': el => { DP.ui.mode = el.dataset.mode; if (DP.ui.mode === 'month' && !DP.ui.month.startsWith(String(DP.ui.year))) DP.ui.month = String(DP.ui.year) === U.today().slice(0, 4) ? U.today().slice(0, 7) : `${DP.ui.year}-12`; render(); },
+    'dp-move': el => {
+      const d = +el.dataset.d;
+      if (DP.ui.mode === 'year') DP.ui.year += d;
+      else { let [y, m] = DP.ui.month.split('-').map(Number); m += d; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; } DP.ui.month = `${y}-${U.pad(m)}`; DP.ui.year = y; }
+      render();
+    },
+    'dp-month': el => { DP.ui.mode = 'month'; DP.ui.month = el.dataset.month; DP.ui.year = +el.dataset.month.slice(0, 4); render(); },
+    'dp-item': el => push({ type: 'dpitem', item: el.dataset.item, who: '' }, false),
+    'dp-who': el => { const top = stack[stack.length - 1]; if (top && top.type === 'dpitem') { top.who = el.dataset.who; renderDrawer(true); } },
     'or-file': () => $('#orFile') && $('#orFile').click(),
     'or-cat': el => { OR.ui.cat = el.dataset.cat || ''; render(); },
     'or-todo': el => { OR.ui.todo = el.checked; $('#orList').innerHTML = OR.listHtml(); },
