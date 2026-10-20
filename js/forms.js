@@ -153,6 +153,7 @@ window.F = (() => {
           ${field('기관명', inp('name', x.name, 'required autocomplete="off"'), { req: true, full: true, name: 'name', for: 'f_name' })}
           ${field('분류', `${inp('category', x.category, 'list="netCatList" autocomplete="off" placeholder="고르거나 직접 입력"')}${netCatList()}`, { for: 'f_category', hint: '예: 정신건강복지센터. 목록에 없으면 직접 쓰면 돼요.' })}
           ${field('관계 상태', sel('status', D.NET_STATUS, x.status), { for: 'f_status' })}
+          ${field('대표 전화', inp('phone', x.phone, 'type="tel" inputmode="tel" placeholder="031-000-0000"'), { for: 'f_phone' })}
         </div></div>
         ${locationSection(x)}
         <div class="fsec"><h3>협력 · 홍보</h3><div class="frow">
@@ -345,7 +346,7 @@ window.F = (() => {
       obj = { name: fd.name.trim(), industry: fd.industry.trim(), employees: fd.employees ? +fd.employees : 0, bizNo: fd.bizNo.trim(), ceo: fd.ceo.trim(), phone: fd.phone.trim(), homepage: fd.homepage.trim(), welfare: fd.welfare.trim(), progress: fd.progress, support: [...form.querySelectorAll('[name=support]:checked')].map(c => c.value), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value), research: fd.research.trim(), researchAt: fd.researchAt || (fd.research.trim() ? U.today() : ''), address: fd.address.trim(), area: fd.area, ...pos(), stage: fd.stage, placements: fd.placements ? +fd.placements : 0, jobs: fd.jobs.trim(), workConditions: fd.workConditions.trim(), accessibility: fd.accessibility.trim(), source: fd.source, discoveredAt: fd.discoveredAt, staff: fd.staff, memo: fd.memo.trim() };
     } else if (kind === 'net') {
       need('name', '기관명을 입력하세요.');
-      obj = { name: fd.name.trim(), category: fd.category, status: fd.status, address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim(), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value) };
+      obj = { name: fd.name.trim(), category: fd.category, status: fd.status, phone: (fd.phone || '').trim(), address: fd.address.trim(), area: fd.area, ...pos(), relation: fd.relation.trim(), promo: fd.promo.trim(), since: fd.since, staff: fd.staff, memo: fd.memo.trim(), programs: [...form.querySelectorAll('[name=programs]:checked')].map(c => c.value) };
     } else if (kind === 'card') {
       need('name', '이름을 입력하세요.');
       const [lt, li] = fd.regMode === 'link' ? (fd.link || '').split(':') : [];

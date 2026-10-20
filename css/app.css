@@ -1947,3 +1947,19 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .scb-table { margin-top: 12px; }
 .scb-table summary { cursor: pointer; font-weight: 700; color: var(--text-2); font-size: 14px; }
 @media (max-width: 900px) { .scb-row { grid-template-columns: 90px minmax(0, 1fr) 60px; } .scb-meta { grid-column: 2 / -1; } }
+
+/* 홍보·방문처 */
+.or-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.or-card { display: flex; flex-direction: column; gap: 6px; text-align: left; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; cursor: pointer; font: inherit; }
+.or-card:hover { border-color: var(--pc, var(--accent)); }
+.or-card.on { border-color: var(--pc, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--pc, var(--accent)) 25%, transparent); }
+.or-card-t { font-weight: 800; font-size: 15px; }
+.or-card b.num { font-size: 26px; line-height: 1; } .or-card b small { font-size: 14px; font-weight: 600; margin-left: 2px; color: var(--text-2); }
+.or-bar { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; }
+.or-bar i { display: block; height: 100%; background: #1f9d6b; border-radius: 999px; }
+.or-card-s { font-size: 13px; color: var(--text-2); }
+.or-sec { margin-bottom: 14px; }
+.or-sec-h { padding-bottom: 4px; }
+.or-tbl td.clip { max-width: 260px; }
+.or-chip { display: inline-block; margin: 2px 6px 2px 0; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); font-size: 13px; white-space: nowrap; }
+.or-tbl tr.or-done td:first-child { box-shadow: inset 4px 0 0 #1f9d6b; }

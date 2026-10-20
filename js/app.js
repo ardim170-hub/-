@@ -10,13 +10,14 @@ window.App = (() => {
     ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
     ['orders', '출장·특근', 'trip'],
+    ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
     ['training', '직업훈련 일정표', 'cal'],
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적·홍보' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
     { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
@@ -25,7 +26,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '사업체 연락·방문', perf: () => '월 목표·실적표', orders: () => '출장·특근 명령부·여비', attend: () => `참여자 ${S.get().jobPeople.length}명`, training: () => 'JOB이음터 · 일과놀이반', data: () => '백업·가져오기·권한',
+    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', orders: () => '출장·특근 명령부·여비', attend: () => `참여자 ${S.get().jobPeople.length}명`, training: () => 'JOB이음터 · 일과놀이반', data: () => '백업·가져오기·권한',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -88,7 +89,7 @@ window.App = (() => {
   const GATES = {
     'new-biz': [['biz', 2]], 'biz-upload': [['biz', 2]], 'kead-commit': [['biz', 2]], 'bulk-commit': [['biz', 2]], 'stage-set': [['biz', 2]], 'sup-toggle': [['biz', 2]],
     'ai-summary': [['biz', 2]], 'ai-research': [['biz', 2]], 'edit-research': [['biz', 2]], 'sv-biz-edit': [['biz', 2]], 'sv-job-edit': [['biz', 2]], 'sv-clear': [['biz', 2]], 'sv-job-del': [['biz', 3]],
-    'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'home-add': [['network', 2]],
+    'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'or-commit': [['network', 2]], 'or-visit': [['network', 2]], 'or-file': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
@@ -233,6 +234,7 @@ window.App = (() => {
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
+      outreach: [OR.page, bindOutreach],
       attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
@@ -249,6 +251,19 @@ window.App = (() => {
     renderSync(S.sync);
   }
 
+  function bindOutreach() {
+    OR.bind();
+    const f = $('#orFile');
+    if (f) f.onchange = async ev => {
+      const file = ev.target.files[0]; ev.target.value = '';
+      if (!file) return;
+      try {
+        const list = OR.parse(await file.arrayBuffer());
+        if (!list.length) return toast('이 파일에서 기관 목록(이름·주소 칸)을 찾지 못했어요.', 'error');
+        push({ type: 'orprev', file: file.name, rows: OR.plan(list) }, false);
+      } catch (err) { console.error(err); toast(err.drm ? err.message : '엑셀 파일을 읽지 못했어요: ' + err.message, 'error'); }
+    };
+  }
   function bindList(inputId, target, fn, setter) {
     const box = $(target);
     const draw = () => { box.innerHTML = fn(); };
@@ -808,6 +823,11 @@ window.App = (() => {
     let v;
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'orprev') {
+      inner.innerHTML = OR.previewHtml(top);
       showDrawer();
       return;
     }
@@ -1841,6 +1861,22 @@ window.App = (() => {
       await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
       if (R.ui.orders.who === name) R.ui.orders.who = '';
       toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
+    },
+    'or-file': () => $('#orFile') && $('#orFile').click(),
+    'or-cat': el => { OR.ui.cat = el.dataset.cat || ''; render(); },
+    'or-todo': el => { OR.ui.todo = el.checked; $('#orList').innerHTML = OR.listHtml(); },
+    'or-pick': el => { const top = stack[stack.length - 1]; if (!top || top.type !== 'orprev') return; top.rows[+el.dataset.i].on = el.checked; renderDrawer(true); },
+    'or-commit': () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'orprev') return;
+      const r = OR.commit(top);
+      closeDrawer();
+      toast(`홍보·방문처를 넣었어요: 새로 ${r.added}곳 · 채움 ${r.filled}곳.${r.locating ? ` 지도 위치를 ${r.locating}곳 찾는 중이에요(1~2분).` : ''}`);
+      if (route() !== 'outreach') location.hash = '#/outreach'; else render();
+    },
+    'or-visit': async el => {
+      const n = S.find('net', el.dataset.id); if (!n) return;
+      S.upsert('act', { targetType: 'net', targetId: n.id, date: U.today(), type: '홍보', content: '홍보 방문', staff: S.me() });
+      toast(`${n.name} 오늘 홍보 방문을 기록했어요. 이름을 누르면 내용을 고칠 수 있어요.`);
     },
     'trips-wipe': async () => {
       if (!S.isAdmin()) return toast('관리자만 지울 수 있어요.', 'error');
