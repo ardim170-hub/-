@@ -948,8 +948,8 @@ window.App = (() => {
       showDrawer();
       const box = $('#ctPasteBox');
       box.oninput = U.debounce(() => {
-        const { rows } = R.parsePaste(box.value);
-        top.state = { text: box.value, rows };
+        const { rows, skipped } = R.parsePaste(box.value);
+        top.state = { text: box.value, rows, skipped, who: $('#ctPasteWho')?.value || top.state.who };
         renderDrawer(true);
         $('#ctPasteBox').focus();
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
@@ -2027,14 +2027,14 @@ window.App = (() => {
       S.upsert('act', { id: a.id, jobUrl: R.jobLink(v) });
       toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
     },
-    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const r = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${r.n}줄을 가져왔습니다.${r.biz ? ` 새 사업체 ${r.biz}곳은 사업체 개발·지도에도 올렸어요.` : ''}`); },
+    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const r = R.commitPaste(top.state.rows, $('#ctPasteWho')?.value); closeDrawer(); toast(`연락이력 ${r.n}줄을 가져왔습니다.${r.biz ? ` 새 사업체 ${r.biz}곳은 사업체 개발·지도에,` : ''}${r.net ? ` 새 기관 ${r.net}곳은 네트워크에` : ''}${r.biz || r.net ? ' 올렸어요.' : ''}`); },
     'ct-file': () => pickFiles('.xlsx,.xls,.csv', true, async files => {
       const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return;
-      let cells = [];
+      let sheets = [];
       let drm = false;
-      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { drm = drm || err.drm; toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
-      const { rows } = R.parseCells(cells);
-      top.state = { text: '', file: files.map(f => f.name).join(', '), rows };
+      for (const f of files) { try { sheets = sheets.concat(await R.readFileSheets(f)); } catch (err) { drm = drm || err.drm; toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
+      const { rows, skipped, used } = R.parseSheets(sheets);
+      top.state = { text: '', file: files.map(f => f.name).join(', '), rows, skipped, used, who: $('#ctPasteWho')?.value || top.state.who };
       renderDrawer(true);
       if (!rows.length && !drm) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
     }),
