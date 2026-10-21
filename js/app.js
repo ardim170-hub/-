@@ -2407,6 +2407,7 @@ window.App = (() => {
           newBiz = true;
         }
         const people = fd.people ? +fd.people : '';
+        const ppl = String(fd.ppl || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean).join(', ');
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
         // 끝 날짜가 있으면 그날까지 날마다 한 줄씩 (주말·공휴일은 빼고, '주말 포함'이면 주말도)
         if (U.isDate(fd.dateTo) && fd.dateTo > fd.date) {
@@ -2423,8 +2424,8 @@ window.App = (() => {
           clearDraft('perf-add');
           const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
           Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
-          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people })));
-          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who })));
+          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl })));
+          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who, ppl })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
           return;
         }
@@ -2433,9 +2434,9 @@ window.App = (() => {
         let rec;
         if (b || n) {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
-          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people });
+          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people, ppl });
         } else {
-          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who });
+          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who, ppl });
         }
         toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${newBiz ? ` '${name}'을(를) 사업체로 새로 등록했어요. 주소를 넣으면 지도에도 나와요.` : ''}`);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);

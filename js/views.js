@@ -842,8 +842,8 @@ window.V = (() => {
   /** 한 달(또는 앞부분이 같은 기간) 실적 줄: 팀 전체. [{item, staff, people}] */
   function perfLines(prefix) {
     const st = S.get();
-    return [...S.perfRows(prefix, st).filter(r => r.p.set === GL.SET).map(r => ({ item: r.p.item, staff: r.a.staff || '', people: Number(r.a.people) || 0, d: r.d })),
-      ...st.perfs.filter(p => p.set === GL.SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', people: Number(p.people) || 0, d: p.date }))];
+    return [...S.perfRows(prefix, st).filter(r => r.p.set === GL.SET).map(r => ({ item: r.p.item, staff: r.a.staff || '', ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId, d: r.d })),
+      ...st.perfs.filter(p => p.set === GL.SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place), d: p.date }))];
   }
   /** 이번 달 종합: 항목별 월 목표 대비 실적 그래프(사람별 색) + 전문인력별 자세한 표 */
   function perfMonth(f) {
@@ -857,7 +857,9 @@ window.V = (() => {
     const slots = [...pros, ...Array.from({ length: need - pros.length }, (_, k) => `충원 예정${need - pros.length > 1 ? ' ' + (k + 1) : ''}`)];
     const lines = perfLines(f.month);
     const ytd = perfLines(String(Y)).filter(l => l.d.slice(0, 7) <= f.month && (Y !== g.baseYear || +l.d.slice(5, 7) > 12 - months));
-    const cnt = (list, i, who) => list.filter(l => l.item === i && (who == null || l.staff === who)).length;
+    // 실적 수 = 횟수 (직업상담 등은 받은 횟수, 현장중심 직업훈련은 훈련한 날짜 수, 사업체개발은 곳 수)
+    const cnt = (list, i, who) => S.perfCount(who == null ? list : list.filter(l => l.staff === who), i).cnt;
+    const sumC = (list, who) => items.reduce((a, i) => a + cnt(list, i, who), 0);
     // 이월: 그 해 첫 달부터 달마다 (이월 + 실적 - 월 목표)가 남으면 다음 달로 넘긴다
     const first = Y === g.baseYear ? 13 - months : 1, curM = +f.month.slice(5, 7);
     const yearAll = perfLines(String(Y));
@@ -865,7 +867,8 @@ window.V = (() => {
     const cin = Object.fromEntries(items.map(i => [i, carryIn(i)]));
     const got = i => cnt(lines, i) + cin[i];                     // 인정 실적 = 이번 달 실적 + 지난달 이월
     const cout = i => (mT(i) ? Math.max(0, got(i) - mT(i)) : 0);
-    const others = lines.filter(l => !pros.includes(l.staff)).length;
+    const othersOf = (list, i) => S.perfCount(list.filter(l => !pros.includes(l.staff)), i).cnt;
+    const others = items.reduce((a, i) => a + othersOf(lines, i), 0);
     const pc = (a, t) => (t ? Math.round(a / t * 100) : null);
     const tone = p => (p == null ? '' : p >= 100 ? 'done' : p >= 70 ? 'ok' : p >= 40 ? 'warn' : 'low');
     const parts = items.filter(i => mT(i)).map(i => Math.min(1, got(i) / mT(i)));
@@ -874,27 +877,45 @@ window.V = (() => {
     const col = n => (pros.includes(n) ? staffColor(n) : '#C3C9D2');
     const chart = items.map(i => {
       const t = mT(i), a = got(i), max = Math.max(t || 0, a, 1), p = pc(a, t);
-      const segs = (cin[i] ? `<i style="width:${cin[i] / max * 100}%;background:repeating-linear-gradient(45deg,#C9D3E0 0 6px,#E3E9F1 6px 12px)" title="지난달 이월 ${cin[i]}건"></i>` : '') + [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : lines.filter(l => l.item === i && !pros.includes(l.staff)).length; return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
+      const segs = (cin[i] ? `<i style="width:${cin[i] / max * 100}%;background:repeating-linear-gradient(45deg,#C9D3E0 0 6px,#E3E9F1 6px 12px)" title="지난달 이월 ${cin[i]}건"></i>` : '') + [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : othersOf(lines, i); return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
       return `<div class="pm-row"><span class="pm-l">${e(i)}</span><div class="pm-track">${segs}${t ? `<b class="pm-goal" style="left:${t / max * 100}%" title="월 목표 ${t}건"></b>` : ''}</div><span class="pm-v num"><b>${a}</b> / ${t ?? '-'}건${cin[i] ? `<small>(이월 ${cin[i]})</small>` : ''} ${p != null ? `<em class="${tone(p)}">${p}%</em>` : ''}</span></div>`;
     }).join('');
     const head = `<tr><th>세부사업</th>${slots.map(n => `<th class="r"><span class="pm-dot" style="background:${col(n)}"></span>${e(n)}</th>`).join('')}${others ? '<th class="r"><span class="pm-dot" style="background:#9AA3B2"></span>그 외 직원</th>' : ''}<th class="r">이번 달</th><th class="r">이월<small>(지난달)</small></th><th class="r">인정 실적</th><th class="r">월 목표</th><th class="r">달성률</th><th class="r">이월<small>(다음 달)</small></th><th class="r">연 누적</th><th class="r">연 달성률</th></tr>`;
     const body = items.map(i => {
       const t = mT(i), a = cnt(lines, i), gi = got(i), p = pc(gi, t), ya = cnt(ytd, i), yt = yT(i), yp = pc(ya, yt);
-      const oc = lines.filter(l => l.item === i && !pros.includes(l.staff)).length;
+      const oc = othersOf(lines, i);
       return `<tr><th>${e(i)}</th>${slots.map(n => { const c = cnt(lines, i, n); return `<td class="r num ${pros.includes(n) ? '' : 'sub'}">${pros.includes(n) ? (c ? `<b>${c}</b>` : '0') : '-'}</td>`; }).join('')}${others ? `<td class="r num sub">${oc || 0}</td>` : ''}
         <td class="r num">${a}</td><td class="r num ${cin[i] ? 'pm-cin' : 'sub'}">${cin[i] ? '+' + cin[i] : '-'}</td><td class="r num"><b>${gi}</b></td><td class="r num">${t ?? '-'}</td><td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td><td class="r num ${cout(i) ? 'pm-cout' : 'sub'}">${cout(i) ? '→ ' + cout(i) : '-'}</td><td class="r num">${ya} / ${yt ?? '-'}</td><td class="r">${yp != null ? `<span class="gl-pill ${tone(yp)}">${yp}%</span>` : '-'}</td></tr>`;
     }).join('');
-    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${lines.filter(l => l.staff === n).length}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num">${totA}</td><td class="r num">${totC ? '+' + totC : '-'}</td><td class="r num"><b>${totA + totC}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(overall)}">${overall}%</span></td><td class="r num">${items.reduce((a, i) => a + cout(i), 0) || '-'}</td><td class="r num">${ytd.length} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
-    const yAll = yearAll.filter(l => Y !== g.baseYear || +l.d.slice(5, 7) >= first).length, yTot = items.reduce((a, i) => a + (yT(i) || 0), 0), yPc = pc(yAll, yTot);
+    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${sumC(lines, n)}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num">${totA}</td><td class="r num">${totC ? '+' + totC : '-'}</td><td class="r num"><b>${totA + totC}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(overall)}">${overall}%</span></td><td class="r num">${items.reduce((a, i) => a + cout(i), 0) || '-'}</td><td class="r num">${sumC(ytd)} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
+    const yAll = sumC(yearAll.filter(l => Y !== g.baseYear || +l.d.slice(5, 7) >= first)), yTot = items.reduce((a, i) => a + (yT(i) || 0), 0), yPc = pc(yAll, yTot);
     const year = `<section class="panel panel-pad pm-year">
       <div><h2 class="section-title">🏁 ${Y}년 최종 실적 <span class="sub">현장중심직업재활센터 · ${Y === g.baseYear ? `${first}~12월(${months}개월)` : '1~12월'} 전체</span></h2>
         <p class="sub" style="margin:4px 0 0">한 달 목표를 넘긴 실적은 다음 달로 이월돼요. 연간 최종 실적은 이월과 상관없이 실제 건수를 모두 더한 값이에요.</p></div>
       <div class="pm-year-num"><b class="num ${tone(yPc)}">${yAll}</b><span class="num">/ ${yTot}건</span>${yPc != null ? `<span class="gl-pill ${tone(yPc)}">${yPc}%</span>` : ''}</div>
       <div class="pm-year-bar"><i class="${tone(yPc)}" style="width:${Math.min(100, yPc || 0)}%"></i></div>
     </section>`;
-    return `${year}<section class="panel panel-pad pm">
+    // 기관 실적표 모양: 연인원 / 실인원 / 횟수
+    const goal3 = i => (g.rows[i] || []).map(v => (v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months))));
+    const c3 = (list, i) => S.perfCount(list, i);
+    const td3 = (c, strong) => c.yeon == null ? `<td class="r num sub">-</td><td class="r num sub">-</td><td class="r num">${strong ? `<b>${U.num(c.cnt)}</b>` : U.num(c.cnt)}</td>` : `<td class="r num">${U.num(c.yeon)}</td><td class="r num">${U.num(c.sil)}</td><td class="r num">${strong ? `<b>${U.num(c.cnt)}</b>` : U.num(c.cnt)}</td>`;
+    const tdG = a => a.length ? a.map((v, k) => `<td class="r num sub">${v == null ? '-' : U.num(v)}</td>`).join('') : '<td class="sub r">-</td><td class="sub r">-</td><td class="sub r">-</td>';
+    const sum3 = list => items.reduce((t, i) => { const c = c3(list, i); t.yeon += c.yeon || 0; t.sil += c.sil || 0; t.cnt += c.cnt; return t; }, { yeon: 0, sil: 0, cnt: 0 });
+    const gSum = items.reduce((t, i) => { goal3(i).forEach((v, k) => { t[k] += v || 0; }); return t; }, [0, 0, 0]);
+    const triRows = items.map(i => { const yc = c3(ytd, i), gl = goal3(i), p = pc(yc.cnt, gl[2]); return `<tr><th>${e(i)}</th>${td3(c3(lines, i))}${td3(yc, true)}${tdG(gl)}<td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td></tr>`; }).join('');
+    const mS = sum3(lines), yS = sum3(ytd), tP = pc(yS.cnt, gSum[2]);
+    const tri = `<section class="panel panel-pad pm-tri">
+      <h2 class="section-title">🧾 연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${monthLabel(f.month)} · 1~${curM}월 누적 · 연간 목표</span></h2>
+      <div class="table-wrap"><table class="tbl pm-tbl pm-tri-tbl"><thead>
+        <tr><th rowspan="2">세부사업</th><th colspan="3" class="c">${+f.month.slice(5, 7)}월</th><th colspan="3" class="c">누적 (1~${curM}월)</th><th colspan="3" class="c">연간 목표</th><th rowspan="2" class="r">달성률<small>(횟수)</small></th></tr>
+        <tr>${'<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>'.repeat(3)}</tr></thead>
+        <tbody>${triRows}</tbody>
+        <tfoot><tr class="pm-tot"><th>소계</th>${td3(mS)}${td3(yS, true)}${tdG(gSum)}<td class="r">${tP != null ? `<span class="gl-pill ${tone(tP)}">${tP}%</span>` : ''}</td></tr></tfoot></table></div>
+      <p class="sub" style="margin:8px 0 0">한 사람이 한 번 받으면 <b>1/1/1</b>, 같은 사람이 두 번이면 <b>2/1/2</b>. 현장중심 직업훈련은 <b>훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수</b>라서 1명이 한 달 20일 나가면 <b>20/1/20</b>. 실인원은 아래 실적 입력의 <b>참여자</b> 이름으로 셉니다(이름이 없으면 한 줄 = 1명). 소계 실인원은 항목별 실인원을 더한 값이에요.</p>
+    </section>`;
+    return `${year}${tri}<section class="panel panel-pad pm">
       <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 남은 실적은 다음 달로 이월</span></h2>
-        <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${lines.filter(l => l.staff === n).length}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
+        <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${sumC(lines, n)}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
         <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건${totC ? ` + 이월 ${totC}건` : ''} / 목표 ${totT}건</small></div></div>
       <div class="pm-chart">${chart}</div>
       <div class="table-wrap"><table class="tbl pm-tbl"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
@@ -925,10 +946,12 @@ window.V = (() => {
           <label class="check pt-wk"><input type="checkbox" name="withWeekend">주말 포함</label>
           <label>세부사업명<select class="select" name="item">${def.items.map(i => `<option ${f.lastItem === i ? 'selected' : ''}>${e(i)}</option>`).join('')}</select></label>
           <label class="grow">사업체·기관 <span class="sub">(있는 곳이면 그 기록으로)</span><input class="input" name="name" list="ptNames" placeholder="비워도 돼요"></label>
+          <label class="grow">참여자 <span class="sub">(이름, 여러 명은 쉼표)</span><input class="input" name="ppl" list="ptPeople" placeholder="예: 홍길동, 김철수" title="실인원·회차를 세는 데 써요. 사업체개발은 비워도 돼요"></label>
           <label>담당 전문인력<select class="select" name="staff">${pros.map(n => `<option ${n === (f.lastStaff || S.me()) ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
           <label>방식<select class="select" name="type">${D.ACT_TYPES.filter(t => t !== '발굴').map(t => `<option ${t === '방문' ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           <label class="grow">내용·비고<input class="input" name="note"></label>
           <button class="btn btn-primary" type="submit">+ 표에 추가</button>
+          <datalist id="ptPeople">${[...new Set([...S.get().perfs, ...S.get().activities].flatMap(r => S.pplOf(r)).concat((S.get().jobPeople || []).map(p => p.name)).filter(Boolean))].map(n => `<option value="${e(n)}">`).join('')}</datalist>
           <datalist id="ptNames">${[...new Set([...S.get().businesses.map(x => x.name), ...S.get().networks.map(x => x.name)])].map(n => `<option value="${e(n)}">`).join('')}</datalist>
         </form>
         <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
@@ -953,23 +976,23 @@ window.V = (() => {
     const actRow = ({ a, p, t, d }) => `<tr class="pt-row sc-row${flash(a.id)}" style="--sc:${staffColor(a.staff)}" data-row="${a.id}">
       <td>${itemSel(p.item, 'pa-field', a.id, true)}</td>
       <td><input class="input sm pt-date" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
-      <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
+      <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}${S.NO_PEOPLE.has(p.item) ? '' : `<input class="input sm pt-ppl" value="${e(a.ppl || '')}" data-chg="pa-field" data-id="${a.id}" data-field="ppl" list="ptPeople" placeholder="참여자 (이름, 쉼표로 여러 명)" aria-label="참여자">`}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
       <td>${whoSel('pa-field', a.id, a.staff)}<div class="meta">방문·전화 기록</div></td>
       <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
     const manRow = m => `<tr class="pt-row man sc-row${flash(m.id)}" style="--sc:${staffColor(m.staff)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
       <td><input class="input sm pt-date" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
-      <td class="pt-what"><div class="pt-place-row"><input class="pt-place" value="${e(m.place || '')}" data-chg="pf-field" data-id="${m.id}" data-field="place" placeholder="사업체·기관·이름" aria-label="사업체·기관"><span class="meta">직접 입력</span></div><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
+      <td class="pt-what"><div class="pt-place-row"><input class="pt-place" value="${e(m.place || '')}" data-chg="pf-field" data-id="${m.id}" data-field="place" placeholder="사업체·기관·이름" aria-label="사업체·기관"><span class="meta">직접 입력</span></div><input class="input sm pt-ppl" value="${e(m.ppl || '')}" data-chg="pf-field" data-id="${m.id}" data-field="ppl" list="ptPeople" placeholder="참여자 (이름, 쉼표로 여러 명)" aria-label="참여자"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
       <td>${whoSel('pf-field', m.id, m.staff)}<div class="meta">직접 입력</div></td>
       <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
-    let total = 0, totalP = 0;
+    let total = 0;
     const body = def.items.map(item => {
       const A = acts.filter(r => r.p.item === item), M = mans.filter(m => m.item === item);
       const rows = [...A.map(r => [r.d, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]);
-      const ppl = A.reduce((t, r) => t + (Number(r.a.people) || 0), 0) + M.reduce((t, m) => t + (Number(m.people) || 0), 0);
+      const c = S.perfCount([...A.map(r => ({ item, d: r.d, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })), ...M.map(m => ({ item, d: m.date, ppl: S.pplOf(m), n: Number(m.people) || 1, key: U.orgKey(m.place) }))], item);
       const places = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
-      total += rows.length; totalP += ppl;
-      return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="5"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length}건${places ? ` · ${places}곳` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
+      total += rows.length;
+      return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="5"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length ? (c.yeon == null ? `${c.cnt}건` : `연 ${c.yeon} · 실 ${c.sil} · 횟수 ${c.cnt}`) : '0건'}${places ? ` · ${places}곳` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
         ${rows.join('') || `<tr class="pt-none"><td colspan="5">이 달 기록 없음</td></tr>`}`;
     }).join('');
     return `<section class="panel pt">

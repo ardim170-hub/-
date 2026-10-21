@@ -18,8 +18,8 @@ window.DP = (() => {
 
   /** 기간(YYYY 또는 YYYY-MM)의 실적 줄: 방문·전화 기록에서 자동으로 잡힌 것 + 직접 입력 */
   function lines(set, prefix, v = S.view()) {
-    const acts = S.perfRows(prefix, v).filter(r => r.p.set === set).map(r => ({ id: r.a.id, kind: 'act', item: r.p.item, staff: r.a.staff || '', d: r.d, name: r.t ? r.t.name : '', tk: r.a.targetType, tid: r.t ? r.t.id : '', content: r.a.content || '', how: r.a.type }));
-    const mans = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(prefix)).map(p => ({ id: p.id, kind: 'perf', item: p.item, staff: p.staff || '', d: p.date, name: p.place || '', content: p.note || '', how: '직접 입력' }));
+    const acts = S.perfRows(prefix, v).filter(r => r.p.set === set).map(r => ({ id: r.a.id, kind: 'act', item: r.p.item, staff: r.a.staff || '', d: r.d, name: r.t ? r.t.name : '', tk: r.a.targetType, tid: r.t ? r.t.id : '', content: r.a.content || '', how: r.a.type, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId }));
+    const mans = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(prefix)).map(p => ({ id: p.id, kind: 'perf', item: p.item, staff: p.staff || '', d: p.date, name: p.place || '', content: p.note || '', how: '직접 입력', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }));
     return [...acts, ...mans].sort((a, b) => a.d.localeCompare(b.d));
   }
 
@@ -46,7 +46,9 @@ window.DP = (() => {
     const items = D.PERF_SETS[set].items, Y = ui.year, M = ui.mode === 'month' ? ui.month : (String(Y) === now().slice(0, 4) ? now() : `${Y}-12`);
     const mm = +M.slice(5, 7), G = goals(set, Y);
     const yLines = lines(set, String(Y)), cum = yLines.filter(l => l.d.slice(0, 7) <= M), mon = yLines.filter(l => l.d.startsWith(M));
-    const cnt = (list, i) => list.filter(l => l.item === i).length;
+    // 실적 수 = 횟수 (현장중심 직업훈련은 훈련한 날짜 수)
+    const cnt = (list, i) => S.perfCount(list, i).cnt;
+    const sumC = list => items.reduce((a, i) => a + cnt(list, i), 0);
     const totY = items.reduce((a, i) => a + (G.year(i) || 0), 0), totM = items.reduce((a, i) => a + (G.month(i, mm) || 0), 0);
     const v = S.view(), label = SEC_LABEL[progOfScope()] || progOfScope();
     const contacts = v.activities.filter(a => a.targetType === 'biz' && ['전화', '방문', '이메일', '미팅'].includes(a.type) && S.inScope(a.staff) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
@@ -54,19 +56,20 @@ window.DP = (() => {
     const outreach = v.activities.filter(a => a.targetType === 'net' && ['홍보', '방문', '미팅', '행사'].includes(a.type) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
     const periodLabel = ui.mode === 'month' ? `${Y}년 ${mm}월` : `${Y}년`;
     const card = (t, val, unit, sub, cls = '', act = '') => `<div class="dp-kpi ${cls}" ${act}><span class="dp-kpi-t">${t}</span><b class="num">${val}<small>${unit}</small></b><span class="dp-kpi-s">${sub}</span></div>`;
-    const cumP = pc(cum.length, totY), monP = pc(mon.length, totM);
+    const cumN = sumC(cum), monN = sumC(mon);
+    const cumP = pc(cumN, totY), monP = pc(monN, totM);
     const kpis = [
-      card(ui.mode === 'month' ? `누적 실적 (1~${mm}월)` : '누적 실적', U.num(cum.length), '건', `연간 목표 ${U.num(totY)}건`, 'k1'),
+      card(ui.mode === 'month' ? `누적 실적 (1~${mm}월)` : '누적 실적', U.num(cumN), '건', `연간 목표 ${U.num(totY)}건`, 'k1'),
       card('누적 달성률', cumP ?? '-', cumP == null ? '' : '%', '누적 실적 ÷ 연간 목표', `k2 ${tone(cumP)}`),
-      card(`${mm}월 실적`, U.num(mon.length), '건', `월 목표 ${U.num(totM)}건 · ${monP ?? '-'}%`, 'k3'),
+      card(`${mm}월 실적`, U.num(monN), '건', `월 목표 ${U.num(totM)}건 · ${monP ?? '-'}%`, 'k3'),
       card(`연락 (${periodLabel})`, U.num(contacts.length), '건', `사업체 ${new Set(contacts.map(a => a.targetId)).size}곳 · 담당 ${new Set(contacts.map(a => a.staff)).size}명`, 'k4'),
       card(`신규 사업체 (${periodLabel})`, U.num(newBiz), '곳', '최초 등록일 기준', 'k5'),
       ...(set === GL.SET ? [card(`홍보·방문 (${periodLabel})`, U.num(outreach.length), '건', `기관 ${new Set(outreach.map(a => a.targetId)).size}곳`, 'k6')] : []),
     ].join('');
-    const row = i => { const yt = G.year(i), mt = G.month(i, mm), c = cnt(cum, i), m = cnt(mon, i); return `<tr data-act="dp-item" data-item="${e(i)}" class="dp-row" title="눌러서 ${e(i)} 자세히 보기">
-        <th><span class="link">${e(i)}</span></th><td class="r num">${yt ?? '-'}</td><td class="r num dp-strong">${c}</td><td class="r">${pill(pc(c, yt))}</td><td class="r num dp-strong">${m}</td><td class="r num">${mt ?? '-'}</td><td class="r">${pill(pc(m, mt))}</td></tr>`; };
+    const row = i => { const yt = G.year(i), mt = G.month(i, mm), cc = S.perfCount(cum, i), c = cc.cnt, m = cnt(mon, i); return `<tr data-act="dp-item" data-item="${e(i)}" class="dp-row" title="눌러서 ${e(i)} 자세히 보기">
+        <th><span class="link">${e(i)}</span></th><td class="r num">${yt ?? '-'}</td><td class="r num dp-strong">${c}${cc.yeon != null && c ? `<small class="dp-ys" title="연인원 / 실인원">연 ${cc.yeon} · 실 ${cc.sil}</small>` : ''}</td><td class="r">${pill(pc(c, yt))}</td><td class="r num dp-strong">${m}</td><td class="r num">${mt ?? '-'}</td><td class="r">${pill(pc(m, mt))}</td></tr>`; };
     // 월별 막대: 그 해 1~12월 실적 건수 + 그 달 목표 표시
-    const byM = Array.from({ length: 12 }, (_, k) => yLines.filter(l => +l.d.slice(5, 7) === k + 1).length);
+    const byM = Array.from({ length: 12 }, (_, k) => sumC(yLines.filter(l => +l.d.slice(5, 7) === k + 1)));
     const gM = Array.from({ length: 12 }, (_, k) => items.reduce((a, i) => a + (G.month(i, k + 1) || 0), 0));
     const max = Math.max(1, ...byM, ...gM);
     const bars = byM.map((n, k) => { const key = `${Y}-${U.pad(k + 1)}`, on = key === M; return `<button type="button" class="dp-col ${on ? 'on' : ''} ${key > now() ? 'future' : ''}" data-act="dp-month" data-month="${key}" title="${k + 1}월 실적 ${n}건${gM[k] ? ` · 목표 ${gM[k]}건` : ''}">
@@ -80,7 +83,7 @@ window.DP = (() => {
       <div class="table-wrap"><table class="tbl dp-tbl">
         <thead><tr><th rowspan="2">세부사업</th><th>연간 목표</th><th colspan="2">누적 실적 (1~${mm}월)</th><th colspan="3">${mm}월 실적</th></tr>
           <tr><th class="r">건</th><th class="r">건</th><th class="r">달성률</th><th class="r">건</th><th class="r">월 목표</th><th class="r">달성률</th></tr></thead>
-        <tbody><tr class="dp-sum"><th>합계</th><td class="r num">${U.num(totY)}</td><td class="r num dp-strong">${cum.length}</td><td class="r">${pill(cumP)}</td><td class="r num dp-strong">${mon.length}</td><td class="r num">${totM}</td><td class="r">${pill(monP)}</td></tr>${items.map(row).join('')}</tbody></table></div>
+        <tbody><tr class="dp-sum"><th>합계</th><td class="r num">${U.num(totY)}</td><td class="r num dp-strong">${cumN}</td><td class="r">${pill(cumP)}</td><td class="r num dp-strong">${monN}</td><td class="r num">${totM}</td><td class="r">${pill(monP)}</td></tr>${items.map(row).join('')}</tbody></table></div>
       <div class="dp-sec-t">월별 실적 현황 <span class="sub">${Y}년 · 막대 = 실적 건수, 가로선 = 그 달 목표 · 막대를 누르면 그 달로</span></div>
       <div class="dp-chart" role="img" aria-label="${Y}년 월별 실적: ${byM.map((n, k) => `${k + 1}월 ${n}건`).join(', ')}">${bars}</div>
     </section>`;
@@ -92,15 +95,17 @@ window.DP = (() => {
     const all = lines(set, String(Y)).filter(l => l.item === st.item && l.d.slice(0, 7) <= M);
     const staffs = [...new Set([...S.staffHere().map(x => x.name), ...all.map(l => l.staff).filter(Boolean)])];
     const list = all.filter(l => !st.who || l.staff === st.who).slice().reverse();
+    const C = l => S.perfCount(l, st.item), fmt = c => (c.yeon == null ? `${c.cnt}` : `${c.yeon}/${c.sil}/${c.cnt}`);
+    const unit = S.NO_PEOPLE.has(st.item) ? '건' : '연/실/횟수';
     return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">[${e(st.item)}] 실적 현황</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
-      <p class="sub" style="margin:0">${Y}년 1~${mm}월 누적 ${all.length}건 · ${mm}월 ${all.filter(l => l.d.startsWith(M)).length}건</p></div>
+      <p class="sub" style="margin:0">${Y}년 1~${mm}월 누적 ${fmt(C(all))} · ${mm}월 ${fmt(C(all.filter(l => l.d.startsWith(M))))} <span class="sub">(${unit})</span></p></div>
       <div class="dr-body">
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>담당자</th><th class="r">${mm}월</th><th class="r">누적 (1~${mm}월)</th></tr></thead><tbody>
-          ${staffs.map(n => `<tr class="${st.who === n ? 'on' : ''}"><th><button type="button" class="linklike" data-act="dp-who" data-who="${e(n)}">${V.staffDot(n)}${e(n)}</button></th><td class="r num">${all.filter(l => l.staff === n && l.d.startsWith(M)).length}</td><td class="r num"><b>${all.filter(l => l.staff === n).length}</b></td></tr>`).join('')}
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>담당자</th><th class="r">${mm}월 <small>${unit}</small></th><th class="r">누적 (1~${mm}월)</th></tr></thead><tbody>
+          ${staffs.map(n => `<tr class="${st.who === n ? 'on' : ''}"><th><button type="button" class="linklike" data-act="dp-who" data-who="${e(n)}">${V.staffDot(n)}${e(n)}</button></th><td class="r num">${fmt(C(all.filter(l => l.staff === n && l.d.startsWith(M))))}</td><td class="r num"><b>${fmt(C(all.filter(l => l.staff === n)))}</b></td></tr>`).join('')}
         </tbody></table></div>
         <h3 style="margin:16px 0 6px">기록 ${list.length}건 ${st.who ? `<span class="sub">· ${e(st.who)}</span> <button type="button" class="linklike" data-act="dp-who" data-who="">전체 보기</button>` : ''}</h3>
-        ${list.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>날짜</th><th>사업체·기관·이름</th><th>내용</th><th>담당</th><th>구분</th></tr></thead><tbody>
-          ${list.slice(0, 300).map(l => `<tr class="sc-row" style="--sc:${V.staffColor(l.staff)}"><td class="num nowrap">${U.dateDot(l.d)}</td><td>${l.tid ? `<b class="link" data-act="open" data-kind="${l.tk}" data-id="${l.tid}">${e(l.name)}</b>` : `<b>${e(l.name || '-')}</b>`}</td><td class="wrap">${e(l.content)}</td><td class="nowrap">${e(l.staff)}</td><td class="nowrap sub">${e(l.how)}</td></tr>`).join('')}
+        ${list.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>날짜</th><th>사업체·기관</th><th>참여자</th><th>내용</th><th>담당</th><th>구분</th></tr></thead><tbody>
+          ${list.slice(0, 300).map(l => `<tr class="sc-row" style="--sc:${V.staffColor(l.staff)}"><td class="num nowrap">${U.dateDot(l.d)}</td><td>${l.tid ? `<b class="link" data-act="open" data-kind="${l.tk}" data-id="${l.tid}">${e(l.name)}</b>` : `<b>${e(l.name || '-')}</b>`}</td><td>${e((l.ppl || []).join(', '))}</td><td class="wrap">${e(l.content)}</td><td class="nowrap">${e(l.staff)}</td><td class="nowrap sub">${e(l.how)}</td></tr>`).join('')}
         </tbody></table></div>` : '<p class="sub">아직 기록이 없어요.</p>'}
       </div>`;
   }

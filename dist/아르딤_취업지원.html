@@ -2717,6 +2717,13 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .mf-sort button.on { color: var(--text); font-weight: 800; }
 .mf-sort button + button::before { content: ''; }
 
+/* ---------- 실적: 연인원 / 실인원 / 횟수 ---------- */
+.pm-tri-tbl th.c { text-align: center; border-bottom: 1px solid var(--line); }
+.pm-tri-tbl thead tr:first-child th.c:nth-child(3) { background: #F2F6FF; }
+.pm-tri-tbl td:nth-child(5), .pm-tri-tbl td:nth-child(6), .pm-tri-tbl td:nth-child(7) { background: #F7F9FF; }
+.pt-ppl { margin: 4px 0; font-size: 13.5px; }
+.dp-ys { display: block; font-size: 11.5px; font-weight: 500; color: var(--text-2); }
+
 </style>
 </head>
 <body>
@@ -2804,7 +2811,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.21 08:51";</script>
+<script>window.APP_VERSION = "2026.10.21 10:19";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3336,10 +3343,10 @@ window.S = (() => {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['phone', '대표 전화'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['info', '세부 정보']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
-  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관']]];
+  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관'], ['ppl', '참여자']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
@@ -4077,24 +4084,56 @@ window.S = (() => {
       .sort((x, y) => x.d.localeCompare(y.d));
   }
 
+  /* ---------- 연인원 / 실인원 / 횟수 ----------
+     한 사람이 한 번 받으면 1/1/1, 같은 사람이 두 번이면 2/1/2.
+     현장중심 직업훈련은 (훈련받은 날 수의 합 / 훈련 인원 / 훈련한 날짜 수): 1명이 한 달 20일 나가면 20/1/20.
+     사업체개발처럼 사람을 세지 않는 항목은 횟수만. */
+  const pplOf = r => String((r && r.ppl) || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
+  const NO_PEOPLE = new Set(['사업체개발', '고용자원개발', '사업체관리', '고용네트워크']);
+  const isTrain = item => /훈련/.test(item || '');
+  /** lines: [{ item, d, ppl: [이름], n: 이름이 없을 때 인원, key: 이름이 없을 때 같은 사람으로 볼 사업체·기관 }] → { yeon, sil, cnt } (사람을 안 세는 항목은 yeon·sil = null) */
+  function perfCount(lines, item) {
+    const L = item ? lines.filter(l => l.item === item) : lines;
+    if (item && NO_PEOPLE.has(item)) return { yeon: null, sil: null, cnt: L.length };
+    // 이름이 없는 줄은 같은 사업체·기관(또는 '사업체·기관·이름' 칸에 적은 이름)이면 같은 사람으로 본다
+    const names = new Set(), keys = new Map();
+    let yeon = 0, unnamed = 0;
+    L.forEach(l => {
+      const ppl = l.ppl || [];
+      if (ppl.length) { yeon += ppl.length; ppl.forEach(x => names.add(x)); return; }
+      const k = Number(l.n) || 1; yeon += k;
+      if (l.key) keys.set(l.key, Math.max(keys.get(l.key) || 0, k)); else unnamed += k;
+    });
+    return { yeon, sil: names.size + unnamed + [...keys.values()].reduce((a, b) => a + b, 0), cnt: isTrain(item) ? new Set(L.map(l => l.d)).size : yeon };
+  }
   /** 실적 표 (구글 시트 '실적(기타)' 열 순서). 직접 입력한 실적 + 활동 기록 자동 집계(날짜·세부사업별 한 줄) */
   function perfTable(month, set, withActs = true, v = view()) {
     const def = D.PERF_SETS[set];
     if (!def) return [];
-    const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => ({
-      kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
-      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: [p.place, p.note].filter(Boolean).join(' · '), src: `직접 입력 · ${p.staff || ''}`,
-    }));
+    // 참여자 이름이 있으면 그 해 처음 나온 사람 = 신규, 몇 번째인지 = 회차
+    const seen = new Map();
+    const yearRecs = [...v.perfs.filter(p => p.set === set), ...v.activities.filter(a => a.perf && a.perf !== '제외')]
+      .filter(r => (r.date || '').slice(0, 4) === month.slice(0, 4) && pplOf(r).length).sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
+    const info = new Map();
+    yearRecs.forEach(r => { const item = r.item || r.perf; let fresh = 0, round = 0; pplOf(r).forEach(x => { const k = item + '|' + x, c = (seen.get(k) || 0) + 1; seen.set(k, c); if (c === 1) fresh++; round = c; }); info.set(r.id, { fresh, round: pplOf(r).length === 1 ? round : '' }); });
+    const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => {
+      const ppl = pplOf(p), inf = info.get(p.id);
+      return {
+        kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
+        people: ppl.length || p.people || '', newPeople: inf ? inf.fresh : p.newPeople || '', round: inf ? inf.round : p.round || '', note: [p.place, ppl.join(', '), p.note].filter(Boolean).join(' · '), src: `직접 입력 · ${p.staff || ''}`,
+      };
+    });
     if (withActs) {
       const groups = new Map();
       perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t, d }) => {
         const k = d + '|' + p.item;
         const g = groups.get(k) || { kind: 'auto', date: d, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
-        g.n++; g.people += Number(a.people) || 0;
+        g.n++; g.people += pplOf(a).length || Number(a.people) || 0;
+        const inf = info.get(a.id); if (inf) g.fresh = (g.fresh || 0) + inf.fresh;
         if (t) g.targets.set(t.id, t.name);
         groups.set(k, g);
       });
-      groups.forEach(g => rows.push({ ...g, people: g.people || '', newPeople: '', round: '', note: g.targets.size || g.n, src: `활동 ${g.n}건: ${[...g.targets.values()].join(', ')}` }));
+      groups.forEach(g => rows.push({ ...g, people: g.people || '', newPeople: g.fresh || '', round: '', note: g.targets.size || g.n, src: `활동 ${g.n}건: ${[...g.targets.values()].join(', ')}` }));
     }
     return rows.sort((x, y) => x.date.localeCompare(y.date) || def.items.indexOf(x.item) - def.items.indexOf(y.item));
   }
@@ -4221,7 +4260,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -5521,8 +5560,8 @@ window.V = (() => {
   /** 한 달(또는 앞부분이 같은 기간) 실적 줄: 팀 전체. [{item, staff, people}] */
   function perfLines(prefix) {
     const st = S.get();
-    return [...S.perfRows(prefix, st).filter(r => r.p.set === GL.SET).map(r => ({ item: r.p.item, staff: r.a.staff || '', people: Number(r.a.people) || 0, d: r.d })),
-      ...st.perfs.filter(p => p.set === GL.SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', people: Number(p.people) || 0, d: p.date }))];
+    return [...S.perfRows(prefix, st).filter(r => r.p.set === GL.SET).map(r => ({ item: r.p.item, staff: r.a.staff || '', ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId, d: r.d })),
+      ...st.perfs.filter(p => p.set === GL.SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place), d: p.date }))];
   }
   /** 이번 달 종합: 항목별 월 목표 대비 실적 그래프(사람별 색) + 전문인력별 자세한 표 */
   function perfMonth(f) {
@@ -5536,7 +5575,9 @@ window.V = (() => {
     const slots = [...pros, ...Array.from({ length: need - pros.length }, (_, k) => `충원 예정${need - pros.length > 1 ? ' ' + (k + 1) : ''}`)];
     const lines = perfLines(f.month);
     const ytd = perfLines(String(Y)).filter(l => l.d.slice(0, 7) <= f.month && (Y !== g.baseYear || +l.d.slice(5, 7) > 12 - months));
-    const cnt = (list, i, who) => list.filter(l => l.item === i && (who == null || l.staff === who)).length;
+    // 실적 수 = 횟수 (직업상담 등은 받은 횟수, 현장중심 직업훈련은 훈련한 날짜 수, 사업체개발은 곳 수)
+    const cnt = (list, i, who) => S.perfCount(who == null ? list : list.filter(l => l.staff === who), i).cnt;
+    const sumC = (list, who) => items.reduce((a, i) => a + cnt(list, i, who), 0);
     // 이월: 그 해 첫 달부터 달마다 (이월 + 실적 - 월 목표)가 남으면 다음 달로 넘긴다
     const first = Y === g.baseYear ? 13 - months : 1, curM = +f.month.slice(5, 7);
     const yearAll = perfLines(String(Y));
@@ -5544,7 +5585,8 @@ window.V = (() => {
     const cin = Object.fromEntries(items.map(i => [i, carryIn(i)]));
     const got = i => cnt(lines, i) + cin[i];                     // 인정 실적 = 이번 달 실적 + 지난달 이월
     const cout = i => (mT(i) ? Math.max(0, got(i) - mT(i)) : 0);
-    const others = lines.filter(l => !pros.includes(l.staff)).length;
+    const othersOf = (list, i) => S.perfCount(list.filter(l => !pros.includes(l.staff)), i).cnt;
+    const others = items.reduce((a, i) => a + othersOf(lines, i), 0);
     const pc = (a, t) => (t ? Math.round(a / t * 100) : null);
     const tone = p => (p == null ? '' : p >= 100 ? 'done' : p >= 70 ? 'ok' : p >= 40 ? 'warn' : 'low');
     const parts = items.filter(i => mT(i)).map(i => Math.min(1, got(i) / mT(i)));
@@ -5553,27 +5595,45 @@ window.V = (() => {
     const col = n => (pros.includes(n) ? staffColor(n) : '#C3C9D2');
     const chart = items.map(i => {
       const t = mT(i), a = got(i), max = Math.max(t || 0, a, 1), p = pc(a, t);
-      const segs = (cin[i] ? `<i style="width:${cin[i] / max * 100}%;background:repeating-linear-gradient(45deg,#C9D3E0 0 6px,#E3E9F1 6px 12px)" title="지난달 이월 ${cin[i]}건"></i>` : '') + [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : lines.filter(l => l.item === i && !pros.includes(l.staff)).length; return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
+      const segs = (cin[i] ? `<i style="width:${cin[i] / max * 100}%;background:repeating-linear-gradient(45deg,#C9D3E0 0 6px,#E3E9F1 6px 12px)" title="지난달 이월 ${cin[i]}건"></i>` : '') + [...pros, ''].map(n => { const c = n ? cnt(lines, i, n) : othersOf(lines, i); return c ? `<i style="width:${c / max * 100}%;background:${n ? col(n) : '#9AA3B2'}" title="${e(n || '그 외')} ${c}건"></i>` : ''; }).join('');
       return `<div class="pm-row"><span class="pm-l">${e(i)}</span><div class="pm-track">${segs}${t ? `<b class="pm-goal" style="left:${t / max * 100}%" title="월 목표 ${t}건"></b>` : ''}</div><span class="pm-v num"><b>${a}</b> / ${t ?? '-'}건${cin[i] ? `<small>(이월 ${cin[i]})</small>` : ''} ${p != null ? `<em class="${tone(p)}">${p}%</em>` : ''}</span></div>`;
     }).join('');
     const head = `<tr><th>세부사업</th>${slots.map(n => `<th class="r"><span class="pm-dot" style="background:${col(n)}"></span>${e(n)}</th>`).join('')}${others ? '<th class="r"><span class="pm-dot" style="background:#9AA3B2"></span>그 외 직원</th>' : ''}<th class="r">이번 달</th><th class="r">이월<small>(지난달)</small></th><th class="r">인정 실적</th><th class="r">월 목표</th><th class="r">달성률</th><th class="r">이월<small>(다음 달)</small></th><th class="r">연 누적</th><th class="r">연 달성률</th></tr>`;
     const body = items.map(i => {
       const t = mT(i), a = cnt(lines, i), gi = got(i), p = pc(gi, t), ya = cnt(ytd, i), yt = yT(i), yp = pc(ya, yt);
-      const oc = lines.filter(l => l.item === i && !pros.includes(l.staff)).length;
+      const oc = othersOf(lines, i);
       return `<tr><th>${e(i)}</th>${slots.map(n => { const c = cnt(lines, i, n); return `<td class="r num ${pros.includes(n) ? '' : 'sub'}">${pros.includes(n) ? (c ? `<b>${c}</b>` : '0') : '-'}</td>`; }).join('')}${others ? `<td class="r num sub">${oc || 0}</td>` : ''}
         <td class="r num">${a}</td><td class="r num ${cin[i] ? 'pm-cin' : 'sub'}">${cin[i] ? '+' + cin[i] : '-'}</td><td class="r num"><b>${gi}</b></td><td class="r num">${t ?? '-'}</td><td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td><td class="r num ${cout(i) ? 'pm-cout' : 'sub'}">${cout(i) ? '→ ' + cout(i) : '-'}</td><td class="r num">${ya} / ${yt ?? '-'}</td><td class="r">${yp != null ? `<span class="gl-pill ${tone(yp)}">${yp}%</span>` : '-'}</td></tr>`;
     }).join('');
-    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${lines.filter(l => l.staff === n).length}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num">${totA}</td><td class="r num">${totC ? '+' + totC : '-'}</td><td class="r num"><b>${totA + totC}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(overall)}">${overall}%</span></td><td class="r num">${items.reduce((a, i) => a + cout(i), 0) || '-'}</td><td class="r num">${ytd.length} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
-    const yAll = yearAll.filter(l => Y !== g.baseYear || +l.d.slice(5, 7) >= first).length, yTot = items.reduce((a, i) => a + (yT(i) || 0), 0), yPc = pc(yAll, yTot);
+    const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${sumC(lines, n)}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num">${totA}</td><td class="r num">${totC ? '+' + totC : '-'}</td><td class="r num"><b>${totA + totC}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(overall)}">${overall}%</span></td><td class="r num">${items.reduce((a, i) => a + cout(i), 0) || '-'}</td><td class="r num">${sumC(ytd)} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
+    const yAll = sumC(yearAll.filter(l => Y !== g.baseYear || +l.d.slice(5, 7) >= first)), yTot = items.reduce((a, i) => a + (yT(i) || 0), 0), yPc = pc(yAll, yTot);
     const year = `<section class="panel panel-pad pm-year">
       <div><h2 class="section-title">🏁 ${Y}년 최종 실적 <span class="sub">현장중심직업재활센터 · ${Y === g.baseYear ? `${first}~12월(${months}개월)` : '1~12월'} 전체</span></h2>
         <p class="sub" style="margin:4px 0 0">한 달 목표를 넘긴 실적은 다음 달로 이월돼요. 연간 최종 실적은 이월과 상관없이 실제 건수를 모두 더한 값이에요.</p></div>
       <div class="pm-year-num"><b class="num ${tone(yPc)}">${yAll}</b><span class="num">/ ${yTot}건</span>${yPc != null ? `<span class="gl-pill ${tone(yPc)}">${yPc}%</span>` : ''}</div>
       <div class="pm-year-bar"><i class="${tone(yPc)}" style="width:${Math.min(100, yPc || 0)}%"></i></div>
     </section>`;
-    return `${year}<section class="panel panel-pad pm">
+    // 기관 실적표 모양: 연인원 / 실인원 / 횟수
+    const goal3 = i => (g.rows[i] || []).map(v => (v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months))));
+    const c3 = (list, i) => S.perfCount(list, i);
+    const td3 = (c, strong) => c.yeon == null ? `<td class="r num sub">-</td><td class="r num sub">-</td><td class="r num">${strong ? `<b>${U.num(c.cnt)}</b>` : U.num(c.cnt)}</td>` : `<td class="r num">${U.num(c.yeon)}</td><td class="r num">${U.num(c.sil)}</td><td class="r num">${strong ? `<b>${U.num(c.cnt)}</b>` : U.num(c.cnt)}</td>`;
+    const tdG = a => a.length ? a.map((v, k) => `<td class="r num sub">${v == null ? '-' : U.num(v)}</td>`).join('') : '<td class="sub r">-</td><td class="sub r">-</td><td class="sub r">-</td>';
+    const sum3 = list => items.reduce((t, i) => { const c = c3(list, i); t.yeon += c.yeon || 0; t.sil += c.sil || 0; t.cnt += c.cnt; return t; }, { yeon: 0, sil: 0, cnt: 0 });
+    const gSum = items.reduce((t, i) => { goal3(i).forEach((v, k) => { t[k] += v || 0; }); return t; }, [0, 0, 0]);
+    const triRows = items.map(i => { const yc = c3(ytd, i), gl = goal3(i), p = pc(yc.cnt, gl[2]); return `<tr><th>${e(i)}</th>${td3(c3(lines, i))}${td3(yc, true)}${tdG(gl)}<td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td></tr>`; }).join('');
+    const mS = sum3(lines), yS = sum3(ytd), tP = pc(yS.cnt, gSum[2]);
+    const tri = `<section class="panel panel-pad pm-tri">
+      <h2 class="section-title">🧾 연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${monthLabel(f.month)} · 1~${curM}월 누적 · 연간 목표</span></h2>
+      <div class="table-wrap"><table class="tbl pm-tbl pm-tri-tbl"><thead>
+        <tr><th rowspan="2">세부사업</th><th colspan="3" class="c">${+f.month.slice(5, 7)}월</th><th colspan="3" class="c">누적 (1~${curM}월)</th><th colspan="3" class="c">연간 목표</th><th rowspan="2" class="r">달성률<small>(횟수)</small></th></tr>
+        <tr>${'<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>'.repeat(3)}</tr></thead>
+        <tbody>${triRows}</tbody>
+        <tfoot><tr class="pm-tot"><th>소계</th>${td3(mS)}${td3(yS, true)}${tdG(gSum)}<td class="r">${tP != null ? `<span class="gl-pill ${tone(tP)}">${tP}%</span>` : ''}</td></tr></tfoot></table></div>
+      <p class="sub" style="margin:8px 0 0">한 사람이 한 번 받으면 <b>1/1/1</b>, 같은 사람이 두 번이면 <b>2/1/2</b>. 현장중심 직업훈련은 <b>훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수</b>라서 1명이 한 달 20일 나가면 <b>20/1/20</b>. 실인원은 아래 실적 입력의 <b>참여자</b> 이름으로 셉니다(이름이 없으면 한 줄 = 1명). 소계 실인원은 항목별 실인원을 더한 값이에요.</p>
+    </section>`;
+    return `${year}${tri}<section class="panel panel-pad pm">
       <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 남은 실적은 다음 달로 이월</span></h2>
-        <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${lines.filter(l => l.staff === n).length}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
+        <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${sumC(lines, n)}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
         <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건${totC ? ` + 이월 ${totC}건` : ''} / 목표 ${totT}건</small></div></div>
       <div class="pm-chart">${chart}</div>
       <div class="table-wrap"><table class="tbl pm-tbl"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
@@ -5604,10 +5664,12 @@ window.V = (() => {
           <label class="check pt-wk"><input type="checkbox" name="withWeekend">주말 포함</label>
           <label>세부사업명<select class="select" name="item">${def.items.map(i => `<option ${f.lastItem === i ? 'selected' : ''}>${e(i)}</option>`).join('')}</select></label>
           <label class="grow">사업체·기관 <span class="sub">(있는 곳이면 그 기록으로)</span><input class="input" name="name" list="ptNames" placeholder="비워도 돼요"></label>
+          <label class="grow">참여자 <span class="sub">(이름, 여러 명은 쉼표)</span><input class="input" name="ppl" list="ptPeople" placeholder="예: 홍길동, 김철수" title="실인원·회차를 세는 데 써요. 사업체개발은 비워도 돼요"></label>
           <label>담당 전문인력<select class="select" name="staff">${pros.map(n => `<option ${n === (f.lastStaff || S.me()) ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
           <label>방식<select class="select" name="type">${D.ACT_TYPES.filter(t => t !== '발굴').map(t => `<option ${t === '방문' ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
           <label class="grow">내용·비고<input class="input" name="note"></label>
           <button class="btn btn-primary" type="submit">+ 표에 추가</button>
+          <datalist id="ptPeople">${[...new Set([...S.get().perfs, ...S.get().activities].flatMap(r => S.pplOf(r)).concat((S.get().jobPeople || []).map(p => p.name)).filter(Boolean))].map(n => `<option value="${e(n)}">`).join('')}</datalist>
           <datalist id="ptNames">${[...new Set([...S.get().businesses.map(x => x.name), ...S.get().networks.map(x => x.name)])].map(n => `<option value="${e(n)}">`).join('')}</datalist>
         </form>
         <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
@@ -5632,23 +5694,23 @@ window.V = (() => {
     const actRow = ({ a, p, t, d }) => `<tr class="pt-row sc-row${flash(a.id)}" style="--sc:${staffColor(a.staff)}" data-row="${a.id}">
       <td>${itemSel(p.item, 'pa-field', a.id, true)}</td>
       <td><input class="input sm pt-date" type="date" value="${d}" data-chg="pa-field" data-id="${a.id}" data-field="date" aria-label="날짜" ${a.type === '발굴' && d !== a.date ? `title="입력한 날 ${a.date} · 실적은 최초 등록일 기준"` : ''}></td>
-      <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
+      <td class="pt-what">${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> <span class="meta">${a.targetType === 'net' ? '기관' : '사업체'} · ${e(a.type)}</span>` : ''}${S.NO_PEOPLE.has(p.item) ? '' : `<input class="input sm pt-ppl" value="${e(a.ppl || '')}" data-chg="pa-field" data-id="${a.id}" data-field="ppl" list="ptPeople" placeholder="참여자 (이름, 쉼표로 여러 명)" aria-label="참여자">`}<textarea class="input sm ct-txt" rows="1" data-chg="pa-field" data-id="${a.id}" data-field="content" aria-label="내용">${e(a.content || '')}</textarea></td>
       <td>${whoSel('pa-field', a.id, a.staff)}<div class="meta">방문·전화 기록</div></td>
       <td><button class="icon-btn" type="button" title="기록 삭제" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}">${I.close}</button></td></tr>`;
     const manRow = m => `<tr class="pt-row man sc-row${flash(m.id)}" style="--sc:${staffColor(m.staff)}" data-row="${m.id}">
       <td>${itemSel(m.item, 'pf-field', m.id, false)}</td>
       <td><input class="input sm pt-date" type="date" value="${m.date}" data-chg="pf-field" data-id="${m.id}" data-field="date" aria-label="날짜"></td>
-      <td class="pt-what"><div class="pt-place-row"><input class="pt-place" value="${e(m.place || '')}" data-chg="pf-field" data-id="${m.id}" data-field="place" placeholder="사업체·기관·이름" aria-label="사업체·기관"><span class="meta">직접 입력</span></div><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
+      <td class="pt-what"><div class="pt-place-row"><input class="pt-place" value="${e(m.place || '')}" data-chg="pf-field" data-id="${m.id}" data-field="place" placeholder="사업체·기관·이름" aria-label="사업체·기관"><span class="meta">직접 입력</span></div><input class="input sm pt-ppl" value="${e(m.ppl || '')}" data-chg="pf-field" data-id="${m.id}" data-field="ppl" list="ptPeople" placeholder="참여자 (이름, 쉼표로 여러 명)" aria-label="참여자"><textarea class="input sm ct-txt" rows="1" data-chg="pf-field" data-id="${m.id}" data-field="note" aria-label="내용·비고" placeholder="내용·비고">${e(m.note || '')}</textarea></td>
       <td>${whoSel('pf-field', m.id, m.staff)}<div class="meta">직접 입력</div></td>
       <td><button class="icon-btn" type="button" title="삭제" aria-label="삭제" data-act="perf-del" data-id="${m.id}">${I.close}</button></td></tr>`;
-    let total = 0, totalP = 0;
+    let total = 0;
     const body = def.items.map(item => {
       const A = acts.filter(r => r.p.item === item), M = mans.filter(m => m.item === item);
       const rows = [...A.map(r => [r.d, actRow(r)]), ...M.map(m => [m.date, manRow(m)])].sort((x, y) => x[0].localeCompare(y[0])).map(x => x[1]);
-      const ppl = A.reduce((t, r) => t + (Number(r.a.people) || 0), 0) + M.reduce((t, m) => t + (Number(m.people) || 0), 0);
+      const c = S.perfCount([...A.map(r => ({ item, d: r.d, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })), ...M.map(m => ({ item, d: m.date, ppl: S.pplOf(m), n: Number(m.people) || 1, key: U.orgKey(m.place) }))], item);
       const places = new Set(A.filter(r => r.t).map(r => r.t.id)).size;
-      total += rows.length; totalP += ppl;
-      return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="5"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length}건${places ? ` · ${places}곳` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
+      total += rows.length;
+      return `<tr class="pt-grp ${rows.length ? '' : 'zero'}"><th colspan="5"><span class="pt-gname">${e(item)}</span><span class="pt-gcount num">${rows.length ? (c.yeon == null ? `${c.cnt}건` : `연 ${c.yeon} · 실 ${c.sil} · 횟수 ${c.cnt}`) : '0건'}${places ? ` · ${places}곳` : ''}</span><button class="btn btn-sm pt-gadd" type="button" data-act="pt-add" data-item="${e(item)}">+ 이 항목에 추가</button></th></tr>
         ${rows.join('') || `<tr class="pt-none"><td colspan="5">이 달 기록 없음</td></tr>`}`;
     }).join('');
     return `<section class="panel pt">
@@ -7388,7 +7450,9 @@ window.R = (() => {
   }
 
   /* ---------- 공유 시트에서 붙여넣거나 엑셀·CSV 파일로 한 번에 가져오기 ---------- */
-  const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
+  const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일', '등록일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']],
+    // 시트마다 있는 덧칸: 내용에 붙이거나(임금·근무시간) 상태로 쓰거나(연락이력), 개발대장 표시(실적 진행도)
+    ['wage', ['임금', '급여']], ['hours', ['근무시간']], ['log', ['연락이력']], ['progress', ['실적진행도', '진행도']], ['training', ['현장훈련유/무', '현장훈련']], ['step', ['절차']], ['welfare', ['복리후생']]];
   // 머리글이 없거나 모자라면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
   /** 엑셀 복사 형식(TSV) 읽기: 줄 바꿈이 든 칸은 "따옴표"로 감싸져 온다 */
@@ -7418,7 +7482,7 @@ window.R = (() => {
   }
   const oneLine = (v, sep = ' ') => String(v ?? '').split('\n').map(x => x.trim()).filter(Boolean).join(sep);
   /** 앞자리 0이 빠진 번호 고치기: 10-1234-5678 → 010-…, 70-… → 070-… */
-  const fixPhone = p => oneLine(p, ' / ').replace(/(^|[\s/])(1[016789]|70)(?=[-)\s]\d)/g, '$10$2');
+  const fixPhone = p => oneLine(p, ' / ').replace(/(^|[\s/])(1[016789]\d{7,8}|[3-6]\d{8,9}|70\d{8})(?=$|[\s/])/g, '$10$2').replace(/(^|[\s/])(1[016789]|70)(?=[-)\s]\d)/g, '$10$2');
   /** 결과 글에서 연락결과 고르기 */
   function guessResult(t) {
     const s = String(t || '').replace(/\s/g, '');
@@ -7430,127 +7494,240 @@ window.R = (() => {
     if (/검토|확인|상의|문의|회의|보고후|연락주기|예정/.test(s)) return '검토중';
     return '';
   }
-  /** 표(2차원 배열) → 연락 기록 줄. 머리글 칸 수가 모자라거나 번호 칸이 빠져도 '날짜 칸'을 기준으로 맞춘다 */
-  function parseCells(cells, year = ui.contacts.month.slice(0, 4)) {
+  const STATUS_WORDS = /^(연락완료|재연락|부재|미연락|연락중|방문완료|방문예정|완료|보류)$/;
+  /** 표 한 장(2차원 배열) → 연락 기록 줄 (합치기 전). 머리글 칸 수가 모자라거나 번호 칸이 빠져도 '날짜 칸'을 기준으로 맞춘다 */
+  function readTable(cells, year, sheet = '') {
     cells = cells.map(r => (r || []).map(c => (typeof c === 'number' ? c : String(c ?? '').trim())));
-    const hdrIdx = cells.slice(0, 15).findIndex(r => r.filter(c => hdrKey(c)).length >= 3 && !r.some(c => dateOf(c, year)));
+    const hdrIdx = cells.slice(0, 30).findIndex(r => r.filter(c => hdrKey(c)).length >= 3 && !r.some(c => dateOf(c, year)));
     let order;
     if (hdrIdx >= 0) {
       order = cells[hdrIdx].map(hdrKey);
+      // '연락처/담당자'(전화) 칸과 따로 '담당자' 칸이 결과 뒤에 있으면 그건 우리 직원(상담자)
+      const ci = order.indexOf('content');
+      if (!order.includes('staff') && ci >= 0) { const late = order.findIndex((k, i) => k === 'contactName' && i > ci); if (late >= 0) order[late] = 'staff'; }
       // 빈 머리글 칸은 앞 칸 다음 순서로 채운다 (예: 전화번호 뒤 이름 없는 칸들 → 담당자·직종·결과…)
+      // 단, 아래에 글이 거의 없는 칸(병합된 머리글 자리)은 채우지 않는다
+      const body = cells.slice(hdrIdx + 1).filter(r => r.some(c => c !== ''));
+      const used = i => body.filter(r => r[i] !== '' && r[i] != null).length >= Math.min(3, body.length);
       for (let i = 0; i < Math.max(order.length, 12); i++) {
-        if (order[i]) continue;
+        if (order[i] || !used(i)) continue;
         const prev = order[i - 1], at = DEFAULT_ORDER.indexOf(prev);
         const next = at >= 0 ? DEFAULT_ORDER.slice(at + 1).find(k => !order.includes(k)) : '';
         order[i] = next || '';
       }
     } else order = DEFAULT_ORDER.slice();
+    // 개발대장(사업체 목록)은 연락 기록이 아니라 사업체만 등록·보완한다
+    const ledger = /개발대장/.test(sheet) || order.includes('progress');
+    // 개발 현황·보고용 시트는 방문 정리라 기본을 '방문'으로
+    const report = order.includes('training') || /현황|보고/.test(sheet);
     const dCol = order.indexOf('date');
     const body = hdrIdx >= 0 ? cells.slice(hdrIdx + 1) : cells;
-    const merged = new Map();
+    const out = [];
+    let lastDate = '', skipped = 0;
     body.forEach(r => {
+      if (!r.some(c => c !== '' && c != null)) return;
       // 날짜 칸 찾기 (머리글 위치 근처를 먼저)
       const cand = [dCol, dCol + 1, dCol - 1, ...r.keys()].filter(i => i >= 0 && i < r.length);
-      const di = cand.find(i => dateOf(r[i], year));
-      if (di == null) return;
-      const shift = di - dCol;
+      let di = cand.find(i => dateOf(r[i], year));
+      let date = di == null ? '' : dateOf(r[di], year);
+      // 날짜 칸을 비워 둔 줄(같은 날 이어 적기)은 바로 위 줄 날짜로 본다
+      if (di == null && lastDate && dCol >= 0 && (r[dCol] === '' || r[dCol] == null)) { di = dCol; date = lastDate; }
+      if (di == null) { skipped++; return; }
+      const shift = dCol >= 0 ? di - dCol : 0;
       const o = {};
       order.forEach((k, i) => { const v = r[i + shift]; if (k && v != null && v !== '' && o[k] == null) o[k] = v; });
-      o.date = dateOf(r[di], year);
+      o.date = date;
       o.name = oneLine(o.name).replace(/\s+/g, ' ');
-      if (!o.name || /^\d+$/.test(o.name)) return;
+      if (!o.name || /^\d+$/.test(o.name) || hdrKey(o.name) === 'name') { skipped++; return; }
+      lastDate = date;
       o.address = String(o.address || '').trim();
       // 주소 칸에 공고 설명을 적어 둔 줄 → 결과(내용)로 옮긴다
-      if (/\n|^\*|직무내용|근무시간|수습기간|급여|우대/.test(o.address)) { o.content = [oneLine(o.address, ' · ').replace(/^\*\s*/, '').replace(/\s*·\s*\*\s*/g, ' · '), o.content].filter(Boolean).join(' / '); o.address = ''; }
-      o.address = oneLine(o.address);
-      o.phone = fixPhone(o.phone);
+      if (/^\*|직무내용|근무시간|수습기간|급여|우대/.test(o.address)) { o.content = [oneLine(o.address, ' · ').replace(/^\*\s*/, '').replace(/\s*·\s*\*\s*/g, ' · '), o.content].filter(Boolean).join(' / '); o.address = ''; }
+      o.address = oneLine(o.address).replace(/,\s*$/, '');
+      // '연락처/담당자' 한 칸에 번호와 이름이 같이 있으면 나눈다
+      const ph = String(o.phone || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const nums = ph.filter(x => /\d{3,}/.test(x)), names = ph.filter(x => !/\d{3,}/.test(x));
+      if (names.length && nums.length) { o.phone = nums.join('\n'); if (!o.contactName) o.contactName = names.join(' / '); }
+      else if (names.length && !nums.length) { o.phone = ''; if (!o.contactName) o.contactName = names.join(' / '); }
+      o.phone = fixPhone(String(o.phone || '').replace(/\(0?(\d{2,3})\)\s*/g, '0$1-').replace(/[ \t]*-[ \t]*/g, '-').replace(/(\d)[ \t]+(\d)/g, '$1-$2'));
       o.contactName = oneLine(o.contactName, ' / ');
       o.jobType = oneLine(o.jobType);
       o.content = oneLine(o.content);
-      ['result', 'status', 'staff', 'jobUrl'].forEach(k => { o[k] = oneLine(o[k]); });
+      ['result', 'status', 'staff', 'jobUrl', 'log', 'hours', 'wage', 'progress', 'step'].forEach(k => { o[k] = oneLine(o[k]); });
+      // 연락이력 칸: '연락완료·재연락' 같은 짧은 말은 상태, 긴 글은 결과(내용)
+      if (o.log) { if (STATUS_WORDS.test(o.log.replace(/\s/g, '')) && !o.status) o.status = o.log; else if (!o.content) o.content = o.log; else if (!o.content.includes(o.log)) o.content += ' / ' + o.log; }
+      const extra = [o.hours && !/\d+\s*[:시~]/.test(o.hours) ? o.hours : '', o.hours && /\d+\s*[:시~]/.test(o.hours) ? `근무 ${o.hours}` : '', o.wage ? `임금 ${o.wage}` : ''].filter(Boolean);
+      if (extra.length) o.content = [o.content, ...extra].filter(Boolean).join(' · ');
       ['address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'].forEach(k => { if (/^[`'"\-·.\s]+$/.test(o[k] || '')) o[k] = ''; });
       o.result = D.CONTACT_RESULTS.find(x => o.result.replace(/\s/g, '') === x.replace(/\s/g, '')) || guessResult(o.content);
-      o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : '전화';
-      // 같은 날 같은 사업체가 두 번 적혀 있으면 한 줄로 합친다 (빈 칸은 채우고, 결과는 긴 쪽)
+      o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : report ? '방문' : '전화';
+      if (ledger) { o.ledger = true; o.type = '발굴'; }
+      o.sheet = sheet;
+      out.push(o);
+    });
+    return { rows: out, skipped };
+  }
+  /* 이름이 조금 달라도 같은 곳 찾기: 사업체·기관 이름 → 전화번호 → 이름 낱말 */
+  const INST = /특수반|특수학급|학교|복지센터|부모회|협회|연합회|복지관|행정복지|고용정보센터|고용센터|공단|장애인복지회|주민센터/;
+  const words = n => String(n || '').replace(/[(（][^)）]*[)）]|㈜|주식회사|사단법인|\(사\)|\[.*?\]/g, ' ').replace(/화성시|화성/g, ' ').split(/[\s/,·]+/)
+    .map(w => w.replace(/특수반|특수학급$/, '').replace(/^(.{2,})고$/, '$1고등학교').replace(/^(.{2,}?)(점|지점)$/, '$1')).filter(w => w.length >= 2);
+  const subseq = (w, k) => { let i = 0; for (const ch of k) if (ch === w[i]) i++; return i >= w.length; };
+  const digits = p => String(p || '').split(/[\/\n]/).map(x => x.replace(/\D/g, '')).filter(x => x.length >= 9);
+  function orgIndex() {
+    const st = S.get();
+    const list = [...st.businesses.map(x => ({ kind: 'biz', x })), ...st.networks.filter(n => !S.isHome(n)).map(x => ({ kind: 'net', x }))];
+    return list.map(o => ({ ...o, key: U.orgKey(o.x.name), tel: digits(o.x.phone) }));
+  }
+  function resolveOrg(name, phone, idx) {
+    const k = U.orgKey(name);
+    let hit = idx.filter(o => o.key === k);
+    if (hit.length) return hit[0];
+    const tel = digits(phone);
+    hit = tel.length ? idx.filter(o => o.tel.some(t => tel.includes(t))) : [];
+    if (hit.length === 1) return hit[0];
+    // 낱말이 모두 들어 있고(하나는 그대로, 나머지는 글자 순서대로) 그런 곳이 하나뿐이면 같은 곳
+    const ws = words(name).map(w => U.norm(w));
+    if (!ws.length || !ws.some(w => w.length >= 3)) return null;
+    hit = idx.filter(o => ws.some(w => w.length >= 3 && o.key.includes(w)) && ws.every(w => o.key.includes(w) || subseq(w, o.key)));
+    return hit.length === 1 ? hit[0] : null;
+  }
+  /** 여러 표에서 읽은 줄을 합치고, 사이트에 이미 있는 기록은 표시 */
+  function finishRows(list) {
+    // 같은 날 같은 사업체가 여러 번(연락이력 + 보고용 시트 등) 적혀 있으면 한 줄로 합친다 (빈 칸은 채우고, 결과는 긴 쪽)
+    const merged = new Map();
+    const fill = (prev, o) => ['address', 'phone', 'contactName', 'jobType', 'result', 'status', 'staff', 'jobUrl'].forEach(f => { if (!prev[f] && o[f]) prev[f] = o[f]; });
+    list.filter(o => !o.ledger).forEach(o => {
       const k = o.date + '|' + U.orgKey(o.name);
       const prev = merged.get(k);
       if (prev) {
-        ['address', 'phone', 'contactName', 'jobType', 'result', 'status', 'staff', 'jobUrl'].forEach(f => { if (!prev[f] && o[f]) prev[f] = o[f]; });
-        if ((o.content || '').length > (prev.content || '').length) { prev.content = o.content; prev.type = o.type; }
+        fill(prev, o);
+        if ((o.content || '').length > (prev.content || '').length) prev.content = o.content;
+        if (o.type === '방문') prev.type = '방문';
         prev.n = (prev.n || 1) + 1;
-      } else merged.set(k, o);
+      } else merged.set(k, { ...o });
     });
-    const have = new Set(S.get().activities.filter(a => a.targetType === 'biz').map(a => { const b = S.find('biz', a.targetId); return b ? a.date + '|' + U.orgKey(b.name) : ''; }));
-    const rows = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
-    rows.forEach(r => { r.dup = have.has(r.date + '|' + U.orgKey(r.name)); });
-    return { rows, order };
+    // 개발대장 줄: 연락 기록에 나온 사업체면 빈 칸만 채우고, 처음 보는 사업체면 '사업체만 등록' 줄로 남긴다
+    const seenOrg = new Map([...merged.values()].map(o => [U.orgKey(o.name), o]));
+    const ledger = new Map();
+    list.filter(o => o.ledger).forEach(o => {
+      const k = U.orgKey(o.name), hit = seenOrg.get(k);
+      if (hit) { fill(hit, { ...o, content: '', result: '', status: '' }); return; }
+      const prev = ledger.get(k);
+      if (prev) fill(prev, o); else ledger.set(k, { ...o });
+    });
+    const idx = orgIndex();
+    const have = new Set(S.get().activities.map(a => a.date + '|' + a.targetType + a.targetId));
+    const rows = [...merged.values(), ...ledger.values()].sort((a, b) => a.date.localeCompare(b.date));
+    rows.forEach(r => {
+      const o = resolveOrg(r.name, r.phone, idx);
+      r.match = o ? { kind: o.kind, id: o.x.id, name: o.x.name } : null;
+      r.inst = !o && INST.test(r.name) && !r.jobType;
+      r.dup = r.ledger ? !!o : !!o && have.has(r.date + '|' + o.kind + o.x.id);
+      r.who = matchStaff(r.staff);
+    });
+    return rows;
+  }
+  function parseCells(cells, year = ui.contacts.month.slice(0, 4)) {
+    const { rows, skipped } = readTable(cells, year);
+    return { rows: finishRows(rows), skipped };
+  }
+  /** 엑셀 파일의 시트마다 머리글을 따로 읽는다 (양식·사본 시트는 건너뜀) */
+  function parseSheets(sheets, year = ui.contacts.month.slice(0, 4)) {
+    let all = [], skipped = 0;
+    const used = [];
+    sheets.filter(sh => !/양식|사본|template/i.test(sh.name)).forEach(sh => {
+      const r = readTable(sh.cells, year, sh.name);
+      if (r.rows.length) used.push(`${sh.name} ${r.rows.length}줄`);
+      all = all.concat(r.rows); skipped += r.skipped;
+    });
+    return { rows: finishRows(all), skipped, used };
+  }
+  /** 상담자 칸 글자 → 직원 이름. '김정배 선생님', '정배쌤', '김정배/이유진'(앞사람)도 맞춘다. 못 맞추면 '' */
+  function matchStaff(raw) {
+    const t = String(raw || '').split(/[\/,·\n]/)[0].replace(/\s|선생님|쌤|샘|님|팀장|과장|대리|주임|사원|복지사|직업재활사|상담사|\(.*?\)/g, '');
+    if (!t) return '';
+    const names = [...new Set([...S.staffHere(), ...S.staff()].map(s => s.name))];
+    const hit = names.find(n => n === t) || names.find(n => n.length >= 2 && (t.includes(n) || n.includes(t) && t.length >= 2));
+    if (hit) return hit;
+    const given = names.filter(n => n.length >= 3 && n.slice(1) === t);
+    return given.length === 1 ? given[0] : '';
   }
   const parsePaste = text => parseCells(parseTsv(text));
-  /** 엑셀·CSV 파일 → 표 (시트 여러 개면 모두 이어 붙임) */
-  async function readFileCells(f) {
+  /** 엑셀·CSV 파일 → 시트별 표 */
+  async function readFileSheets(f) {
     const wb = /\.csv$/i.test(f.name) ? XLSX.read(await f.text(), { type: 'string' }) : XLSX.read(new Uint8Array(await f.arrayBuffer()));
-    return wb.SheetNames.flatMap(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }));
+    return wb.SheetNames.map(n => ({ name: n, cells: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }) }));
   }
   function pasteDialog(state) {
     const rows = state.rows || [];
     const fresh = rows.filter(r => !r.dup);
-    const key = n => U.orgKey(n);
-    const have = new Set(S.get().businesses.map(b => key(b.name)));
-    const newCount = new Set(fresh.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size;
+    const newCount = new Set(fresh.filter(r => !r.match && !r.inst).map(r => U.orgKey(r.name))).size;
+    const newInst = new Set(fresh.filter(r => !r.match && r.inst).map(r => U.orgKey(r.name))).size;
     return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">연락이력 한 번에 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
       <div class="dr-body">
         <ol class="steps-help"><li>시트·엑셀에서 가져올 줄을 드래그해 <b>Ctrl+C</b> → 아래 칸에 <b>Ctrl+V</b> (머리글 줄은 있어도 없어도 됩니다)</li><li>또는 <button class="btn btn-sm" type="button" data-act="ct-file">엑셀·CSV 파일 열기</button></li><li>미리보기를 확인하고 <b>가져오기</b></li></ol>
         <textarea class="textarea" id="ctPasteBox" rows="7" placeholder="여기에 붙여넣기 (Ctrl+V)">${e(state.text || '')}</textarea>
         ${state.file ? `<p class="sub">파일: <b>${e(state.file)}</b></p>` : ''}
-        ${rows.length ? `<p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에 새로 등록됩니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 상담자 칸이 비어 있으면 '${e(S.me())}'로 기록합니다.</p>
-          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th></tr></thead><tbody>
-          ${rows.slice(0, 200).map(r => `<tr class="${r.dup ? 'dup' : ''}"><td>${r.dup ? '<span class="badge">있음</span>' : !have.has(key(r.name)) ? '<span class="badge accent">새 사업체</span>' : ''}</td><td class="num nowrap">${e(r.date)}</td><td><b>${e(r.name)}</b>${r.n > 1 ? ` <span class="sub">(${r.n}줄 합침)</span>` : ''}</td><td class="clip" title="${e(r.address)}">${e(r.address)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contactName)}</td><td class="clip">${e(r.jobType)}</td><td class="wrap">${e(r.content)}</td><td>${e(r.result)}</td><td>${e(r.type)}</td></tr>`).join('')}
+        ${rows.length ? `<div class="inline" style="margin:6px 0"><label class="sub" for="ctPasteWho">상담자 칸이 비었거나 모르는 이름이면</label><select class="select sm" id="ctPasteWho">${(S.staffHere().length ? S.staffHere() : S.staff()).map(s => `<option ${s.name === (state.who || S.me()) ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select><span class="sub">으로 기록</span></div>
+          ${state.used && state.used.length ? `<p class="sub">읽은 시트: ${state.used.map(e).join(' · ')} (양식·사본 시트는 건너뜀)</p>` : ''}
+          ${state.skipped ? `<p class="sub">날짜·사업체명이 없는 줄 ${state.skipped}줄(제목·빈 줄·메모)은 뺐습니다.</p>` : ''}
+          <p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에${newInst ? `, 학교·센터·협회 같은 기관 <b>${newInst}곳</b>은 네트워크에` : ''} 새로 등록됩니다. 이름이 조금 달라도(예: 다이소 마도점 = 다이소 마도) 전화번호·이름 낱말이 같으면 이미 있는 곳으로 붙입니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 날짜 칸이 빈 줄은 바로 위 줄과 같은 날로 봤어요. 같은 파일을 두 번 넣어도 이미 있는 줄은 다시 들어가지 않아요.</p>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th><th>상담자</th></tr></thead><tbody>
+          ${rows.slice(0, 200).map(r => `<tr class="${r.dup ? 'dup' : ''}"><td class="nowrap">${r.dup ? '<span class="badge">있음</span>' : r.ledger ? '<span class="badge accent">사업체만 등록</span>' : r.match ? '' : r.inst ? '<span class="badge accent">새 기관</span>' : '<span class="badge accent">새 사업체</span>'}</td><td class="num nowrap">${e(r.date)}</td><td><b>${e(r.name)}</b>${r.match && U.orgKey(r.match.name) !== U.orgKey(r.name) ? ` <span class="sub">→ ${e(r.match.name)}</span>` : ''}${r.n > 1 ? ` <span class="sub">(${r.n}줄 합침)</span>` : ''}</td><td class="clip" title="${e(r.address)}">${e(r.address)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contactName)}</td><td class="clip">${e(r.jobType)}</td><td class="wrap">${e(r.content)}</td><td>${e(r.result)}</td><td>${e(r.type)}</td><td class="nowrap">${r.who ? e(r.who) : `<span class="sub" title="${e(r.staff || '')}">${r.staff ? `${e(r.staff)} → ` : ''}${e(state.who || S.me())}</span>`}</td></tr>`).join('')}
           </tbody></table></div>${rows.length > 200 ? `<p class="sub">처음 200줄만 보여줍니다.</p>` : ''}`
           : state.text ? '<p class="sub" style="color:var(--danger)">날짜와 사업체명이 있는 줄을 찾지 못했습니다. 날짜 칸이 들어가게 복사해 보세요.</p>' : ''}
       </div>
       <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="ct-paste-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
   }
-  /** 한 번에 저장 (새 사업체·기존 사업체 보완·연락 기록을 각각 한 번씩 보낸다) */
-  function commitPaste(rows) {
-    const staffNames = new Set(S.staff().map(s => s.name));
-    const me = S.me(), key = n => U.orgKey(n);
+  /** 한 번에 저장 (새 사업체·새 기관·기존 곳 보완·연락 기록을 각각 한 번씩 보낸다) */
+  function commitPaste(rows, fallback) {
+    const me = fallback || S.me(), key = n => U.orgKey(n);
     const list = rows.filter(r => !r.dup);
-    const bizBy = new Map(S.get().businesses.map(b => [key(b.name), b]));
-    const newSpecs = new Map();
-    list.forEach(r => {
-      const k = key(r.name);
-      if (bizBy.has(k)) return;
-      const who = staffNames.has(r.staff) ? r.staff : me;
-      const x = newSpecs.get(k) || { name: r.name, phone: '', address: '', stage: '접촉', discoveredAt: r.date, source: '현장 발굴', staff: who, placements: 0, jobs: '' };
+    const progs = S.getScope().startsWith('p:') ? [S.getScope().slice(2)] : [];
+    // 처음 보는 곳: 이름(정리한 글자)이 같으면 한 곳으로
+    const bizSpecs = new Map(), netSpecs = new Map();
+    list.filter(r => !r.match).forEach(r => {
+      const k = key(r.name), who = r.who || me;
+      if (r.inst) {
+        const x = netSpecs.get(k) || { name: r.name, category: D.guessCategory(r.name) || '복지기관', status: '보통', phone: '', address: '', since: r.date, staff: who, programs: progs, relation: '', memo: '' };
+        if (!x.phone && r.phone) x.phone = r.phone;
+        if (!x.address && r.address) x.address = r.address;
+        if (r.date < x.since) x.since = r.date;
+        netSpecs.set(k, x);
+        return;
+      }
+      const x = bizSpecs.get(k) || { name: r.name, phone: '', address: '', stage: '접촉', discoveredAt: r.date, source: '현장 발굴', staff: who, placements: 0, jobs: '', programs: progs };
       if (!x.phone && r.phone) x.phone = r.phone;
       if (!x.address && r.address) x.address = r.address;
       if (!x.jobs && r.jobType) x.jobs = r.jobType;
-      if (r.type === '방문') x.stage = '방문상담';
+      if (r.type === '방문' || /방문|실적|직무분석/.test(r.progress || '')) x.stage = '방문상담';
       if (r.date < x.discoveredAt) x.discoveredAt = r.date;
-      newSpecs.set(k, x);
+      bizSpecs.set(k, x);
     });
-    const made = newSpecs.size ? S.upsertMany('biz', [...newSpecs.values()]) : [];
-    made.forEach(b => bizBy.set(key(b.name), b));
+    const madeBiz = bizSpecs.size ? S.upsertMany('biz', [...bizSpecs.values()]) : [];
+    const madeNet = netSpecs.size ? S.upsertMany('net', [...netSpecs.values()]) : [];
+    const target = new Map([...madeBiz.map(b => [key(b.name), { kind: 'biz', x: b }]), ...madeNet.map(n => [key(n.name), { kind: 'net', x: n }])]);
+    const tOf = r => r.match ? { kind: r.match.kind, x: S.find(r.match.kind, r.match.id) } : target.get(key(r.name));
+    // 이미 있던 곳: 빈 전화·주소만 채우고, 사업체 단계는 앞으로만
     const patches = new Map();
-    list.forEach(r => {
-      const b = bizBy.get(key(r.name));
-      if (made.includes(b)) return;
-      const p = patches.get(b.id) || { id: b.id };
-      if (!b.phone && !p.phone && r.phone) p.phone = r.phone;
-      if (!b.address && !p.address && r.address) p.address = r.address;
-      const st = p.stage || b.stage;
-      if (st === '발굴') p.stage = r.type === '방문' ? '방문상담' : '접촉';
-      else if (st === '접촉' && r.type === '방문') p.stage = '방문상담';
-      patches.set(b.id, p);
+    list.filter(r => r.match).forEach(r => {
+      const t = tOf(r); if (!t || !t.x) return;
+      const id = t.kind + t.x.id, p = patches.get(id) || { kind: t.kind, id: t.x.id };
+      if (!t.x.phone && !p.phone && r.phone) p.phone = r.phone;
+      if (!t.x.address && !p.address && r.address) p.address = r.address;
+      if (t.kind === 'biz') {
+        const st = p.stage || t.x.stage;
+        if (st === '발굴') p.stage = r.type === '방문' ? '방문상담' : '접촉';
+        else if (st === '접촉' && r.type === '방문') p.stage = '방문상담';
+      }
+      patches.set(id, p);
     });
-    const fix = [...patches.values()].filter(p => Object.keys(p).length > 1);
-    if (fix.length) S.putMany('biz', fix);
-    const acts = made.map(b => ({ targetType: 'biz', targetId: b.id, date: b.discoveredAt, type: '발굴', content: '연락이력 가져오기로 사업체 등록', staff: b.staff }))
-      .concat(list.map(r => ({ targetType: 'biz', targetId: bizBy.get(key(r.name)).id, date: r.date, type: r.type, content: r.content || '(내용 없음)', staff: staffNames.has(r.staff) ? r.staff : me, contactName: r.contactName || '', jobType: r.jobType || '', result: r.result || '', status: r.status || '연락완료', jobUrl: jobLink(r.jobUrl), perf: '', people: '' })));
+    ['biz', 'net'].forEach(kind => { const fix = [...patches.values()].filter(p => p.kind === kind && Object.keys(p).length > 2).map(({ kind: _, ...p }) => p); if (fix.length) S.putMany(kind, fix); });
+    const acts = list.filter(r => !r.ledger).map(r => { const t = tOf(r); return t && t.x ? { targetType: t.kind, targetId: t.x.id, date: r.date, type: r.type, content: r.content || '(내용 없음)', staff: r.who || me, contactName: r.contactName || '', jobType: r.jobType || '', result: r.result || '', status: r.status || '연락완료', jobUrl: jobLink(r.jobUrl), perf: '', people: '' } : null; }).filter(Boolean);
     if (acts.length) S.upsertMany('act', acts);
-    const queue = made.filter(b => b.address).slice(0, 60).map(b => b.id);
-    (async () => { for (const id of queue) { await S.refine('biz', id); await new Promise(res => setTimeout(res, 1100)); } })();
-    return { n: list.length, biz: made.length };
+    const queue = [...madeBiz.filter(b => b.address).map(b => ['biz', b.id]), ...madeNet.filter(n => n.address).map(n => ['net', n.id])].slice(0, 80);
+    (async () => { for (const [k, id] of queue) { await S.refine(k, id); await new Promise(res => setTimeout(res, 1100)); } })();
+    return { n: acts.length, biz: madeBiz.length, net: madeNet.length };
   }
 
   /* ================= 출장·특근 명령부 ================= */
@@ -7950,7 +8127,7 @@ window.R = (() => {
     return out;
   }
 
-  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, readFileCells, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, parseSheets, readFileSheets, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();
 
 </script>
@@ -8284,7 +8461,8 @@ window.TV = (() => {
    - 두 가지 세는 법
      1) 복지관 기준: 실적 건수 (실적 입력 줄 수 + 활동 기록 자동 집계 건수)
      2) 장애인개발원 기준 (중증장애인직업재활지원사업 성과 기준): 실인원(실제 인원 수)·연인원(총 횟수·출석일)
-        · 실인원은 실적 입력의 '참여인원(신규)', 연인원은 '참여인원'(없으면 1건 = 1명)으로 센다
+        · 실적 입력의 '참여자' 이름으로 센다: 1명 1회 = 1/1/1, 같은 사람 2회 = 2/1/2 (이름이 없으면 한 줄 = 1명)
+        · 현장중심 직업훈련은 (훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수)
         · 사업체개발은 개발원 인원 실적이 아니라 복지관 기준으로만 본다 */
 window.GL = (() => {
   const e = U.esc;
@@ -8326,16 +8504,11 @@ window.GL = (() => {
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
   function actual(year) {
-    const rows = S.perfTable(String(year), SET, true, S.get());
+    const st = S.get(), Y = String(year);
+    const lines = [...S.perfRows(Y, st).filter(r => r.p.set === SET).map(r => ({ item: r.p.item, d: r.d, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })),
+      ...st.perfs.filter(p => p.set === SET && (p.date || '').startsWith(Y)).map(p => ({ item: p.item, d: p.date, ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }))];
     const out = {};
-    D.PERF_SETS[SET].items.forEach(i => { out[i] = { cnt: 0, yeon: 0, sil: 0 }; });
-    rows.forEach(r => {
-      const o = out[r.item]; if (!o) return;
-      const n = r.kind === 'auto' ? (r.n || 1) : 1;
-      o.cnt += n;
-      o.yeon += Number(r.people) || n;
-      o.sil += Number(r.newPeople) || 0;
-    });
+    D.PERF_SETS[SET].items.forEach(i => { const c = S.perfCount(lines, i); out[i] = { cnt: c.cnt, yeon: c.yeon || 0, sil: c.sil || 0 }; });
     return out;
   }
   /** 올해 몇 달이 지났는지 (속도 비교용) */
@@ -10073,8 +10246,8 @@ window.DP = (() => {
 
   /** 기간(YYYY 또는 YYYY-MM)의 실적 줄: 방문·전화 기록에서 자동으로 잡힌 것 + 직접 입력 */
   function lines(set, prefix, v = S.view()) {
-    const acts = S.perfRows(prefix, v).filter(r => r.p.set === set).map(r => ({ id: r.a.id, kind: 'act', item: r.p.item, staff: r.a.staff || '', d: r.d, name: r.t ? r.t.name : '', tk: r.a.targetType, tid: r.t ? r.t.id : '', content: r.a.content || '', how: r.a.type }));
-    const mans = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(prefix)).map(p => ({ id: p.id, kind: 'perf', item: p.item, staff: p.staff || '', d: p.date, name: p.place || '', content: p.note || '', how: '직접 입력' }));
+    const acts = S.perfRows(prefix, v).filter(r => r.p.set === set).map(r => ({ id: r.a.id, kind: 'act', item: r.p.item, staff: r.a.staff || '', d: r.d, name: r.t ? r.t.name : '', tk: r.a.targetType, tid: r.t ? r.t.id : '', content: r.a.content || '', how: r.a.type, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId }));
+    const mans = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(prefix)).map(p => ({ id: p.id, kind: 'perf', item: p.item, staff: p.staff || '', d: p.date, name: p.place || '', content: p.note || '', how: '직접 입력', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }));
     return [...acts, ...mans].sort((a, b) => a.d.localeCompare(b.d));
   }
 
@@ -10101,7 +10274,9 @@ window.DP = (() => {
     const items = D.PERF_SETS[set].items, Y = ui.year, M = ui.mode === 'month' ? ui.month : (String(Y) === now().slice(0, 4) ? now() : `${Y}-12`);
     const mm = +M.slice(5, 7), G = goals(set, Y);
     const yLines = lines(set, String(Y)), cum = yLines.filter(l => l.d.slice(0, 7) <= M), mon = yLines.filter(l => l.d.startsWith(M));
-    const cnt = (list, i) => list.filter(l => l.item === i).length;
+    // 실적 수 = 횟수 (현장중심 직업훈련은 훈련한 날짜 수)
+    const cnt = (list, i) => S.perfCount(list, i).cnt;
+    const sumC = list => items.reduce((a, i) => a + cnt(list, i), 0);
     const totY = items.reduce((a, i) => a + (G.year(i) || 0), 0), totM = items.reduce((a, i) => a + (G.month(i, mm) || 0), 0);
     const v = S.view(), label = SEC_LABEL[progOfScope()] || progOfScope();
     const contacts = v.activities.filter(a => a.targetType === 'biz' && ['전화', '방문', '이메일', '미팅'].includes(a.type) && S.inScope(a.staff) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
@@ -10109,19 +10284,20 @@ window.DP = (() => {
     const outreach = v.activities.filter(a => a.targetType === 'net' && ['홍보', '방문', '미팅', '행사'].includes(a.type) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
     const periodLabel = ui.mode === 'month' ? `${Y}년 ${mm}월` : `${Y}년`;
     const card = (t, val, unit, sub, cls = '', act = '') => `<div class="dp-kpi ${cls}" ${act}><span class="dp-kpi-t">${t}</span><b class="num">${val}<small>${unit}</small></b><span class="dp-kpi-s">${sub}</span></div>`;
-    const cumP = pc(cum.length, totY), monP = pc(mon.length, totM);
+    const cumN = sumC(cum), monN = sumC(mon);
+    const cumP = pc(cumN, totY), monP = pc(monN, totM);
     const kpis = [
-      card(ui.mode === 'month' ? `누적 실적 (1~${mm}월)` : '누적 실적', U.num(cum.length), '건', `연간 목표 ${U.num(totY)}건`, 'k1'),
+      card(ui.mode === 'month' ? `누적 실적 (1~${mm}월)` : '누적 실적', U.num(cumN), '건', `연간 목표 ${U.num(totY)}건`, 'k1'),
       card('누적 달성률', cumP ?? '-', cumP == null ? '' : '%', '누적 실적 ÷ 연간 목표', `k2 ${tone(cumP)}`),
-      card(`${mm}월 실적`, U.num(mon.length), '건', `월 목표 ${U.num(totM)}건 · ${monP ?? '-'}%`, 'k3'),
+      card(`${mm}월 실적`, U.num(monN), '건', `월 목표 ${U.num(totM)}건 · ${monP ?? '-'}%`, 'k3'),
       card(`연락 (${periodLabel})`, U.num(contacts.length), '건', `사업체 ${new Set(contacts.map(a => a.targetId)).size}곳 · 담당 ${new Set(contacts.map(a => a.staff)).size}명`, 'k4'),
       card(`신규 사업체 (${periodLabel})`, U.num(newBiz), '곳', '최초 등록일 기준', 'k5'),
       ...(set === GL.SET ? [card(`홍보·방문 (${periodLabel})`, U.num(outreach.length), '건', `기관 ${new Set(outreach.map(a => a.targetId)).size}곳`, 'k6')] : []),
     ].join('');
-    const row = i => { const yt = G.year(i), mt = G.month(i, mm), c = cnt(cum, i), m = cnt(mon, i); return `<tr data-act="dp-item" data-item="${e(i)}" class="dp-row" title="눌러서 ${e(i)} 자세히 보기">
-        <th><span class="link">${e(i)}</span></th><td class="r num">${yt ?? '-'}</td><td class="r num dp-strong">${c}</td><td class="r">${pill(pc(c, yt))}</td><td class="r num dp-strong">${m}</td><td class="r num">${mt ?? '-'}</td><td class="r">${pill(pc(m, mt))}</td></tr>`; };
+    const row = i => { const yt = G.year(i), mt = G.month(i, mm), cc = S.perfCount(cum, i), c = cc.cnt, m = cnt(mon, i); return `<tr data-act="dp-item" data-item="${e(i)}" class="dp-row" title="눌러서 ${e(i)} 자세히 보기">
+        <th><span class="link">${e(i)}</span></th><td class="r num">${yt ?? '-'}</td><td class="r num dp-strong">${c}${cc.yeon != null && c ? `<small class="dp-ys" title="연인원 / 실인원">연 ${cc.yeon} · 실 ${cc.sil}</small>` : ''}</td><td class="r">${pill(pc(c, yt))}</td><td class="r num dp-strong">${m}</td><td class="r num">${mt ?? '-'}</td><td class="r">${pill(pc(m, mt))}</td></tr>`; };
     // 월별 막대: 그 해 1~12월 실적 건수 + 그 달 목표 표시
-    const byM = Array.from({ length: 12 }, (_, k) => yLines.filter(l => +l.d.slice(5, 7) === k + 1).length);
+    const byM = Array.from({ length: 12 }, (_, k) => sumC(yLines.filter(l => +l.d.slice(5, 7) === k + 1)));
     const gM = Array.from({ length: 12 }, (_, k) => items.reduce((a, i) => a + (G.month(i, k + 1) || 0), 0));
     const max = Math.max(1, ...byM, ...gM);
     const bars = byM.map((n, k) => { const key = `${Y}-${U.pad(k + 1)}`, on = key === M; return `<button type="button" class="dp-col ${on ? 'on' : ''} ${key > now() ? 'future' : ''}" data-act="dp-month" data-month="${key}" title="${k + 1}월 실적 ${n}건${gM[k] ? ` · 목표 ${gM[k]}건` : ''}">
@@ -10135,7 +10311,7 @@ window.DP = (() => {
       <div class="table-wrap"><table class="tbl dp-tbl">
         <thead><tr><th rowspan="2">세부사업</th><th>연간 목표</th><th colspan="2">누적 실적 (1~${mm}월)</th><th colspan="3">${mm}월 실적</th></tr>
           <tr><th class="r">건</th><th class="r">건</th><th class="r">달성률</th><th class="r">건</th><th class="r">월 목표</th><th class="r">달성률</th></tr></thead>
-        <tbody><tr class="dp-sum"><th>합계</th><td class="r num">${U.num(totY)}</td><td class="r num dp-strong">${cum.length}</td><td class="r">${pill(cumP)}</td><td class="r num dp-strong">${mon.length}</td><td class="r num">${totM}</td><td class="r">${pill(monP)}</td></tr>${items.map(row).join('')}</tbody></table></div>
+        <tbody><tr class="dp-sum"><th>합계</th><td class="r num">${U.num(totY)}</td><td class="r num dp-strong">${cumN}</td><td class="r">${pill(cumP)}</td><td class="r num dp-strong">${monN}</td><td class="r num">${totM}</td><td class="r">${pill(monP)}</td></tr>${items.map(row).join('')}</tbody></table></div>
       <div class="dp-sec-t">월별 실적 현황 <span class="sub">${Y}년 · 막대 = 실적 건수, 가로선 = 그 달 목표 · 막대를 누르면 그 달로</span></div>
       <div class="dp-chart" role="img" aria-label="${Y}년 월별 실적: ${byM.map((n, k) => `${k + 1}월 ${n}건`).join(', ')}">${bars}</div>
     </section>`;
@@ -10147,15 +10323,17 @@ window.DP = (() => {
     const all = lines(set, String(Y)).filter(l => l.item === st.item && l.d.slice(0, 7) <= M);
     const staffs = [...new Set([...S.staffHere().map(x => x.name), ...all.map(l => l.staff).filter(Boolean)])];
     const list = all.filter(l => !st.who || l.staff === st.who).slice().reverse();
+    const C = l => S.perfCount(l, st.item), fmt = c => (c.yeon == null ? `${c.cnt}` : `${c.yeon}/${c.sil}/${c.cnt}`);
+    const unit = S.NO_PEOPLE.has(st.item) ? '건' : '연/실/횟수';
     return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">[${e(st.item)}] 실적 현황</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
-      <p class="sub" style="margin:0">${Y}년 1~${mm}월 누적 ${all.length}건 · ${mm}월 ${all.filter(l => l.d.startsWith(M)).length}건</p></div>
+      <p class="sub" style="margin:0">${Y}년 1~${mm}월 누적 ${fmt(C(all))} · ${mm}월 ${fmt(C(all.filter(l => l.d.startsWith(M))))} <span class="sub">(${unit})</span></p></div>
       <div class="dr-body">
-        <div class="table-wrap"><table class="tbl"><thead><tr><th>담당자</th><th class="r">${mm}월</th><th class="r">누적 (1~${mm}월)</th></tr></thead><tbody>
-          ${staffs.map(n => `<tr class="${st.who === n ? 'on' : ''}"><th><button type="button" class="linklike" data-act="dp-who" data-who="${e(n)}">${V.staffDot(n)}${e(n)}</button></th><td class="r num">${all.filter(l => l.staff === n && l.d.startsWith(M)).length}</td><td class="r num"><b>${all.filter(l => l.staff === n).length}</b></td></tr>`).join('')}
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>담당자</th><th class="r">${mm}월 <small>${unit}</small></th><th class="r">누적 (1~${mm}월)</th></tr></thead><tbody>
+          ${staffs.map(n => `<tr class="${st.who === n ? 'on' : ''}"><th><button type="button" class="linklike" data-act="dp-who" data-who="${e(n)}">${V.staffDot(n)}${e(n)}</button></th><td class="r num">${fmt(C(all.filter(l => l.staff === n && l.d.startsWith(M))))}</td><td class="r num"><b>${fmt(C(all.filter(l => l.staff === n)))}</b></td></tr>`).join('')}
         </tbody></table></div>
         <h3 style="margin:16px 0 6px">기록 ${list.length}건 ${st.who ? `<span class="sub">· ${e(st.who)}</span> <button type="button" class="linklike" data-act="dp-who" data-who="">전체 보기</button>` : ''}</h3>
-        ${list.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>날짜</th><th>사업체·기관·이름</th><th>내용</th><th>담당</th><th>구분</th></tr></thead><tbody>
-          ${list.slice(0, 300).map(l => `<tr class="sc-row" style="--sc:${V.staffColor(l.staff)}"><td class="num nowrap">${U.dateDot(l.d)}</td><td>${l.tid ? `<b class="link" data-act="open" data-kind="${l.tk}" data-id="${l.tid}">${e(l.name)}</b>` : `<b>${e(l.name || '-')}</b>`}</td><td class="wrap">${e(l.content)}</td><td class="nowrap">${e(l.staff)}</td><td class="nowrap sub">${e(l.how)}</td></tr>`).join('')}
+        ${list.length ? `<div class="table-wrap"><table class="tbl"><thead><tr><th>날짜</th><th>사업체·기관</th><th>참여자</th><th>내용</th><th>담당</th><th>구분</th></tr></thead><tbody>
+          ${list.slice(0, 300).map(l => `<tr class="sc-row" style="--sc:${V.staffColor(l.staff)}"><td class="num nowrap">${U.dateDot(l.d)}</td><td>${l.tid ? `<b class="link" data-act="open" data-kind="${l.tk}" data-id="${l.tid}">${e(l.name)}</b>` : `<b>${e(l.name || '-')}</b>`}</td><td>${e((l.ppl || []).join(', '))}</td><td class="wrap">${e(l.content)}</td><td class="nowrap">${e(l.staff)}</td><td class="nowrap sub">${e(l.how)}</td></tr>`).join('')}
         </tbody></table></div>` : '<p class="sub">아직 기록이 없어요.</p>'}
       </div>`;
   }
@@ -11115,8 +11293,8 @@ window.App = (() => {
       showDrawer();
       const box = $('#ctPasteBox');
       box.oninput = U.debounce(() => {
-        const { rows } = R.parsePaste(box.value);
-        top.state = { text: box.value, rows };
+        const { rows, skipped } = R.parsePaste(box.value);
+        top.state = { text: box.value, rows, skipped, who: $('#ctPasteWho')?.value || top.state.who };
         renderDrawer(true);
         $('#ctPasteBox').focus();
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
@@ -12194,14 +12372,14 @@ window.App = (() => {
       S.upsert('act', { id: a.id, jobUrl: R.jobLink(v) });
       toast(v.trim() ? '공고 주소를 바꿨습니다.' : '공고 주소를 지웠습니다.');
     },
-    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const r = R.commitPaste(top.state.rows); closeDrawer(); toast(`연락이력 ${r.n}줄을 가져왔습니다.${r.biz ? ` 새 사업체 ${r.biz}곳은 사업체 개발·지도에도 올렸어요.` : ''}`); },
+    'ct-paste-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return; const r = R.commitPaste(top.state.rows, $('#ctPasteWho')?.value); closeDrawer(); toast(`연락이력 ${r.n}줄을 가져왔습니다.${r.biz ? ` 새 사업체 ${r.biz}곳은 사업체 개발·지도에,` : ''}${r.net ? ` 새 기관 ${r.net}곳은 네트워크에` : ''}${r.biz || r.net ? ' 올렸어요.' : ''}`); },
     'ct-file': () => pickFiles('.xlsx,.xls,.csv', true, async files => {
       const top = stack[stack.length - 1]; if (!top || top.type !== 'paste') return;
-      let cells = [];
+      let sheets = [];
       let drm = false;
-      for (const f of files) { try { cells = cells.concat(await R.readFileCells(f)); } catch (err) { drm = drm || err.drm; toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
-      const { rows } = R.parseCells(cells);
-      top.state = { text: '', file: files.map(f => f.name).join(', '), rows };
+      for (const f of files) { try { sheets = sheets.concat(await R.readFileSheets(f)); } catch (err) { drm = drm || err.drm; toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); } }
+      const { rows, skipped, used } = R.parseSheets(sheets);
+      top.state = { text: '', file: files.map(f => f.name).join(', '), rows, skipped, used, who: $('#ctPasteWho')?.value || top.state.who };
       renderDrawer(true);
       if (!rows.length && !drm) toast('날짜와 사업체명이 있는 줄을 찾지 못했어요.', 'error');
     }),
@@ -12574,6 +12752,7 @@ window.App = (() => {
           newBiz = true;
         }
         const people = fd.people ? +fd.people : '';
+        const ppl = String(fd.ppl || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean).join(', ');
         const isAct = !!(b || n), newId = U.uid(isAct ? 'A' : 'P'), who = fd.staff || S.me();
         // 끝 날짜가 있으면 그날까지 날마다 한 줄씩 (주말·공휴일은 빼고, '주말 포함'이면 주말도)
         if (U.isDate(fd.dateTo) && fd.dateTo > fd.date) {
@@ -12590,8 +12769,8 @@ window.App = (() => {
           clearDraft('perf-add');
           const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
           Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
-          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people })));
-          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who })));
+          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl })));
+          else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who, ppl })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
           return;
         }
@@ -12600,9 +12779,9 @@ window.App = (() => {
         let rec;
         if (b || n) {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
-          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people });
+          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people, ppl });
         } else {
-          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who });
+          rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who, ppl });
         }
         toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${newBiz ? ` '${name}'을(를) 사업체로 새로 등록했어요. 주소를 넣으면 지도에도 나와요.` : ''}`);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);

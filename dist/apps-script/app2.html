@@ -1347,7 +1347,9 @@ window.R = (() => {
   }
 
   /* ---------- 공유 시트에서 붙여넣거나 엑셀·CSV 파일로 한 번에 가져오기 ---------- */
-  const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']]];
+  const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일', '등록일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']],
+    // 시트마다 있는 덧칸: 내용에 붙이거나(임금·근무시간) 상태로 쓰거나(연락이력), 개발대장 표시(실적 진행도)
+    ['wage', ['임금', '급여']], ['hours', ['근무시간']], ['log', ['연락이력']], ['progress', ['실적진행도', '진행도']], ['training', ['현장훈련유/무', '현장훈련']], ['step', ['절차']], ['welfare', ['복리후생']]];
   // 머리글이 없거나 모자라면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
   /** 엑셀 복사 형식(TSV) 읽기: 줄 바꿈이 든 칸은 "따옴표"로 감싸져 온다 */
@@ -1377,7 +1379,7 @@ window.R = (() => {
   }
   const oneLine = (v, sep = ' ') => String(v ?? '').split('\n').map(x => x.trim()).filter(Boolean).join(sep);
   /** 앞자리 0이 빠진 번호 고치기: 10-1234-5678 → 010-…, 70-… → 070-… */
-  const fixPhone = p => oneLine(p, ' / ').replace(/(^|[\s/])(1[016789]|70)(?=[-)\s]\d)/g, '$10$2');
+  const fixPhone = p => oneLine(p, ' / ').replace(/(^|[\s/])(1[016789]\d{7,8}|[3-6]\d{8,9}|70\d{8})(?=$|[\s/])/g, '$10$2').replace(/(^|[\s/])(1[016789]|70)(?=[-)\s]\d)/g, '$10$2');
   /** 결과 글에서 연락결과 고르기 */
   function guessResult(t) {
     const s = String(t || '').replace(/\s/g, '');
@@ -1389,127 +1391,240 @@ window.R = (() => {
     if (/검토|확인|상의|문의|회의|보고후|연락주기|예정/.test(s)) return '검토중';
     return '';
   }
-  /** 표(2차원 배열) → 연락 기록 줄. 머리글 칸 수가 모자라거나 번호 칸이 빠져도 '날짜 칸'을 기준으로 맞춘다 */
-  function parseCells(cells, year = ui.contacts.month.slice(0, 4)) {
+  const STATUS_WORDS = /^(연락완료|재연락|부재|미연락|연락중|방문완료|방문예정|완료|보류)$/;
+  /** 표 한 장(2차원 배열) → 연락 기록 줄 (합치기 전). 머리글 칸 수가 모자라거나 번호 칸이 빠져도 '날짜 칸'을 기준으로 맞춘다 */
+  function readTable(cells, year, sheet = '') {
     cells = cells.map(r => (r || []).map(c => (typeof c === 'number' ? c : String(c ?? '').trim())));
-    const hdrIdx = cells.slice(0, 15).findIndex(r => r.filter(c => hdrKey(c)).length >= 3 && !r.some(c => dateOf(c, year)));
+    const hdrIdx = cells.slice(0, 30).findIndex(r => r.filter(c => hdrKey(c)).length >= 3 && !r.some(c => dateOf(c, year)));
     let order;
     if (hdrIdx >= 0) {
       order = cells[hdrIdx].map(hdrKey);
+      // '연락처/담당자'(전화) 칸과 따로 '담당자' 칸이 결과 뒤에 있으면 그건 우리 직원(상담자)
+      const ci = order.indexOf('content');
+      if (!order.includes('staff') && ci >= 0) { const late = order.findIndex((k, i) => k === 'contactName' && i > ci); if (late >= 0) order[late] = 'staff'; }
       // 빈 머리글 칸은 앞 칸 다음 순서로 채운다 (예: 전화번호 뒤 이름 없는 칸들 → 담당자·직종·결과…)
+      // 단, 아래에 글이 거의 없는 칸(병합된 머리글 자리)은 채우지 않는다
+      const body = cells.slice(hdrIdx + 1).filter(r => r.some(c => c !== ''));
+      const used = i => body.filter(r => r[i] !== '' && r[i] != null).length >= Math.min(3, body.length);
       for (let i = 0; i < Math.max(order.length, 12); i++) {
-        if (order[i]) continue;
+        if (order[i] || !used(i)) continue;
         const prev = order[i - 1], at = DEFAULT_ORDER.indexOf(prev);
         const next = at >= 0 ? DEFAULT_ORDER.slice(at + 1).find(k => !order.includes(k)) : '';
         order[i] = next || '';
       }
     } else order = DEFAULT_ORDER.slice();
+    // 개발대장(사업체 목록)은 연락 기록이 아니라 사업체만 등록·보완한다
+    const ledger = /개발대장/.test(sheet) || order.includes('progress');
+    // 개발 현황·보고용 시트는 방문 정리라 기본을 '방문'으로
+    const report = order.includes('training') || /현황|보고/.test(sheet);
     const dCol = order.indexOf('date');
     const body = hdrIdx >= 0 ? cells.slice(hdrIdx + 1) : cells;
-    const merged = new Map();
+    const out = [];
+    let lastDate = '', skipped = 0;
     body.forEach(r => {
+      if (!r.some(c => c !== '' && c != null)) return;
       // 날짜 칸 찾기 (머리글 위치 근처를 먼저)
       const cand = [dCol, dCol + 1, dCol - 1, ...r.keys()].filter(i => i >= 0 && i < r.length);
-      const di = cand.find(i => dateOf(r[i], year));
-      if (di == null) return;
-      const shift = di - dCol;
+      let di = cand.find(i => dateOf(r[i], year));
+      let date = di == null ? '' : dateOf(r[di], year);
+      // 날짜 칸을 비워 둔 줄(같은 날 이어 적기)은 바로 위 줄 날짜로 본다
+      if (di == null && lastDate && dCol >= 0 && (r[dCol] === '' || r[dCol] == null)) { di = dCol; date = lastDate; }
+      if (di == null) { skipped++; return; }
+      const shift = dCol >= 0 ? di - dCol : 0;
       const o = {};
       order.forEach((k, i) => { const v = r[i + shift]; if (k && v != null && v !== '' && o[k] == null) o[k] = v; });
-      o.date = dateOf(r[di], year);
+      o.date = date;
       o.name = oneLine(o.name).replace(/\s+/g, ' ');
-      if (!o.name || /^\d+$/.test(o.name)) return;
+      if (!o.name || /^\d+$/.test(o.name) || hdrKey(o.name) === 'name') { skipped++; return; }
+      lastDate = date;
       o.address = String(o.address || '').trim();
       // 주소 칸에 공고 설명을 적어 둔 줄 → 결과(내용)로 옮긴다
-      if (/\n|^\*|직무내용|근무시간|수습기간|급여|우대/.test(o.address)) { o.content = [oneLine(o.address, ' · ').replace(/^\*\s*/, '').replace(/\s*·\s*\*\s*/g, ' · '), o.content].filter(Boolean).join(' / '); o.address = ''; }
-      o.address = oneLine(o.address);
-      o.phone = fixPhone(o.phone);
+      if (/^\*|직무내용|근무시간|수습기간|급여|우대/.test(o.address)) { o.content = [oneLine(o.address, ' · ').replace(/^\*\s*/, '').replace(/\s*·\s*\*\s*/g, ' · '), o.content].filter(Boolean).join(' / '); o.address = ''; }
+      o.address = oneLine(o.address).replace(/,\s*$/, '');
+      // '연락처/담당자' 한 칸에 번호와 이름이 같이 있으면 나눈다
+      const ph = String(o.phone || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const nums = ph.filter(x => /\d{3,}/.test(x)), names = ph.filter(x => !/\d{3,}/.test(x));
+      if (names.length && nums.length) { o.phone = nums.join('\n'); if (!o.contactName) o.contactName = names.join(' / '); }
+      else if (names.length && !nums.length) { o.phone = ''; if (!o.contactName) o.contactName = names.join(' / '); }
+      o.phone = fixPhone(String(o.phone || '').replace(/\(0?(\d{2,3})\)\s*/g, '0$1-').replace(/[ \t]*-[ \t]*/g, '-').replace(/(\d)[ \t]+(\d)/g, '$1-$2'));
       o.contactName = oneLine(o.contactName, ' / ');
       o.jobType = oneLine(o.jobType);
       o.content = oneLine(o.content);
-      ['result', 'status', 'staff', 'jobUrl'].forEach(k => { o[k] = oneLine(o[k]); });
+      ['result', 'status', 'staff', 'jobUrl', 'log', 'hours', 'wage', 'progress', 'step'].forEach(k => { o[k] = oneLine(o[k]); });
+      // 연락이력 칸: '연락완료·재연락' 같은 짧은 말은 상태, 긴 글은 결과(내용)
+      if (o.log) { if (STATUS_WORDS.test(o.log.replace(/\s/g, '')) && !o.status) o.status = o.log; else if (!o.content) o.content = o.log; else if (!o.content.includes(o.log)) o.content += ' / ' + o.log; }
+      const extra = [o.hours && !/\d+\s*[:시~]/.test(o.hours) ? o.hours : '', o.hours && /\d+\s*[:시~]/.test(o.hours) ? `근무 ${o.hours}` : '', o.wage ? `임금 ${o.wage}` : ''].filter(Boolean);
+      if (extra.length) o.content = [o.content, ...extra].filter(Boolean).join(' · ');
       ['address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'].forEach(k => { if (/^[`'"\-·.\s]+$/.test(o[k] || '')) o[k] = ''; });
       o.result = D.CONTACT_RESULTS.find(x => o.result.replace(/\s/g, '') === x.replace(/\s/g, '')) || guessResult(o.content);
-      o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : '전화';
-      // 같은 날 같은 사업체가 두 번 적혀 있으면 한 줄로 합친다 (빈 칸은 채우고, 결과는 긴 쪽)
+      o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : report ? '방문' : '전화';
+      if (ledger) { o.ledger = true; o.type = '발굴'; }
+      o.sheet = sheet;
+      out.push(o);
+    });
+    return { rows: out, skipped };
+  }
+  /* 이름이 조금 달라도 같은 곳 찾기: 사업체·기관 이름 → 전화번호 → 이름 낱말 */
+  const INST = /특수반|특수학급|학교|복지센터|부모회|협회|연합회|복지관|행정복지|고용정보센터|고용센터|공단|장애인복지회|주민센터/;
+  const words = n => String(n || '').replace(/[(（][^)）]*[)）]|㈜|주식회사|사단법인|\(사\)|\[.*?\]/g, ' ').replace(/화성시|화성/g, ' ').split(/[\s/,·]+/)
+    .map(w => w.replace(/특수반|특수학급$/, '').replace(/^(.{2,})고$/, '$1고등학교').replace(/^(.{2,}?)(점|지점)$/, '$1')).filter(w => w.length >= 2);
+  const subseq = (w, k) => { let i = 0; for (const ch of k) if (ch === w[i]) i++; return i >= w.length; };
+  const digits = p => String(p || '').split(/[\/\n]/).map(x => x.replace(/\D/g, '')).filter(x => x.length >= 9);
+  function orgIndex() {
+    const st = S.get();
+    const list = [...st.businesses.map(x => ({ kind: 'biz', x })), ...st.networks.filter(n => !S.isHome(n)).map(x => ({ kind: 'net', x }))];
+    return list.map(o => ({ ...o, key: U.orgKey(o.x.name), tel: digits(o.x.phone) }));
+  }
+  function resolveOrg(name, phone, idx) {
+    const k = U.orgKey(name);
+    let hit = idx.filter(o => o.key === k);
+    if (hit.length) return hit[0];
+    const tel = digits(phone);
+    hit = tel.length ? idx.filter(o => o.tel.some(t => tel.includes(t))) : [];
+    if (hit.length === 1) return hit[0];
+    // 낱말이 모두 들어 있고(하나는 그대로, 나머지는 글자 순서대로) 그런 곳이 하나뿐이면 같은 곳
+    const ws = words(name).map(w => U.norm(w));
+    if (!ws.length || !ws.some(w => w.length >= 3)) return null;
+    hit = idx.filter(o => ws.some(w => w.length >= 3 && o.key.includes(w)) && ws.every(w => o.key.includes(w) || subseq(w, o.key)));
+    return hit.length === 1 ? hit[0] : null;
+  }
+  /** 여러 표에서 읽은 줄을 합치고, 사이트에 이미 있는 기록은 표시 */
+  function finishRows(list) {
+    // 같은 날 같은 사업체가 여러 번(연락이력 + 보고용 시트 등) 적혀 있으면 한 줄로 합친다 (빈 칸은 채우고, 결과는 긴 쪽)
+    const merged = new Map();
+    const fill = (prev, o) => ['address', 'phone', 'contactName', 'jobType', 'result', 'status', 'staff', 'jobUrl'].forEach(f => { if (!prev[f] && o[f]) prev[f] = o[f]; });
+    list.filter(o => !o.ledger).forEach(o => {
       const k = o.date + '|' + U.orgKey(o.name);
       const prev = merged.get(k);
       if (prev) {
-        ['address', 'phone', 'contactName', 'jobType', 'result', 'status', 'staff', 'jobUrl'].forEach(f => { if (!prev[f] && o[f]) prev[f] = o[f]; });
-        if ((o.content || '').length > (prev.content || '').length) { prev.content = o.content; prev.type = o.type; }
+        fill(prev, o);
+        if ((o.content || '').length > (prev.content || '').length) prev.content = o.content;
+        if (o.type === '방문') prev.type = '방문';
         prev.n = (prev.n || 1) + 1;
-      } else merged.set(k, o);
+      } else merged.set(k, { ...o });
     });
-    const have = new Set(S.get().activities.filter(a => a.targetType === 'biz').map(a => { const b = S.find('biz', a.targetId); return b ? a.date + '|' + U.orgKey(b.name) : ''; }));
-    const rows = [...merged.values()].sort((a, b) => a.date.localeCompare(b.date));
-    rows.forEach(r => { r.dup = have.has(r.date + '|' + U.orgKey(r.name)); });
-    return { rows, order };
+    // 개발대장 줄: 연락 기록에 나온 사업체면 빈 칸만 채우고, 처음 보는 사업체면 '사업체만 등록' 줄로 남긴다
+    const seenOrg = new Map([...merged.values()].map(o => [U.orgKey(o.name), o]));
+    const ledger = new Map();
+    list.filter(o => o.ledger).forEach(o => {
+      const k = U.orgKey(o.name), hit = seenOrg.get(k);
+      if (hit) { fill(hit, { ...o, content: '', result: '', status: '' }); return; }
+      const prev = ledger.get(k);
+      if (prev) fill(prev, o); else ledger.set(k, { ...o });
+    });
+    const idx = orgIndex();
+    const have = new Set(S.get().activities.map(a => a.date + '|' + a.targetType + a.targetId));
+    const rows = [...merged.values(), ...ledger.values()].sort((a, b) => a.date.localeCompare(b.date));
+    rows.forEach(r => {
+      const o = resolveOrg(r.name, r.phone, idx);
+      r.match = o ? { kind: o.kind, id: o.x.id, name: o.x.name } : null;
+      r.inst = !o && INST.test(r.name) && !r.jobType;
+      r.dup = r.ledger ? !!o : !!o && have.has(r.date + '|' + o.kind + o.x.id);
+      r.who = matchStaff(r.staff);
+    });
+    return rows;
+  }
+  function parseCells(cells, year = ui.contacts.month.slice(0, 4)) {
+    const { rows, skipped } = readTable(cells, year);
+    return { rows: finishRows(rows), skipped };
+  }
+  /** 엑셀 파일의 시트마다 머리글을 따로 읽는다 (양식·사본 시트는 건너뜀) */
+  function parseSheets(sheets, year = ui.contacts.month.slice(0, 4)) {
+    let all = [], skipped = 0;
+    const used = [];
+    sheets.filter(sh => !/양식|사본|template/i.test(sh.name)).forEach(sh => {
+      const r = readTable(sh.cells, year, sh.name);
+      if (r.rows.length) used.push(`${sh.name} ${r.rows.length}줄`);
+      all = all.concat(r.rows); skipped += r.skipped;
+    });
+    return { rows: finishRows(all), skipped, used };
+  }
+  /** 상담자 칸 글자 → 직원 이름. '김정배 선생님', '정배쌤', '김정배/이유진'(앞사람)도 맞춘다. 못 맞추면 '' */
+  function matchStaff(raw) {
+    const t = String(raw || '').split(/[\/,·\n]/)[0].replace(/\s|선생님|쌤|샘|님|팀장|과장|대리|주임|사원|복지사|직업재활사|상담사|\(.*?\)/g, '');
+    if (!t) return '';
+    const names = [...new Set([...S.staffHere(), ...S.staff()].map(s => s.name))];
+    const hit = names.find(n => n === t) || names.find(n => n.length >= 2 && (t.includes(n) || n.includes(t) && t.length >= 2));
+    if (hit) return hit;
+    const given = names.filter(n => n.length >= 3 && n.slice(1) === t);
+    return given.length === 1 ? given[0] : '';
   }
   const parsePaste = text => parseCells(parseTsv(text));
-  /** 엑셀·CSV 파일 → 표 (시트 여러 개면 모두 이어 붙임) */
-  async function readFileCells(f) {
+  /** 엑셀·CSV 파일 → 시트별 표 */
+  async function readFileSheets(f) {
     const wb = /\.csv$/i.test(f.name) ? XLSX.read(await f.text(), { type: 'string' }) : XLSX.read(new Uint8Array(await f.arrayBuffer()));
-    return wb.SheetNames.flatMap(n => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }));
+    return wb.SheetNames.map(n => ({ name: n, cells: XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }) }));
   }
   function pasteDialog(state) {
     const rows = state.rows || [];
     const fresh = rows.filter(r => !r.dup);
-    const key = n => U.orgKey(n);
-    const have = new Set(S.get().businesses.map(b => key(b.name)));
-    const newCount = new Set(fresh.filter(r => !have.has(key(r.name))).map(r => key(r.name))).size;
+    const newCount = new Set(fresh.filter(r => !r.match && !r.inst).map(r => U.orgKey(r.name))).size;
+    const newInst = new Set(fresh.filter(r => !r.match && r.inst).map(r => U.orgKey(r.name))).size;
     return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">연락이력 한 번에 가져오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
       <div class="dr-body">
         <ol class="steps-help"><li>시트·엑셀에서 가져올 줄을 드래그해 <b>Ctrl+C</b> → 아래 칸에 <b>Ctrl+V</b> (머리글 줄은 있어도 없어도 됩니다)</li><li>또는 <button class="btn btn-sm" type="button" data-act="ct-file">엑셀·CSV 파일 열기</button></li><li>미리보기를 확인하고 <b>가져오기</b></li></ol>
         <textarea class="textarea" id="ctPasteBox" rows="7" placeholder="여기에 붙여넣기 (Ctrl+V)">${e(state.text || '')}</textarea>
         ${state.file ? `<p class="sub">파일: <b>${e(state.file)}</b></p>` : ''}
-        ${rows.length ? `<p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에 새로 등록됩니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 상담자 칸이 비어 있으면 '${e(S.me())}'로 기록합니다.</p>
-          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th></tr></thead><tbody>
-          ${rows.slice(0, 200).map(r => `<tr class="${r.dup ? 'dup' : ''}"><td>${r.dup ? '<span class="badge">있음</span>' : !have.has(key(r.name)) ? '<span class="badge accent">새 사업체</span>' : ''}</td><td class="num nowrap">${e(r.date)}</td><td><b>${e(r.name)}</b>${r.n > 1 ? ` <span class="sub">(${r.n}줄 합침)</span>` : ''}</td><td class="clip" title="${e(r.address)}">${e(r.address)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contactName)}</td><td class="clip">${e(r.jobType)}</td><td class="wrap">${e(r.content)}</td><td>${e(r.result)}</td><td>${e(r.type)}</td></tr>`).join('')}
+        ${rows.length ? `<div class="inline" style="margin:6px 0"><label class="sub" for="ctPasteWho">상담자 칸이 비었거나 모르는 이름이면</label><select class="select sm" id="ctPasteWho">${(S.staffHere().length ? S.staffHere() : S.staff()).map(s => `<option ${s.name === (state.who || S.me()) ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select><span class="sub">으로 기록</span></div>
+          ${state.used && state.used.length ? `<p class="sub">읽은 시트: ${state.used.map(e).join(' · ')} (양식·사본 시트는 건너뜀)</p>` : ''}
+          ${state.skipped ? `<p class="sub">날짜·사업체명이 없는 줄 ${state.skipped}줄(제목·빈 줄·메모)은 뺐습니다.</p>` : ''}
+          <p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에${newInst ? `, 학교·센터·협회 같은 기관 <b>${newInst}곳</b>은 네트워크에` : ''} 새로 등록됩니다. 이름이 조금 달라도(예: 다이소 마도점 = 다이소 마도) 전화번호·이름 낱말이 같으면 이미 있는 곳으로 붙입니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 날짜 칸이 빈 줄은 바로 위 줄과 같은 날로 봤어요. 같은 파일을 두 번 넣어도 이미 있는 줄은 다시 들어가지 않아요.</p>
+          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th><th>상담자</th></tr></thead><tbody>
+          ${rows.slice(0, 200).map(r => `<tr class="${r.dup ? 'dup' : ''}"><td class="nowrap">${r.dup ? '<span class="badge">있음</span>' : r.ledger ? '<span class="badge accent">사업체만 등록</span>' : r.match ? '' : r.inst ? '<span class="badge accent">새 기관</span>' : '<span class="badge accent">새 사업체</span>'}</td><td class="num nowrap">${e(r.date)}</td><td><b>${e(r.name)}</b>${r.match && U.orgKey(r.match.name) !== U.orgKey(r.name) ? ` <span class="sub">→ ${e(r.match.name)}</span>` : ''}${r.n > 1 ? ` <span class="sub">(${r.n}줄 합침)</span>` : ''}</td><td class="clip" title="${e(r.address)}">${e(r.address)}</td><td class="num">${e(r.phone)}</td><td>${e(r.contactName)}</td><td class="clip">${e(r.jobType)}</td><td class="wrap">${e(r.content)}</td><td>${e(r.result)}</td><td>${e(r.type)}</td><td class="nowrap">${r.who ? e(r.who) : `<span class="sub" title="${e(r.staff || '')}">${r.staff ? `${e(r.staff)} → ` : ''}${e(state.who || S.me())}</span>`}</td></tr>`).join('')}
           </tbody></table></div>${rows.length > 200 ? `<p class="sub">처음 200줄만 보여줍니다.</p>` : ''}`
           : state.text ? '<p class="sub" style="color:var(--danger)">날짜와 사업체명이 있는 줄을 찾지 못했습니다. 날짜 칸이 들어가게 복사해 보세요.</p>' : ''}
       </div>
       <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="ct-paste-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
   }
-  /** 한 번에 저장 (새 사업체·기존 사업체 보완·연락 기록을 각각 한 번씩 보낸다) */
-  function commitPaste(rows) {
-    const staffNames = new Set(S.staff().map(s => s.name));
-    const me = S.me(), key = n => U.orgKey(n);
+  /** 한 번에 저장 (새 사업체·새 기관·기존 곳 보완·연락 기록을 각각 한 번씩 보낸다) */
+  function commitPaste(rows, fallback) {
+    const me = fallback || S.me(), key = n => U.orgKey(n);
     const list = rows.filter(r => !r.dup);
-    const bizBy = new Map(S.get().businesses.map(b => [key(b.name), b]));
-    const newSpecs = new Map();
-    list.forEach(r => {
-      const k = key(r.name);
-      if (bizBy.has(k)) return;
-      const who = staffNames.has(r.staff) ? r.staff : me;
-      const x = newSpecs.get(k) || { name: r.name, phone: '', address: '', stage: '접촉', discoveredAt: r.date, source: '현장 발굴', staff: who, placements: 0, jobs: '' };
+    const progs = S.getScope().startsWith('p:') ? [S.getScope().slice(2)] : [];
+    // 처음 보는 곳: 이름(정리한 글자)이 같으면 한 곳으로
+    const bizSpecs = new Map(), netSpecs = new Map();
+    list.filter(r => !r.match).forEach(r => {
+      const k = key(r.name), who = r.who || me;
+      if (r.inst) {
+        const x = netSpecs.get(k) || { name: r.name, category: D.guessCategory(r.name) || '복지기관', status: '보통', phone: '', address: '', since: r.date, staff: who, programs: progs, relation: '', memo: '' };
+        if (!x.phone && r.phone) x.phone = r.phone;
+        if (!x.address && r.address) x.address = r.address;
+        if (r.date < x.since) x.since = r.date;
+        netSpecs.set(k, x);
+        return;
+      }
+      const x = bizSpecs.get(k) || { name: r.name, phone: '', address: '', stage: '접촉', discoveredAt: r.date, source: '현장 발굴', staff: who, placements: 0, jobs: '', programs: progs };
       if (!x.phone && r.phone) x.phone = r.phone;
       if (!x.address && r.address) x.address = r.address;
       if (!x.jobs && r.jobType) x.jobs = r.jobType;
-      if (r.type === '방문') x.stage = '방문상담';
+      if (r.type === '방문' || /방문|실적|직무분석/.test(r.progress || '')) x.stage = '방문상담';
       if (r.date < x.discoveredAt) x.discoveredAt = r.date;
-      newSpecs.set(k, x);
+      bizSpecs.set(k, x);
     });
-    const made = newSpecs.size ? S.upsertMany('biz', [...newSpecs.values()]) : [];
-    made.forEach(b => bizBy.set(key(b.name), b));
+    const madeBiz = bizSpecs.size ? S.upsertMany('biz', [...bizSpecs.values()]) : [];
+    const madeNet = netSpecs.size ? S.upsertMany('net', [...netSpecs.values()]) : [];
+    const target = new Map([...madeBiz.map(b => [key(b.name), { kind: 'biz', x: b }]), ...madeNet.map(n => [key(n.name), { kind: 'net', x: n }])]);
+    const tOf = r => r.match ? { kind: r.match.kind, x: S.find(r.match.kind, r.match.id) } : target.get(key(r.name));
+    // 이미 있던 곳: 빈 전화·주소만 채우고, 사업체 단계는 앞으로만
     const patches = new Map();
-    list.forEach(r => {
-      const b = bizBy.get(key(r.name));
-      if (made.includes(b)) return;
-      const p = patches.get(b.id) || { id: b.id };
-      if (!b.phone && !p.phone && r.phone) p.phone = r.phone;
-      if (!b.address && !p.address && r.address) p.address = r.address;
-      const st = p.stage || b.stage;
-      if (st === '발굴') p.stage = r.type === '방문' ? '방문상담' : '접촉';
-      else if (st === '접촉' && r.type === '방문') p.stage = '방문상담';
-      patches.set(b.id, p);
+    list.filter(r => r.match).forEach(r => {
+      const t = tOf(r); if (!t || !t.x) return;
+      const id = t.kind + t.x.id, p = patches.get(id) || { kind: t.kind, id: t.x.id };
+      if (!t.x.phone && !p.phone && r.phone) p.phone = r.phone;
+      if (!t.x.address && !p.address && r.address) p.address = r.address;
+      if (t.kind === 'biz') {
+        const st = p.stage || t.x.stage;
+        if (st === '발굴') p.stage = r.type === '방문' ? '방문상담' : '접촉';
+        else if (st === '접촉' && r.type === '방문') p.stage = '방문상담';
+      }
+      patches.set(id, p);
     });
-    const fix = [...patches.values()].filter(p => Object.keys(p).length > 1);
-    if (fix.length) S.putMany('biz', fix);
-    const acts = made.map(b => ({ targetType: 'biz', targetId: b.id, date: b.discoveredAt, type: '발굴', content: '연락이력 가져오기로 사업체 등록', staff: b.staff }))
-      .concat(list.map(r => ({ targetType: 'biz', targetId: bizBy.get(key(r.name)).id, date: r.date, type: r.type, content: r.content || '(내용 없음)', staff: staffNames.has(r.staff) ? r.staff : me, contactName: r.contactName || '', jobType: r.jobType || '', result: r.result || '', status: r.status || '연락완료', jobUrl: jobLink(r.jobUrl), perf: '', people: '' })));
+    ['biz', 'net'].forEach(kind => { const fix = [...patches.values()].filter(p => p.kind === kind && Object.keys(p).length > 2).map(({ kind: _, ...p }) => p); if (fix.length) S.putMany(kind, fix); });
+    const acts = list.filter(r => !r.ledger).map(r => { const t = tOf(r); return t && t.x ? { targetType: t.kind, targetId: t.x.id, date: r.date, type: r.type, content: r.content || '(내용 없음)', staff: r.who || me, contactName: r.contactName || '', jobType: r.jobType || '', result: r.result || '', status: r.status || '연락완료', jobUrl: jobLink(r.jobUrl), perf: '', people: '' } : null; }).filter(Boolean);
     if (acts.length) S.upsertMany('act', acts);
-    const queue = made.filter(b => b.address).slice(0, 60).map(b => b.id);
-    (async () => { for (const id of queue) { await S.refine('biz', id); await new Promise(res => setTimeout(res, 1100)); } })();
-    return { n: list.length, biz: made.length };
+    const queue = [...madeBiz.filter(b => b.address).map(b => ['biz', b.id]), ...madeNet.filter(n => n.address).map(n => ['net', n.id])].slice(0, 80);
+    (async () => { for (const [k, id] of queue) { await S.refine(k, id); await new Promise(res => setTimeout(res, 1100)); } })();
+    return { n: acts.length, biz: madeBiz.length, net: madeNet.length };
   }
 
   /* ================= 출장·특근 명령부 ================= */
@@ -1909,7 +2024,7 @@ window.R = (() => {
     return out;
   }
 
-  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, readFileCells, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactTsv, reportTsv, addContact, parsePaste, parseCells, parseSheets, readFileSheets, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
 })();
 
 </script>
@@ -2243,7 +2358,8 @@ window.TV = (() => {
    - 두 가지 세는 법
      1) 복지관 기준: 실적 건수 (실적 입력 줄 수 + 활동 기록 자동 집계 건수)
      2) 장애인개발원 기준 (중증장애인직업재활지원사업 성과 기준): 실인원(실제 인원 수)·연인원(총 횟수·출석일)
-        · 실인원은 실적 입력의 '참여인원(신규)', 연인원은 '참여인원'(없으면 1건 = 1명)으로 센다
+        · 실적 입력의 '참여자' 이름으로 센다: 1명 1회 = 1/1/1, 같은 사람 2회 = 2/1/2 (이름이 없으면 한 줄 = 1명)
+        · 현장중심 직업훈련은 (훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수)
         · 사업체개발은 개발원 인원 실적이 아니라 복지관 기준으로만 본다 */
 window.GL = (() => {
   const e = U.esc;
@@ -2285,16 +2401,11 @@ window.GL = (() => {
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
   function actual(year) {
-    const rows = S.perfTable(String(year), SET, true, S.get());
+    const st = S.get(), Y = String(year);
+    const lines = [...S.perfRows(Y, st).filter(r => r.p.set === SET).map(r => ({ item: r.p.item, d: r.d, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })),
+      ...st.perfs.filter(p => p.set === SET && (p.date || '').startsWith(Y)).map(p => ({ item: p.item, d: p.date, ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }))];
     const out = {};
-    D.PERF_SETS[SET].items.forEach(i => { out[i] = { cnt: 0, yeon: 0, sil: 0 }; });
-    rows.forEach(r => {
-      const o = out[r.item]; if (!o) return;
-      const n = r.kind === 'auto' ? (r.n || 1) : 1;
-      o.cnt += n;
-      o.yeon += Number(r.people) || n;
-      o.sil += Number(r.newPeople) || 0;
-    });
+    D.PERF_SETS[SET].items.forEach(i => { const c = S.perfCount(lines, i); out[i] = { cnt: c.cnt, yeon: c.yeon || 0, sil: c.sil || 0 }; });
     return out;
   }
   /** 올해 몇 달이 지났는지 (속도 비교용) */

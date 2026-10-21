@@ -3,7 +3,8 @@
    - 두 가지 세는 법
      1) 복지관 기준: 실적 건수 (실적 입력 줄 수 + 활동 기록 자동 집계 건수)
      2) 장애인개발원 기준 (중증장애인직업재활지원사업 성과 기준): 실인원(실제 인원 수)·연인원(총 횟수·출석일)
-        · 실인원은 실적 입력의 '참여인원(신규)', 연인원은 '참여인원'(없으면 1건 = 1명)으로 센다
+        · 실적 입력의 '참여자' 이름으로 센다: 1명 1회 = 1/1/1, 같은 사람 2회 = 2/1/2 (이름이 없으면 한 줄 = 1명)
+        · 현장중심 직업훈련은 (훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수)
         · 사업체개발은 개발원 인원 실적이 아니라 복지관 기준으로만 본다 */
 window.GL = (() => {
   const e = U.esc;
@@ -45,16 +46,11 @@ window.GL = (() => {
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
   function actual(year) {
-    const rows = S.perfTable(String(year), SET, true, S.get());
+    const st = S.get(), Y = String(year);
+    const lines = [...S.perfRows(Y, st).filter(r => r.p.set === SET).map(r => ({ item: r.p.item, d: r.d, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })),
+      ...st.perfs.filter(p => p.set === SET && (p.date || '').startsWith(Y)).map(p => ({ item: p.item, d: p.date, ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }))];
     const out = {};
-    D.PERF_SETS[SET].items.forEach(i => { out[i] = { cnt: 0, yeon: 0, sil: 0 }; });
-    rows.forEach(r => {
-      const o = out[r.item]; if (!o) return;
-      const n = r.kind === 'auto' ? (r.n || 1) : 1;
-      o.cnt += n;
-      o.yeon += Number(r.people) || n;
-      o.sil += Number(r.newPeople) || 0;
-    });
+    D.PERF_SETS[SET].items.forEach(i => { const c = S.perfCount(lines, i); out[i] = { cnt: c.cnt, yeon: c.yeon || 0, sil: c.sil || 0 }; });
     return out;
   }
   /** 올해 몇 달이 지났는지 (속도 비교용) */

@@ -13,10 +13,10 @@ window.S = (() => {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['phone', '대표 전화'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['info', '세부 정보']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
-  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관']]];
+  SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관'], ['ppl', '참여자']]];
   SHEETS.trips = ['출장특근', [['id', '명령ID'], ['kind', '구분(출장/특근)'], ['date', '일자'], ['staff', '성명'], ['place', '출장지'], ['purpose', '용무·업무내용'], ['method', '방법'], ['time', '시간'], ['report', '출장복명'], ['dept', '부서명'], ['note', '비고'], ['actId', '활동ID'], ['zone', '관내·관외'], ['km', '왕복거리(km)'], ['fuelPrice', '유가(원/L)'], ['fuelEff', '연비(km/L)'], ['toll', '통행료'], ['parking', '주차료'], ['fare', '운임'], ['lodging', '숙박비'], ['lodgeRegion', '숙박지역'], ['lodgeNights', '숙박일수'], ['meal', '식비']]];
   // 장애인일자리 출석부: 참여자 명단 + 참여자별 월 기록(days = {"1":"3","2":"휴","3":"3|병"} 글자로 저장). pid '_'는 그 달 설정(공휴일·기준일수)
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
@@ -754,24 +754,56 @@ window.S = (() => {
       .sort((x, y) => x.d.localeCompare(y.d));
   }
 
+  /* ---------- 연인원 / 실인원 / 횟수 ----------
+     한 사람이 한 번 받으면 1/1/1, 같은 사람이 두 번이면 2/1/2.
+     현장중심 직업훈련은 (훈련받은 날 수의 합 / 훈련 인원 / 훈련한 날짜 수): 1명이 한 달 20일 나가면 20/1/20.
+     사업체개발처럼 사람을 세지 않는 항목은 횟수만. */
+  const pplOf = r => String((r && r.ppl) || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
+  const NO_PEOPLE = new Set(['사업체개발', '고용자원개발', '사업체관리', '고용네트워크']);
+  const isTrain = item => /훈련/.test(item || '');
+  /** lines: [{ item, d, ppl: [이름], n: 이름이 없을 때 인원, key: 이름이 없을 때 같은 사람으로 볼 사업체·기관 }] → { yeon, sil, cnt } (사람을 안 세는 항목은 yeon·sil = null) */
+  function perfCount(lines, item) {
+    const L = item ? lines.filter(l => l.item === item) : lines;
+    if (item && NO_PEOPLE.has(item)) return { yeon: null, sil: null, cnt: L.length };
+    // 이름이 없는 줄은 같은 사업체·기관(또는 '사업체·기관·이름' 칸에 적은 이름)이면 같은 사람으로 본다
+    const names = new Set(), keys = new Map();
+    let yeon = 0, unnamed = 0;
+    L.forEach(l => {
+      const ppl = l.ppl || [];
+      if (ppl.length) { yeon += ppl.length; ppl.forEach(x => names.add(x)); return; }
+      const k = Number(l.n) || 1; yeon += k;
+      if (l.key) keys.set(l.key, Math.max(keys.get(l.key) || 0, k)); else unnamed += k;
+    });
+    return { yeon, sil: names.size + unnamed + [...keys.values()].reduce((a, b) => a + b, 0), cnt: isTrain(item) ? new Set(L.map(l => l.d)).size : yeon };
+  }
   /** 실적 표 (구글 시트 '실적(기타)' 열 순서). 직접 입력한 실적 + 활동 기록 자동 집계(날짜·세부사업별 한 줄) */
   function perfTable(month, set, withActs = true, v = view()) {
     const def = D.PERF_SETS[set];
     if (!def) return [];
-    const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => ({
-      kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
-      people: p.people || '', newPeople: p.newPeople || '', round: p.round || '', note: [p.place, p.note].filter(Boolean).join(' · '), src: `직접 입력 · ${p.staff || ''}`,
-    }));
+    // 참여자 이름이 있으면 그 해 처음 나온 사람 = 신규, 몇 번째인지 = 회차
+    const seen = new Map();
+    const yearRecs = [...v.perfs.filter(p => p.set === set), ...v.activities.filter(a => a.perf && a.perf !== '제외')]
+      .filter(r => (r.date || '').slice(0, 4) === month.slice(0, 4) && pplOf(r).length).sort((a, b) => (a.date || '').localeCompare(b.date || '') || String(a.id).localeCompare(String(b.id)));
+    const info = new Map();
+    yearRecs.forEach(r => { const item = r.item || r.perf; let fresh = 0, round = 0; pplOf(r).forEach(x => { const k = item + '|' + x, c = (seen.get(k) || 0) + 1; seen.set(k, c); if (c === 1) fresh++; round = c; }); info.set(r.id, { fresh, round: pplOf(r).length === 1 ? round : '' }); });
+    const rows = v.perfs.filter(p => p.set === set && (p.date || '').startsWith(month)).map(p => {
+      const ppl = pplOf(p), inf = info.get(p.id);
+      return {
+        kind: 'manual', id: p.id, date: p.date, big: def.big, mid: def.mid, item: p.item,
+        people: ppl.length || p.people || '', newPeople: inf ? inf.fresh : p.newPeople || '', round: inf ? inf.round : p.round || '', note: [p.place, ppl.join(', '), p.note].filter(Boolean).join(' · '), src: `직접 입력 · ${p.staff || ''}`,
+      };
+    });
     if (withActs) {
       const groups = new Map();
       perfRows(month, v).filter(r => r.p.set === set).forEach(({ a, p, t, d }) => {
         const k = d + '|' + p.item;
         const g = groups.get(k) || { kind: 'auto', date: d, big: def.big, mid: def.mid, item: p.item, people: 0, targets: new Map(), n: 0 };
-        g.n++; g.people += Number(a.people) || 0;
+        g.n++; g.people += pplOf(a).length || Number(a.people) || 0;
+        const inf = info.get(a.id); if (inf) g.fresh = (g.fresh || 0) + inf.fresh;
         if (t) g.targets.set(t.id, t.name);
         groups.set(k, g);
       });
-      groups.forEach(g => rows.push({ ...g, people: g.people || '', newPeople: '', round: '', note: g.targets.size || g.n, src: `활동 ${g.n}건: ${[...g.targets.values()].join(', ')}` }));
+      groups.forEach(g => rows.push({ ...g, people: g.people || '', newPeople: g.fresh || '', round: '', note: g.targets.size || g.n, src: `활동 ${g.n}건: ${[...g.targets.values()].join(', ')}` }));
     }
     return rows.sort((x, y) => x.date.localeCompare(y.date) || def.items.indexOf(x.item) - def.items.indexOf(y.item));
   }
@@ -898,7 +930,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
