@@ -1181,6 +1181,10 @@ window.R = (() => {
       .map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.a.id.localeCompare(y.a.id));
   }
+  /** 연락 결과 세 가지: 완료(체크한 것) / 진행중 / 실패. 체크 안 한 줄은 연락결과로 짐작 (채용안함·채용마감 = 실패) */
+  const OUTCOMES = [['완료', 'done', '✔'], ['진행중', 'going', '…'], ['실패', 'fail', '✕']];
+  const outcomeOf = a => (['완료', '진행중', '실패'].includes(a.outcome) ? a.outcome : a.type === '채용연계' ? '완료' : ['채용안함', '채용마감'].includes(a.result) ? '실패' : '진행중');
+  const ocCls = a => OUTCOMES.find(o => o[0] === outcomeOf(a))[1];
   function contactKpis(rows) {
     const visits = rows.filter(r => r.a.type === '방문');
     return {
@@ -1288,12 +1292,17 @@ window.R = (() => {
         </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)}에 방문 기록이 없습니다</strong>방식을 '방문'으로 골라 기록하면 여기에 나옵니다.</div>`}
       </section>`;
     }
+    const all = rows, ocN = k => all.filter(r => outcomeOf(r.a) === k).length;
+    const shown = f.oc ? all.filter(r => outcomeOf(r.a) === f.oc) : all;
+    const ocBar = `<div class="oc-bar"><div class="chips" role="tablist" aria-label="진행 결과로 거르기"><button type="button" class="chip ${!f.oc ? 'on' : ''}" data-act="ct-ocf" data-v="">전체 <span class="n">${all.length}</span></button>${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="chip oc-chip ${c} ${f.oc === k ? 'on' : ''}" data-act="ct-ocf" data-v="${k}"><i class="oc-dot ${c}"></i>${k} <span class="n">${ocN(k)}</span></button>`).join('')}</div>
+      <span class="sub">줄 오른쪽 <b>✔ 완료 · … 진행중 · ✕ 실패</b>를 눌러 체크하세요. 체크하지 않은 줄은 연락결과가 채용안함·채용마감이면 실패, 나머지는 진행중으로 보여요.</span></div>`;
     return kpi + staffChart(rows, f.month) + `<section class="panel">
-      <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
+      <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span> <span class="oc-sum"><i class="oc-dot done"></i>완료 ${ocN('완료')} · <i class="oc-dot going"></i>진행중 ${ocN('진행중')} · <i class="oc-dot fail"></i>실패 ${ocN('실패')}</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
-      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
-        ${rows.map(({ a, b }, i) => `<tr class="sc-row${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+      ${rows.length ? ocBar : ''}
+      ${shown.length ? `<div class="table-wrap"><table class="tbl perf-tbl ct-tbl"><thead><tr><th>진행</th><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
+        ${shown.map(({ a, b }, i) => `<tr class="sc-row oc-row ${ocCls(a)}${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="oc-cell"><div class="oc-seg" role="group" aria-label="진행 결과">${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="${c} ${outcomeOf(a) === k ? 'on' : ''} ${a.outcome === k ? 'set' : ''}" data-act="ct-oc" data-id="${a.id}" data-v="${k}" title="${k}${a.outcome === k ? ' (체크함)' : outcomeOf(a) === k ? ' (자동으로 짐작 · 눌러서 확정)' : ''}" aria-pressed="${outcomeOf(a) === k}">${ic} ${k}</button>`).join('')}</div></td><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
@@ -1301,7 +1310,7 @@ window.R = (() => {
           <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기 · ${e(siteName(a.jobUrl))}</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
             : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td>
           <td><button class="icon-btn" type="button" aria-label="이 연락 기록 삭제" title="삭제" data-act="act-del" data-id="${a.id}">${V.I.close}</button></td></tr>`).join('')}
-      </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
+      </tbody></table></div>` : rows.length ? `<div class="empty"><strong>'${e(f.oc)}'인 연락이 없습니다</strong>위에서 전체를 눌러 보세요.</div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
   }
   const contactTsv = () => tsv(contactRows(ui.contacts.month).map(({ a, b }) => [a.date, b.name, b.address, phoneOf(b), a.contactName || contactOf(b), a.jobType || b.jobs, a.content, a.result, a.status, a.staff]));
@@ -1950,7 +1959,7 @@ window.R = (() => {
   /* ---------- 달별 엑셀 정리: 연락이력·방문·실적·출장·특근·신규 사업체·일정·명함을 달마다 한 파일로 ---------- */
   const byDate = k => (x, y) => String(x[k] || '').localeCompare(String(y[k] || ''));
   function monthData(month, v = S.view(), sc = S.getScope()) {
-    const contact = contactRows(month, v, sc).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
+    const contact = contactRows(month, v, sc).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '진행 결과': outcomeOf(a), '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
     const perf = [
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
       ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
@@ -1975,7 +1984,7 @@ window.R = (() => {
   function monthBook(months) {
     const wb = XLSX.utils.book_new();
     const per = months.map(m => [m, monthData(m)]);
-    const headOf = k => { const hit = per.find(([, d]) => d[k].length); return hit ? Object.keys(hit[1][k][0]) : ({ contact: ['날짜', '방식', '사업체명', '주소', '전화번호', '담당자', '직종', '결과', '연락결과', '상태', '상담자'], visit: ['날짜', '사업체명', '주소', '결과'], perf: ['날짜', '사업', '세부사업', '사업체·기관', '내용', '담당', '구분'], trip: ['출장일', '성명', '출장지', '출장용무', '방법', '출장시간', '출장복명', '비고', '식비'], ot: ['특근일자', '성명', '부서명', '특근시간', '업무내용', '비고', '식비'], newBiz: ['최초 등록일', '사업체명', '업종', '진행 단계', '주소', '대표 전화', '사업체 담당자', '발굴 경로', '담당 직원'], ev: ['날짜', '시간', '유형', '제목', '사업체·기관', '담당', '완료', '메모'], cards: ['받은 날', '이름', '직함', '소속', '휴대전화', '사무실 전화', '이메일', '받은 곳'] })[k]; };
+    const headOf = k => { const hit = per.find(([, d]) => d[k].length); return hit ? Object.keys(hit[1][k][0]) : ({ contact: ['날짜', '방식', '사업체명', '주소', '전화번호', '담당자', '직종', '결과', '연락결과', '상태', '진행 결과', '상담자'], visit: ['날짜', '사업체명', '주소', '결과'], perf: ['날짜', '사업', '세부사업', '사업체·기관', '내용', '담당', '구분'], trip: ['출장일', '성명', '출장지', '출장용무', '방법', '출장시간', '출장복명', '비고', '식비'], ot: ['특근일자', '성명', '부서명', '특근시간', '업무내용', '비고', '식비'], newBiz: ['최초 등록일', '사업체명', '업종', '진행 단계', '주소', '대표 전화', '사업체 담당자', '발굴 경로', '담당 직원'], ev: ['날짜', '시간', '유형', '제목', '사업체·기관', '담당', '완료', '메모'], cards: ['받은 날', '이름', '직함', '소속', '휴대전화', '사무실 전화', '이메일', '받은 곳'] })[k]; };
     const label = m => `${+m.slice(5, 7)}월`;
     const one = months.length === 1;
     // 요약
@@ -2403,6 +2412,20 @@ window.GL = (() => {
   const factor = g => 12 / (Number(g.months) || 12);
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
+  /** 그 해 연간 목표(횟수). 기준 연도는 기준 개월 수 그대로, 다음 해부터는 12개월로 늘린다 */
+  function yearGoal(i, Y) {
+    const g = goal(), months = Number(g.months) || 12, v = (g.rows[i] || [])[2];
+    return v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months));
+  }
+  /** 월 목표: 연간 목표를 운영하는 달에 나눠, 달 목표를 다 더하면 연간 목표와 똑같게 (예: 50건 ÷ 6달 = 9·9·8·8·8·8) */
+  function monthGoal(i, m, Y) {
+    const g = goal(), months = Number(g.months) || 12, total = yearGoal(i, Y);
+    if (total == null) return null;
+    const first = Y === g.baseYear ? 13 - months : 1;
+    if (m < first || m > 12) return null;
+    const n = 13 - first, base = Math.floor(total / n), extra = total - base * n;
+    return base + (m - first < extra ? 1 : 0);
+  }
   /** 기간(YYYY 또는 YYYY-MM)의 실적 줄 (팀 전체) */
   function linesOf(prefix) {
     const st = S.get();
@@ -2555,7 +2578,7 @@ window.GL = (() => {
     return { baseYear: n('glYear') || DEFAULT.baseYear, months: n('glMonths') || 6, staffNeed: n('glNeed') || 3, staffNow: n('glNow') || 1, rows };
   }
 
-  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf };
+  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf, yearGoal, monthGoal };
 })();
 
 </script>

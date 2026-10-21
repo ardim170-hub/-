@@ -2069,3 +2069,25 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .dpc-more summary { cursor: pointer; font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
 .dpc-ai { margin-bottom: 10px; padding: 12px 14px; border: 1px solid #C7B8F5; background: #F6F3FF; }
 .dpc-ai-t { margin-top: 6px; font-size: 14px; line-height: 1.65; }
+
+/* ---------- 연락이력: 완료 / 진행중 / 실패 ---------- */
+.oc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 0 16px 10px; }
+.oc-bar .chips { margin: 0; }
+.oc-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.oc-dot.done { background: #2F9E62; } .oc-dot.going { background: #2563EB; } .oc-dot.fail { background: #D92D20; }
+.oc-chip.on.done { background: #2F9E62; border-color: #2F9E62; color: #fff; }
+.oc-chip.on.going { background: #2563EB; border-color: #2563EB; color: #fff; }
+.oc-chip.on.fail { background: #D92D20; border-color: #D92D20; color: #fff; }
+.oc-chip.on .oc-dot { background: #fff; }
+.oc-sum { font-size: 13px; font-weight: 500; color: var(--text-2); margin-left: 8px; }
+.ct-tbl tr.oc-row.done > td { background: #ECFDF3; }
+.ct-tbl tr.oc-row.going > td { background: #F3F7FF; }
+.ct-tbl tr.oc-row.fail > td { background: #FEF3F2; }
+.ct-tbl tr.oc-row.fail > td:not(.oc-cell) { color: #8A2A22; }
+.oc-seg { display: inline-flex; border: 1px solid var(--line-strong); background: #fff; }
+.oc-seg button { border: 0; background: none; padding: 3px 7px; font: inherit; font-size: 12px; cursor: pointer; color: var(--text-2); white-space: nowrap; }
+.oc-seg button + button { border-left: 1px solid var(--line); }
+.oc-seg button.on.done { background: #2F9E62; color: #fff; font-weight: 700; }
+.oc-seg button.on.going { background: #2563EB; color: #fff; font-weight: 700; }
+.oc-seg button.on.fail { background: #D92D20; color: #fff; font-weight: 700; }
+.oc-seg button.on:not(.set) { opacity: .7; }

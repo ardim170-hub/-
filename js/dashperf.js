@@ -27,9 +27,7 @@ window.DP = (() => {
   function goals(set, Y) {
     if (set === GL.SET) {
       const g = GL.goal(), months = Number(g.months) || 12;
-      const base = i => { const v = (g.rows[i] || [])[2]; return v == null || v === '' ? null : Number(v); };
-      const active = m => Y !== g.baseYear || m > 12 - months;
-      return { year: i => (base(i) == null ? null : Math.round(base(i) * (Y === g.baseYear ? 1 : 12 / months))), month: (i, m) => (base(i) == null || !active(m) ? null : Math.max(1, Math.round(base(i) / months))), note: Y === g.baseYear ? `${g.baseYear}년은 ${13 - months}~12월(${months}개월) 기준` : '연간 = 기준 실적 × 12 ÷ 기준 개월 수' };
+      return { year: i => GL.yearGoal(i, Y), month: (i, m) => GL.monthGoal(i, m, Y), note: Y === g.baseYear ? `${g.baseYear}년은 ${13 - months}~12월(${months}개월) 기준` : '연간 = 기준 실적 × 12 ÷ 기준 개월 수' };
     }
     let custom = S.get().settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = null; } }
     const G = { ...(GOALS[set] || {}), ...((custom || {})[set] || {}) };
@@ -87,7 +85,7 @@ window.DP = (() => {
       const per = staffs.map(n => [n, items.reduce((a, i) => a + cnt(mon.filter(l => l.staff === n), i), 0)]);
       facts.push('직원별 이번 달 실적: ' + per.map(([n, c]) => `${n} ${c}건`).join(', '));
       const zero = per.filter(([, c]) => !c).map(([n]) => n);
-      if (zero.length && frac >= .3) out.push({ lv: 'warn', sc: .2, t: `이번 달 실적이 아직 없는 선생님: ${zero.join(', ')}`, d: '방문·전화 기록을 남기면 실적에 자동으로 들어가요. 빠뜨린 기록이 없는지 확인해 주세요.' });
+      if (zero.length && frac >= .3) out.push({ lv: 'warn', sc: .2, t: `이번 달 실적이 아직 없는 선생님: ${zero.join(', ')}`, d: '실적은 실적 화면에서 넣은 것만 세요. 빠뜨린 실적이 없는지 확인해 주세요.', act: '<a class="btn btn-sm" href="#/perf">실적 입력하기</a>' });
       // 참여자 이름 없는 실적 (실인원이 부정확해짐)
       if (set === GL.SET) {
         const noName = mon.filter(l => !S.NO_PEOPLE.has(l.item) && !(l.ppl || []).length).length;

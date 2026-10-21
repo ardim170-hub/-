@@ -2744,6 +2744,28 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .dpc-ai { margin-bottom: 10px; padding: 12px 14px; border: 1px solid #C7B8F5; background: #F6F3FF; }
 .dpc-ai-t { margin-top: 6px; font-size: 14px; line-height: 1.65; }
 
+/* ---------- 연락이력: 완료 / 진행중 / 실패 ---------- */
+.oc-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 0 16px 10px; }
+.oc-bar .chips { margin: 0; }
+.oc-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.oc-dot.done { background: #2F9E62; } .oc-dot.going { background: #2563EB; } .oc-dot.fail { background: #D92D20; }
+.oc-chip.on.done { background: #2F9E62; border-color: #2F9E62; color: #fff; }
+.oc-chip.on.going { background: #2563EB; border-color: #2563EB; color: #fff; }
+.oc-chip.on.fail { background: #D92D20; border-color: #D92D20; color: #fff; }
+.oc-chip.on .oc-dot { background: #fff; }
+.oc-sum { font-size: 13px; font-weight: 500; color: var(--text-2); margin-left: 8px; }
+.ct-tbl tr.oc-row.done > td { background: #ECFDF3; }
+.ct-tbl tr.oc-row.going > td { background: #F3F7FF; }
+.ct-tbl tr.oc-row.fail > td { background: #FEF3F2; }
+.ct-tbl tr.oc-row.fail > td:not(.oc-cell) { color: #8A2A22; }
+.oc-seg { display: inline-flex; border: 1px solid var(--line-strong); background: #fff; }
+.oc-seg button { border: 0; background: none; padding: 3px 7px; font: inherit; font-size: 12px; cursor: pointer; color: var(--text-2); white-space: nowrap; }
+.oc-seg button + button { border-left: 1px solid var(--line); }
+.oc-seg button.on.done { background: #2F9E62; color: #fff; font-weight: 700; }
+.oc-seg button.on.going { background: #2563EB; color: #fff; font-weight: 700; }
+.oc-seg button.on.fail { background: #D92D20; color: #fff; font-weight: 700; }
+.oc-seg button.on:not(.set) { opacity: .7; }
+
 </style>
 </head>
 <body>
@@ -2831,7 +2853,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.21 10:29";</script>
+<script>window.APP_VERSION = "2026.10.21 17:48";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3363,7 +3385,7 @@ window.S = (() => {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['phone', '대표 전화'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['info', '세부 정보']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자'], ['outcome', '진행 결과(완료/진행중/실패)'], ['fromPerf', '실적 화면 입력(Y)']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관'], ['ppl', '참여자']]];
@@ -4077,19 +4099,15 @@ window.S = (() => {
     return a.date;
   }
   /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null */
+  /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null.
+   *  실적은 '실적' 화면에서 넣은 것만 센다 (연락이력·사업체 개발·상세 화면 기록은 실적이 아님) */
+  const isPerfEntry = a => !!a && a.fromPerf === 'Y';
   function perfOf(a) {
+    if (!isPerfEntry(a) || !a.perf || a.perf === '제외') return null;
     const set = perfSetOf(a.staff);
     const def = D.PERF_SETS[set];
-    if (!def) return null;
-    let item = a.perf;
-    if (item === '제외') return null;
-    if (!item || !def.items.includes(item)) {
-      const t = targetOf(a);
-      const first = a.targetType === 'biz' ? bizFirst(t) : '';
-      const later = !!first && perfDate(a, t).slice(0, 7) > first.slice(0, 7);
-      item = D.suggestPerf(set, a, t, later);
-    }
-    return item ? { set, big: def.big, mid: def.mid, item } : null;
+    if (!def || !def.items.includes(a.perf)) return null;
+    return { set, big: def.big, mid: def.mid, item: a.perf };
   }
   /** 기간(YYYY-MM) 안의 실적 기록. d = 실적 날짜(발굴 기록은 최초 등록일) */
   function perfRows(month, v = view()) {
@@ -4098,11 +4116,8 @@ window.S = (() => {
       .sort((x, y) => x.d.localeCompare(y.d) || x.p.item.localeCompare(y.p.item));
   }
   /** 이 달 연락 중 실적에 자동으로 안 들어간 것 (이미 개발한 사업체에 다시 연락 등). 골라서 넣을 수 있다 */
-  function perfLeft(month, set, v = view()) {
-    return v.activities.filter(a => a.perf !== '제외' && (a.targetType === 'biz' || a.targetType === 'net') && perfSetOf(a.staff) === set && !/^진행 단계 변경/.test(a.content || ''))
-      .map(a => { const t = targetOf(a); return { a, t, d: perfDate(a, t) }; }).filter(r => r.d.startsWith(month) && r.t && !perfOf(r.a))
-      .sort((x, y) => x.d.localeCompare(y.d));
-  }
+  function perfLeft() { return []; }
+
 
   /* ---------- 연인원 / 실인원 / 횟수 ----------
      한 사람이 한 번 받으면 1/1/1, 같은 사람이 두 번이면 2/1/2.
@@ -4280,7 +4295,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, isPerfEntry, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },
@@ -5604,9 +5619,9 @@ window.V = (() => {
   function perfMonth(f) {
     const g = GL.goal(), items = D.PERF_SETS[GL.SET].items;
     const months = Number(g.months) || 12, Y = +f.month.slice(0, 4);
-    const base = i => { const v = (g.rows[i] || [])[2]; return v == null || v === '' ? null : Number(v); };
-    const mT = i => (base(i) == null ? null : Math.max(1, Math.round(base(i) / months)));      // 월 목표 = 기준 실적 ÷ 기준 개월 수
-    const yT = i => (base(i) == null ? null : Math.round(base(i) * (Y === g.baseYear ? 1 : 12 / months)));
+    const curM = +f.month.slice(5, 7);
+    const mT = (i, m = curM) => GL.monthGoal(i, m, Y);      // 월 목표: 연간 목표를 달마다 나눈 값 (다 더하면 연간 목표)
+    const yT = i => GL.yearGoal(i, Y);
     const pros = perfStaff();
     const need = Math.max(Number(g.staffNeed) || 3, pros.length);
     const slots = [...pros, ...Array.from({ length: need - pros.length }, (_, k) => `충원 예정${need - pros.length > 1 ? ' ' + (k + 1) : ''}`)];
@@ -5616,9 +5631,9 @@ window.V = (() => {
     const cnt = (list, i, who) => S.perfCount(who == null ? list : list.filter(l => l.staff === who), i).cnt;
     const sumC = (list, who) => items.reduce((a, i) => a + cnt(list, i, who), 0);
     // 이월: 그 해 첫 달부터 달마다 (이월 + 실적 - 월 목표)가 남으면 다음 달로 넘긴다
-    const first = Y === g.baseYear ? 13 - months : 1, curM = +f.month.slice(5, 7);
+    const first = Y === g.baseYear ? 13 - months : 1;
     const yearAll = perfLines(String(Y));
-    const carryIn = i => { const t = mT(i); if (!t) return 0; let c = 0; for (let m = first; m < curM; m++) c = Math.max(0, c + cnt(yearAll.filter(l => +l.d.slice(5, 7) === m), i) - t); return c; };
+    const carryIn = i => { if (!mT(i)) return 0; let c = 0; for (let m = first; m < curM; m++) c = Math.max(0, c + cnt(yearAll.filter(l => +l.d.slice(5, 7) === m), i) - (mT(i, m) || 0)); return c; };
     const cin = Object.fromEntries(items.map(i => [i, carryIn(i)]));
     const got = i => cnt(lines, i) + cin[i];                     // 인정 실적 = 이번 달 실적 + 지난달 이월
     const cout = i => (mT(i) ? Math.max(0, got(i) - mT(i)) : 0);
@@ -5655,7 +5670,7 @@ window.V = (() => {
       ${GL.triHtml(f.month)}
     </section>`;
     return `${year}${tri}<section class="panel panel-pad pm">
-      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 남은 실적은 다음 달로 이월</span></h2>
+      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = 연간 목표를 운영하는 달에 나눈 값(다 더하면 연간 목표) · 남은 실적은 다음 달로 이월</span></h2>
         <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${sumC(lines, n)}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
         <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건${totC ? ` + 이월 ${totC}건` : ''} / 목표 ${totT}건</small></div></div>
       <div class="pm-chart">${chart}</div>
@@ -5695,7 +5710,7 @@ window.V = (() => {
           <datalist id="ptPeople">${[...new Set([...S.get().perfs, ...S.get().activities].flatMap(r => S.pplOf(r)).concat((S.get().jobPeople || []).map(p => p.name)).filter(Boolean))].map(n => `<option value="${e(n)}">`).join('')}</datalist>
           <datalist id="ptNames">${[...new Set([...S.get().businesses.map(x => x.name), ...S.get().networks.map(x => x.name)])].map(n => `<option value="${e(n)}">`).join('')}</datalist>
         </form>
-        <p class="sub" style="margin:8px 0 0">사업체·기관 상세 화면이나 연락이력에서 남긴 기록(방문·전화 등)도 따로 입력하지 않아도 표에 자동으로 들어가요. <b>사업체개발은 사업체를 처음 등록한 달(최초 등록일)</b>에 들어가요.</p>
+        <p class="sub" style="margin:8px 0 0"><b>실적은 이 화면에서 넣은 것만</b> 세요. 연락이력·사업체 개발·상세 화면에 남긴 기록은 실적에 들어가지 않아요. 사업체·기관 칸에 있는 곳 이름을 넣으면 그 곳 기록과도 이어져요.</p>
       </section>
       <div id="perfResults"></div>
       <details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 설정</b> <span class="sub">기준 실적(목표) 고치기 · 2026년(6개월)·2027년(12개월)</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`;
@@ -5705,12 +5720,11 @@ window.V = (() => {
     const f = ui.perf;
     const def = D.PERF_SETS[f.set];
     const pros = perfStaff();
-    const acts = f.withActs ? S.perfRows(f.month).filter(r => r.p.set === f.set && (!f.who || r.a.staff === f.who)) : [];
+    const acts = S.perfRows(f.month).filter(r => r.p.set === f.set && (!f.who || r.a.staff === f.who));
     const mans = S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month) && (!f.who || p.staff === f.who));
     const whoSel = (chg, id, cur) => `<select class="select sm pt-who" data-chg="${chg}" data-id="${id}" data-field="staff" aria-label="담당" style="border-left:4px solid ${staffColor(cur)}">${[...new Set([...pros, cur].filter(Boolean))].map(n => `<option ${n === cur ? 'selected' : ''}>${e(n)}</option>`).join('')}</select>`;
-    const out = S.view().activities.filter(a => a.perf === '제외' && S.perfDate(a).startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
-    const left = S.perfLeft(f.month, f.set);
-    const sheetRows = S.perfTable(f.month, f.set, f.withActs);
+    const out = S.view().activities.filter(a => a.perf === '제외' && S.isPerfEntry(a) && S.perfDate(a).startsWith(f.month) && S.perfSetOf(a.staff) === f.set);
+    const sheetRows = S.perfTable(f.month, f.set, true);
     const itemSel = (cur, chg, id, withOut) => `<select class="select sm pt-item" data-chg="${chg}" data-id="${id}" data-field="${chg === 'pa-field' ? 'perf' : 'item'}" aria-label="세부사업">${def.items.map(i => `<option ${i === cur ? 'selected' : ''}>${e(i)}</option>`).join('')}${withOut ? '<option value="제외">실적에서 빼기</option>' : ''}</select>`;
     const num = (chg, id, k, v) => `<input class="input sm pt-n" type="number" min="0" value="${e(v ?? '')}" data-chg="${chg}" data-id="${id}" data-field="${k}" placeholder="-" aria-label="${k}">`;
     const flash = id => (f.flash === id ? ' pt-new' : '');
@@ -5741,7 +5755,6 @@ window.V = (() => {
           <h2 class="section-title">${monthLabel(f.month)} 실적표 <span class="sub num">${total}건</span></h2>
           <div class="chips">${['', ...pros].map(n => `<button type="button" class="chip ${f.who === n ? 'on' : ''}" data-act="perf-who" data-who="${e(n)}">${n ? `<span class="dot" style="background:${staffColor(n)}"></span>${e(n)}` : '전체'}</button>`).join('')}</div>
           <div class="inline">
-            <label class="check"><input type="checkbox" data-act="perf-acts" ${f.withActs ? 'checked' : ''}>방문·전화 기록 포함</label>
             <label class="check"><input type="checkbox" data-act="perf-no" ${f.withNo ? 'checked' : ''}>연번 포함해서 복사</label>
             <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button>
           </div>
@@ -5751,7 +5764,6 @@ window.V = (() => {
           <thead><tr><th>세부사업</th><th>날짜</th><th>사업체·기관 / 내용</th><th>담당</th><th></th></tr></thead>
           <tbody>${body}</tbody></table></div>
         <p class="sub perf-help">칸을 고치면 바로 저장돼요. 세부사업 칸을 바꾸면 그 항목으로 옮겨지고, "실적에서 빼기"를 고르면 빠져요. 구글 시트 <b>실적(기타)</b>에는 위 <b>구글 시트용 복사</b>로 붙여 넣으세요(같은 날·같은 항목 기록은 한 줄로 묶여요).</p>
-        ${left.length ? `<details class="pd-grp pd-out"><summary><b>실적에 안 들어간 이 달 연락</b> <span class="num">${left.length}건</span><span class="sub">· 이미 앞 달에 개발(최초 등록)한 사업체에 다시 연락한 기록 등. 실적이면 세부사업을 골라 넣으세요</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${left.map(({ a, t, d }) => `<tr><td class="num nowrap">${d}</td><td><b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b><div class="meta">${e(a.type)}${a.staff ? ' · ' + e(a.staff) : ''}${a.targetType === 'biz' && S.bizFirst(t) ? ` · 최초 등록 ${U.dateDot(S.bizFirst(t))}` : ''}</div></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="" selected>실적 아님</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></details>` : ''}
         ${out.length ? `<details class="pd-grp pd-out"><summary><b>실적에서 뺀 기록</b> <span class="num">${out.length}건</span></summary><div class="table-wrap"><table class="tbl pd-tbl"><tbody>${out.map(a => { const t = S.find(a.targetType, a.targetId); return `<tr><td class="num nowrap">${a.date}</td><td>${t ? `<b class="link" data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b>` : ''} <span class="sub">${e(a.type)}</span></td><td class="wrap">${e(a.content || '')}</td><td><select class="select sm" data-chg="pa-field" data-id="${a.id}" data-field="perf"><option value="제외" selected>빠져 있음</option>${def.items.map(i => `<option>${e(i)}</option>`).join('')}</select></td></tr>`; }).join('')}</tbody></table></div></details>` : ''}
       </section>`;
   }
@@ -5759,7 +5771,7 @@ window.V = (() => {
   function perfTsv() {
     const f = ui.perf;
     const clean = v => String(v ?? '').replace(/[\t\n\r]+/g, ' ');
-    return S.perfTable(f.month, f.set, f.withActs).map((r, i) => [...(f.withNo ? [i + 1] : []), r.date, r.big, r.mid, r.item, r.people, r.newPeople, r.round, r.note].map(clean).join('\t')).join('\n');
+    return S.perfTable(f.month, f.set, true).map((r, i) => [...(f.withNo ? [i + 1] : []), r.date, r.big, r.mid, r.item, r.people, r.newPeople, r.round, r.note].map(clean).join('\t')).join('\n');
   }
 
   /* ================= 데이터 관리 ================= */
@@ -5992,7 +6004,6 @@ window.V = (() => {
         <input class="input grow" name="content" id="quickLogContent" placeholder="예: 인사팀장 통화, 다음 주 방문 약속" aria-label="내용" required>
         <button class="btn btn-primary" type="submit">기록</button>
         <input type="hidden" name="staff" value="${e(S.me())}">
-        ${perfSelect(kind, id)}
       </form>
       ${acts.length ? `<ul class="timeline">${acts.map(a => `<li class="sc-li" style="--sc:${staffColor(a.staff)}"><span class="d">${U.dateDot(a.date)}</span><span><span class="type">${e(a.type)}</span>${e(a.content)}${R.jobLink(a.jobUrl) ? ` <a class="btn-job-inline" href="${e(R.jobLink(a.jobUrl))}" target="_blank" rel="noopener">구인공고 · ${e(R.siteName(a.jobUrl))}</a>` : ''}${a.staff ? ` <span class="sub">· ${staffDot(a.staff)}${e(a.staff)}</span>${progBadge(S.programOf(a.staff))}` : ''}${(() => { const p = S.perfOf(a); return p ? ` <span class="perf-tag" title="${e(p.set)}">${e(p.item)}${a.people ? ` ${a.people}명` : ''}</span>` : ''; })()}</span><button class="icon-btn" type="button" aria-label="기록 삭제" data-act="act-del" data-id="${a.id}" style="width:28px;height:28px">${I.close}</button></li>`).join('')}</ul>` : '<p class="sub" style="margin:0">아직 기록이 없습니다.</p>'}</section>`;
   };
@@ -7307,6 +7318,10 @@ window.R = (() => {
       .map(a => ({ a, b: S.find('biz', a.targetId) })).filter(r => r.b)
       .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.a.id.localeCompare(y.a.id));
   }
+  /** 연락 결과 세 가지: 완료(체크한 것) / 진행중 / 실패. 체크 안 한 줄은 연락결과로 짐작 (채용안함·채용마감 = 실패) */
+  const OUTCOMES = [['완료', 'done', '✔'], ['진행중', 'going', '…'], ['실패', 'fail', '✕']];
+  const outcomeOf = a => (['완료', '진행중', '실패'].includes(a.outcome) ? a.outcome : a.type === '채용연계' ? '완료' : ['채용안함', '채용마감'].includes(a.result) ? '실패' : '진행중');
+  const ocCls = a => OUTCOMES.find(o => o[0] === outcomeOf(a))[1];
   function contactKpis(rows) {
     const visits = rows.filter(r => r.a.type === '방문');
     return {
@@ -7414,12 +7429,17 @@ window.R = (() => {
         </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)}에 방문 기록이 없습니다</strong>방식을 '방문'으로 골라 기록하면 여기에 나옵니다.</div>`}
       </section>`;
     }
+    const all = rows, ocN = k => all.filter(r => outcomeOf(r.a) === k).length;
+    const shown = f.oc ? all.filter(r => outcomeOf(r.a) === f.oc) : all;
+    const ocBar = `<div class="oc-bar"><div class="chips" role="tablist" aria-label="진행 결과로 거르기"><button type="button" class="chip ${!f.oc ? 'on' : ''}" data-act="ct-ocf" data-v="">전체 <span class="n">${all.length}</span></button>${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="chip oc-chip ${c} ${f.oc === k ? 'on' : ''}" data-act="ct-ocf" data-v="${k}"><i class="oc-dot ${c}"></i>${k} <span class="n">${ocN(k)}</span></button>`).join('')}</div>
+      <span class="sub">줄 오른쪽 <b>✔ 완료 · … 진행중 · ✕ 실패</b>를 눌러 체크하세요. 체크하지 않은 줄은 연락결과가 채용안함·채용마감이면 실패, 나머지는 진행중으로 보여요.</span></div>`;
     return kpi + staffChart(rows, f.month) + `<section class="panel">
-      <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span></h2>
+      <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span> <span class="oc-sum"><i class="oc-dot done"></i>완료 ${ocN('완료')} · <i class="oc-dot going"></i>진행중 ${ocN('진행중')} · <i class="oc-dot fail"></i>실패 ${ocN('실패')}</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
-      ${rows.length ? `<div class="table-wrap"><table class="tbl perf-tbl"><thead><tr><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
-        ${rows.map(({ a, b }, i) => `<tr class="sc-row${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+      ${rows.length ? ocBar : ''}
+      ${shown.length ? `<div class="table-wrap"><table class="tbl perf-tbl ct-tbl"><thead><tr><th>진행</th><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
+        ${shown.map(({ a, b }, i) => `<tr class="sc-row oc-row ${ocCls(a)}${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="oc-cell"><div class="oc-seg" role="group" aria-label="진행 결과">${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="${c} ${outcomeOf(a) === k ? 'on' : ''} ${a.outcome === k ? 'set' : ''}" data-act="ct-oc" data-id="${a.id}" data-v="${k}" title="${k}${a.outcome === k ? ' (체크함)' : outcomeOf(a) === k ? ' (자동으로 짐작 · 눌러서 확정)' : ''}" aria-pressed="${outcomeOf(a) === k}">${ic} ${k}</button>`).join('')}</div></td><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>
@@ -7427,7 +7447,7 @@ window.R = (() => {
           <td class="nowrap">${jobLink(a.jobUrl) ? `<a class="btn btn-sm btn-job" href="${e(jobLink(a.jobUrl))}" target="_blank" rel="noopener" title="${e(a.jobUrl)}">공고 보기 · ${e(siteName(a.jobUrl))}</a><button class="icon-btn" type="button" style="width:28px;height:28px" aria-label="공고 주소 바꾸기" data-act="ct-url" data-id="${a.id}">${V.I.edit}</button>`
             : `<input class="input sm url-in" data-chg="act-field" data-id="${a.id}" data-field="jobUrl" placeholder="공고 주소 붙여넣기" aria-label="구인공고 주소">`}</td>
           <td><button class="icon-btn" type="button" aria-label="이 연락 기록 삭제" title="삭제" data-act="act-del" data-id="${a.id}">${V.I.close}</button></td></tr>`).join('')}
-      </tbody></table></div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
+      </tbody></table></div>` : rows.length ? `<div class="empty"><strong>'${e(f.oc)}'인 연락이 없습니다</strong>위에서 전체를 눌러 보세요.</div>` : `<div class="empty"><strong>${V.monthLabel(f.month)} 연락이력이 없습니다</strong>위 칸에 기록하거나, 공유 시트의 연락이력을 복사해 <b>시트에서 붙여넣어 가져오기</b>로 옮겨 오세요.</div>`}
     </section>`;
   }
   const contactTsv = () => tsv(contactRows(ui.contacts.month).map(({ a, b }) => [a.date, b.name, b.address, phoneOf(b), a.contactName || contactOf(b), a.jobType || b.jobs, a.content, a.result, a.status, a.staff]));
@@ -8076,7 +8096,7 @@ window.R = (() => {
   /* ---------- 달별 엑셀 정리: 연락이력·방문·실적·출장·특근·신규 사업체·일정·명함을 달마다 한 파일로 ---------- */
   const byDate = k => (x, y) => String(x[k] || '').localeCompare(String(y[k] || ''));
   function monthData(month, v = S.view(), sc = S.getScope()) {
-    const contact = contactRows(month, v, sc).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
+    const contact = contactRows(month, v, sc).map(({ a, b }) => ({ '날짜': a.date, '방식': a.type, '사업체명': b.name, '주소': b.address || '', '전화번호': phoneOf(b), '담당자': a.contactName || contactOf(b), '직종': a.jobType || b.jobs || '', '결과': a.content || '', '연락결과': a.result || '', '상태': a.status || '', '진행 결과': outcomeOf(a), '상담자': a.staff || '', '현장훈련 유/무': a.training || '', '절차': a.procedure || '', '구인공고': jobLink(a.jobUrl) || '' }));
     const perf = [
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
       ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
@@ -8101,7 +8121,7 @@ window.R = (() => {
   function monthBook(months) {
     const wb = XLSX.utils.book_new();
     const per = months.map(m => [m, monthData(m)]);
-    const headOf = k => { const hit = per.find(([, d]) => d[k].length); return hit ? Object.keys(hit[1][k][0]) : ({ contact: ['날짜', '방식', '사업체명', '주소', '전화번호', '담당자', '직종', '결과', '연락결과', '상태', '상담자'], visit: ['날짜', '사업체명', '주소', '결과'], perf: ['날짜', '사업', '세부사업', '사업체·기관', '내용', '담당', '구분'], trip: ['출장일', '성명', '출장지', '출장용무', '방법', '출장시간', '출장복명', '비고', '식비'], ot: ['특근일자', '성명', '부서명', '특근시간', '업무내용', '비고', '식비'], newBiz: ['최초 등록일', '사업체명', '업종', '진행 단계', '주소', '대표 전화', '사업체 담당자', '발굴 경로', '담당 직원'], ev: ['날짜', '시간', '유형', '제목', '사업체·기관', '담당', '완료', '메모'], cards: ['받은 날', '이름', '직함', '소속', '휴대전화', '사무실 전화', '이메일', '받은 곳'] })[k]; };
+    const headOf = k => { const hit = per.find(([, d]) => d[k].length); return hit ? Object.keys(hit[1][k][0]) : ({ contact: ['날짜', '방식', '사업체명', '주소', '전화번호', '담당자', '직종', '결과', '연락결과', '상태', '진행 결과', '상담자'], visit: ['날짜', '사업체명', '주소', '결과'], perf: ['날짜', '사업', '세부사업', '사업체·기관', '내용', '담당', '구분'], trip: ['출장일', '성명', '출장지', '출장용무', '방법', '출장시간', '출장복명', '비고', '식비'], ot: ['특근일자', '성명', '부서명', '특근시간', '업무내용', '비고', '식비'], newBiz: ['최초 등록일', '사업체명', '업종', '진행 단계', '주소', '대표 전화', '사업체 담당자', '발굴 경로', '담당 직원'], ev: ['날짜', '시간', '유형', '제목', '사업체·기관', '담당', '완료', '메모'], cards: ['받은 날', '이름', '직함', '소속', '휴대전화', '사무실 전화', '이메일', '받은 곳'] })[k]; };
     const label = m => `${+m.slice(5, 7)}월`;
     const one = months.length === 1;
     // 요약
@@ -8529,6 +8549,20 @@ window.GL = (() => {
   const factor = g => 12 / (Number(g.months) || 12);
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
+  /** 그 해 연간 목표(횟수). 기준 연도는 기준 개월 수 그대로, 다음 해부터는 12개월로 늘린다 */
+  function yearGoal(i, Y) {
+    const g = goal(), months = Number(g.months) || 12, v = (g.rows[i] || [])[2];
+    return v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months));
+  }
+  /** 월 목표: 연간 목표를 운영하는 달에 나눠, 달 목표를 다 더하면 연간 목표와 똑같게 (예: 50건 ÷ 6달 = 9·9·8·8·8·8) */
+  function monthGoal(i, m, Y) {
+    const g = goal(), months = Number(g.months) || 12, total = yearGoal(i, Y);
+    if (total == null) return null;
+    const first = Y === g.baseYear ? 13 - months : 1;
+    if (m < first || m > 12) return null;
+    const n = 13 - first, base = Math.floor(total / n), extra = total - base * n;
+    return base + (m - first < extra ? 1 : 0);
+  }
   /** 기간(YYYY 또는 YYYY-MM)의 실적 줄 (팀 전체) */
   function linesOf(prefix) {
     const st = S.get();
@@ -8681,7 +8715,7 @@ window.GL = (() => {
     return { baseYear: n('glYear') || DEFAULT.baseYear, months: n('glMonths') || 6, staffNeed: n('glNeed') || 3, staffNow: n('glNow') || 1, rows };
   }
 
-  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf };
+  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf, yearGoal, monthGoal };
 })();
 
 </script>
@@ -10309,9 +10343,7 @@ window.DP = (() => {
   function goals(set, Y) {
     if (set === GL.SET) {
       const g = GL.goal(), months = Number(g.months) || 12;
-      const base = i => { const v = (g.rows[i] || [])[2]; return v == null || v === '' ? null : Number(v); };
-      const active = m => Y !== g.baseYear || m > 12 - months;
-      return { year: i => (base(i) == null ? null : Math.round(base(i) * (Y === g.baseYear ? 1 : 12 / months))), month: (i, m) => (base(i) == null || !active(m) ? null : Math.max(1, Math.round(base(i) / months))), note: Y === g.baseYear ? `${g.baseYear}년은 ${13 - months}~12월(${months}개월) 기준` : '연간 = 기준 실적 × 12 ÷ 기준 개월 수' };
+      return { year: i => GL.yearGoal(i, Y), month: (i, m) => GL.monthGoal(i, m, Y), note: Y === g.baseYear ? `${g.baseYear}년은 ${13 - months}~12월(${months}개월) 기준` : '연간 = 기준 실적 × 12 ÷ 기준 개월 수' };
     }
     let custom = S.get().settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = null; } }
     const G = { ...(GOALS[set] || {}), ...((custom || {})[set] || {}) };
@@ -10369,7 +10401,7 @@ window.DP = (() => {
       const per = staffs.map(n => [n, items.reduce((a, i) => a + cnt(mon.filter(l => l.staff === n), i), 0)]);
       facts.push('직원별 이번 달 실적: ' + per.map(([n, c]) => `${n} ${c}건`).join(', '));
       const zero = per.filter(([, c]) => !c).map(([n]) => n);
-      if (zero.length && frac >= .3) out.push({ lv: 'warn', sc: .2, t: `이번 달 실적이 아직 없는 선생님: ${zero.join(', ')}`, d: '방문·전화 기록을 남기면 실적에 자동으로 들어가요. 빠뜨린 기록이 없는지 확인해 주세요.' });
+      if (zero.length && frac >= .3) out.push({ lv: 'warn', sc: .2, t: `이번 달 실적이 아직 없는 선생님: ${zero.join(', ')}`, d: '실적은 실적 화면에서 넣은 것만 세요. 빠뜨린 실적이 없는지 확인해 주세요.', act: '<a class="btn btn-sm" href="#/perf">실적 입력하기</a>' });
       // 참여자 이름 없는 실적 (실인원이 부정확해짐)
       if (set === GL.SET) {
         const noName = mon.filter(l => !S.NO_PEOPLE.has(l.item) && !(l.ppl || []).length).length;
@@ -10579,7 +10611,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
-    'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
@@ -12509,6 +12541,8 @@ window.App = (() => {
     'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
+    'ct-ocf': el => { R.ui.contacts.oc = el.dataset.v; render(); },
+    'ct-oc': el => { const a = S.find('act', el.dataset.id); if (!a) return; S.upsert('act', { id: a.id, outcome: a.outcome === el.dataset.v ? '' : el.dataset.v }); },
     'ct-copy': async () => { const ok = await copyText(R.contactTsv()); toast(ok ? '복사했습니다. 공유 시트 연락이력 탭의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-copy-report': async () => { const ok = await copyText(R.reportTsv()); toast(ok ? '복사했습니다. 보고용 시트 방문 사업체 표의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-paste': () => push({ type: 'paste', state: { text: '', rows: [] } }, false),
@@ -12918,7 +12952,7 @@ window.App = (() => {
           clearDraft('perf-add');
           const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
           Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
-          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl })));
+          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl, fromPerf: 'Y' })));
           else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who, ppl })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
           return;
@@ -12928,7 +12962,7 @@ window.App = (() => {
         let rec;
         if (b || n) {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
-          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people, ppl });
+          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people, ppl, fromPerf: 'Y' });
         } else {
           rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who, ppl });
         }

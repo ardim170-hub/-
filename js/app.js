@@ -93,7 +93,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
-    'ct-paste': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
@@ -2023,6 +2023,8 @@ window.App = (() => {
     'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
+    'ct-ocf': el => { R.ui.contacts.oc = el.dataset.v; render(); },
+    'ct-oc': el => { const a = S.find('act', el.dataset.id); if (!a) return; S.upsert('act', { id: a.id, outcome: a.outcome === el.dataset.v ? '' : el.dataset.v }); },
     'ct-copy': async () => { const ok = await copyText(R.contactTsv()); toast(ok ? '복사했습니다. 공유 시트 연락이력 탭의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-copy-report': async () => { const ok = await copyText(R.reportTsv()); toast(ok ? '복사했습니다. 보고용 시트 방문 사업체 표의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-paste': () => push({ type: 'paste', state: { text: '', rows: [] } }, false),
@@ -2432,7 +2434,7 @@ window.App = (() => {
           clearDraft('perf-add');
           const ids = days.map(() => U.uid(isAct ? 'A' : 'P'));
           Object.assign(V.ui.perf, { lastItem: item, lastDate: days[days.length - 1], lastStaff: who, flash: ids[0] });
-          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl })));
+          if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl, fromPerf: 'Y' })));
           else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who, ppl })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
           return;
@@ -2442,7 +2444,7 @@ window.App = (() => {
         let rec;
         if (b || n) {
           const extra = [fd.newPeople && `신규 ${fd.newPeople}명`, fd.round && `${fd.round}회차`].filter(Boolean).join(' · ');
-          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people, ppl });
+          rec = S.upsert('act', { id: newId, targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: fd.date, type: fd.type || '방문', content: [note || `${item} 실적`, extra].filter(Boolean).join(' / '), staff: who, perf: item, people, ppl, fromPerf: 'Y' });
         } else {
           rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who, ppl });
         }

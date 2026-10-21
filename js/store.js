@@ -13,7 +13,7 @@ window.S = (() => {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['phone', '대표 전화'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['info', '세부 정보']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
-    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자']]],
+    activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자'], ['outcome', '진행 결과(완료/진행중/실패)'], ['fromPerf', '실적 화면 입력(Y)']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
   };
   SHEETS.perfs = ['실적입력', [['id', '실적ID'], ['date', '사업날짜'], ['set', '사업'], ['item', '세부사업명'], ['people', '참여인원'], ['newPeople', '참여인원(신규)'], ['round', '회차'], ['note', '비고'], ['staff', '입력한 직원'], ['place', '사업체·기관'], ['ppl', '참여자']]];
@@ -727,19 +727,15 @@ window.S = (() => {
     return a.date;
   }
   /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null */
+  /** 활동 기록의 실적 분류: {set, big, mid, item} 또는 null.
+   *  실적은 '실적' 화면에서 넣은 것만 센다 (연락이력·사업체 개발·상세 화면 기록은 실적이 아님) */
+  const isPerfEntry = a => !!a && a.fromPerf === 'Y';
   function perfOf(a) {
+    if (!isPerfEntry(a) || !a.perf || a.perf === '제외') return null;
     const set = perfSetOf(a.staff);
     const def = D.PERF_SETS[set];
-    if (!def) return null;
-    let item = a.perf;
-    if (item === '제외') return null;
-    if (!item || !def.items.includes(item)) {
-      const t = targetOf(a);
-      const first = a.targetType === 'biz' ? bizFirst(t) : '';
-      const later = !!first && perfDate(a, t).slice(0, 7) > first.slice(0, 7);
-      item = D.suggestPerf(set, a, t, later);
-    }
-    return item ? { set, big: def.big, mid: def.mid, item } : null;
+    if (!def || !def.items.includes(a.perf)) return null;
+    return { set, big: def.big, mid: def.mid, item: a.perf };
   }
   /** 기간(YYYY-MM) 안의 실적 기록. d = 실적 날짜(발굴 기록은 최초 등록일) */
   function perfRows(month, v = view()) {
@@ -748,11 +744,8 @@ window.S = (() => {
       .sort((x, y) => x.d.localeCompare(y.d) || x.p.item.localeCompare(y.p.item));
   }
   /** 이 달 연락 중 실적에 자동으로 안 들어간 것 (이미 개발한 사업체에 다시 연락 등). 골라서 넣을 수 있다 */
-  function perfLeft(month, set, v = view()) {
-    return v.activities.filter(a => a.perf !== '제외' && (a.targetType === 'biz' || a.targetType === 'net') && perfSetOf(a.staff) === set && !/^진행 단계 변경/.test(a.content || ''))
-      .map(a => { const t = targetOf(a); return { a, t, d: perfDate(a, t) }; }).filter(r => r.d.startsWith(month) && r.t && !perfOf(r.a))
-      .sort((x, y) => x.d.localeCompare(y.d));
-  }
+  function perfLeft() { return []; }
+
 
   /* ---------- 연인원 / 실인원 / 횟수 ----------
      한 사람이 한 번 받으면 1/1/1, 같은 사람이 두 번이면 2/1/2.
@@ -930,7 +923,7 @@ window.S = (() => {
   return {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
-    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, isPerfEntry, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },

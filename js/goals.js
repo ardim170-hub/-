@@ -45,6 +45,20 @@ window.GL = (() => {
   const factor = g => 12 / (Number(g.months) || 12);
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
+  /** 그 해 연간 목표(횟수). 기준 연도는 기준 개월 수 그대로, 다음 해부터는 12개월로 늘린다 */
+  function yearGoal(i, Y) {
+    const g = goal(), months = Number(g.months) || 12, v = (g.rows[i] || [])[2];
+    return v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months));
+  }
+  /** 월 목표: 연간 목표를 운영하는 달에 나눠, 달 목표를 다 더하면 연간 목표와 똑같게 (예: 50건 ÷ 6달 = 9·9·8·8·8·8) */
+  function monthGoal(i, m, Y) {
+    const g = goal(), months = Number(g.months) || 12, total = yearGoal(i, Y);
+    if (total == null) return null;
+    const first = Y === g.baseYear ? 13 - months : 1;
+    if (m < first || m > 12) return null;
+    const n = 13 - first, base = Math.floor(total / n), extra = total - base * n;
+    return base + (m - first < extra ? 1 : 0);
+  }
   /** 기간(YYYY 또는 YYYY-MM)의 실적 줄 (팀 전체) */
   function linesOf(prefix) {
     const st = S.get();
@@ -197,5 +211,5 @@ window.GL = (() => {
     return { baseYear: n('glYear') || DEFAULT.baseYear, months: n('glMonths') || 6, staffNeed: n('glNeed') || 3, staffNow: n('glNow') || 1, rows };
   }
 
-  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf };
+  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf, yearGoal, monthGoal };
 })();
