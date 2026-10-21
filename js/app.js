@@ -93,7 +93,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
-    'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
@@ -2023,6 +2023,21 @@ window.App = (() => {
     'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
+    'ct-reg': el => { const r = R.registerBiz(el.dataset.id, el.dataset.kind); if (r) toast(r.kind === 'net' ? `${r.x.name} 기관(네트워크)에 연락 기록을 옮겼어요. 기관 상세·홍보·방문처에서 볼 수 있어요.` : `${r.x.name}을(를) 사업체로 등록했어요. 사업체 개발·지도에 나와요.`); },
+    'ct-reg-all': async () => {
+      const ids = [...new Set(R.contactRows(R.ui.contacts.month).filter(r => S.isPending(r.b)).map(r => r.b.id))];
+      if (!ids.length || !(await confirmBox(`미등록 ${ids.length}곳을 모두 사업체로 등록할까요?`, '사업체 개발 목록과 지도에 올라가요.', '모두 등록'))) return;
+      S.putMany('biz', ids.map(id => ({ id, pending: '' }))); toast(`${ids.length}곳을 사업체로 등록했어요.`);
+    },
+    'ct-auto-open': () => { R.ui.contacts.autoOpen = !R.ui.contacts.autoOpen; },
+    'ct-auto-hide': () => { R.ui.contacts.autoHide = true; render(); },
+    'ct-auto-all': el => { document.querySelectorAll('.reg-pick').forEach(c => { c.checked = el.dataset.v === '1'; }); },
+    'ct-unreg': async () => {
+      const ids = [...document.querySelectorAll('.reg-pick:checked')].map(c => c.value);
+      if (!ids.length) return toast('뺄 곳을 골라 주세요.', 'error');
+      if (!(await confirmBox(`${ids.length}곳을 미등록으로 돌릴까요?`, '사업체 개발 목록·지도·대시보드에서 빠지고 연락이력에만 남아요. 연락 기록은 그대로이고, 나중에 연락이력 줄에서 다시 등록할 수 있어요.', '미등록으로'))) return;
+      S.putMany('biz', ids.map(id => ({ id, pending: 'Y' }))); R.ui.contacts.autoOpen = false; toast(`${ids.length}곳을 미등록으로 돌렸어요.`);
+    },
     'ct-ocf': el => { R.ui.contacts.oc = el.dataset.v; render(); },
     'ct-oc': el => { const a = S.find('act', el.dataset.id); if (!a) return; S.upsert('act', { id: a.id, outcome: a.outcome === el.dataset.v ? '' : el.dataset.v }); },
     'ct-copy': async () => { const ok = await copyText(R.contactTsv()); toast(ok ? '복사했습니다. 공유 시트 연락이력 탭의 날짜 칸을 누르고 Ctrl+V 하세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
@@ -2399,7 +2414,7 @@ window.App = (() => {
           else toast('기록은 저장했는데 지금 보는 범위(위쪽 소속 선택)에서는 안 보여요. 범위를 "전체 팀"으로 바꿔 확인하세요.', 'error');
         }, 120);
         setTimeout(() => { if (R.ui.contacts.flash === fl) { R.ui.contacts.flash = null; document.querySelector(`#ctResults [data-row="${fl}"]`)?.classList.remove('pt-new'); } }, 4000);
-        toast(`${b.name} 연락을 기록했습니다.`);
+        toast(S.isPending(b) ? `${b.name} 연락을 기록했어요. 아직 미등록이라 사업체·지도에는 안 나와요. 목록에서 '사업체로 등록'을 누르면 올라가요.` : `${b.name} 연락을 기록했습니다.`);
         setTimeout(() => { const f = document.querySelector('[data-form="ct-add"]'); if (f) { f.elements.name.focus(); } }, 50);
         return;
       }
