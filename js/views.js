@@ -895,23 +895,9 @@ window.V = (() => {
       <div class="pm-year-num"><b class="num ${tone(yPc)}">${yAll}</b><span class="num">/ ${yTot}건</span>${yPc != null ? `<span class="gl-pill ${tone(yPc)}">${yPc}%</span>` : ''}</div>
       <div class="pm-year-bar"><i class="${tone(yPc)}" style="width:${Math.min(100, yPc || 0)}%"></i></div>
     </section>`;
-    // 기관 실적표 모양: 연인원 / 실인원 / 횟수
-    const goal3 = i => (g.rows[i] || []).map(v => (v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months))));
-    const c3 = (list, i) => S.perfCount(list, i);
-    const td3 = (c, strong) => c.yeon == null ? `<td class="r num sub">-</td><td class="r num sub">-</td><td class="r num">${strong ? `<b>${U.num(c.cnt)}</b>` : U.num(c.cnt)}</td>` : `<td class="r num">${U.num(c.yeon)}</td><td class="r num">${U.num(c.sil)}</td><td class="r num">${strong ? `<b>${U.num(c.cnt)}</b>` : U.num(c.cnt)}</td>`;
-    const tdG = a => a.length ? a.map((v, k) => `<td class="r num sub">${v == null ? '-' : U.num(v)}</td>`).join('') : '<td class="sub r">-</td><td class="sub r">-</td><td class="sub r">-</td>';
-    const sum3 = list => items.reduce((t, i) => { const c = c3(list, i); t.yeon += c.yeon || 0; t.sil += c.sil || 0; t.cnt += c.cnt; return t; }, { yeon: 0, sil: 0, cnt: 0 });
-    const gSum = items.reduce((t, i) => { goal3(i).forEach((v, k) => { t[k] += v || 0; }); return t; }, [0, 0, 0]);
-    const triRows = items.map(i => { const yc = c3(ytd, i), gl = goal3(i), p = pc(yc.cnt, gl[2]); return `<tr><th>${e(i)}</th>${td3(c3(lines, i))}${td3(yc, true)}${tdG(gl)}<td class="r">${p != null ? `<span class="gl-pill ${tone(p)}">${p}%</span>` : '-'}</td></tr>`; }).join('');
-    const mS = sum3(lines), yS = sum3(ytd), tP = pc(yS.cnt, gSum[2]);
     const tri = `<section class="panel panel-pad pm-tri">
-      <h2 class="section-title">🧾 연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${monthLabel(f.month)} · 1~${curM}월 누적 · 연간 목표</span></h2>
-      <div class="table-wrap"><table class="tbl pm-tbl pm-tri-tbl"><thead>
-        <tr><th rowspan="2">세부사업</th><th colspan="3" class="c">${+f.month.slice(5, 7)}월</th><th colspan="3" class="c">누적 (1~${curM}월)</th><th colspan="3" class="c">연간 목표</th><th rowspan="2" class="r">달성률<small>(횟수)</small></th></tr>
-        <tr>${'<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>'.repeat(3)}</tr></thead>
-        <tbody>${triRows}</tbody>
-        <tfoot><tr class="pm-tot"><th>소계</th>${td3(mS)}${td3(yS, true)}${tdG(gSum)}<td class="r">${tP != null ? `<span class="gl-pill ${tone(tP)}">${tP}%</span>` : ''}</td></tr></tfoot></table></div>
-      <p class="sub" style="margin:8px 0 0">한 사람이 한 번 받으면 <b>1/1/1</b>, 같은 사람이 두 번이면 <b>2/1/2</b>. 현장중심 직업훈련은 <b>훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수</b>라서 1명이 한 달 20일 나가면 <b>20/1/20</b>. 실인원은 아래 실적 입력의 <b>참여자</b> 이름으로 셉니다(이름이 없으면 한 줄 = 1명). 소계 실인원은 항목별 실인원을 더한 값이에요.</p>
+      <h2 class="section-title">🧾 연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${monthLabel(f.month)} · 누적 · 연간 목표</span></h2>
+      ${GL.triHtml(f.month)}
     </section>`;
     return `${year}${tri}<section class="panel panel-pad pm">
       <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = ${g.baseYear}년 기준 실적 ÷ ${months}개월 · 남은 실적은 다음 달로 이월</span></h2>

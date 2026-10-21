@@ -1939,6 +1939,14 @@ window.App = (() => {
     },
     'dp-month': el => { DP.ui.mode = 'month'; DP.ui.month = el.dataset.month; DP.ui.year = +el.dataset.month.slice(0, 4); render(); },
     'dp-item': el => push({ type: 'dpitem', item: el.dataset.item, who: '' }, false),
+    'dp-goperf': el => { V.ui.perf.lastItem = el.dataset.item; location.hash = '#/perf'; setTimeout(() => { const fm = document.querySelector('[data-form="perf-add"]'); if (fm) { fm.elements.item.value = el.dataset.item; fm.scrollIntoView({ block: 'center', behavior: 'smooth' }); fm.elements.ppl?.focus(); } }, 300); },
+    'dp-ai': async () => {
+      const f = DP.coachFacts(); if (!f) return;
+      DP.ui.aiBusy = true; render();
+      try { const text = await AI.coach(f.text); DP.ui.ai = { key: f.key, text, at: new Date().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' 기준' }; }
+      catch (err) { toast('AI 코칭을 받지 못했어요: ' + err.message, 'error'); }
+      finally { DP.ui.aiBusy = false; render(); }
+    },
     'dp-who': el => { const top = stack[stack.length - 1]; if (top && top.type === 'dpitem') { top.who = el.dataset.who; renderDrawer(true); } },
     'or-file': () => $('#orFile') && $('#orFile').click(),
     'or-cat': el => { OR.ui.cat = el.dataset.cat || ''; render(); },

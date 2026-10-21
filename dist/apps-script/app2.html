@@ -2403,10 +2403,38 @@ window.GL = (() => {
   const factor = g => 12 / (Number(g.months) || 12);
 
   /** 한 해 실제 실적: 항목별 { cnt: 복지관 건수, yeon: 연인원, sil: 실인원 } (팀 전체) */
+  /** 기간(YYYY 또는 YYYY-MM)의 실적 줄 (팀 전체) */
+  function linesOf(prefix) {
+    const st = S.get();
+    return [...S.perfRows(prefix, st).filter(r => r.p.set === SET).map(r => ({ item: r.p.item, d: r.d, staff: r.a.staff || '', ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })),
+      ...st.perfs.filter(p => p.set === SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, d: p.date, staff: p.staff || '', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }))];
+  }
+  /** 기관 실적표 모양: 세부사업마다 연인원 / 실인원 / 횟수 (이번 달 · 1월부터 누적 · 연간 목표) */
+  function triHtml(M) {
+    const g = goal(), items = D.PERF_SETS[SET].items, months = Number(g.months) || 12, Y = +M.slice(0, 4), curM = +M.slice(5, 7);
+    const first = Y === g.baseYear ? 13 - months : 1;
+    const mon = linesOf(M), ytd = linesOf(String(Y)).filter(l => l.d.slice(0, 7) <= M && +l.d.slice(5, 7) >= first);
+    const pc = (a, t) => (t ? Math.round(a / t * 100) : null);
+    const tn = p => (p == null ? '' : p >= 100 ? 'done' : p >= 70 ? 'ok' : p >= 40 ? 'warn' : 'low');
+    const goal3 = i => (g.rows[i] || []).map(v => (v == null || v === '' ? null : Math.round(Number(v) * (Y === g.baseYear ? 1 : 12 / months))));
+    const c3 = (list, i) => S.perfCount(list, i);
+    const n = v => U.num(v);
+    const td3 = (c, strong) => c.yeon == null ? `<td class="r num sub">-</td><td class="r num sub">-</td><td class="r num">${strong ? `<b>${n(c.cnt)}</b>` : n(c.cnt)}</td>` : `<td class="r num">${n(c.yeon)}</td><td class="r num">${n(c.sil)}</td><td class="r num">${strong ? `<b>${n(c.cnt)}</b>` : n(c.cnt)}</td>`;
+    const tdG = a => [0, 1, 2].map(k => `<td class="r num sub">${a[k] == null ? '-' : n(a[k])}</td>`).join('');
+    const sum3 = list => items.reduce((t, i) => { const c = c3(list, i); t.yeon += c.yeon || 0; t.sil += c.sil || 0; t.cnt += c.cnt; return t; }, { yeon: 0, sil: 0, cnt: 0 });
+    const gSum = items.reduce((t, i) => { goal3(i).forEach((v, k) => { t[k] += v || 0; }); return t; }, [0, 0, 0]);
+    const pill = p => (p != null ? `<span class="gl-pill ${tn(p)}">${p}%</span>` : '-');
+    const rows = items.map(i => { const yc = c3(ytd, i), gl = goal3(i); return `<tr><th>${e(i)}</th>${td3(c3(mon, i))}${td3(yc, true)}${tdG(gl)}<td class="r">${pill(pc(yc.cnt, gl[2]))}</td></tr>`; }).join('');
+    const mS = sum3(mon), yS = sum3(ytd);
+    return `<div class="table-wrap"><table class="tbl pm-tbl pm-tri-tbl"><thead>
+        <tr><th rowspan="2">세부사업</th><th colspan="3" class="c">${curM}월</th><th colspan="3" class="c">누적 (${first}~${curM}월)</th><th colspan="3" class="c">연간 목표</th><th rowspan="2" class="r">달성률<small>(횟수)</small></th></tr>
+        <tr>${'<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>'.repeat(3)}</tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr class="pm-tot"><th>소계</th>${td3(mS)}${td3(yS, true)}${tdG(gSum)}<td class="r">${pill(pc(yS.cnt, gSum[2]))}</td></tr></tfoot></table></div>
+      <p class="sub" style="margin:8px 0 0">1명 1회 = <b>1/1/1</b>, 같은 사람 2회 = <b>2/1/2</b>. 현장중심 직업훈련은 <b>훈련받은 날 합계 / 훈련 인원 / 훈련한 날짜 수</b>(1명이 한 달 20일 = <b>20/1/20</b>). 실인원은 실적 입력의 <b>참여자</b> 이름으로 셉니다.</p>`;
+  }
   function actual(year) {
-    const st = S.get(), Y = String(year);
-    const lines = [...S.perfRows(Y, st).filter(r => r.p.set === SET).map(r => ({ item: r.p.item, d: r.d, ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId })),
-      ...st.perfs.filter(p => p.set === SET && (p.date || '').startsWith(Y)).map(p => ({ item: p.item, d: p.date, ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place) }))];
+    const lines = linesOf(String(year));
     const out = {};
     D.PERF_SETS[SET].items.forEach(i => { const c = S.perfCount(lines, i); out[i] = { cnt: c.cnt, yeon: c.yeon || 0, sil: c.sil || 0 }; });
     return out;
@@ -2527,7 +2555,7 @@ window.GL = (() => {
     return { baseYear: n('glYear') || DEFAULT.baseYear, months: n('glMonths') || 6, staffNeed: n('glNeed') || 3, staffNow: n('glNow') || 1, rows };
   }
 
-  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf };
+  return { SET, DEFAULT, goal, actual, panel, readEditor, yearOf, linesOf, triHtml, paceOf };
 })();
 
 </script>

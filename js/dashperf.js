@@ -37,6 +37,80 @@ window.DP = (() => {
   }
 
   const pc = (a, t) => (t ? Math.round(a / t * 1000) / 10 : null);
+
+  /* ---------- 실시간 코칭: 목표 대비 지금 어디쯤인지, 무엇을 더 하면 되는지 ---------- */
+  /** 그 달 평일(주말·공휴일 빼고) 목록 */
+  function workdays(ym) {
+    let hol = []; try { hol = window.AT ? (AT.meta(ym).holidays || []).map(Number) : []; } catch { hol = []; }
+    const [y, m] = ym.split('-').map(Number), last = new Date(y, m, 0).getDate(), out = [];
+    for (let d = 1; d <= last; d++) { const wd = new Date(y, m - 1, d).getDay(); if (wd && wd !== 6 && !hol.includes(d)) out.push(`${ym}-${U.pad(d)}`); }
+    return out;
+  }
+  // 세부사업마다 바로 할 일 (버튼)
+  const ACTION = item => /사업체개발|고용자원개발/.test(item) ? `<button class="btn btn-sm btn-primary" type="button" data-act="new-biz">+ 사업체 발굴 등록</button><a class="btn btn-sm" href="#/map">지도에서 찾기</a>`
+    : /사업체관리|고용네트워크/.test(item) ? `<a class="btn btn-sm" href="#/contacts">연락이력 쓰기</a>`
+    : `<button class="btn btn-sm" type="button" data-act="dp-goperf" data-item="${e(item)}">실적 입력하기</button>`;
+  /** 코칭 문장 목록 [{ lv: 'bad'|'warn'|'good'|'info', t, d, act }] + AI에 보낼 요약 */
+  function coachData(set, items, G, Y, M, yLines, mon, cum) {
+    const T = U.today(), curYM = T.slice(0, 7), live = M === curYM;
+    const out = [], facts = [];
+    const cnt = (list, i) => S.perfCount(list, i).cnt;
+    const wd = workdays(M), passed = live ? wd.filter(d => d < T).length : wd.length, left = live ? wd.filter(d => d >= T).length : 0;
+    const frac = wd.length ? passed / wd.length : 1, mm = +M.slice(5, 7);
+    const yPace = set === GL.SET ? GL.paceOf(Y, GL.goal()) / 100 : (Y < +T.slice(0, 4) ? 1 : (+T.slice(5, 7) - 1 + (+T.slice(8, 10)) / 31) / 12);
+    items.forEach(i => {
+      const mt = G.month(i, mm), yt = G.year(i), done = cnt(mon, i), c = cnt(cum, i);
+      // 연간 속도: 지금쯤 가 있어야 할 만큼에서 얼마나 늦었는지
+      let yr = '', ysc = 0;
+      if (yt && Y === +T.slice(0, 4)) {
+        const exp = Math.round(yt * yPace), gap = exp - c, monthsLeft = Math.max(1, 12 - +T.slice(5, 7) + 1);
+        if (gap >= Math.max(3, yt * .15)) { yr = `연간으로는 ${yt}건 중 ${c}건(지금쯤 ${exp}건)이라 남은 ${monthsLeft}달 동안 <b>월 ${Math.ceil((yt - c) / monthsLeft)}건</b>씩 해야 해요.`; ysc = gap / yt; }
+      }
+      if (!mt) { if (yr) out.push({ lv: 'warn', sc: ysc, t: `${i} 연간 목표보다 늦어요`, d: yr, act: ACTION(i) }); return; }
+      const need = mt - done, expect = Math.round(mt * frac), behind = expect - done;
+      facts.push(`${i}: 이번 달 ${done}/${mt}건 (지금쯤 ${expect}건이면 맞음), 누적 ${c}/${yt ?? '-'}건`);
+      if (need <= 0) { out.push({ lv: yr ? 'info' : 'good', sc: -1 + ysc, t: `${i} 이번 달 목표 달성 (${done}/${mt}건)`, d: [done > mt ? `${done - mt}건 넘었어요. 넘친 실적은 다음 달로 이월돼요.` : '목표만큼 했어요.', yr].filter(Boolean).join(' '), act: yr ? ACTION(i) : '' }); return; }
+      if (!live) { out.push({ lv: 'bad', sc: need / mt, t: `${i} ${need}건 모자랐어요 (${done}/${mt}건)`, d: '지난 기간이라 다음 달에 더 채워야 해요.' }); return; }
+      const perDay = left ? need / left : need;
+      const how = left ? `이번 달 목표 ${mt}건까지 ${need}건 남았어요. 남은 평일 ${left}일 동안 ${perDay >= 1 ? `<b>하루 ${Math.ceil(perDay)}건</b>` : `<b>주 ${Math.ceil(perDay * 5)}건</b>`}씩 하면 맞출 수 있어요.` : `이번 달이 끝나 ${need}건은 다음 달에 더 채워야 해요.`;
+      if (behind > 0) out.push({ lv: behind / mt >= .3 || (left <= 5 && need > left) ? 'bad' : 'warn', sc: behind / mt + ysc + (left ? 0 : 1), t: `${i} 실적이 부족해요 — 지금쯤 ${expect}건인데 ${done}건`, d: [how, yr].filter(Boolean).join(' '), act: ACTION(i) });
+      else out.push({ lv: yr ? 'warn' : 'info', sc: ysc, t: `${i} 이번 달은 순조로워요 (${done}/${mt}건)`, d: [`${need}건 남았고 남은 평일 ${left}일이에요.`, yr].filter(Boolean).join(' '), act: yr ? ACTION(i) : '' });
+    });
+    // 오래 연락이 끊긴 진행 중 사업체
+    if (live) {
+      const v = S.view();
+      const stale = v.businesses.filter(b => D.ACTIVE_STAGES.includes(b.stage) && S.inScope(b.staff)).map(b => ({ b, last: S.actsOf('biz', b.id).map(a => a.date).sort().pop() || b.discoveredAt || '' })).filter(x => x.last && U.diffDays(x.last, T) >= 21).sort((a, b) => a.last.localeCompare(b.last));
+      if (stale.length) out.push({ lv: 'warn', sc: .25, t: `3주 넘게 연락이 끊긴 진행 중 사업체 ${stale.length}곳`, d: `${stale.slice(0, 3).map(x => `<b class="link" data-act="open" data-kind="biz" data-id="${x.b.id}">${e(x.b.name)}</b>(${U.ago ? U.ago(x.last) : x.last})`).join(', ')}${stale.length > 3 ? ` 외 ${stale.length - 3}곳` : ''} — 다시 연락하면 사업체관리·취업 실적으로 이어져요.`, act: '<a class="btn btn-sm" href="#/contacts">연락이력 쓰기</a>' });
+      facts.push(`3주 넘게 연락 없는 진행 중 사업체 ${stale.length}곳`);
+      // 직원별 이번 달 실적
+      const staffs = S.staffHere().map(x => x.name);
+      const per = staffs.map(n => [n, items.reduce((a, i) => a + cnt(mon.filter(l => l.staff === n), i), 0)]);
+      facts.push('직원별 이번 달 실적: ' + per.map(([n, c]) => `${n} ${c}건`).join(', '));
+      const zero = per.filter(([, c]) => !c).map(([n]) => n);
+      if (zero.length && frac >= .3) out.push({ lv: 'warn', sc: .2, t: `이번 달 실적이 아직 없는 선생님: ${zero.join(', ')}`, d: '방문·전화 기록을 남기면 실적에 자동으로 들어가요. 빠뜨린 기록이 없는지 확인해 주세요.' });
+      // 참여자 이름 없는 실적 (실인원이 부정확해짐)
+      if (set === GL.SET) {
+        const noName = mon.filter(l => !S.NO_PEOPLE.has(l.item) && !(l.ppl || []).length).length;
+        if (noName) out.push({ lv: 'info', sc: .1, t: `참여자 이름이 없는 실적 ${noName}줄`, d: '실적표에서 참여자 이름을 넣으면 실인원(받은 사람 수)이 정확해져요.', act: '<a class="btn btn-sm" href="#/perf">실적표 열기</a>' });
+      }
+    }
+    const order = { bad: 0, warn: 1, info: 2, good: 3 };
+    out.sort((a, b) => order[a.lv] - order[b.lv] || b.sc - a.sc);
+    return { list: out, facts, live, left, passed, total: wd.length };
+  }
+  function coachHtml(cd, label, periodLabel) {
+    const icon = { bad: '🔴', warn: '🟠', info: '🔵', good: '✅' };
+    const top = cd.list.filter(x => x.lv !== 'good').slice(0, 5), rest = cd.list.filter(x => !top.includes(x));
+    const item = x => `<li class="dpc-i ${x.lv}"><span class="dpc-ic" aria-hidden="true">${icon[x.lv]}</span><div><b>${x.t}</b><p>${x.d}</p>${x.act ? `<div class="inline dpc-act">${x.act}</div>` : ''}</div></li>`;
+    const ai = ui.ai && ui.ai.key === label + periodLabel ? ui.ai : null;
+    return `<section class="dpc">
+      <div class="dpc-head"><h3>🧭 실시간 코칭 <span class="sub">${e(periodLabel)}${cd.live ? ` · 평일 ${cd.passed}/${cd.total}일 지남, ${cd.left}일 남음` : ''} · 기록을 넣으면 바로 바뀌어요</span></h3>
+        ${AI.available() ? `<button class="btn btn-sm btn-primary" type="button" data-act="dp-ai" ${ui.aiBusy ? 'disabled' : ''}>${ui.aiBusy ? 'AI가 보는 중…' : '✨ AI 코칭 받기'}</button>` : '<span class="sub">데이터 관리에서 AI 키를 넣으면 AI 코칭도 받을 수 있어요</span>'}</div>
+      ${ai ? `<div class="dpc-ai"><b>✨ AI 코칭</b> <span class="sub">${e(ai.at)}</span><div class="dpc-ai-t">${e(ai.text).replace(/\n/g, '<br>')}</div></div>` : ''}
+      ${top.length ? `<ul class="dpc-list">${top.map(item).join('')}</ul>` : '<p class="sub" style="margin:0">지금은 모든 항목이 목표대로 가고 있어요. 👏</p>'}
+      ${rest.length ? `<details class="dpc-more"><summary>나머지 ${rest.length}개 보기 (달성·순조)</summary><ul class="dpc-list">${rest.map(item).join('')}</ul></details>` : ''}
+    </section>`;
+  }
   const tone = p => (p == null ? '' : p >= 100 ? 'done' : p >= 70 ? 'ok' : p >= 40 ? 'warn' : 'low');
   const pill = p => (p == null ? '<span class="sub">-</span>' : `<span class="dp-pc ${tone(p)}">${p}%</span>`);
 
@@ -79,6 +153,8 @@ window.DP = (() => {
         <div class="dp-ctl"><div class="seg"><button type="button" class="${ui.mode === 'year' ? 'on' : ''}" data-act="dp-mode" data-mode="year">연간</button><button type="button" class="${ui.mode === 'month' ? 'on' : ''}" data-act="dp-mode" data-mode="month">월간</button></div>
           <button class="icon-btn" type="button" data-act="dp-move" data-d="-1" aria-label="이전">◀</button><b class="num dp-period">${periodLabel}</b><button class="icon-btn" type="button" data-act="dp-move" data-d="1" aria-label="다음">▶</button></div></div>
       <div class="dp-kpis">${kpis}</div>
+      ${coachHtml(coachData(set, items, G, Y, M, yLines, mon, cum), label, periodLabel)}
+      ${set === GL.SET ? `<div class="dp-sec-t">연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${mm}월 · 누적 · 연간 목표</span></div>${GL.triHtml(M)}` : ''}
       <div class="dp-sec-t">세부사업별 실적 요약 <span class="sub">(목표 대비 달성률 · ${e(G.note)}) · 세부사업을 누르면 담당자별·기록이 보여요</span></div>
       <div class="table-wrap"><table class="tbl dp-tbl">
         <thead><tr><th rowspan="2">세부사업</th><th>연간 목표</th><th colspan="2">누적 실적 (1~${mm}월)</th><th colspan="3">${mm}월 실적</th></tr>
@@ -110,5 +186,16 @@ window.DP = (() => {
       </div>`;
   }
 
-  return { ui, panel, itemHtml, setOfScope, lines, goals };
+  /** AI 코칭에 보낼 숫자 요약 (참여자 이름 같은 개인정보는 넣지 않는다) */
+  function coachFacts() {
+    const set = setOfScope();
+    if (!set) return null;
+    const items = D.PERF_SETS[set].items, Y = ui.year, M = ui.mode === 'month' ? ui.month : (String(Y) === now().slice(0, 4) ? now() : `${Y}-12`);
+    const yLines = lines(set, String(Y)), cum = yLines.filter(l => l.d.slice(0, 7) <= M), mon = yLines.filter(l => l.d.startsWith(M));
+    const cd = coachData(set, items, goals(set, Y), Y, M, yLines, mon, cum);
+    const label = SEC_LABEL[progOfScope()] || progOfScope(), periodLabel = ui.mode === 'month' ? `${Y}년 ${+M.slice(5, 7)}월` : `${Y}년`;
+    return { key: label + periodLabel, set, label, M, text: [`부서: ${label} (${set})`, `기준: ${M} (오늘 ${U.today()}, 이번 달 남은 평일 ${cd.left}일)`, ...cd.facts].join('\n') };
+  }
+
+  return { ui, panel, itemHtml, setOfScope, lines, goals, coachFacts };
 })();

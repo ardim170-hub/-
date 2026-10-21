@@ -145,5 +145,22 @@ ${acts || '-'}` }],
     return textOf(msg);
   }
 
-  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, research, summarize };
+  /* ---------- 실적 코칭: 숫자 요약 → 이번 주 할 일 ---------- */
+  async function coach(facts) {
+    const msg = await run({
+      max_tokens: 1500,
+      output_config: { effort: 'low' },
+      messages: [{ role: 'user', content: `화성시아르딤복지관 직업지원팀의 실적 코치로서, 아래 실적 현황을 보고 팀장이 팀원에게 말하듯 한국어로 짧게 코칭해 주세요.
+- 4~6줄, 각 줄은 "• "로 시작
+- 가장 부족한 항목부터, 숫자(몇 건 남음, 하루·주 몇 건)를 넣어 이번 주에 할 일을 구체적으로
+- 사업체개발이 부족하면 어떤 식으로 발굴하면 좋을지(구인공고 사이트·지역 공단·기존 거래처 소개 등) 한 줄
+- 잘 되고 있는 항목은 한 줄로 칭찬
+- 아래에 없는 숫자는 만들지 마세요
+
+${facts}` }],
+    });
+    return textOf(msg);
+  }
+
+  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, research, summarize, coach };
 })();
