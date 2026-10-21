@@ -2811,7 +2811,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.21 10:19";</script>
+<script>window.APP_VERSION = "2026.10.21 10:26";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -7452,7 +7452,7 @@ window.R = (() => {
   /* ---------- 공유 시트에서 붙여넣거나 엑셀·CSV 파일로 한 번에 가져오기 ---------- */
   const COLS = [['no', ['번호', '연번', 'no', 'No']], ['date', ['날짜', '일자', '연락일', '방문일', '등록일']], ['name', ['사업체명', '업체명', '사업체', '업체', '회사명', '기관명']], ['address', ['주소', '소재지']], ['phone', ['전화번호', '연락처', '전화']], ['contactName', ['담당자', '대표명', '담당자명']], ['jobType', ['직종', '직무', '모집직종']], ['content', ['결과', '내용', '비고', '메모']], ['result', ['연락결과']], ['status', ['상태']], ['staff', ['상담자', '담당직원', '작성자']], ['jobUrl', ['구인공고', '공고주소', '공고 링크', '공고링크', '링크', 'URL', 'url']],
     // 시트마다 있는 덧칸: 내용에 붙이거나(임금·근무시간) 상태로 쓰거나(연락이력), 개발대장 표시(실적 진행도)
-    ['wage', ['임금', '급여']], ['hours', ['근무시간']], ['log', ['연락이력']], ['progress', ['실적진행도', '진행도']], ['training', ['현장훈련유/무', '현장훈련']], ['step', ['절차']], ['welfare', ['복리후생']]];
+    ['wage', ['임금', '급여']], ['hours', ['근무시간']], ['log', ['연락이력']], ['progress', ['실적진행도', '진행도']], ['training', ['현장훈련유/무', '현장훈련']], ['step', ['절차']], ['welfare', ['복리후생']], ['how', ['방식', '연락방식', '유형']]];
   // 머리글이 없거나 모자라면 공유 시트 '○월 연락이력' 열 순서로 본다: 번호, 날짜, 사업체명, 주소, 전화번호, 담당자, 직종, 결과, 연락결과, 상태, 상담자
   const DEFAULT_ORDER = ['no', 'date', 'name', 'address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'];
   /** 엑셀 복사 형식(TSV) 읽기: 줄 바꿈이 든 칸은 "따옴표"로 감싸져 온다 */
@@ -7561,6 +7561,8 @@ window.R = (() => {
       ['address', 'phone', 'contactName', 'jobType', 'content', 'result', 'status', 'staff'].forEach(k => { if (/^[`'"\-·.\s]+$/.test(o[k] || '')) o[k] = ''; });
       o.result = D.CONTACT_RESULTS.find(x => o.result.replace(/\s/g, '') === x.replace(/\s/g, '')) || guessResult(o.content);
       o.type = /방문/.test(o.content) && !/방문\s*(예정|요청|일정)/.test(o.content) ? '방문' : /메일/.test(o.content) ? '이메일' : report ? '방문' : '전화';
+      const how = oneLine(o.how).replace(/\s/g, '');
+      if (D.ACT_TYPES.includes(how) && how !== '발굴') o.type = how;
       if (ledger) { o.ledger = true; o.type = '발굴'; }
       o.sheet = sheet;
       out.push(o);
@@ -7589,6 +7591,7 @@ window.R = (() => {
     const ws = words(name).map(w => U.norm(w));
     if (!ws.length || !ws.some(w => w.length >= 3)) return null;
     hit = idx.filter(o => ws.some(w => w.length >= 3 && o.key.includes(w)) && ws.every(w => o.key.includes(w) || subseq(w, o.key)));
+    if (hit.length > 1) { const exact = hit.filter(o => o.key === ws.join('')); if (exact.length && new Set(exact.map(o => o.key)).size === 1) return exact.find(o => o.kind === 'biz') || exact[0]; }
     return hit.length === 1 ? hit[0] : null;
   }
   /** 여러 표에서 읽은 줄을 합치고, 사이트에 이미 있는 기록은 표시 */
@@ -7631,11 +7634,11 @@ window.R = (() => {
     const { rows, skipped } = readTable(cells, year);
     return { rows: finishRows(rows), skipped };
   }
-  /** 엑셀 파일의 시트마다 머리글을 따로 읽는다 (양식·사본 시트는 건너뜀) */
+  /** 엑셀 파일의 시트마다 머리글을 따로 읽는다 (빈 양식·참고 시트는 건너뜀) */
   function parseSheets(sheets, year = ui.contacts.month.slice(0, 4)) {
     let all = [], skipped = 0;
     const used = [];
-    sheets.filter(sh => !/양식|사본|template/i.test(sh.name)).forEach(sh => {
+    sheets.filter(sh => !/양식|template|^참고/i.test(sh.name)).forEach(sh => {
       const r = readTable(sh.cells, year, sh.name);
       if (r.rows.length) used.push(`${sh.name} ${r.rows.length}줄`);
       all = all.concat(r.rows); skipped += r.skipped;
@@ -7669,7 +7672,7 @@ window.R = (() => {
         <textarea class="textarea" id="ctPasteBox" rows="7" placeholder="여기에 붙여넣기 (Ctrl+V)">${e(state.text || '')}</textarea>
         ${state.file ? `<p class="sub">파일: <b>${e(state.file)}</b></p>` : ''}
         ${rows.length ? `<div class="inline" style="margin:6px 0"><label class="sub" for="ctPasteWho">상담자 칸이 비었거나 모르는 이름이면</label><select class="select sm" id="ctPasteWho">${(S.staffHere().length ? S.staffHere() : S.staff()).map(s => `<option ${s.name === (state.who || S.me()) ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select><span class="sub">으로 기록</span></div>
-          ${state.used && state.used.length ? `<p class="sub">읽은 시트: ${state.used.map(e).join(' · ')} (양식·사본 시트는 건너뜀)</p>` : ''}
+          ${state.used && state.used.length ? `<p class="sub">읽은 시트: ${state.used.map(e).join(' · ')} (빈 양식·참고 시트는 건너뜀)</p>` : ''}
           ${state.skipped ? `<p class="sub">날짜·사업체명이 없는 줄 ${state.skipped}줄(제목·빈 줄·메모)은 뺐습니다.</p>` : ''}
           <p class="sub">${rows.length}줄을 읽었습니다${rows.length - fresh.length ? ` (그중 <b>${rows.length - fresh.length}줄은 같은 날 같은 사업체 기록이 이미 있어 건너뜁니다</b>)` : ''}. 처음 보는 사업체 <b>${newCount}곳</b>은 사업체 개발에${newInst ? `, 학교·센터·협회 같은 기관 <b>${newInst}곳</b>은 네트워크에` : ''} 새로 등록됩니다. 이름이 조금 달라도(예: 다이소 마도점 = 다이소 마도) 전화번호·이름 낱말이 같으면 이미 있는 곳으로 붙입니다. 같은 날 같은 사업체가 두 번 적힌 줄은 한 줄로 합쳤고, 연락결과는 결과 글을 보고 골라 두었습니다. 날짜 칸이 빈 줄은 바로 위 줄과 같은 날로 봤어요. 같은 파일을 두 번 넣어도 이미 있는 줄은 다시 들어가지 않아요.</p>
           <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>방식</th><th>상담자</th></tr></thead><tbody>
