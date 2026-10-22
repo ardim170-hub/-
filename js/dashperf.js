@@ -11,6 +11,7 @@ window.DP = (() => {
   /** 지금 보는 구역의 실적 분류표 */
   function setOfScope() {
     const sc = S.getScope();
+    if (sc.startsWith('s:')) return S.perfSetOf(sc.slice(2)) || '';
     if (!sc.startsWith('p:')) return '';
     return (S.get().settings.perfByProgram || {})[sc.slice(2)] || '';
   }
@@ -23,15 +24,21 @@ window.DP = (() => {
     return [...acts, ...mans].sort((a, b) => a.d.localeCompare(b.d));
   }
 
+  /** 고용지원사업 등: 기본 사업계획 목표 + 실적 화면에서 고친 목표 */
+  function goalMap(set) {
+    let custom = S.get().settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = null; } }
+    return { ...(GOALS[set] || {}), ...((custom || {})[set] || {}) };
+  }
   /** 목표: { year(i): 연간 목표, month(i, m): 그 달 목표 } (현장중심은 실적 목표 설정을, 나머지는 기본 사업계획을 쓴다) */
   function goals(set, Y) {
     if (set === GL.SET) {
       const g = GL.goal(), months = Number(g.months) || 12;
       return { year: i => GL.yearGoal(i, Y), month: (i, m) => GL.monthGoal(i, m, Y), note: Y === g.baseYear ? `${g.baseYear}년은 ${13 - months}~12월(${months}개월) 기준` : '연간 = 기준 실적 × 12 ÷ 기준 개월 수' };
     }
-    let custom = S.get().settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = null; } }
-    const G = { ...(GOALS[set] || {}), ...((custom || {})[set] || {}) };
-    return { year: i => (G[i] == null ? null : Number(G[i])), month: i => (G[i] == null ? null : Math.max(1, Math.round(G[i] / 12))), note: '연간 사업계획(횟수) 기준 · 월 목표 = 연간 ÷ 12' };
+    const G = goalMap(set);
+    // 월 목표: 연간 목표를 12달에 나눠 다 더하면 연간 목표와 같게 (예: 66 = 6·6·6·6·6·6·5·5·5·5·5·5)
+    const month = (i, m) => { const t = G[i]; if (t == null || t === '') return null; const base = Math.floor(t / 12), extra = t - base * 12; return base + (m - 1 < extra ? 1 : 0); };
+    return { year: i => (G[i] == null || G[i] === '' ? null : Number(G[i])), month, note: '연간 목표(횟수) 기준 · 월 목표 = 연간을 12달에 나눈 값' };
   }
 
   const pc = (a, t) => (t ? Math.round(a / t * 1000) / 10 : null);
@@ -300,5 +307,5 @@ window.DP = (() => {
     return { key: label + periodLabel, set, label, M, text: [`부서: ${label} (${set})`, `기준: ${M} (오늘 ${U.today()}, 이번 달 남은 평일 ${cd.left}일)`, ...cd.facts].join('\n') };
   }
 
-  return { ui, panel, itemHtml, sumHtml, setOfScope, lines, goals, coachFacts };
+  return { ui, panel, itemHtml, sumHtml, setOfScope, lines, goals, goalMap, coachFacts };
 })();

@@ -843,22 +843,26 @@ window.V = (() => {
     return sets.length ? sets : Object.keys(D.PERF_SETS);
   }
   /** 현장중심 전문인력: 실적 분류가 현장중심인 직원 */
-  const perfStaff = () => S.staff().filter(s => S.perfSetOf(s.name) === GL.SET).map(s => s.name);
+  /** 지금 구역의 실적 분류표 (현장중심 = 현장중심직업재활센터, 고용공단 = 고용지원사업) */
+  const perfSetNow = () => (window.DP && DP.setOfScope()) || GL.SET;
+  const perfStaff = () => S.staff().filter(s => S.perfSetOf(s.name) === (ui.perf.set || GL.SET)).map(s => s.name);
   /** 한 달(또는 앞부분이 같은 기간) 실적 줄: 팀 전체. [{item, staff, people}] */
-  function perfLines(prefix) {
+  function perfLines(prefix, set = ui.perf.set || GL.SET) {
     const st = S.get();
-    return [...S.perfRows(prefix, st).filter(r => r.p.set === GL.SET).map(r => ({ item: r.p.item, staff: r.a.staff || '', ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId, d: r.d })),
-      ...st.perfs.filter(p => p.set === GL.SET && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place), d: p.date }))];
+    return [...S.perfRows(prefix, st).filter(r => r.p.set === set).map(r => ({ item: r.p.item, staff: r.a.staff || '', ppl: S.pplOf(r.a), n: Number(r.a.people) || 1, key: r.a.targetId, d: r.d })),
+      ...st.perfs.filter(p => p.set === set && (p.date || '').startsWith(prefix)).map(p => ({ item: p.item, staff: p.staff || '', ppl: S.pplOf(p), n: Number(p.people) || 1, key: U.orgKey(p.place), d: p.date }))];
   }
   /** 이번 달 종합: 항목별 월 목표 대비 실적 그래프(사람별 색) + 전문인력별 자세한 표 */
   function perfMonth(f) {
-    const g = GL.goal(), items = D.PERF_SETS[GL.SET].items;
+    const set = f.set, isGL = set === GL.SET, def = D.PERF_SETS[set], items = def.items;
+    const g0 = GL.goal(), g = isGL ? g0 : { ...g0, baseYear: -1, months: 12, staffNeed: 0 };
     const months = Number(g.months) || 12, Y = +f.month.slice(0, 4);
     const curM = +f.month.slice(5, 7);
-    const mT = (i, m = curM) => GL.monthGoal(i, m, Y);      // 월 목표: 연간 목표를 달마다 나눈 값 (다 더하면 연간 목표)
-    const yT = i => GL.yearGoal(i, Y);
+    const G = DP.goals(set, Y);
+    const mT = (i, m = curM) => G.month(i, m);      // 월 목표: 연간 목표를 달마다 나눈 값 (다 더하면 연간 목표)
+    const yT = i => G.year(i);
     const pros = perfStaff();
-    const need = Math.max(Number(g.staffNeed) || 3, pros.length);
+    const need = Math.max(Number(g.staffNeed) || 0, pros.length, isGL ? 3 : 1);
     const slots = [...pros, ...Array.from({ length: need - pros.length }, (_, k) => `충원 예정${need - pros.length > 1 ? ' ' + (k + 1) : ''}`)];
     const lines = perfLines(f.month);
     const ytd = perfLines(String(Y)).filter(l => l.d.slice(0, 7) <= f.month && (Y !== g.baseYear || +l.d.slice(5, 7) > 12 - months));
@@ -895,28 +899,51 @@ window.V = (() => {
     const foot = `<tr class="pm-tot"><th>합계</th>${slots.map(n => `<td class="r num">${pros.includes(n) ? `<b>${sumC(lines, n)}</b>` : '-'}</td>`).join('')}${others ? `<td class="r num">${others}</td>` : ''}<td class="r num">${totA}</td><td class="r num">${totC ? '+' + totC : '-'}</td><td class="r num"><b>${totA + totC}</b></td><td class="r num">${totT}</td><td class="r"><span class="gl-pill ${tone(overall)}">${overall}%</span></td><td class="r num">${items.reduce((a, i) => a + cout(i), 0) || '-'}</td><td class="r num">${sumC(ytd)} / ${items.reduce((a, i) => a + (yT(i) || 0), 0)}</td><td></td></tr>`;
     const yAll = sumC(yearAll.filter(l => Y !== g.baseYear || +l.d.slice(5, 7) >= first)), yTot = items.reduce((a, i) => a + (yT(i) || 0), 0), yPc = pc(yAll, yTot);
     const year = `<section class="panel panel-pad pm-year">
-      <div><h2 class="section-title">🏁 ${Y}년 최종 실적 <span class="sub">현장중심직업재활센터 · ${Y === g.baseYear ? `${first}~12월(${months}개월)` : '1~12월'} 전체</span></h2>
+      <div><h2 class="section-title">🏁 ${Y}년 최종 실적 <span class="sub">${e(def.mid)} · ${Y === g.baseYear ? `${first}~12월(${months}개월)` : '1~12월'} 전체</span></h2>
         <p class="sub" style="margin:4px 0 0">한 달 목표를 넘긴 실적은 다음 달로 이월돼요. 연간 최종 실적은 이월과 상관없이 실제 건수를 모두 더한 값이에요.</p></div>
       <div class="pm-year-num"><b class="num ${tone(yPc)}">${yAll}</b><span class="num">/ ${yTot}건</span>${yPc != null ? `<span class="gl-pill ${tone(yPc)}">${yPc}%</span>` : ''}</div>
       <div class="pm-year-bar"><i class="${tone(yPc)}" style="width:${Math.min(100, yPc || 0)}%"></i></div>
     </section>`;
-    const tri = `<section class="panel panel-pad pm-tri">
+    const tri = !isGL ? '' : `<section class="panel panel-pad pm-tri">
       <h2 class="section-title">🧾 연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${monthLabel(f.month)} · 누적 · 연간 목표</span></h2>
       ${GL.triHtml(f.month)}
     </section>`;
-    return `${year}${tri}<section class="panel panel-pad pm">
-      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">현장중심직업재활센터 · 월 목표 = 연간 목표를 운영하는 달에 나눈 값(다 더하면 연간 목표) · 남은 실적은 다음 달로 이월</span></h2>
+    return `${year}${goalBox(f)}${tri}<section class="panel panel-pad pm">
+      <div class="pm-head"><div><h2 class="section-title">📊 ${monthLabel(f.month)} 실적 종합 <span class="sub">${e(def.mid)} · 월 목표 = 연간 목표를 운영하는 달에 나눈 값(다 더하면 연간 목표) · 남은 실적은 다음 달로 이월</span></h2>
         <div class="pm-legend">${slots.map(n => `<span><i style="background:${col(n)}"></i>${e(n)}${pros.includes(n) ? ` <b class="num">${sumC(lines, n)}건</b>` : ''}</span>`).join('')}${others ? `<span><i style="background:#9AA3B2"></i>그 외 직원 <b class="num">${others}건</b></span>` : ''}<span class="pm-goal-key"><b class="pm-goal"></b>월 목표</span></div></div>
         <div class="pm-overall"><span>이번 달 종합 달성률</span><b class="num ${tone(overall)}">${overall}%</b><small class="num">${totA}건${totC ? ` + 이월 ${totC}건` : ''} / 목표 ${totT}건</small></div></div>
       <div class="pm-chart">${chart}</div>
       <div class="table-wrap"><table class="tbl pm-tbl"><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>
       ${others ? `<p class="sub" style="margin:8px 0 0">⚠ 전문인력이 아닌 직원 이름으로 들어간 실적이 <b>${others}건</b> 있어요. 아래 실적표의 <b>담당</b> 칸에서 전문인력으로 바꾸면 사람별 칸에 들어가요.</p>` : ''}
-      ${need > pros.length ? `<p class="sub" style="margin:8px 0 0">전문인력 ${need}명 중 ${pros.length}명이에요. 1인당 월 목표는 ${need}명 기준이에요. 새 직원은 데이터 관리 → 직원에서 소속을 '장애인개발원'으로 넣으면 이 표에 칸이 생겨요.</p>` : ''}
+      ${isGL && need > pros.length ? `<p class="sub" style="margin:8px 0 0">전문인력 ${need}명 중 ${pros.length}명이에요. 1인당 월 목표는 ${need}명 기준이에요. 새 직원은 데이터 관리 → 직원에서 소속을 '장애인개발원'으로 넣으면 이 표에 칸이 생겨요.</p>` : ''}
     </section>`;
+  }
+  /** 목표를 실적 화면에서 바로 넣고 고치기 */
+  function goalBox(f) {
+    const set = f.set, isGL = set === GL.SET, items = D.PERF_SETS[set].items, Y = +f.month.slice(0, 4);
+    const canEdit = S.can('perf', 2), G = DP.goals(set, Y), num = v => (v == null || v === '' ? '' : v);
+    const inp = (i, k, v) => `<input class="input sm num goal-in" data-goal="${e(i)}" data-k="${k}" value="${num(v)}" placeholder="-" inputmode="numeric" ${canEdit ? '' : 'disabled'} aria-label="${e(i)} 목표">`;
+    let head, body, top = '';
+    if (isGL) {
+      const g = GL.goal(), first = 13 - (Number(g.months) || 12);
+      top = `<div class="inline goal-top"><label>기준 연도 <input class="input sm num" id="goalBaseYear" value="${g.baseYear}" style="width:70px" ${canEdit ? '' : 'disabled'}></label><label>기준 개월 수 <input class="input sm num" id="goalMonths" value="${g.months}" style="width:50px" ${canEdit ? '' : 'disabled'}></label><span class="sub">${g.baseYear}년은 ${first}~12월(${g.months}개월) 목표, 다음 해부터는 × 12 ÷ ${g.months}로 자동 계산</span></div>`;
+      head = `<tr><th>세부사업</th><th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th><th class="r sub">${Y}년 목표(횟수)</th><th class="r sub">${+f.month.slice(5, 7)}월 목표</th></tr>`;
+      body = items.map(i => { const r = g.rows[i] || []; return `<tr><th>${e(i)}</th><td class="r">${inp(i, 0, r[0])}</td><td class="r">${inp(i, 1, r[1])}</td><td class="r">${inp(i, 2, r[2])}</td><td class="r num sub">${G.year(i) ?? '-'}</td><td class="r num sub">${G.month(i, +f.month.slice(5, 7)) ?? '-'}</td></tr>`; }).join('');
+    } else {
+      const m = DP.goalMap(set);
+      head = `<tr><th>세부사업</th><th class="r">연간 목표(횟수)</th><th class="r sub">${+f.month.slice(5, 7)}월 목표</th></tr>`;
+      body = items.map(i => `<tr><th>${e(i)}</th><td class="r">${inp(i, 0, m[i])}</td><td class="r num sub">${G.month(i, +f.month.slice(5, 7)) ?? '-'}</td></tr>`).join('');
+    }
+    const tot = items.reduce((a, i) => a + (G.year(i) || 0), 0);
+    return `<details class="panel goal-box" ${f.goalOpen ? 'open' : ''}><summary data-act="goal-open"><b>🎯 목표</b> <span class="sub">${Y}년 연간 목표 합계 <b class="num">${U.num(tot)}</b>건 · 눌러서 ${canEdit ? '바로 입력·수정' : '보기'}</span></summary>
+      <div class="goal-body">${top}
+        <div class="table-wrap"><table class="tbl goal-tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">빈칸은 '해당 없음'. 월 목표는 연간 목표를 달마다 나눠 다 더하면 연간 목표와 같아요.</span>${canEdit ? '<button class="btn btn-primary" type="button" data-act="goal-save">목표 저장</button>' : ''}</div>
+      </div></details>`;
   }
   function perfPage() {
     const f = ui.perf;
-    f.set = GL.SET; // 실적은 현장중심직업재활센터 기준만 본다
+    f.set = perfSetNow(); // 현장중심 = 현장중심직업재활센터, 고용공단 = 고용지원사업
     const def = D.PERF_SETS[f.set];
     const pros = perfStaff();
     if (!pros.includes(f.who)) f.who = '';
@@ -948,7 +975,7 @@ window.V = (() => {
         <p class="sub" style="margin:8px 0 0"><b>실적은 이 화면에서 넣은 것만</b> 세요. 연락이력·사업체 개발·상세 화면에 남긴 기록은 실적에 들어가지 않아요. 사업체·기관 칸에 있는 곳 이름을 넣으면 그 곳 기록과도 이어져요.</p>
       </section>
       <div id="perfResults"></div>
-      <details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 설정</b> <span class="sub">기준 실적(목표) 고치기 · 2026년(6개월)·2027년(12개월)</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`;
+      ${f.set !== GL.SET ? '' : `<details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 설정</b> <span class="sub">기준 실적(목표) 고치기 · 2026년(6개월)·2027년(12개월)</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`}`;
   }
   /** 실적표: 세부사업 항목마다 칸을 나누고, 그 아래에 날짜순으로 한 줄씩. 칸을 고치면 바로 저장 */
   function perfResults() {

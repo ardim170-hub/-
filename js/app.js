@@ -18,7 +18,7 @@ window.App = (() => {
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
     { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
     { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
@@ -94,7 +94,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -160,7 +160,7 @@ window.App = (() => {
     const staff = S.staff();
     const cur = S.getScope();
     // 현장중심·고용공단 같은 구역 안에서는 그 구역과 그 구역 직원만 고를 수 있다 (다른 구역 자료로 넘어가지 않게)
-    const sec = curSec();
+    const sec = SECS.find(x => x.k === secKey) || {}; // 읽기만 (curSec은 구역을 바꿀 수 있어 여기서 부르지 않는다)
     if (sec.prog) {
       const mine = staff.filter(s => s.program === sec.prog);
       sel.innerHTML = `<option value="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 (${mine.length}명)</option>` + (mine.length ? `<optgroup label="${U.esc(sec.label)} 직원별">${mine.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>` : '');
@@ -1395,15 +1395,18 @@ window.App = (() => {
       const x = SECS.find(s => s.k === el.dataset.sec); if (!x) return;
       closeMore();
       secKey = x.k; lsSetSec(x.k);
+      // 주소를 먼저 그 구역 첫 화면으로 바꿔 둔다 (범위를 바꾸면 바로 다시 그리는데, 그때 옛 화면 주소면 구역이 되돌아간다)
+      const first0 = x.items.find(k => canSee(k === 'training' ? 'schedule' : k)) || x.items[0];
+      const target0 = '#/' + hrefOf(first0), moved = location.hash !== target0;
+      if (moved) history.pushState(null, '', target0);
       if (x.prog) {
         // 구역마다 그 구역 기록만 (담당자가 아직 없어도 다른 구역 기록을 보여 주지 않는다)
         S.setScope('p:' + x.prog);
         const P = D.PROGRAM[x.prog];
         Object.assign(V.ui.map, { mode: 'ours', prog: P && P.map ? x.prog : '', solo: null });
       }
-      const first = x.items.find(k => canSee(k === 'training' ? 'schedule' : k)) || x.items[0];
-      const target = '#/' + hrefOf(first);
-      if (location.hash === target) render(); else location.hash = target;
+      render();
+      if (moved) window.scrollTo(0, 0);
     },
     'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
     'tp-color': el => TR.setColor(el.dataset.color),
@@ -1944,6 +1947,23 @@ window.App = (() => {
     'at-imp-commit': () => { const r = AT.commitImport(); toast(`참여자 ${r.people}명 추가, 출석 기록 ${r.recs}건을 불러왔어요.`); render(); },
     'gl-mode': el => { V.ui.perf.glMode = el.dataset.mode; render(); },
     'gl-year': el => { V.ui.perf.glYear = +el.dataset.year; render(); },
+    'goal-save': async () => {
+      const set = V.ui.perf.set, num = v => { const t = String(v).replace(/[^0-9.]/g, ''); return t === '' ? null : Number(t); };
+      if (set === GL.SET) {
+        const g = GL.goal(), rows = JSON.parse(JSON.stringify(g.rows));
+        document.querySelectorAll('[data-goal]').forEach(el => { const i = el.dataset.goal; rows[i] = rows[i] || [null, null, null]; rows[i][+el.dataset.k] = num(el.value); });
+        const by = num($('#goalBaseYear')?.value), mo = num($('#goalMonths')?.value);
+        await S.saveSettings({ perfGoal: JSON.stringify({ ...g, rows, baseYear: by || g.baseYear, months: Math.min(12, Math.max(1, mo || g.months)) }) });
+      } else {
+        let custom = S.get().settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = {}; } }
+        const mine = {};
+        document.querySelectorAll('[data-goal]').forEach(el => { const v = num(el.value); mine[el.dataset.goal] = v == null ? '' : v; });
+        await S.saveSettings({ goalsBySet: JSON.stringify({ ...(custom || {}), [set]: mine }) });
+      }
+      toast('목표를 저장했어요. 월 목표·달성률·대시보드에 바로 반영돼요.');
+      render();
+    },
+    'goal-open': () => { V.ui.perf.goalOpen = !V.ui.perf.goalOpen; },
     'gl-save': async () => {
       const g = GL.readEditor();
       await S.saveSettings({ perfGoal: JSON.stringify(g) });
