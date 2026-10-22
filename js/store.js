@@ -534,7 +534,7 @@ window.S = (() => {
     const keys = new Map(dupKeys(kind, obj));
     const out = [];
     state[COL[kind]].forEach(y => {
-      if (y.id === obj.id) return;
+      if (y.id === obj.id || isPending(y)) return; // 미등록(연락만 한 곳)은 중복으로 보지 않는다
       const why = dupKeys(kind, y).filter(([k]) => keys.has(k)).map(([, w]) => w);
       if (why.length) out.push({ x: y, why });
     });

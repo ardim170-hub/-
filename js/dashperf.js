@@ -161,7 +161,7 @@ window.DP = (() => {
     const sumC = list => items.reduce((a, i) => a + cnt(list, i), 0);
     const totY = items.reduce((a, i) => a + (G.year(i) || 0), 0), totM = items.reduce((a, i) => a + (G.month(i, mm) || 0), 0);
     const v = S.view(), label = SEC_LABEL[progOfScope()] || progOfScope();
-    const contacts = v.activities.filter(a => a.targetType === 'biz' && ['전화', '방문', '이메일', '미팅'].includes(a.type) && S.inScope(a.staff) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
+    const contacts = v.activities.filter(a => a.targetType === 'biz' && a.fromPerf !== 'Y' && ['전화', '방문', '이메일', '미팅'].includes(a.type) && S.inScope(a.staff) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
     const newBiz = v.businesses.filter(b => (S.bizFirst(b) || b.discoveredAt || '').startsWith(ui.mode === 'month' ? M : String(Y))).length;
     const outreach = v.activities.filter(a => a.targetType === 'net' && ['홍보', '방문', '미팅', '행사'].includes(a.type) && (ui.mode === 'month' ? a.date.startsWith(M) : a.date.startsWith(String(Y))));
     const periodLabel = ui.mode === 'month' ? `${Y}년 ${mm}월` : `${Y}년`;

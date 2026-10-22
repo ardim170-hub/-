@@ -93,7 +93,7 @@ window.App = (() => {
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
-    'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
+    'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
     'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
@@ -1109,8 +1109,18 @@ window.App = (() => {
       const list = d.slice(0, 3).map(x => `'${x.x.name}${kind === 'card' && x.x.org ? ' · ' + x.x.org : ''}' (${x.why.join(', ')})`).join(', ');
       if (d.length && !(await confirmBox('이미 비슷한 게 있어요', `${list}${d.length > 3 ? ` 외 ${d.length - 3}건` : ''}. 그래도 새로 등록할까요? 등록한 뒤에도 상세 화면에서 합칠 수 있어요.`, '그래도 등록'))) return;
     }
+    // 연락이력에만 있던 같은 이름의 곳(미등록)이 있으면 그 기록을 이어받는다
+    const top0 = stack[stack.length - 1] || {};
+    const adopt = top0.adopt && S.find('biz', top0.adopt);
+    const pend = !id && (kind === 'biz' || kind === 'net') ? (adopt && S.isPending(adopt) ? adopt : S.get().businesses.find(b => S.isPending(b) && U.orgKey(b.name) === U.orgKey(obj.name))) : null;
+    if (pend && kind === 'biz') { obj.id = pend.id; obj.pending = ''; }
     const before = id && kind === 'biz' ? (S.find('biz', id) || {}).discoveredAt : null;
     const saved = S.upsert(kind, obj);
+    if (pend && kind === 'net') {
+      const moves = S.get().activities.filter(a => a.targetType === 'biz' && a.targetId === pend.id).map(a => ({ id: a.id, targetType: 'net', targetId: saved.id }));
+      if (moves.length) S.putMany('act', moves);
+      S.remove('biz', pend.id);
+    }
     if (id && kind === 'biz' && U.isDate(saved.discoveredAt) && before !== saved.discoveredAt) {
       const disc = S.get().activities.filter(a => a.targetType === 'biz' && a.targetId === id && a.type === '발굴');
       if (disc.length) S.putMany('act', disc.map(a => ({ id: a.id, date: saved.discoveredAt })));
@@ -1120,7 +1130,7 @@ window.App = (() => {
       registerFromCard(saved, res.extra.to, res.extra.name, res.extra.cat, false);
       return;
     }
-    if (!id && kind === 'biz') S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: saved.source ? `${saved.source}에서 찾아 사업체 등록` : '사업체 발굴 등록', staff: saved.staff || S.me() });
+    if (!id && kind === 'biz' && !pend) S.upsert('act', { targetType: 'biz', targetId: saved.id, date: saved.discoveredAt || U.today(), type: '발굴', content: saved.source ? `${saved.source}에서 찾아 사업체 등록` : '사업체 발굴 등록', staff: saved.staff || S.me() });
     // 간단 등록에서 담당자를 쓰면 명함도 만들어 이 사업체에 연결한다
     if (!id && kind === 'biz' && res.extra && res.extra.contact) {
       const ct = res.extra.contact, mob = /^01/.test(ct.phone.replace(/\D/g, ''));
@@ -2102,6 +2112,13 @@ window.App = (() => {
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
     'ct-reg': el => { const r = R.registerBiz(el.dataset.id, el.dataset.kind); if (r) toast(r.kind === 'net' ? `${r.x.name} 기관(네트워크)에 연락 기록을 옮겼어요. 기관 상세·홍보·방문처에서 볼 수 있어요.` : `${r.x.name}을(를) 사업체로 등록했어요. 사업체 개발·지도에 나와요.`); },
+    'ct-reg-form': el => {
+      // 연락만 한 곳 → 등록 화면을 열어 직접 입력 (저장하면 이 연락 기록도 그곳으로 이어진다)
+      const b = S.find('biz', el.dataset.id); if (!b) return;
+      const kind = el.dataset.kind === 'net' ? 'net' : 'biz';
+      const preset = { name: b.name, phone: b.phone || '', address: b.address || '', ...(b.programs && b.programs.length ? { programs: b.programs } : {}), ...(kind === 'net' ? { category: D.guessCategory(b.name) || '' } : { stage: b.stage, discoveredAt: b.discoveredAt, jobs: b.jobs || '' }) };
+      push({ type: 'form', kind, preset, adopt: b.id }, false);
+    },
     'ct-reg-all': async () => {
       const ids = [...new Set(R.contactRows(R.ui.contacts.month).filter(r => S.isPending(r.b)).map(r => r.b.id))];
       if (!ids.length || !(await confirmBox(`미등록 ${ids.length}곳을 모두 사업체로 등록할까요?`, '사업체 개발 목록과 지도에 올라가요.', '모두 등록'))) return;
@@ -2516,6 +2533,8 @@ window.App = (() => {
         const item = fd.item, name = (fd.name || '').trim(), note = (fd.note || '').trim();
         const k = U.orgKey(name);
         let b = name && S.get().businesses.find(x => U.orgKey(x.name) === k);
+        // 실적에서 사업체개발로 넣으면 그 사업체는 등록(사업체·지도에 나옴). 연락만 했던 곳(미등록)이면 등록으로 바꾼다
+        if (b && S.isPending(b) && item === '사업체개발') b = S.upsert('biz', { id: b.id, pending: '' });
         const n = !b && name && S.get().networks.find(x => U.orgKey(x.name) === k);
         // 사업체개발인데 처음 보는 이름이면 사업체로 바로 등록한다 (목록·지도에도 나오고 실적표에 굵게 표시)
         let newBiz = false;
