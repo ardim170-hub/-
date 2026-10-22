@@ -1714,6 +1714,119 @@ window.M = (() => {
 
 </script>
 <script>
+/* 네이버 지도(실험): 데이터 관리에 넣은 네이버 지도 키(Client ID)로 네이버 지도 JavaScript API v3를 띄운다.
+   기본 지도(Leaflet·브이월드)와 같은 장소·목록·말풍선을 쓰고, '나란히 비교'에서는 두 지도가 같이 움직인다.
+   길찾기·여기에 추가·위치 옮기기는 기본 지도에서만 된다. */
+window.NM = (() => {
+  let loading = null, map = null, info = null, markers = {}, authFailed = false, el = null;
+  const key = () => String((S.get().settings || {}).naverKey || '').trim();
+  const param = () => String((S.get().settings || {}).naverKeyParam || 'ncpKeyId');
+  const ready = () => !!(window.naver && naver.maps && naver.maps.Map);
+
+  /** 지도 스크립트 불러오기 (한 번만) */
+  function load() {
+    if (ready()) return Promise.resolve();
+    if (loading) return loading;
+    loading = new Promise((res, rej) => {
+      // 키가 틀리거나 이 사이트 주소가 등록되지 않으면 네이버가 이 함수를 부른다
+      window.navermap_authFailure = () => { authFailed = true; showFail(); };
+      const s = document.createElement('script');
+      s.src = `https:\/\/oapi.map.naver.com/openapi/v3/maps.js?${param()}=${encodeURIComponent(key())}`;
+      s.onload = () => (ready() ? res() : rej(new Error('네이버 지도를 불러오지 못했어요.')));
+      s.onerror = () => { loading = null; rej(new Error('네이버 지도 스크립트를 받지 못했어요. 인터넷 연결이나 회사 방화벽을 확인하세요.')); };
+      document.head.appendChild(s);
+    });
+    return loading;
+  }
+  function showFail(msg) {
+    if (!el) return;
+    el.innerHTML = `<div class="nm-fail"><b>네이버 지도 인증에 실패했어요</b>
+      <p>${msg ? U.esc(msg) : '키(Client ID)가 맞는지, 네이버 클라우드 콘솔의 <b>Maps → Application → Web 서비스 URL</b>에 아래 주소가 들어 있는지 확인하세요.'}</p>
+      <code>${U.esc(location.origin)}</code>${S.REMOTE ? '<code>https:\/\/script.google.com</code>' : ''}
+      <p class="sub">주소를 넣은 뒤 몇 분 지나 새로고침하세요. 데이터 관리 → 네이버 지도에서 키 방식(ncpKeyId / ncpClientId)을 바꿔 볼 수도 있어요.</p></div>`;
+  }
+
+  const LL = (lat, lng) => new naver.maps.LatLng(+lat, +lng);
+  /** 지도 만들기 (컨테이너가 바뀌면 새로 만든다) */
+  async function mount(box, view) {
+    el = box;
+    if (!key()) { box.innerHTML = '<div class="nm-fail"><b>네이버 지도 키가 없어요</b><p>데이터 관리 → 네이버 지도에 Client ID를 넣어 주세요.</p></div>'; return false; }
+    try { await load(); } catch (err) { showFail(err.message); return false; }
+    if (authFailed) { showFail(); return false; }
+    if (map && map.getElement && map.getElement() === box) return true;
+    markers = {};
+    map = new naver.maps.Map(box, {
+      center: LL(view ? view.lat : D.CITY_CENTER[0], view ? view.lng : D.CITY_CENTER[1]), zoom: view ? Math.round(view.zoom) : 11,
+      zoomControl: true, zoomControlOptions: { position: naver.maps.Position.TOP_LEFT }, mapTypeControl: true, scaleControl: true,
+    });
+    info = new naver.maps.InfoWindow({ content: '', borderWidth: 1, borderColor: '#C9D3E0', backgroundColor: '#fff', anchorSize: new naver.maps.Size(12, 8), pixelOffset: new naver.maps.Point(0, -6), maxWidth: 340 });
+    naver.maps.Event.addListener(map, 'zoom_changed', labels);
+    naver.maps.Event.addListener(map, 'click', () => info.close());
+    return true;
+  }
+  const color = (kind, x) => (kind === 'biz' ? M.bizColor(x) : kind === 'net' ? (S.isHome(x) ? D.MAP_COLORS.home : D.MAP_COLORS.net) : D.MAP_COLORS.card);
+  const nameOf = (kind, x) => (kind === 'card' ? (x.org || x.name) : x.name);
+  function labels() {
+    if (!map || !el) return;
+    el.classList.toggle('nm-labels', map.getZoom() >= 14 || Object.keys(markers).length <= 30);
+  }
+  /** 점 맞추기: 바뀐 점만 다시 만든다 */
+  function update(shown) {
+    if (!map || authFailed) return;
+    const seen = new Set();
+    shown.forEach(({ kind, x, month }) => {
+      if (!M.hasPos(x)) return;
+      const k = kind + x.id, sig = [x.lat, x.lng, nameOf(kind, x), color(kind, x), month ? 1 : 0].join('|');
+      seen.add(k);
+      const old = markers[k];
+      if (old && old._sig === sig) return;
+      if (old) old.setMap(null);
+      const home = kind === 'net' && S.isHome(x), shape = home ? 'star' : kind === 'biz' ? 'dot' : 'sq';
+      const mk = new naver.maps.Marker({
+        position: LL(x.lat, x.lng), map, zIndex: home ? 1000 : month ? 300 : 100,
+        icon: { content: `<div class="nm-pin ${shape} ${month ? 'hot' : ''}" style="--c:${color(kind, x)}"><i></i><span>${U.esc(nameOf(kind, x))}</span></div>`, anchor: new naver.maps.Point(8, 8) },
+      });
+      mk._sig = sig; mk._ref = { kind, id: x.id };
+      naver.maps.Event.addListener(mk, 'click', () => open(kind, x.id));
+      markers[k] = mk;
+    });
+    Object.keys(markers).forEach(k => { if (!seen.has(k)) { markers[k].setMap(null); delete markers[k]; } });
+    labels();
+  }
+  function open(kind, id) {
+    const mk = markers[kind + id], x = S.find(kind, id);
+    if (!mk || !x) return;
+    info.setContent(`<div class="nm-pop">${M.popupHtml(kind, x)}</div>`);
+    info.open(map, mk);
+    if (NM.onOpen) NM.onOpen(kind, id);
+  }
+  /** 목록에서 고르면 부드럽게 옮긴 뒤 말풍선 */
+  function focus(kind, id) {
+    const mk = markers[kind + id];
+    if (!mk) return false;
+    info.close();
+    map.morph(mk.getPosition(), Math.max(map.getZoom(), 16), { duration: 600 });
+    setTimeout(() => open(kind, id), 650);
+    return true;
+  }
+  function fit(shown) {
+    if (!map) return;
+    const pts = shown.filter(i => M.hasPos(i.x));
+    if (!pts.length) return;
+    const b = new naver.maps.LatLngBounds(LL(pts[0].x.lat, pts[0].x.lng), LL(pts[0].x.lat, pts[0].x.lng));
+    pts.forEach(i => b.extend(LL(i.x.lat, i.x.lng)));
+    map.fitBounds(b, { top: 30, right: 30, bottom: 30, left: 30 });
+  }
+  const getView = () => (map ? { lat: map.getCenter().lat(), lng: map.getCenter().lng(), zoom: map.getZoom() } : null);
+  const setView = v => { if (map && v) map.setCenter(LL(v.lat, v.lng)), map.setZoom(Math.round(v.zoom), false); };
+  const onIdle = fn => { if (map) naver.maps.Event.addListener(map, 'idle', fn); };
+  const resize = () => { if (map && el) map.setSize(new naver.maps.Size(el.clientWidth, el.clientHeight)); };
+  const reset = () => { map = null; markers = {}; el = null; };
+  return { key, ready, mount, update, focus, open, fit, getView, setView, onIdle, resize, reset, close: () => info && info.close(), failed: () => authFailed };
+})();
+
+</script>
+<script>
 /* AI 도우미 (Claude API)
    - 공유 모드: 구글 Apps Script 서버가 대신 호출한다 (API 키는 스크립트 속성에 보관, 브라우저에 노출되지 않음)
    - 파일 모드: 이 PC 브라우저에 저장한 API 키로 직접 호출한다
@@ -1911,7 +2024,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     hub: { q: '', triage: false },
-    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    map: { engine: (() => { try { return localStorage.getItem('ardim.mapEngine') || 'leaflet'; } catch { return 'leaflet'; } })(), biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
@@ -2376,7 +2489,7 @@ window.V = (() => {
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
       ${f.mode === 'city' ? cityMap() : `
       <section class="panel map-layout">
-        <div class="map-main">
+        <div class="map-main eng-${S.get().settings.naverKey ? (f.engine || 'leaflet') : 'leaflet'}">
           <div class="map-tools">
             <input class="input" id="mapQ" type="search" placeholder="이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
@@ -2390,9 +2503,11 @@ window.V = (() => {
             <button type="button" class="btn btn-sm btn-add ${f.addMode ? 'on' : ''}" data-act="map-addmode" id="mapAddBtn" title="지도에서 자리를 찍어 새 사업체·기관 등록 (오른쪽 클릭도 돼요)">${f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'}</button>
             <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
+            ${S.get().settings.naverKey ? `<div class="seg map-engine" role="group" aria-label="지도 종류">${[['leaflet', '브이월드'], ['naver', '네이버'], ['compare', '나란히 비교']].map(([k, l]) => `<button type="button" class="${(f.engine || 'leaflet') === k ? 'on' : ''}" data-act="map-engine" data-v="${k}">${l}</button>`).join('')}</div>` : ''}
           </div>
           <div class="map-canvas">
             <div class="map-box" id="bigMap"></div>
+            <div class="map-box nm-box" id="nvMap"></div>
             <div class="place-box" id="placeBox">
               <form class="ps-form" data-form="place-q" autocomplete="off" role="search"><input class="input" id="placeQ" type="search" placeholder="장소·주소 검색 → 바로 등록 (예: 다이소 마도점)" value="${e(f.pq || '')}" aria-label="장소·주소 검색"><button class="btn btn-primary" type="submit" aria-label="검색">🔍</button></form>
               <div class="ps-res" id="placeRes" hidden></div>
@@ -3054,6 +3169,13 @@ window.V = (() => {
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
           ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https:\/\/script.google.com')}" placeholder="https:\/\/script.google.com"></label>` : ''}
           ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">🟢 네이버 지도 (실험) ${st.settings.naverKey ? '<span class="badge success">키 있음</span>' : '<span class="badge">키 없음</span>'}</h2>
+          <p>네이버 클라우드 플랫폼의 <b>Maps (Dynamic Map)</b> 키(Client ID)를 넣으면 지도 화면 위쪽에서 <b>브이월드 / 네이버 / 나란히 비교</b>를 골라 볼 수 있어요. 길찾기·여기에 추가·위치 옮기기는 브이월드(기본) 지도에서 해요.</p>
+          <ol class="steps-help"><li>네이버 클라우드 콘솔 → <b>Maps</b> → Application 등록 → <b>Dynamic Map</b> 체크</li><li><b>Web 서비스 URL</b>에 아래 주소를 넣어요${S.REMOTE ? ' (둘 다)' : ''}<div class="inline" style="margin-top:4px"><code>${e(location.origin)}</code>${S.REMOTE ? '<code>https:\/\/script.google.com</code>' : ''}</div></li><li>받은 <b>Client ID</b>를 아래에 넣고 저장 → 지도 화면에서 <b>네이버</b> 또는 <b>나란히 비교</b></li></ol>
+          <div class="inline" style="width:100%"><input class="input" id="naverKeyInput" value="${e(st.settings.naverKey || '')}" placeholder="네이버 지도 Client ID"><select class="select" id="naverParamInput" aria-label="키 방식" title="새 콘솔에서 받은 키는 ncpKeyId, 예전 키는 ncpClientId">${['ncpKeyId', 'ncpClientId'].map(k => `<option ${(st.settings.naverKeyParam || 'ncpKeyId') === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="btn" type="button" data-act="save-naver">저장</button></div>
+          <p class="sub" style="margin:6px 0 0">'인증 실패'가 나오면 위 주소 등록을 확인하고, 키 방식을 바꿔 저장해 보세요(새 콘솔 키 = ncpKeyId, 예전 키 = ncpClientId).</p>
         </section>
         ` : ''}
         ${admin ? `

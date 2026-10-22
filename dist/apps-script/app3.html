@@ -1436,7 +1436,9 @@ window.App = (() => {
     if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'), { showLayers: false });
     markerGroup = null; markerIndex = {};
+    NM.reset();
     refreshMap(true);
+    bindNaver();
     const fx = V.ui.map.focus;
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
@@ -1484,6 +1486,25 @@ window.App = (() => {
     cityRO.observe(wrap);
     apply();
   }
+  /** 네이버 지도(실험): '네이버'면 그 지도만, '나란히 비교'면 두 지도가 같이 움직인다 */
+  const engine = () => (S.get().settings.naverKey ? V.ui.map.engine || 'leaflet' : 'leaflet');
+  let syncing = false;
+  async function bindNaver() {
+    const eng = engine(), box = $('#nvMap');
+    if (eng === 'leaflet' || !box || !bigMap) return;
+    const c = bigMap.getCenter();
+    const ok = await NM.mount(box, { lat: c.lat, lng: c.lng, zoom: bigMap.getZoom() });
+    if (!ok || !$('#nvMap')) return;
+    setTimeout(() => bigMap && bigMap.invalidateSize(), 50);
+    NM.onOpen = (kind, id) => selPlace(kind, id, true);
+    refreshMap(false);
+    if (eng === 'naver') NM.fit(V.mapItems().filter(i => M.hasPos(i.x)));
+    else {
+      // 나란히 비교: 한쪽을 움직이면 다른 쪽도 같은 곳·같은 확대로
+      bigMap.on('moveend', () => { if (syncing) return; syncing = true; const v = bigMap.getCenter(); NM.setView({ lat: v.lat, lng: v.lng, zoom: bigMap.getZoom() }); setTimeout(() => { syncing = false; }, 300); });
+      NM.onIdle(() => { if (syncing || !bigMap) return; syncing = true; const v = NM.getView(); bigMap.setView([v.lat, v.lng], v.zoom, { animate: false }); setTimeout(() => { syncing = false; }, 300); });
+    }
+  }
   /** 이름표: 가까이 보거나 점이 적으면 늘 보이게 */
   function mapLabels() {
     if (!bigMap) return;
@@ -1503,6 +1524,8 @@ window.App = (() => {
   /** 고른 곳으로 부드럽게 날아간 뒤 말풍선을 연다 (점은 다시 그리지 않는다) */
   function focusPlace(kind, id) {
     const key = kind + id;
+    if (engine() === 'naver') { selPlace(kind, id, false); if (!NM.focus(kind, id)) openDetail(kind, id, false); return; }
+    if (engine() === 'compare') NM.focus(kind, id);
     const m = markerIndex[key];
     if (!m || !bigMap) return openDetail(kind, id, false);
     selPlace(kind, id, false);
@@ -1572,6 +1595,7 @@ window.App = (() => {
       if (reopen) m.openPopup();
     });
     Object.keys(markerIndex).forEach(k => { if (!seen.has(k)) { markerGroup.removeLayer(markerIndex[k]); delete markerIndex[k]; } });
+    if (engine() !== 'leaflet') NM.update(shown);
     mapLabels();
     $('#bigMap')?.classList.toggle('picking', !!f.pick);
     drawRoute();
@@ -3333,6 +3357,13 @@ window.App = (() => {
       await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
     },
+    'save-naver': async () => {
+      const patch = { naverKey: $('#naverKeyInput').value.trim(), naverKeyParam: $('#naverParamInput').value };
+      await S.saveSettings(patch);
+      toast(patch.naverKey ? '네이버 지도 키를 저장했어요. 지도 화면 위쪽에서 네이버 / 나란히 비교를 고르세요. (키를 바꿨으면 새로고침 한 번)' : '네이버 지도 키를 지웠어요.');
+      render();
+    },
+    'map-engine': el => { V.ui.map.engine = el.dataset.v; try { localStorage.setItem('ardim.mapEngine', el.dataset.v); } catch { /* 저장 불가 */ } render(); },
     'save-vworld': async () => {
       const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
       if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();

@@ -26,7 +26,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     hub: { q: '', triage: false },
-    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    map: { engine: (() => { try { return localStorage.getItem('ardim.mapEngine') || 'leaflet'; } catch { return 'leaflet'; } })(), biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
@@ -491,7 +491,7 @@ window.V = (() => {
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
       ${f.mode === 'city' ? cityMap() : `
       <section class="panel map-layout">
-        <div class="map-main">
+        <div class="map-main eng-${S.get().settings.naverKey ? (f.engine || 'leaflet') : 'leaflet'}">
           <div class="map-tools">
             <input class="input" id="mapQ" type="search" placeholder="이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
@@ -505,9 +505,11 @@ window.V = (() => {
             <button type="button" class="btn btn-sm btn-add ${f.addMode ? 'on' : ''}" data-act="map-addmode" id="mapAddBtn" title="지도에서 자리를 찍어 새 사업체·기관 등록 (오른쪽 클릭도 돼요)">${f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'}</button>
             <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
+            ${S.get().settings.naverKey ? `<div class="seg map-engine" role="group" aria-label="지도 종류">${[['leaflet', '브이월드'], ['naver', '네이버'], ['compare', '나란히 비교']].map(([k, l]) => `<button type="button" class="${(f.engine || 'leaflet') === k ? 'on' : ''}" data-act="map-engine" data-v="${k}">${l}</button>`).join('')}</div>` : ''}
           </div>
           <div class="map-canvas">
             <div class="map-box" id="bigMap"></div>
+            <div class="map-box nm-box" id="nvMap"></div>
             <div class="place-box" id="placeBox">
               <form class="ps-form" data-form="place-q" autocomplete="off" role="search"><input class="input" id="placeQ" type="search" placeholder="장소·주소 검색 → 바로 등록 (예: 다이소 마도점)" value="${e(f.pq || '')}" aria-label="장소·주소 검색"><button class="btn btn-primary" type="submit" aria-label="검색">🔍</button></form>
               <div class="ps-res" id="placeRes" hidden></div>
@@ -1169,6 +1171,13 @@ window.V = (() => {
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
           ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https://script.google.com')}" placeholder="https://script.google.com"></label>` : ''}
           ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
+        </section>
+        <section class="panel panel-pad">
+          <h2 class="section-title">🟢 네이버 지도 (실험) ${st.settings.naverKey ? '<span class="badge success">키 있음</span>' : '<span class="badge">키 없음</span>'}</h2>
+          <p>네이버 클라우드 플랫폼의 <b>Maps (Dynamic Map)</b> 키(Client ID)를 넣으면 지도 화면 위쪽에서 <b>브이월드 / 네이버 / 나란히 비교</b>를 골라 볼 수 있어요. 길찾기·여기에 추가·위치 옮기기는 브이월드(기본) 지도에서 해요.</p>
+          <ol class="steps-help"><li>네이버 클라우드 콘솔 → <b>Maps</b> → Application 등록 → <b>Dynamic Map</b> 체크</li><li><b>Web 서비스 URL</b>에 아래 주소를 넣어요${S.REMOTE ? ' (둘 다)' : ''}<div class="inline" style="margin-top:4px"><code>${e(location.origin)}</code>${S.REMOTE ? '<code>https://script.google.com</code>' : ''}</div></li><li>받은 <b>Client ID</b>를 아래에 넣고 저장 → 지도 화면에서 <b>네이버</b> 또는 <b>나란히 비교</b></li></ol>
+          <div class="inline" style="width:100%"><input class="input" id="naverKeyInput" value="${e(st.settings.naverKey || '')}" placeholder="네이버 지도 Client ID"><select class="select" id="naverParamInput" aria-label="키 방식" title="새 콘솔에서 받은 키는 ncpKeyId, 예전 키는 ncpClientId">${['ncpKeyId', 'ncpClientId'].map(k => `<option ${(st.settings.naverKeyParam || 'ncpKeyId') === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="btn" type="button" data-act="save-naver">저장</button></div>
+          <p class="sub" style="margin:6px 0 0">'인증 실패'가 나오면 위 주소 등록을 확인하고, 키 방식을 바꿔 저장해 보세요(새 콘솔 키 = ncpKeyId, 예전 키 = ncpClientId).</p>
         </section>
         ` : ''}
         ${admin ? `

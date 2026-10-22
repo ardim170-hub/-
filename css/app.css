@@ -2155,3 +2155,26 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   .dp-ic-mid .dp-ring { width: 52px; height: 52px; }
   .dp-ic-num > b { font-size: 22px; }
 }
+
+/* ---------- 네이버 지도(실험) · 나란히 비교 ---------- */
+.map-main.eng-leaflet #nvMap { display: none; }
+.map-main.eng-naver #bigMap { position: absolute; inset: 0; visibility: hidden; }
+.map-main.eng-naver .map-legend, .map-main.eng-naver .place-box { display: none; }
+.map-main.eng-compare .map-canvas { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.map-main.eng-compare .map-canvas::before { content: '브이월드'; position: absolute; z-index: 3; left: 50%; top: 8px; transform: translateX(calc(-100% - 10px)); background: #172033; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 8px; pointer-events: none; }
+.map-main.eng-compare .map-canvas::after { content: '네이버'; position: absolute; z-index: 3; left: calc(50% + 10px); top: 8px; background: #03C75A; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 8px; pointer-events: none; }
+.map-main.eng-compare .map-legend { display: none; }
+.nm-box { width: 100%; height: 100%; background: #F2F4F6; }
+.map-engine { margin-left: auto; }
+.map-engine button.on { background: #03C75A !important; }
+.nm-fail { padding: 28px 22px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.6; }
+.nm-fail code { background: #fff; border: 1px solid var(--line-strong); padding: 2px 8px; font-size: 13px; }
+.nm-pin { position: relative; width: 16px; height: 16px; }
+.nm-pin i { position: absolute; inset: 0; background: var(--c); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
+.nm-pin.sq i { border-radius: 2px; transform: rotate(45deg) scale(.85); background: #172033; }
+.nm-pin.star i { inset: -6px; border-radius: 0; clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 35%); border: 0; }
+.nm-pin.hot i { box-shadow: 0 0 0 3px #172033; }
+.nm-pin span { display: none; position: absolute; top: 18px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(255,255,255,.94); border-radius: 4px; padding: 1px 6px; font-size: 11.5px; font-weight: 700; color: #222; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.nm-labels .nm-pin span, .nm-pin:hover span { display: block; }
+.nm-pop { padding: 10px 12px; max-width: 320px; font-size: 13px; }
+@media (max-width: 860px) { .map-main.eng-compare .map-canvas { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } .map-main.eng-compare .map-canvas::before, .map-main.eng-compare .map-canvas::after { display: none; } }
