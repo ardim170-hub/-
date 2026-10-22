@@ -1118,7 +1118,7 @@ window.S = (() => {
   function setMe(v) { lsSet('ardim.me', v); notify(); }
   function staffInScope(name, sc = scope) {
     if (sc === 'all') return true;
-    if (sc.startsWith('p:')) { const pg = programOf(name); return pg === sc.slice(2) || (!pg && !!name && staff().some(x => x.name === name)); } // 소속을 아직 안 정한 직원은 모든 구역에
+    if (sc.startsWith('p:')) return programOf(name) === sc.slice(2); // 구역(현장중심·고용공단 등)은 그 소속 직원 것만. 서로 섞이지 않게
     if (sc.startsWith('s:')) return name === sc.slice(2);
     return true;
   }
@@ -1326,9 +1326,10 @@ window.S = (() => {
     const nq = U.norm(q);
     if (!nq) return { biz: [], net: [], card: [] };
     const hit = (...vals) => U.match(q, ...vals);
-    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff, b.phone) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
-    const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
-    const card = state.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
+    const v = view(); // 지금 구역 안에서만 찾는다 (현장중심에서 고용공단 자료가 안 나오게)
+    const biz = v.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff, b.phone) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const net = v.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const card = v.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
     return { biz: can('biz', 1) ? biz.slice(0, 8) : [], net: can('network', 1) ? net.slice(0, 6) : [], card: can('cards', 1) ? card.slice(0, 8) : [] };
   }
 
@@ -2051,15 +2052,18 @@ window.V = (() => {
 
   function staffPanel() {
     const ss = S.staffStats();
+    // 구역(현장중심·고용공단) 안에서는 그 구역 직원만, 합계도 그 구역만
+    const sc = S.getScope(), prog = sc.startsWith('p:') ? sc.slice(2) : sc.startsWith('s:') ? S.programOf(sc.slice(2)) : '';
+    if (prog) { ss.groups = ss.groups.filter(g => g.key === prog); ss.total = ss.groups[0] ? ss.groups[0].total : { biz: 0, active: 0, placed: 0, net: 0, actsMonth: 0 }; ss.orphan = 0; }
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
     return `<section class="panel panel-pad">
-      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">팀 전체 · 행을 누르면 그 범위로 봅니다</span></div>
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체'} · 행을 누르면 그 범위로 봅니다</span></div>
       <div class="table-wrap"><table class="tbl staff-tbl">
         <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
         <tbody>${ss.groups.map(g => `
           ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
           ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
-          ${row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
+          ${prog ? '' : row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
         </tbody></table></div>
       ${ss.orphan ? `<p class="sub" style="margin:10px 0 0">담당 직원이 직원 목록에 없는 사업체 ${ss.orphan}곳은 위 표에 들어가지 않습니다. 데이터 관리에서 직원 목록을 확인하세요.</p>` : ''}
     </section>`;

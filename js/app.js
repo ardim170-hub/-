@@ -159,6 +159,16 @@ window.App = (() => {
     const sel = $('#scopeSel');
     const staff = S.staff();
     const cur = S.getScope();
+    // 현장중심·고용공단 같은 구역 안에서는 그 구역과 그 구역 직원만 고를 수 있다 (다른 구역 자료로 넘어가지 않게)
+    const sec = curSec();
+    if (sec.prog) {
+      const mine = staff.filter(s => s.program === sec.prog);
+      sel.innerHTML = `<option value="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 (${mine.length}명)</option>` + (mine.length ? `<optgroup label="${U.esc(sec.label)} 직원별">${mine.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>` : '');
+      sel.value = cur;
+      if (sel.value !== cur) { sel.value = 'p:' + sec.prog; if (cur !== 'p:' + sec.prog) S.setScope('p:' + sec.prog); }
+      sel.classList.add('scoped');
+      return;
+    }
     const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key) || S.getScope() === 'p:' + p.key); // 지금 구역은 담당자가 없어도 보이게
     sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
       progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
@@ -893,6 +903,11 @@ window.App = (() => {
     let v;
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'dpsum') {
+      inner.innerHTML = DP.sumHtml(top);
       showDrawer();
       return;
     }
@@ -1939,6 +1954,10 @@ window.App = (() => {
     },
     'dp-month': el => { DP.ui.mode = 'month'; DP.ui.month = el.dataset.month; DP.ui.year = +el.dataset.month.slice(0, 4); render(); },
     'dp-item': el => push({ type: 'dpitem', item: el.dataset.item, who: '' }, false),
+    'dp-sum': el => { const top = stack[stack.length - 1]; if (top && top.type === 'dpsum') { top.kind = el.dataset.kind; renderDrawer(true); } else push({ type: 'dpsum', kind: el.dataset.kind }, false); },
+    'dp-link': el => { location.hash = el.dataset.href; },
+    'dp-view': el => { DP.ui.view = el.dataset.v; render(); },
+    'dp-tables': () => { DP.ui.tables = !DP.ui.tables; },
     'dp-goperf': el => { V.ui.perf.lastItem = el.dataset.item; location.hash = '#/perf'; setTimeout(() => { const fm = document.querySelector('[data-form="perf-add"]'); if (fm) { fm.elements.item.value = el.dataset.item; fm.scrollIntoView({ block: 'center', behavior: 'smooth' }); fm.elements.ppl?.focus(); } }, 300); },
     'dp-ai': async () => {
       const f = DP.coachFacts(); if (!f) return;
@@ -2096,7 +2115,12 @@ window.App = (() => {
     },
     'staff-add': () => { $('#staffRows').insertAdjacentHTML('beforeend', V.staffRow()); $('#staffRows .staff-row:last-child input').focus(); },
     'staff-del': el => el.closest('.staff-row').remove(),
-    'scope-set': el => { S.setScope(el.dataset.scope); toast(`${S.scopeLabel()} 기준으로 봅니다.`); },
+    'scope-set': el => {
+      // 구역 안에서는 다른 구역·전체 팀으로 못 넘어간다
+      const sec = curSec(), sc = el.dataset.scope;
+      if (sec.prog && !(sc === 'p:' + sec.prog || (sc.startsWith('s:') && S.programOf(sc.slice(2)) === sec.prog))) return toast(`${sec.label}에서는 ${sec.label} 자료만 볼 수 있어요. 다른 구역은 위쪽 메뉴에서 고르세요.`);
+      S.setScope(sc); toast(`${S.scopeLabel()} 기준으로 봅니다.`);
+    },
     'cal-pull': async el => {
       el.disabled = true;
       try { const r = await maybeCalPull(true); toast(r ? `구글 캘린더에서 새로 ${r.added}건, 바뀐 것 ${r.changed}건, 지운 것 ${r.removed}건을 반영했어요.` : '가져올 일정이 없어요.'); }

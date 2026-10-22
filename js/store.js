@@ -634,7 +634,7 @@ window.S = (() => {
   function setMe(v) { lsSet('ardim.me', v); notify(); }
   function staffInScope(name, sc = scope) {
     if (sc === 'all') return true;
-    if (sc.startsWith('p:')) { const pg = programOf(name); return pg === sc.slice(2) || (!pg && !!name && staff().some(x => x.name === name)); } // 소속을 아직 안 정한 직원은 모든 구역에
+    if (sc.startsWith('p:')) return programOf(name) === sc.slice(2); // 구역(현장중심·고용공단 등)은 그 소속 직원 것만. 서로 섞이지 않게
     if (sc.startsWith('s:')) return name === sc.slice(2);
     return true;
   }
@@ -842,9 +842,10 @@ window.S = (() => {
     const nq = U.norm(q);
     if (!nq) return { biz: [], net: [], card: [] };
     const hit = (...vals) => U.match(q, ...vals);
-    const biz = state.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff, b.phone) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
-    const net = state.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
-    const card = state.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
+    const v = view(); // 지금 구역 안에서만 찾는다 (현장중심에서 고용공단 자료가 안 나오게)
+    const biz = v.businesses.filter(b => hit(b.name, b.industry, b.ceo, b.address, b.area, b.bizNo, b.jobs, b.memo, b.staff, b.phone) || cardsOf('biz', b.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const net = v.networks.filter(n => hit(n.name, n.category, n.address, n.area, n.relation, n.memo, n.staff) || cardsOf('net', n.id).some(c => hit(c.name, c.mobile, c.phone, c.email)));
+    const card = v.cards.filter(c => hit(c.name, c.org, c.title, c.dept, c.phone, c.mobile, c.email, (c.tags || []).join(' '), c.memo));
     return { biz: can('biz', 1) ? biz.slice(0, 8) : [], net: can('network', 1) ? net.slice(0, 6) : [], card: can('cards', 1) ? card.slice(0, 8) : [] };
   }
 
