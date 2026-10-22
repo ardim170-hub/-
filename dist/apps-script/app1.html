@@ -2916,6 +2916,16 @@ window.V = (() => {
       ${isGL && need > pros.length ? `<p class="sub" style="margin:8px 0 0">전문인력 ${need}명 중 ${pros.length}명이에요. 1인당 월 목표는 ${need}명 기준이에요. 새 직원은 데이터 관리 → 직원에서 소속을 '장애인개발원'으로 넣으면 이 표에 칸이 생겨요.</p>` : ''}
     </section>`;
   }
+  /** 다른 구역 직원 이름으로 잘못 들어간 이 사업 실적 (예: 고용공단 담당자가 없을 때 넣은 것) → 옮기거나 지우기 */
+  function perfWrongBox(f, pros) {
+    const st = S.get(), wrongP = st.perfs.filter(p => p.set === f.set && S.perfSetOf(p.staff) !== f.set);
+    const items = D.PERF_SETS[f.set].items;
+    const wrongA = st.activities.filter(a => a.fromPerf === 'Y' && items.includes(a.perf) && S.perfSetOf(a.staff) !== f.set && !(D.PERF_SETS[S.perfSetOf(a.staff)] || { items: [] }).items.includes(a.perf));
+    const n = wrongP.length + wrongA.length;
+    if (!n) return '';
+    return `<section class="panel panel-pad perf-wrong"><b>⚠ 담당자가 이 구역 직원이 아닌 실적 ${n}건</b> <span class="sub">(${[...new Set([...wrongP, ...wrongA].map(x => x.staff || '이름 없음'))].map(e).join(', ')} 이름으로 들어가 이 화면에 안 보여요)</span>
+      <div class="inline" style="margin-top:8px">${pros.length ? `<select class="select sm" id="perfFixTo">${pros.map(x => `<option>${e(x)}</option>`).join('')}</select><button class="btn btn-sm btn-primary" type="button" data-act="perf-fix-move">이 직원으로 옮기기</button>` : '<span class="sub">위 담당자 칸에서 이 구역 담당자를 먼저 추가하면 옮길 수 있어요.</span>'}<button class="btn btn-sm btn-danger-ghost" type="button" data-act="perf-fix-del">모두 지우기</button></div></section>`;
+  }
   /** 목표를 실적 화면에서 바로 넣고 고치기 */
   function goalBox(f) {
     const set = f.set, isGL = set === GL.SET, items = D.PERF_SETS[set].items, Y = +f.month.slice(0, 4);
@@ -2953,10 +2963,13 @@ window.V = (() => {
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <span class="sub">${e(def.mid)} · 한 달 기준</span>
       </div>
+      ${R.secStaffBar()}
+      ${perfWrongBox(f, pros)}
       ${perfMonth(f)}
       <section class="panel panel-pad perf-input">
         <h2 class="section-title">실적 입력 <span class="sub">${e(def.big)} › ${e(def.mid)} · 넣으면 아래 실적표의 그 항목 칸에 한 줄 추가돼요</span></h2>
-        <form class="perf-form" data-form="perf-add" autocomplete="off">
+        ${pros.length ? '' : `<div class="perf-nostaff">⚠ 이 구역(${e(def.mid)}) 담당자가 아직 없어서 실적을 넣을 수 없어요. 위 <b>담당자</b> 칸에 이름을 넣고 <b>+ 추가</b>를 누르면 바로 입력할 수 있어요.${S.isAdmin() ? '' : ' (담당자 추가는 관리자만 할 수 있어요)'}</div>`}
+        <form class="perf-form" data-form="perf-add" autocomplete="off" ${pros.length ? '' : 'hidden'}>
           <label>사업날짜<input class="input" type="date" name="date" value="${f.lastDate && f.lastDate.startsWith(f.month) ? f.lastDate : f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
           <label>끝 날짜 <span class="sub">(매일 나간 훈련 등)</span><input class="input" type="date" name="dateTo" title="비우면 하루만. 고르면 사업날짜부터 끝 날짜까지 날마다 한 줄씩 들어가요"></label>
           <label class="check pt-wk"><input type="checkbox" name="withWeekend">주말 포함</label>
