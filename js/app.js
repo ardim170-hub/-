@@ -154,6 +154,18 @@ window.App = (() => {
     renderScope();
   }
 
+  /** 공유 사이트(Apps Script) 파일들이 같은 때 만든 것인지 확인. 예전 파일이 섞이면 화면이 깨지므로 위에 알린다 */
+  function verCheck() {
+    const v = window.APP_VERSION, parts = window.__ver;
+    if (!v || !parts) return; // 파일 하나로 여는 버전은 확인 안 함
+    const cssV = getComputedStyle(document.documentElement).getPropertyValue('--css-ver').replace(/["']/g, '').trim();
+    const old = [...(cssV === v ? [] : ['style']), ...['app1', 'app2', 'app3'].filter(k => parts[k] !== v)];
+    if (!old.length) return;
+    const bar = document.createElement('div');
+    bar.className = 'ver-warn';
+    bar.innerHTML = `⚠ 파일이 서로 다른 때 것이 섞여 있어요: <b>${old.map(k => k + '.html').join(', ')}</b>이(가) index.html(${U.esc(v)})과 달라요. 그래서 화면 모양이 깨지거나 기능이 안 될 수 있어요. 받은 파일 중 <b>${old.map(k => k + '.html').join(', ')}</b>을(를) 처음부터 끝까지 다시 붙여넣고(Ctrl+A → Ctrl+V) 새 버전으로 배포해 주세요. <button type="button" onclick="this.parentNode.remove()">닫기</button>`;
+    document.body.prepend(bar);
+  }
   /* ---------- 보기 범위 · 동기화 상태 ---------- */
   function renderScope() {
     const sel = $('#scopeSel');
@@ -2672,6 +2684,7 @@ window.App = (() => {
         throw new Error(`프로그램 일부(${missing.join(', ')})를 불러오지 못했습니다.${bad}${errs ? ` 오류: ${errs}.` : ''} ${parts ? 'app1~app3.html' : 'index.html'}을 처음부터 끝까지 다시 붙여 넣고 새 버전으로 배포해 주세요.`);
       }
       bindGlobal();
+      verCheck();
       // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
       { const sp = curSec().prog, sc = S.getScope(); if (sp && sc !== 'p:' + sp && !(sc.startsWith('s:') && S.programOf(sc.slice(2)) === sp)) S.setScope('p:' + sp); }
       render();

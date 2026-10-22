@@ -69,8 +69,10 @@ function splitGas(html) {
   scripts.forEach(x => { const k = Math.min(APP_PARTS - 1, Math.floor(acc / (total / APP_PARTS))); parts[k].push(x); acc += x.length; });
   if (out.includes('<?') && (out.match(/<\?/g) || []).length !== APP_PARTS + 1) throw new Error('index.html 뼈대에 템플릿 기호(<?)가 더 있습니다');
   // 파일마다 이름표: 화면이 읽힌 순서를 확인해 파일이 바뀌거나 빠지면 정확히 알려 준다
-  const tag = n => `<script>(window.__parts = window.__parts || []).push('${n}');</script>`;
-  return { index: out, files: { style: styles.join('\n'), ...Object.fromEntries(parts.map((p, i) => [`app${i + 1}`, tag(`app${i + 1}`) + '\n' + p.join('\n')])) } };
+  // 파일마다 만든 시각(버전)도 적어, 예전 파일이 섞여 있으면 화면에서 알려 준다
+  const tag = n => `<script>(window.__parts = window.__parts || []).push('${n}'); (window.__ver = window.__ver || {})['${n}'] = ${JSON.stringify(stamp)};</script>`;
+  const css = styles.join('\n').replace(/\n<\/style>\s*$/, `\n:root { --css-ver: ${JSON.stringify(stamp)}; }\n</style>`);
+  return { index: out, files: { style: css, ...Object.fromEntries(parts.map((p, i) => [`app${i + 1}`, tag(`app${i + 1}`) + '\n' + p.join('\n')])) } };
 }
 const parts = splitGas(gasHtml);
 writeFileSync(join(GAS_DIR, 'index.html'), parts.index);
