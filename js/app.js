@@ -175,9 +175,10 @@ window.App = (() => {
     const sec = SECS.find(x => x.k === secKey) || {}; // 읽기만 (curSec은 구역을 바꿀 수 있어 여기서 부르지 않는다)
     if (sec.prog) {
       const mine = staff.filter(s => s.program === sec.prog);
-      sel.innerHTML = `<option value="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 (${mine.length}명)</option>` + (mine.length ? `<optgroup label="${U.esc(sec.label)} 직원별">${mine.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>` : '');
-      sel.value = cur;
-      if (sel.value !== cur) { sel.value = 'p:' + sec.prog; if (cur !== 'p:' + sec.prog) S.setScope('p:' + sec.prog); }
+      // 구역 안에서는 늘 구역 전체로 본다. 사람별로는 각 화면의 이름 버튼(전체·김정배·이유진)으로 거른다 (거르는 곳이 두 군데면 헷갈려서)
+      sel.innerHTML = `<option value="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 (${mine.length}명)</option>`;
+      sel.value = 'p:' + sec.prog;
+      if (cur !== 'p:' + sec.prog) setTimeout(() => S.setScope('p:' + sec.prog), 0);
       sel.classList.add('scoped');
       return;
     }
@@ -2224,7 +2225,10 @@ window.App = (() => {
     'scope-set': el => {
       // 구역 안에서는 다른 구역·전체 팀으로 못 넘어간다
       const sec = curSec(), sc = el.dataset.scope;
-      if (sec.prog && !(sc === 'p:' + sec.prog || (sc.startsWith('s:') && S.programOf(sc.slice(2)) === sec.prog))) return toast(`${sec.label}에서는 ${sec.label} 자료만 볼 수 있어요. 다른 구역은 위쪽 메뉴에서 고르세요.`);
+      if (sec.prog && sc.startsWith('s:') && S.programOf(sc.slice(2)) === sec.prog) { // 사람별은 화면 안 이름 버튼으로
+        const n = sc.slice(2); V.ui.perf.who = n; R.ui.contacts.who = n; return toast(`${n} 선생님 것만 보려면 실적·연락이력 화면의 '${n}' 이름 버튼을 누르세요.`);
+      }
+      if (sec.prog && sc !== 'p:' + sec.prog) return toast(`${sec.label}에서는 ${sec.label} 자료만 볼 수 있어요. 다른 구역은 위쪽 메뉴에서 고르세요.`);
       S.setScope(sc); toast(`${S.scopeLabel()} 기준으로 봅니다.`);
     },
     'cal-pull': async el => {
@@ -2706,7 +2710,7 @@ window.App = (() => {
       bindGlobal();
       verCheck();
       // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
-      { const sp = curSec().prog, sc = S.getScope(); if (sp && sc !== 'p:' + sp && !(sc.startsWith('s:') && S.programOf(sc.slice(2)) === sp)) S.setScope('p:' + sp); }
+      { const sp = curSec().prog; if (sp && S.getScope() !== 'p:' + sp) S.setScope('p:' + sp); } // 예전에 한 사람만 보게 저장돼 있어도 구역 전체로
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);

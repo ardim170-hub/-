@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.10.27 17:29";</script>
+<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.10.27 17:50";</script>
 <script>
 /* 공통 유틸: 날짜, 문자열, 포맷 */
 window.U = (() => {
@@ -2170,12 +2170,12 @@ window.V = (() => {
     if (prog) { ss.groups = ss.groups.filter(g => g.key === prog); ss.total = ss.groups[0] ? ss.groups[0].total : { biz: 0, active: 0, placed: 0, net: 0, actsMonth: 0 }; ss.orphan = 0; }
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
     return `<section class="panel panel-pad">
-      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체'} · 행을 누르면 그 범위로 봅니다</span></div>
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체 · 행을 누르면 그 범위로 봅니다'}</span></div>
       <div class="table-wrap"><table class="tbl staff-tbl">
         <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
         <tbody>${ss.groups.map(g => `
           ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
-          ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
+          ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', prog ? '' : `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
           ${prog ? '' : row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
         </tbody></table></div>
       ${ss.orphan ? `<p class="sub" style="margin:10px 0 0">담당 직원이 직원 목록에 없는 사업체 ${ss.orphan}곳은 위 표에 들어가지 않습니다. 데이터 관리에서 직원 목록을 확인하세요.</p>` : ''}

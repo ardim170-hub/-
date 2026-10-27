@@ -2956,7 +2956,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.27 17:29";</script>
+<script>window.APP_VERSION = "2026.10.27 17:50";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -5161,12 +5161,12 @@ window.V = (() => {
     if (prog) { ss.groups = ss.groups.filter(g => g.key === prog); ss.total = ss.groups[0] ? ss.groups[0].total : { biz: 0, active: 0, placed: 0, net: 0, actsMonth: 0 }; ss.orphan = 0; }
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
     return `<section class="panel panel-pad">
-      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체'} · 행을 누르면 그 범위로 봅니다</span></div>
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체 · 행을 누르면 그 범위로 봅니다'}</span></div>
       <div class="table-wrap"><table class="tbl staff-tbl">
         <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
         <tbody>${ss.groups.map(g => `
           ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
-          ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
+          ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', prog ? '' : `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
           ${prog ? '' : row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
         </tbody></table></div>
       ${ss.orphan ? `<p class="sub" style="margin:10px 0 0">담당 직원이 직원 목록에 없는 사업체 ${ss.orphan}곳은 위 표에 들어가지 않습니다. 데이터 관리에서 직원 목록을 확인하세요.</p>` : ''}
@@ -11119,9 +11119,10 @@ window.App = (() => {
     const sec = SECS.find(x => x.k === secKey) || {}; // 읽기만 (curSec은 구역을 바꿀 수 있어 여기서 부르지 않는다)
     if (sec.prog) {
       const mine = staff.filter(s => s.program === sec.prog);
-      sel.innerHTML = `<option value="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 (${mine.length}명)</option>` + (mine.length ? `<optgroup label="${U.esc(sec.label)} 직원별">${mine.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>` : '');
-      sel.value = cur;
-      if (sel.value !== cur) { sel.value = 'p:' + sec.prog; if (cur !== 'p:' + sec.prog) S.setScope('p:' + sec.prog); }
+      // 구역 안에서는 늘 구역 전체로 본다. 사람별로는 각 화면의 이름 버튼(전체·김정배·이유진)으로 거른다 (거르는 곳이 두 군데면 헷갈려서)
+      sel.innerHTML = `<option value="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 (${mine.length}명)</option>`;
+      sel.value = 'p:' + sec.prog;
+      if (cur !== 'p:' + sec.prog) setTimeout(() => S.setScope('p:' + sec.prog), 0);
       sel.classList.add('scoped');
       return;
     }
@@ -13168,7 +13169,10 @@ window.App = (() => {
     'scope-set': el => {
       // 구역 안에서는 다른 구역·전체 팀으로 못 넘어간다
       const sec = curSec(), sc = el.dataset.scope;
-      if (sec.prog && !(sc === 'p:' + sec.prog || (sc.startsWith('s:') && S.programOf(sc.slice(2)) === sec.prog))) return toast(`${sec.label}에서는 ${sec.label} 자료만 볼 수 있어요. 다른 구역은 위쪽 메뉴에서 고르세요.`);
+      if (sec.prog && sc.startsWith('s:') && S.programOf(sc.slice(2)) === sec.prog) { // 사람별은 화면 안 이름 버튼으로
+        const n = sc.slice(2); V.ui.perf.who = n; R.ui.contacts.who = n; return toast(`${n} 선생님 것만 보려면 실적·연락이력 화면의 '${n}' 이름 버튼을 누르세요.`);
+      }
+      if (sec.prog && sc !== 'p:' + sec.prog) return toast(`${sec.label}에서는 ${sec.label} 자료만 볼 수 있어요. 다른 구역은 위쪽 메뉴에서 고르세요.`);
       S.setScope(sc); toast(`${S.scopeLabel()} 기준으로 봅니다.`);
     },
     'cal-pull': async el => {
@@ -13650,7 +13654,7 @@ window.App = (() => {
       bindGlobal();
       verCheck();
       // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
-      { const sp = curSec().prog, sc = S.getScope(); if (sp && sc !== 'p:' + sp && !(sc.startsWith('s:') && S.programOf(sc.slice(2)) === sp)) S.setScope('p:' + sp); }
+      { const sp = curSec().prog; if (sp && S.getScope() !== 'p:' + sp) S.setScope('p:' + sp); } // 예전에 한 사람만 보게 저장돼 있어도 구역 전체로
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);
