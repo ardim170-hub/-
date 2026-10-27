@@ -274,6 +274,13 @@ window.App = (() => {
     renderSync(S.sync);
   }
 
+  /** 방금 넣은 기록의 담당이 지금 보는 범위(한 사람)에 없으면 바로 알려 준다 */
+  function hiddenHere(who) {
+    const sc = S.getScope();
+    if (!sc.startsWith('s:') || sc.slice(2) === who) return;
+    const sec = SECS.find(x => x.k === secKey) || {};
+    setTimeout(() => toast(`저장은 됐어요. 그런데 지금 '${sc.slice(2)}' 선생님 기록만 보는 중이라 ${who} 선생님 기록은 이 화면에 안 보여요.`, 'error', sec.prog ? { action: { label: `${sec.label} 전체 보기`, run: () => S.setScope('p:' + sec.prog) } } : {}), 400);
+  }
   /** 한 사람 기록만 보는 중이면 화면 위에 크게 알린다 (다른 직원이 넣은 기록이 안 보여 헷갈리지 않게) */
   function scopeBanner() {
     const sc = S.getScope();
@@ -2586,6 +2593,7 @@ window.App = (() => {
           if (isAct) S.upsertMany('act', days.map((d, i) => ({ id: ids[i], targetType: b ? 'biz' : 'net', targetId: (b || n).id, date: d, type: fd.type || '방문', content: note || `${item} 실적`, staff: who, perf: item, people, ppl, fromPerf: 'Y' })));
           else S.upsertMany('perf', days.map((d, i) => ({ id: ids[i], date: d, set: V.ui.perf.set, item, people, newPeople: '', round: '', place: name, note, staff: who, ppl })));
           toast(`${item} ${days.length}줄을 넣었어요. (${U.dateDot(days[0])} ~ ${U.dateDot(days[days.length - 1])})`);
+          hiddenHere(who);
           return;
         }
         clearDraft('perf-add');
@@ -2598,6 +2606,7 @@ window.App = (() => {
           rec = S.upsert('perf', { id: newId, date: fd.date, set: V.ui.perf.set, item, people, newPeople: fd.newPeople ? +fd.newPeople : '', round: (fd.round || '').trim(), place: name, note, staff: who, ppl });
         }
         toast(`${fd.date} ${item} · ${who}에 한 줄 추가했어요.${newBiz ? ` '${name}'을(를) 사업체로 새로 등록했어요. 주소를 넣으면 지도에도 나와요.` : ''}`);
+        hiddenHere(who);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
