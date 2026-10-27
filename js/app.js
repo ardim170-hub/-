@@ -265,6 +265,7 @@ window.App = (() => {
     try {
       keepDrafts(() => { view.innerHTML = html(); after && after(); });
       crumb(r);
+      scopeBanner();
     } catch (err) {
       console.error(err);
       view.innerHTML = `<div class="panel"><div class="empty"><strong>화면을 그리는 중 문제가 생겼습니다</strong>${U.esc(err.message)}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
@@ -273,6 +274,16 @@ window.App = (() => {
     renderSync(S.sync);
   }
 
+  /** 한 사람 기록만 보는 중이면 화면 위에 크게 알린다 (다른 직원이 넣은 기록이 안 보여 헷갈리지 않게) */
+  function scopeBanner() {
+    const sc = S.getScope();
+    if (!sc.startsWith('s:') || route() === 'data') return;
+    const sec = SECS.find(x => x.k === secKey) || {};
+    const bar = document.createElement('div');
+    bar.className = 'scope-banner';
+    bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
+    view.prepend(bar);
+  }
   function bindOutreach() {
     OR.bind();
     const f = $('#orFile');
