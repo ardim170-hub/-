@@ -9,7 +9,6 @@ window.App = (() => {
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
-    ['orders', '출장·특근', 'trip'],
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
@@ -24,7 +23,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', orders: () => '출장·특근 명령부·여비', attend: () => `참여자 ${S.get().jobPeople.length}명`, training: () => 'JOB이음터 · 일과놀이반', data: () => '백업·가져오기·권한',
+    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -90,9 +89,9 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'or-commit': [['network', 2]], 'or-visit': [['network', 2]], 'or-file': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['perf', 2]], 'org-sync-commit': [['perf', 2]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -107,7 +106,7 @@ window.App = (() => {
     return GATES[act] || null;
   }
   const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -136,14 +135,14 @@ window.App = (() => {
     applyPermClasses();
     const n = navOf(r);
     const sec = curSec();
-    const seeSec = x => (x.k === 'data' ? S.isAdmin() : x.items.some(k => canSee(k === 'training' ? 'schedule' : k)));
+    const seeSec = x => (x.k === 'data' ? S.isAdmin() : x.items.some(k => canSee(k)));
     $('#secNav').innerHTML = SECS.filter(seeSec).map(x => `<button type="button" class="sec-btn sec-${x.k} ${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}" ${x.k === sec.k ? 'aria-current="true"' : ''}>${x.label}</button>`).join('');
     $('#secTitle').innerHTML = `<b>${U.esc(sec.label)}</b><span>${U.esc(sec.desc)}</span>`;
     const byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
-    $('#sideNav').innerHTML = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
-    const mItems = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).slice(0, 4);
+    $('#sideNav').innerHTML = sec.items.filter(k => canSee(k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
+    const mItems = sec.items.filter(k => canSee(k)).slice(0, 4);
     const moreActive = !mItems.includes(n);
-    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', orders: '출장', attend: '출석부', training: '일정표', data: '데이터' };
+    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
     $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
@@ -246,7 +245,6 @@ window.App = (() => {
     const pages = {
       dashboard: [V.dashboard],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
-      training: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched], // 훈련반은 뺐다: 예전 주소로 와도 업무 일정
 
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
@@ -254,7 +252,6 @@ window.App = (() => {
       schedule: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched],
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
-      orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
       outreach: [OR.page, bindOutreach],
       attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
@@ -360,9 +357,7 @@ window.App = (() => {
     if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'), { showLayers: false });
     markerGroup = null; markerIndex = {};
-    NM.reset();
     refreshMap(true);
-    bindNaver();
     const fx = V.ui.map.focus;
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
@@ -410,25 +405,6 @@ window.App = (() => {
     cityRO.observe(wrap);
     apply();
   }
-  /** 네이버 지도(실험): '네이버'면 그 지도만, '나란히 비교'면 두 지도가 같이 움직인다 */
-  const engine = () => (S.get().settings.naverKey ? V.ui.map.engine || 'leaflet' : 'leaflet');
-  let syncing = false;
-  async function bindNaver() {
-    const eng = engine(), box = $('#nvMap');
-    if (eng === 'leaflet' || !box || !bigMap) return;
-    const c = bigMap.getCenter();
-    const ok = await NM.mount(box, { lat: c.lat, lng: c.lng, zoom: bigMap.getZoom() });
-    if (!ok || !$('#nvMap')) return;
-    setTimeout(() => bigMap && bigMap.invalidateSize(), 50);
-    NM.onOpen = (kind, id) => selPlace(kind, id, true);
-    refreshMap(false);
-    if (eng === 'naver') NM.fit(V.mapItems().filter(i => M.hasPos(i.x)));
-    else {
-      // 나란히 비교: 한쪽을 움직이면 다른 쪽도 같은 곳·같은 확대로
-      bigMap.on('moveend', () => { if (syncing) return; syncing = true; const v = bigMap.getCenter(); NM.setView({ lat: v.lat, lng: v.lng, zoom: bigMap.getZoom() }); setTimeout(() => { syncing = false; }, 300); });
-      NM.onIdle(() => { if (syncing || !bigMap) return; syncing = true; const v = NM.getView(); bigMap.setView([v.lat, v.lng], v.zoom, { animate: false }); setTimeout(() => { syncing = false; }, 300); });
-    }
-  }
   /** 이름표: 가까이 보거나 점이 적으면 늘 보이게 */
   function mapLabels() {
     if (!bigMap) return;
@@ -448,8 +424,6 @@ window.App = (() => {
   /** 고른 곳으로 부드럽게 날아간 뒤 말풍선을 연다 (점은 다시 그리지 않는다) */
   function focusPlace(kind, id) {
     const key = kind + id;
-    if (engine() === 'naver') { selPlace(kind, id, false); if (!NM.focus(kind, id)) openDetail(kind, id, false); return; }
-    if (engine() === 'compare') NM.focus(kind, id);
     const m = markerIndex[key];
     if (!m || !bigMap) return openDetail(kind, id, false);
     selPlace(kind, id, false);
@@ -519,7 +493,6 @@ window.App = (() => {
       if (reopen) m.openPopup();
     });
     Object.keys(markerIndex).forEach(k => { if (!seen.has(k)) { markerGroup.removeLayer(markerIndex[k]); delete markerIndex[k]; } });
-    if (engine() !== 'leaflet') NM.update(shown);
     mapLabels();
     $('#bigMap')?.classList.toggle('picking', !!f.pick);
     drawRoute();
@@ -655,7 +628,7 @@ window.App = (() => {
       ${mine.length ? `<div class="ps-sec">등록된 곳</div>${mine.map(([k, x]) => `<button type="button" class="ps-item mine" data-act="map-focus" data-kind="${k}" data-id="${x.id}"><b>${U.esc(x.name)}</b><span>${U.esc(k === 'biz' ? (x.industry || '사업체') : (x.category || '기관'))} · ${U.esc(x.address || x.area || '')}</span><em>등록됨</em></button>`).join('')}` : ''}
       <div class="ps-sec">새로 찾은 곳 ${placeList.length ? `<span class="sub">${placeList.length}곳</span>` : ''}</div>
       ${placeList.length ? placeList.map((p, i) => { const g = reg(p); return `<button type="button" class="ps-item" data-act="place-pick" data-i="${i}"><b>${U.esc(p.name)}</b><span>${U.esc([p.cat, p.road || p.addr].filter(Boolean).join(' · '))}</span>${p.phone ? `<span>📞 ${U.esc(p.phone)}</span>` : ''}${g ? '<em>등록됨</em>' : ''}</button>`; }).join('')
-        : `<div class="ps-empty">찾지 못했어요. 주소(예: 향남읍 발안로 1)나 다른 이름으로 찾아보세요.${S.REMOTE && S.get().settings.kakaoOn !== 'Y' ? '<br><span class="sub">데이터 관리에 카카오 키를 넣으면 상호명으로도 잘 찾아요.</span>' : ''}</div>`}`;
+        : `<div class="ps-empty">찾지 못했어요. 주소(예: 향남읍 발안로 1)나 다른 이름으로 찾아보세요.</div>`}`;
   }
   function placeCard(p) {
     const k = U.orgKey(p.name);
@@ -697,7 +670,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { training: '직업훈련 일정표', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -733,69 +706,6 @@ window.App = (() => {
       ta.remove(); return ok;
     }
   }
-  async function handleHwpFiles(files) {
-    push({ type: 'loading', title: '한글 명령부 불러오기', body: `${files.length}개 파일을 읽는 중입니다.` });
-    const rows = [], errors = [];
-    for (const f of files) {
-      try {
-        const year = (f.name.match(/20\d\d/) || [])[0] || R.ui.orders.month.slice(0, 4);
-        const got = R.parseOrderTables(await HWP.readTables(await f.arrayBuffer()), year);
-        if (!got.length) errors.push(`${f.name}: 명령부 표를 찾지 못했습니다.`);
-        rows.push(...got);
-      } catch (err) { errors.push(`${f.name}: ${err.message}`); }
-    }
-    rows.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
-    push({ type: 'hwp', state: { files: files.map(f => f.name), rows: R.markDup(rows), errors } });
-  }
-  /** 명령부를 A4 세로 한 쪽에 맞춘다: 화면 밖에서 실제 크기(190mm 폭)를 재고, 넘치면 줄 높이·글자를 조금씩 줄여 다시 그린다 */
-  function fitOrder(staff) {
-    const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
-    document.body.appendChild(box);
-    const limit = 272 * 96 / 25.4; // A4 297mm − 위아래 여백 20mm − 여유 5mm
-    let html = '';
-    for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
-      html = R.orderDoc(staff, scale);
-      box.innerHTML = html;
-      const art = box.querySelector('.order-doc');
-      art.classList.add('measure');
-      if (art.getBoundingClientRect().height <= limit) break;
-    }
-    box.remove();
-    return html;
-  }
-  /** 아무 문서나 A4 세로 한 쪽에 맞추기: make(scale) → html */
-  function fitA4(make) {
-    const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
-    document.body.appendChild(box);
-    const limit = 272 * 96 / 25.4;
-    let html = '';
-    for (const scale of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52]) {
-      html = make(scale); box.innerHTML = html;
-      const art = box.querySelector('.order-doc'); art.classList.add('measure');
-      if (art.getBoundingClientRect().height <= limit) break;
-    }
-    box.remove();
-    return html;
-  }
-  /** 여비 명세도 명령부와 같이 A4 한 쪽에 맞춘다 */
-  function fitTravel(staff) {
-    const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
-    document.body.appendChild(box);
-    const limit = 272 * 96 / 25.4;
-    let html = '';
-    for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
-      html = TV.doc(R.ui.orders.month, staff, scale);
-      box.innerHTML = html;
-      const art = box.querySelector('.order-doc');
-      art.classList.add('measure');
-      if (art.getBoundingClientRect().height <= limit) break;
-    }
-    box.remove();
-    return html;
-  }
   function printHtml(html) {
     const root = $('#printRoot');
     root.innerHTML = html;
@@ -805,13 +715,6 @@ window.App = (() => {
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
   function bindSched() {
-    if (V.ui.sched.view === 'train') {
-      const b = $('#tpBox'); if (!b) return;
-      const w0 = $('#tpWrap'), sx = w0 ? w0.scrollLeft : 0, y = window.scrollY;
-      b.innerHTML = TR.view(); TR.bindGrid(toast);
-      const w = $('#tpWrap'); if (w) w.scrollLeft = sx; window.scrollTo(0, y);
-      return;
-    }
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
@@ -1090,11 +993,6 @@ window.App = (() => {
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
       }, 250);
       if (!keepScroll) box.focus();
-      return;
-    }
-    if (top.type === 'hwp') {
-      inner.innerHTML = R.hwpDialog(top.state);
-      showDrawer();
       return;
     }
     if (top.type === 'loading') {
@@ -1502,7 +1400,7 @@ window.App = (() => {
       closeMore();
       secKey = x.k; lsSetSec(x.k);
       // 주소를 먼저 그 구역 첫 화면으로 바꿔 둔다 (범위를 바꾸면 바로 다시 그리는데, 그때 옛 화면 주소면 구역이 되돌아간다)
-      const first0 = x.items.find(k => canSee(k === 'training' ? 'schedule' : k)) || x.items[0];
+      const first0 = x.items.find(k => canSee(k)) || x.items[0];
       const target0 = '#/' + hrefOf(first0), moved = location.hash !== target0;
       if (moved) history.pushState(null, '', target0);
       if (x.prog) {
@@ -1514,58 +1412,13 @@ window.App = (() => {
       render();
       if (moved) window.scrollTo(0, 0);
     },
-    'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
-    'tp-color': el => TR.setColor(el.dataset.color),
-    'tp-merge': () => TR.toggleMerge(),
-    'tp-fmt': el => TR.setFmt(null, el.dataset.k),
-    'tp-fc': el => TR.setFmt({ fc: el.dataset.color }),
-    'tp-align': el => TR.setFmt({ al: el.dataset.al }),
-    'tp-chkbox': () => TR.setFmt(null, 'chk'),
-    'tp-fmt-clear': () => TR.clearFmt(),
-    'tp-check': el => TR.toggleCheck(+el.dataset.r, +el.dataset.c),
-    'tp-dd': el => TR.openDD(+el.dataset.r, +el.dataset.c),
-    'tp-dd-pick': el => { TR.setCat(el.dataset.v); TR.closeDD(); },
-    'tp-undo': () => TR.undo(toast),
-    'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; TR.resetGrid(); bindSched(); },
-    'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
-    'tp-cancel': () => { TR.ui.edit = null; bindSched(); },
-    'tp-save': () => { TR.save(); bindSched(); toast('일정표 칸을 저장했어요.'); },
-    'tp-del': () => { const undo = TR.remove(); bindSched(); toast('칸을 비웠어요.', '', undo ? { undo } : {}); },
-    'tp-label': el => { const cur = (TR.at(el.dataset.date.slice(0, 7), +el.dataset.date.slice(8), '라벨') || {}).content || ''; const v = prompt(`${+el.dataset.date.slice(5, 7)}월 ${+el.dataset.date.slice(8)}일 옆에 붙일 표시 (예: 건강관리, 식권 발급 X). 비우면 지워요.`, cur); if (v == null) return; TR.setLabel(el.dataset.date, v.trim()); },
-    'tp-notes-save': () => { TR.saveNotes($('#tpNotes').value); toast('안내 문구를 저장했어요.'); },
-    'tp-clear': async () => { if (!(await confirmBox(`${TR.ui.cls} ${+TR.ui.month.slice(5)}월 일정표를 비울까요?`, '이 반의 이 달 칸·표시·안내를 모두 지워요. 바로 되돌릴 수 있어요.', '비우기'))) return; const undo = TR.clearMonth(); toast('일정표를 비웠어요.', '', undo ? { undo } : {}); },
-    'tp-copy-prev': () => { const r = TR.copyPrev(); toast(r.n ? `${V.monthLabel(r.from)} 요일별 프로그램으로 빈 칸 ${r.n}개를 채웠어요. 휴관·특별 일정은 직접 고쳐 주세요.` : `${V.monthLabel(r.from)}에 가져올 요일별 프로그램이 없어요.`); },
-    'tp-print': () => {
-      // A4 가로 한 장에 들어가게 글자·칸 크기를 줄여 가며 잰다
-      const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:-10000px;top:0;width:281mm;visibility:hidden';
-      document.body.appendChild(box);
-      const limit = 192 * 96 / 25.4; let html = '';
-      for (const sc of [1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6]) { html = TR.doc(undefined, undefined, sc); box.innerHTML = html; if (box.firstElementChild.getBoundingClientRect().height <= limit) break; }
-      box.remove(); printHtml(html);
-    },
-    'tp-import': () => pickFiles('.xlsx,.xls,.hwp', true, async files => {
-      const found = [];
-      for (const f of files) {
-        try {
-          if (/\.hwp$/i.test(f.name)) found.push(...TR.fromHwpTables(await HWP.readTables(await f.arrayBuffer()), f.name));
-          else found.push(...TR.fromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer()), { cellStyles: true }), f.name));
-        } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
-      }
-      if (!found.length) return toast('일정표를 찾지 못했어요. 월·화·수·목·금 머리줄과 오전·오후 칸이 있는 표인지 확인해 주세요.', 'error');
-      found.forEach(x => { x.on = true; });
-      TR.ui.imp = { files: files.map(f => f.name), found, mode: 'over' }; bindSched();
-    }),
-    'tp-imp-toggle': el => { TR.ui.imp.found[+el.dataset.i].on = el.checked; },
-    'tp-imp-mode': el => { TR.ui.imp.mode = el.value; },
-    'tp-imp-cancel': () => { TR.ui.imp = null; bindSched(); },
-    'tp-imp-commit': () => { const r = TR.commitImport(); toast(`${r.put}칸을 합쳤어요.${r.skipped ? ` 이미 적힌 ${r.skipped}칸은 그대로 뒀어요.` : ''}`); render(); },
     'ev-import': () => pickFiles('.xlsx,.xls,.csv,.hwp', true, async files => {
       let evs = [];
       for (const f of files) {
         try {
-          if (/\.hwp$/i.test(f.name)) evs.push(...TR.eventsFromHwp(await HWP.readTables(await f.arrayBuffer()), f.name));
-          else if (/\.csv$/i.test(f.name)) evs.push(...TR.eventsFromWorkbook(XLSX.read(await f.text(), { type: 'string' }), f.name));
-          else evs.push(...TR.eventsFromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer())), f.name));
+          if (/\.hwp$/i.test(f.name)) evs.push(...R.eventsFromHwp(await HWP.readTables(await f.arrayBuffer()), f.name));
+          else if (/\.csv$/i.test(f.name)) evs.push(...R.eventsFromWorkbook(XLSX.read(await f.text(), { type: 'string' }), f.name));
+          else evs.push(...R.eventsFromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer())), f.name));
         } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
       }
       const have = new Set(S.get().events.map(x => `${x.date}|${x.title}`));
@@ -1985,9 +1838,6 @@ window.App = (() => {
     },
     'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
     'sv-print': () => printHtml($('#svDoc').innerHTML),
-    'od-print': el => printHtml(fitOrder(el.dataset.staff || null)),
-    'od-hwp': () => $('#hwpFile').click(),
-    'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
     'presence-toggle': () => { const m = $('#presenceMenu'); if (m) m.hidden = !m.hidden; },
     'sync-now': async el => {
       const btn = el || $('#syncBtn');
@@ -2005,12 +1855,6 @@ window.App = (() => {
         toast('새로 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. (' + (err && err.message || err) + ')', 'error');
       } finally { btn.disabled = false; btn.classList.remove('spinning'); }
     },
-    'od-print-each': () => printHtml(R.orderDocsEach(fitOrder)),
-    'od-bulk': () => { const f = R.ui.orders; if (f.bulk && f.bulkOpen) { f.bulkOpen = false; f.bulk = null; } else { f.bulkOpen = true; R.bulkState(); } $('#odResults').innerHTML = R.ordersResults(); },
-    'od-bulk-print': () => { const html = R.bulkDocs(fitOrder); if (html) printHtml(html); },
-    'od-bulk-file': () => { const { name, blob } = R.bulkFile(fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았어요. 한글 또는 워드로 열 수 있어요.`); },
-    'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
-    'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'at-month': el => { const [y, m] = AT.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); AT.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'at-year': el => { const y = +AT.ui.month.slice(0, 4) + +el.dataset.d; AT.ui.month = `${y}-${AT.ui.month.slice(5, 7)}`; render(); },
     'at-goto': el => { AT.ui.month = el.dataset.m; AT.ui.view = 'month'; render(); },
@@ -2165,26 +2009,6 @@ window.App = (() => {
       await S.saveSettings({ perfGoal: JSON.stringify(g) });
       toast(`실적 목표 기준을 저장했어요 (${g.baseYear}년 ${g.months}개월 기준 · 인원 ${g.staffNow}/${g.staffNeed}명).`);
     },
-    'od-who': el => { R.ui.orders.who = el.dataset.who; $('#odResults').innerHTML = R.ordersResults(); },
-    'od-staff-add': async () => {
-      if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
-      const name = ($('#odStaffNew').value || '').trim();
-      if (!name) return $('#odStaffNew').focus();
-      if (S.staff().some(s => s.name === name)) return toast(`${name}은(는) 이미 담당자 목록에 있어요.`, 'error');
-      await S.saveSettings({ staff: [...S.staff(), { name, program: $('#odStaffProg').value }] });
-      toast(`담당자 ${name}을(를) 추가했어요. 일정·실적·지도 등 모든 화면의 담당자 목록에 같이 들어가요.`);
-    },
-    'od-staff-del': async el => {
-      const name = el.dataset.name;
-      if (!S.isAdmin()) return toast('담당자 삭제는 관리자만 할 수 있어요.', 'error');
-      if (S.staff().length <= 1) return toast('담당자가 한 명은 있어야 해요.', 'error');
-      const n = S.get().trips.filter(t => t.staff === name).length;
-      if (!(await confirmBox(`담당자 ${name}을(를) 목록에서 뺄까요?`, `담당자 목록에서만 빠지고, 이미 적힌 명령부${n ? ` ${n}건` : ''}·일정·사업체 기록은 그대로 남아요.`, '빼기'))) return;
-      const before = S.staff().map(s => ({ ...s }));
-      await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
-      if (R.ui.orders.who === name) R.ui.orders.who = '';
-      toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
-    },
     'dp-mode': el => { DP.ui.mode = el.dataset.mode; if (DP.ui.mode === 'month' && !DP.ui.month.startsWith(String(DP.ui.year))) DP.ui.month = String(DP.ui.year) === U.today().slice(0, 4) ? U.today().slice(0, 7) : `${DP.ui.year}-12`; render(); },
     'dp-move': el => {
       const d = +el.dataset.d;
@@ -2223,15 +2047,6 @@ window.App = (() => {
       S.upsert('act', { targetType: 'net', targetId: n.id, date: U.today(), type: '홍보', content: '홍보 방문', staff: S.me() });
       toast(`${n.name} 오늘 홍보 방문을 기록했어요. 이름을 누르면 내용을 고칠 수 있어요.`);
     },
-    'trips-wipe': async () => {
-      if (!S.isAdmin()) return toast('관리자만 지울 수 있어요.', 'error');
-      const all = S.get().trips;
-      if (!all.length) return toast('지울 출장·특근 기록이 없어요.');
-      if (!(await confirmBox(`출장·특근 기록 ${all.length}건을 모두 지울까요?`, '관내출장·관외출장·특근 명령부와 여비 계산 기록이 모두 지워져요. 되돌릴 수 없으니 필요하면 먼저 "엑셀로 내보내기"로 백업하세요.', '모두 지우기'))) return;
-      S.removeMany('trip', all.map(t => t.id));
-      toast(`출장·특근 기록 ${all.length}건을 지웠어요.`);
-      render();
-    },
     'sec-staff-add': async el => {
       if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
       const inp = $('#secStaffNew'), name = ((inp && inp.value) || '').trim(), prog = el.dataset.prog;
@@ -2243,43 +2058,6 @@ window.App = (() => {
       toast(`${name}을(를) ${prog} 담당자로 ${ex ? '옮겼어요' : '추가했어요'}. 바로 상담자로 고를 수 있어요.`);
       render();
     },
-    'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
-    'tv-save-set': async () => {
-      const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
-      const otS = ($('#tvOtS')?.value || '').replace(/[^0-9]/g, ''), otL = ($('#tvOtL')?.value || '').replace(/[^0-9]/g, '');
-      await S.saveSettings({ fuelEff: eff, fuelPrice: price, otShort: otS, otLong: otL });
-      const r = TV.otRate();
-      toast(`저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L · 특근비 4시간 미만 ${r.short.toLocaleString()}원 · 이상 ${r.long.toLocaleString()}원`);
-    },
-    'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
-    'tv-print-part': el => { const m = R.ui.orders.month; printHtml(fitA4(sc => TV.settleDoc(m, el.dataset.staff, el.dataset.part, sc))); },
-    'tv-print-sum': () => printHtml(TV.settleSumDoc(R.ui.orders.month)),
-    'tv-print-all': () => { const m = R.ui.orders.month; printHtml(TV.settle(m).people.map(p => fitA4(sc => TV.settleDoc(m, p.name, 'all', sc))).join('') + TV.settleSumDoc(m)); },
-    'tv-print': () => { const list = TV.staffOf(R.ui.orders.month); if (list.length) printHtml(list.map(fitTravel).join('')); },
-    'tv-road': async () => {
-      // 개인 차량으로 간 줄 중 거리를 안 적은 곳: 복지관 ↔ 출장지 도로 거리 × 2(왕복)를 채운다
-      const home = TV.homeOf();
-      if (!home) return toast('복지관 위치가 없어 거리를 잴 수 없어요. 지도에서 ★ 복지관 위치를 먼저 등록해 주세요.', 'error');
-      const list = TV.monthTrips(R.ui.orders.month).filter(t => TV.ownCar(t) && !Number(t.km));
-      if (!list.length) return toast('거리를 채울 개인 차량 출장이 없어요. (방법이 "개인 차량"인 줄만 채워요)');
-      let ok = 0, miss = 0;
-      const patch = [];
-      for (const t of list) {
-        const p = TV.placeOf(t);
-        if (!p || !M.hasPos(p)) { miss++; continue; }
-        const road = await M.roadRoute(home, p);
-        const km = road ? road.km * 2 : M.distKm(home, p) * 1.35 * 2;
-        patch.push({ id: t.id, km: String(Math.round(km * 10) / 10) });
-        ok++;
-      }
-      patch.forEach(p => S.upsert('trip', p));
-      toast(`${ok}건의 왕복 거리를 채웠어요.${miss ? ` ${miss}건은 출장지를 지도에서 못 찾아 직접 적어 주세요.` : ''}`);
-    },
-    'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
-    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: f.who || S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
-    'od-dup': el => { const t = S.find('trip', el.dataset.id); if (!t) return; const other = S.staff().map(s => s.name).find(n => n !== t.staff) || t.staff; S.upsert('trip', { ...t, id: undefined, staff: other, actId: '' }); toast(`${other} 동행 줄을 추가했습니다. 성명을 확인하세요.`); },
-    'od-del': el => { const undo = S.remove('trip', el.dataset.id); if (undo) toast('한 줄을 삭제했습니다.', '', { undo }); },
-    'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
     'ct-reg': el => { const r = R.registerBiz(el.dataset.id, el.dataset.kind); if (r) toast(r.kind === 'net' ? `${r.x.name} 기관(네트워크)에 연락 기록을 옮겼어요. 기관 상세·홍보·방문처에서 볼 수 있어요.` : `${r.x.name}을(를) 사업체로 등록했어요. 사업체 개발·지도에 나와요.`); },
@@ -2388,14 +2166,6 @@ window.App = (() => {
       el.disabled = false;
     },
     'cal-pull-toggle': async el => { await S.saveSettings({ calPull: el.checked ? '' : 'N' }); toast(el.checked ? '캘린더 일정도 가져와요.' : '캘린더 일정은 가져오지 않아요.'); },
-    'kakao-save': async el => {
-      const key = ($('#kakaoKey')?.value || '').trim();
-      if (!key) return toast('카카오 REST API 키를 붙여넣어 주세요.', 'error');
-      el.disabled = true;
-      try { await S.call('api_setKakaoKey', key); await S.reload(); toast('카카오 키를 저장했어요. 이제 주소 위치와 도로 거리를 카카오로 계산해요.'); render(); }
-      catch (err) { toast('저장하지 못했어요: ' + (err.message || err), 'error'); el.disabled = false; }
-    },
-    'kakao-off': async () => { await S.call('api_setKakaoKey', ''); await S.reload(); toast('카카오 키를 지웠어요.'); render(); },
     'backup-now': async el => {
       el.disabled = true; el.textContent = '백업 중…';
       try { const r = await S.call('api_backupNow'); toast(`백업했어요: ${r.name}`, '', { action: { label: '열기', run: () => window.open(r.url, '_blank') } }); A['backup-list'](); }
@@ -2471,13 +2241,6 @@ window.App = (() => {
       await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
     },
-    'save-naver': async () => {
-      const patch = { naverKey: $('#naverKeyInput').value.trim(), naverKeyParam: $('#naverParamInput').value };
-      await S.saveSettings(patch);
-      toast(patch.naverKey ? '네이버 지도 키를 저장했어요. 지도 화면 위쪽에서 네이버 / 나란히 비교를 고르세요. (키를 바꿨으면 새로고침 한 번)' : '네이버 지도 키를 지웠어요.');
-      render();
-    },
-    'map-engine': el => { V.ui.map.engine = el.dataset.v; try { localStorage.setItem('ardim.mapEngine', el.dataset.v); } catch { /* 저장 불가 */ } render(); },
     'save-vworld': async () => {
       const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
       if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();
@@ -2565,10 +2328,8 @@ window.App = (() => {
         if (drawerOpen()) return (stack.length > 1 ? A['dr-back']() : closeDrawer());
       }
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
-      if (ev.key === 'Enter' && ev.target.id === 'odStaffNew' && !ev.isComposing) { ev.preventDefault(); A['od-staff-add'](); }
     });
     $('#searchTrigger').onclick = openSearch;
-    $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };
     $('#globalBizFile').onchange = async ev => {
       const files = [...ev.target.files]; ev.target.value = '';
       if (!files.length) return;
@@ -2597,28 +2358,6 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
-      // 일정표 도구: 글씨체·크기·글자색·칸 색·훈련 구분
-      const tf = ev.target.closest('[data-tpfmt]');
-      if (tf) {
-        if (!allowed([['schedule', 2]])) return;
-        const k = tf.dataset.tpfmt, v = tf.value;
-        if (k === 'font') TR.setFmt({ font: v });
-        else if (k === 'size') TR.setFmt({ size: v ? +v : '' });
-        else if (k === 'fc') TR.setFmt({ fc: v.replace('#', '').toUpperCase() });
-        else if (k === 'bg') TR.setColor(v.replace('#', '').toUpperCase());
-        else if (k === 'cat' && v) TR.setCat(v);
-        return;
-      }
-      const bk = ev.target.closest('#odBulk [data-bulk]');
-      if (bk) {
-        const b = R.bulkState(), k = bk.dataset.bulk, box = $('#odBulk');
-        if (k === 'from' || k === 'to') b[k] = bk.value || b[k];
-        else if (k === 'staff' || k === 'kinds') b[k] = [...box.querySelectorAll(`[data-bulk="${k}"]:checked`)].map(x => x.value);
-        else b[k] = bk.checked;
-        if (b.from > b.to) [b.from, b.to] = [b.to, b.from];
-        $('#odResults').innerHTML = R.ordersResults();
-        return;
-      }
       const el = ev.target.closest('[data-chg]');
       if (!el) return;
       const { id, field } = el.dataset;
@@ -2661,14 +2400,7 @@ window.App = (() => {
         if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
       } else if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
-      else if (el.dataset.chg === 'trip-field') S.upsert('trip', { id, [field]: el.value });
       else if (el.dataset.chg === 'jp-field') S.upsert('jp', { id, [field]: el.value.trim() });
-      else if (el.dataset.chg === 'trip-report') {
-        const t = S.find('trip', id);
-        const set = new Set(t.report || []);
-        if (el.checked) set.add(el.value); else set.delete(el.value);
-        S.upsert('trip', { id, report: D.TRIP_REPORTS.filter(r => set.has(r)) });
-      }
     });
     document.addEventListener('submit', async ev => {
       const form = ev.target;
@@ -2801,20 +2533,9 @@ window.App = (() => {
           bindAttend();
           if (id && fd) $(`#atPeople [data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
         }, 0);
-        // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
-        if (route() === 'orders') setTimeout(() => {
-          // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
-          const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
-          const y = window.scrollY, wrap = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
-          $('#odResults').innerHTML = R.ordersResults();
-          const w2 = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
-          window.scrollTo(0, y);
-          if (id && fd) $(`[data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
-        }, 0);
-        return;
+
       }
       if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
-      else if (route() === 'schedule' && V.ui.sched.view === 'train' && $('#tpBox') && !drawerOpen()) { bindSched(); renderNav(); }
       else if (route() === 'map' && V.ui.map.mode !== 'city' && bigMap && $('#mapList')) softMap();
       else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);

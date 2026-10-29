@@ -4,7 +4,6 @@ window.R = (() => {
   const e = U.esc;
   const ui = {
     contacts: { month: U.today().slice(0, 7), tab: 'log', q: '' },
-    orders: { month: U.today().slice(0, 7), kind: '출장', who: '' },
   };
   const CONTACT_TYPES = ['전화', '방문', '이메일', '미팅'];
   const md = d => { if (!U.isDate(d)) return d || ''; const x = U.parse(d); return `${x.getMonth() + 1}월 ${x.getDate()}일`; };
@@ -528,312 +527,37 @@ window.R = (() => {
 
   /* ================= 출장·특근 명령부 ================= */
   // 명령부는 팀 문서라 보기 범위(전체 팀/직원)와 상관없이 모든 직원 줄을 쓴다. 사람별로는 위 담당자 버튼으로 거른다
-  const trips = (month, kind) => S.get().trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.staff || '').localeCompare(b.staff || ''));
-  function ordersPage() {
-    const f = ui.orders;
-    return `
-      <div class="page-head">
-        <div><h1 class="page-title">출장·특근 명령부</h1><div class="page-desc">현장중심센터 월별 관내출장 명령부와 특근 명령부를 만들고, 한글 서식 모양으로 인쇄합니다.</div></div>
-      </div>
-      <div class="toolbar perf-bar">${monthNav('od-month', f.month)}
-        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 정산</button></div>
-      </div>
-      <div id="odResults"></div>`;
-  }
-  function ordersResults() {
-    const f = ui.orders;
-    if (f.kind === '여비') return TV.page(f.month);
-    const all = trips(f.month, f.kind);
-    const list = f.who ? all.filter(t => (t.staff || '(담당자 없음)') === f.who) : all;
-    // 여비: 담당자·날짜별 하루 계산을 줄마다 붙인다 (하루 첫 줄에 그날 합계)
-    const trip0 = f.kind === '출장';
-    const tvDays = trip0 ? TV.days(all) : TV.otDays(all);
-    const tvRow = {}, tvStaff = {};
-    // 담당자 합계·특근 식비는 정산(출장·특근 식비 합쳐 하루 2만원)과 같은 숫자를 쓴다
-    const stl = TV.settle(f.month);
-    stl.people.forEach(p => { tvStaff[p.name] = trip0 ? p.inTotal + p.outTotal : p.otTotal; });
-    const otMeal = {}; stl.people.forEach(p => p.ot.forEach(r => { otMeal[`${p.name}|${r.date}`] = r; }));
-    tvDays.forEach(d => { if (!trip0) { const r = otMeal[`${d.staff}|${d.date}`]; if (r) { d.meal = r.meal; d.total = r.total; d.over = r.capped; } } d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
-    const won = n => Math.round(n).toLocaleString('ko-KR');
-    const mealIn = t => `<td class="od-meal"><input class="input sm num" data-chg="trip-field" data-id="${t.id}" data-field="meal" value="${e(t.meal || '')}" placeholder="0" inputmode="numeric" aria-label="식비"></td>`;
-    const tvCell = t => {
-      const x = tvRow[t.id]; if (!x) return '<td></td>';
-      const { d, r, first } = x;
-      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `특근비 ${won(d.pay || 0)}${d.noTime ? ' (시간 없음 → 4시간 미만)' : ''} · 식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
-      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
-      return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
-    };
-    const staffBar = staffManager(all);
-    const staffOpts = sel => opts([...new Set([...S.staffHere().map(s => s.name), sel].filter(Boolean))], sel);
-    const cell = (t, k, attrs = '') => `<input class="input sm" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] || '')}" ${attrs}>`;
-    const trip = f.kind === '출장';
-    const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
-    const visitsLeft = trip ? S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id)).length : 0;
-    return `<section class="panel">
-      ${staffBar}
-      ${f.bulk ? bulkPanel() : ''}
-      <div class="panel-pad perf-actions">
-        <div class="inline">
-          ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
-          <button class="btn" type="button" data-act="od-add">+ 줄 추가</button>
-          <button class="btn" type="button" data-act="od-hwp">한글 명령부 불러오기</button>
-        </div>
-        <div class="inline"><button class="btn" type="button" data-act="od-bulk">🗂 여러 달 한꺼번에 인쇄</button><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
-      </div>
-      ${`<div class="panel-pad od-each">
-        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
-          <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 파일</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}" style="--sc:${V.staffColor(s)}"><span class="od-each-name">${V.staffDot(s)}<b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근비·식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
-      </div>`}
-      <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
-      ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
-        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>식비</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
-        : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th>식비</th><th>여비(식비)</th><th></th>'}</tr></thead><tbody>
-        ${list.map(t => `<tr class="sc-row" style="--sc:${V.staffColor(t.staff)}">
-          <td>${cell(t, 'date', 'type="date"')}</td>
-          <td><select class="select sm sc-sel" data-chg="trip-field" data-id="${t.id}" data-field="staff">${staffOpts(t.staff)}</select></td>
-          ${trip ? `<td>${cell(t, 'place')}</td><td>${cell(t, 'purpose')}</td>
-            <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
-            <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
-            <td class="nowrap">${D.TRIP_REPORTS.map(r => `<label class="check"><input type="checkbox" data-chg="trip-report" data-id="${t.id}" value="${r}" ${(t.report || []).includes(r) ? 'checked' : ''}>${r}</label>`).join(' ')}</td>
-            <td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`
-          : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`}
-          <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
-        </tr>`).join('')}
-      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근비·식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : `특근비(하루 4시간 미만 ${won(TV.otRate().short)}원·이상 ${won(TV.otRate().long)}원) + 적은 식비(하루 2만원까지)`})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
-      : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
-    </section>`;
-  }
-  /** 담당자 추가·삭제 (직원 목록은 모든 화면이 같이 쓴다). 이름을 누르면 그 사람 줄만 보기 */
-  function staffManager(all) {
-    const f = ui.orders;
-    const admin = S.isAdmin();
-    const staff = S.staffHere();
-    const cnt = n => all.filter(t => (t.staff || '(담당자 없음)') === n).length;
-    return `<div class="panel-pad od-staff">
-      <b>담당자</b>
-      <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
-      ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${V.staffDot(s.name)}${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
-      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option value="${e(p.key)}">${e(D.progLabel(p.key))}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
-    </div>`;
-  }
-  function importVisits() {
-    const f = ui.orders;
-    const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
-    const acts = S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id));
-    return S.upsertMany('trip', acts.map(a => {
-      const t = S.targetOf(a);
-      return { kind: '출장', date: a.date, staff: a.staff || S.me(), place: t ? t.name : '', purpose: a.targetType === 'biz' ? '사업체개발' : '홍보', method: '복지관 차량', time: '', report: [], dept: '', note: a.content || '', actId: a.id };
-    })).length;
-  }
-  const reportText = t => D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join(' / ');
-  const ordersTsv = () => {
-    const f = ui.orders;
-    return tsv(trips(f.month, f.kind).map(t => f.kind === '출장'
-      ? [md(t.date), t.staff, t.place, t.purpose, t.method, t.time, reportText(t), t.note]
-      : [md(t.date), t.staff, t.dept || '직업', t.time, [t.purpose, t.note].filter(Boolean).join(' / ')]));
-  };
-  /** 담당자별 명령부: 직원 목록의 모든 사람(이 달 기록이 없으면 빈 양식) + 목록에 없는 이름으로 적힌 줄 */
-  const orderStaff = () => { const f = ui.orders; return [...new Set([...S.staffHere().map(s => s.name), ...trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')])]; };
-  const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
-  /** staff를 주면 그 담당자 줄만 모아 결재란이 따로 있는 한 장을 만든다. 없으면 전체 */
-  /* 명령부 양식: 칸 너비는 늘 같은 비율(%)로 고정하고, 표는 최소 MIN_ROWS 줄(빈 줄 채움)로 매달 같은 모양.
-   * 줄이 많으면 줄 높이·글자 크기를 줄여 A4 세로 한 쪽에 담는다. scale은 인쇄 전에 실제 크기를 재서 더 줄일 때 쓴다 */
-  const MIN_ROWS = 14;
-  const COLS_TRIP = [['출장일', 10], ['성명', 8], ['출장지', 17], ['출장용무', 12], ['방 법', 10], ['출장시간', 10], ['출장복명', 13], ['비고', 20]];
-  const COLS_OT = [['특근일자', 12], ['특근자 성명', 12], ['부서명', 10], ['특근시간', 14], ['특 근 업 무 내 용', 52]];
-  function orderDoc(staff, scale = 1) {
-    const f = ui.orders;
-    if (staff === undefined || staff === '') staff = null;
-    const list = trips(f.month, f.kind).filter(t => staff == null || (t.staff || '(담당자 없음)') === staff);
-    const trip = f.kind === '출장';
-    const cols = trip ? COLS_TRIP : COLS_OT;
-    const n = Math.max(MIN_ROWS, list.length);
-    // 표 본문에 쓸 수 있는 높이 약 205mm (A4 297 − 여백 20 − 결재란·제목 약 60 − 머리줄 12)
-    const rowMm = +(Math.min(13, 205 / n) * scale).toFixed(2);
-    const fs = +((rowMm >= 11 ? 10 : rowMm >= 9 ? 9.5 : rowMm >= 7.5 ? 8.5 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
-    const cell = (v, cls = '') => `<td${cls ? ` class="${cls}"` : ''}>${v}</td>`;
-    const rep = t => `<span class="rep">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</span>`;
-    const rows = list.map(t => trip
-      ? cell(e(md(t.date))) + cell(e(t.staff)) + cell(e(t.place), 'l') + cell(e(t.purpose)) + cell(e(t.method)) + cell(e(t.time)) + cell(rep(t)) + cell(e(t.note), 'l')
-      : cell(e(md(t.date))) + cell(e(t.staff)) + cell(e(t.dept || '직업')) + cell(e(t.time)) + cell(`${e(t.purpose)}${t.note ? `<br>${e(t.note)}` : ''}`, 'l'));
-    while (rows.length < n) rows.push(cols.map(([h]) => cell(h === '출장복명' ? rep({}) : '&nbsp;')).join(''));
-    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
-    return `<article class="doc order-doc" style="font-size:${fs}pt">
-      <div class="order-head">${sign}</div>
-      <h1>${orderTitle(f.kind)}</h1>
-      <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)${staff != null ? ` · <b>${trip ? '출장자' : '특근자'}: ${e(staff)}</b>` : ''}</p>
-      <table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${cols.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
-        <thead><tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(r => `<tr style="height:${rowMm}mm">${r}</tr>`).join('')}</tbody></table>
-    </article>`;
-  }
-  /** 담당자마다 한 장씩, 페이지를 나눠 이어 붙인다 (fit: 인쇄 전에 한 쪽에 맞추는 함수) */
-  // 전원 인쇄·파일은 이 달 기록이 있는 사람만 (빈 양식은 사람별 버튼으로)
-  const orderDocsEach = (fit = s => orderDoc(s)) => { const f = ui.orders, have = new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')); return orderStaff().filter(s => have.has(s)).map(s => fit(s)).join(''); };
-  /** 한글에서 열 수 있는 워드 호환 문서(.doc)로 저장 */
-  /* ---------- 여러 달 한꺼번에 (사람 → 달 → 출장·특근 순서) ---------- */
-  const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while ((y < y2 || (y === y2 && m <= m2)) && out.length < 24) { out.push(`${y}-${U.pad(m)}`); m++; if (m > 12) { m = 1; y++; } } return out; };
-  /** 직원 목록 + 명령부에 적힌 이름 (목록에 없는 사람도 고를 수 있게) */
-  const bulkNames = () => [...new Set([...S.staffHere().map(x => x.name), ...S.get().trips.map(t => t.staff).filter(Boolean)])];
-  function bulkState() {
-    const f = ui.orders;
-    if (!f.bulk) {
-      const to = f.month, [y, m] = to.split('-').map(Number), d = new Date(y, m - 4, 1);
-      const from = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`;
-      const have = new Set(S.get().trips.filter(t => t.date >= from && t.date <= to + '-31').map(t => t.staff));
-      f.bulk = { from, to, staff: bulkNames().filter(n => have.has(n)), kinds: ['출장', '특근'], empty: false, summary: true };
-    }
-    return f.bulk;
-  }
-  /** 사람·달별 금액: 출장 여비(규정집 기준) + 특근 식비 */
-  function bulkSummary(b = bulkState()) {
-    const months = monthsBetween(b.from, b.to);
-    const rows = b.staff.map(name => {
-      const per = months.map(m => {
-        const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
-        const p = TV.settle(m).people.find(x => x.name === name) || { in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
-        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.ot.reduce((a, r) => a + r.meal, 0), otPay: p.ot.reduce((a, r) => a + r.pay, 0), otTotal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
-      });
-      return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
-    });
-    return { months, rows, total: rows.reduce((a, r) => a + r.total, 0) };
-  }
-  const won = n => Math.round(n).toLocaleString('ko-KR');
-  const hrs = min => (min ? `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}` : '-');
-  function bulkPanel() {
-    const b = bulkState();
-    const sm = bulkSummary(b);
-    const pages = b.staff.length * sm.months.length * b.kinds.length;
-    const realPages = b.staff.reduce((a, n) => a + sm.months.reduce((c, m) => c + b.kinds.filter(k => b.empty || trips(m, k).some(t => t.staff === n)).length, 0), 0);
-    return `<div class="panel-pad od-bulk" id="odBulk">
-      <div class="od-bulk-head"><b>🗂 여러 달 한꺼번에 인쇄</b><span class="sub">사람마다 달별로 출장 → 특근 순서로 이어서 인쇄해요.</span><button class="icon-btn" type="button" data-act="od-bulk" aria-label="닫기">${V.I.close}</button></div>
-      <div class="od-bulk-form">
-        <label>기간 <input class="input sm" type="month" data-bulk="from" value="${b.from}"> ~ <input class="input sm" type="month" data-bulk="to" value="${b.to}"></label>
-        <span class="od-bulk-grp"><span class="sub">담당자</span>${bulkNames().map(n => `<label class="check"><input type="checkbox" data-bulk="staff" value="${e(n)}" ${b.staff.includes(n) ? 'checked' : ''}>${e(n)}</label>`).join('')}</span>
-        <span class="od-bulk-grp"><span class="sub">명령부</span>${['출장', '특근'].map(k => `<label class="check"><input type="checkbox" data-bulk="kinds" value="${k}" ${b.kinds.includes(k) ? 'checked' : ''}>${k === '출장' ? '관내출장' : '특근'}</label>`).join('')}</span>
-        <label class="check"><input type="checkbox" data-bulk="empty" ${b.empty ? 'checked' : ''}>기록 없는 달도 빈 양식으로</label>
-        <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
-      </div>
-      ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 특근비 ${won(x.otPay)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
-        <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
-      </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
-      <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>
-        <span class="sub">출장 여비 = 규정집 2026 기준(일비·유류비·통행료·주차료·식비 등), 특근 = 적은 식비(하루 2만원까지). ${pages > realPages ? `기록 없는 ${pages - realPages}장은 빠져요.` : ''}</span></div>
-    </div>`;
-  }
-  /** 인쇄할 문서들: fit(staff) 은 지금 ui.orders 의 달·종류로 한 장을 만든다 */
-  function bulkDocs(fit) {
-    const b = bulkState(), f = ui.orders, keep = { month: f.month, kind: f.kind };
-    const months = monthsBetween(b.from, b.to);
-    let html = '';
-    try {
-      b.staff.forEach(name => months.forEach(m => b.kinds.forEach(k => {
-        if (!b.empty && !trips(m, k).some(t => t.staff === name)) return;
-        f.month = m; f.kind = k;
-        html += fit(name);
-      })));
-    } finally { f.month = keep.month; f.kind = keep.kind; }
-    if (b.summary && html) html += bulkSummaryDoc();
-    return html;
-  }
-  function bulkSummaryDoc() {
-    const sm = bulkSummary();
-    return `<article class="doc order-doc" style="font-size:10pt">
-      <h1>출장 여비 · 특근비 요약</h1>
-      <p class="order-sub">${V.monthLabel(sm.months[0])} ~ ${V.monthLabel(sm.months[sm.months.length - 1])} · 화성시아르딤복지관 직업지원팀</p>
-      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근비</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.otPay)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="7">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
-        <tr class="tv-doc-total" style="height:9mm"><th colspan="7">총 합계</th><th class="r">${won(sm.total)}</th></tr>
-      </tbody></table>
-      <p class="order-sub tv-doc-note">출장 여비: 중증장애인직업재활지원사업 규정집 2026 여비 기준(근무지 내 일비 4시간 기준·차량배치 유무, 유류비, 통행료, 주차료, 식비). 특근: 명령부에 적은 식비(1일 2만원 이내).</p>
-    </article>`;
-  }
-  function bulkFile(fit) {
-    const b = bulkState();
-    const body = bulkDocs(fit).replace(/<\/article>\s*<article/g, '</article><br style="page-break-before:always"><article');
-    const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl td.r,.doc-tbl th.r{text-align:right}.doc-tbl th{background:#eee}.rep{font-size:90%}';
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>출장·특근 명령부</title><style>${css}</style></head><body>${body}</body></html>`;
-    const name = `${V.monthLabel(b.from)}~${+b.to.slice(5)}월 출장·특근 명령부_${b.staff.join('·')}.doc`.replace(/[\\/:*?"<>|]/g, '');
-    return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
-  }
-  function orderFile(staff, fit = s => orderDoc(s)) {
-    const f = ui.orders;
-    const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl th{background:#eee}.rep{font-size:90%}';
-    const body = staff == null ? orderDocsEach(fit).replace(/<\/article>\s*<article/g, '</article><br style="page-break-before:always"><article') : fit(staff);
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${orderTitle(f.kind)}</title><style>${css}</style></head><body>${body}</body></html>`;
-    const name = `${V.monthLabel(f.month)} ${orderTitle(f.kind)}${staff != null ? '_' + staff : '_담당자별'}.doc`.replace(/[\\/:*?"<>|]/g, '');
-    return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
-  }
-
-  /* ---------- 한글 명령부 불러오기 ---------- */
-  const HEAD = { 출장일: 'date', 특근일자: 'date', 성명: 'staff', 특근자성명: 'staff', 출장지: 'place', 출장용무: 'purpose', 방법: 'method', 출장시간: 'time', 특근시간: 'time', 출장복명: 'report', 비고: 'note', 부서명: 'dept', 특근업무내용: 'purpose' };
-  /** HWP.readTables 결과 → 명령부 줄. year는 파일 이름에서 찾은 해 */
-  function parseOrderTables(tables, year) {
+  /* ---------- 업무 일정 불러오기 (엑셀·한글 표: 날짜·시간·제목/내용·유형·담당·메모) ---------- */
+  const EV_HEAD = { date: /^(날짜|일자|일시|일정일|월일)$/, time: /^(시간|시각)$/, title: /^(제목|일정|내용|일정내용|업무|업무내용|행사명|프로그램)$/, type: /^(유형|구분|종류)$/, staff: /^(담당|담당자|담당직원|성명|직원)$/, memo: /^(메모|비고|장소)$/ };
+  function eventsFromRows(rows, year) {
     const out = [];
-    tables.forEach(t => {
-      const hi = t.rows.findIndex(r => r.some(c => /^(출장일|특근일자)$/.test(c.replace(/\s/g, ''))));
-      if (hi < 0) return;
-      const kind = t.rows[hi].some(c => c.replace(/\s/g, '') === '출장일') ? '출장' : '특근';
-      const cols = [];
-      t.rows[hi].forEach((c, i) => { const k = HEAD[c.replace(/\s/g, '')]; if (k) cols.push({ k, from: i, to: i + ((t.spans[hi] || [])[i] || 1) }); });
-      t.rows.slice(hi + 1).forEach(r => {
-        const o = {};
-        cols.forEach(c => { o[c.k] = r.slice(c.from, c.to).filter(Boolean).join('\n').trim(); });
-        const m = (o.date || '').match(/(\d{1,2})\s*월\s*(\d{1,2})/);
-        if (!m || !o.staff) return;
-        const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
-        const pur = lines(o.purpose);
-        out.push({
-          kind, date: `${year}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, staff: o.staff.replace(/\s/g, ''),
-          place: lines(o.place).join(' '),
-          purpose: kind === '특근' ? pur[0] || '' : pur.join(' '),
-          method: lines(o.method).join(' '), time: lines(o.time).join(' ').replace(/∼/g, '~'),
-          report: D.TRIP_REPORTS.filter(x => new RegExp(x + '\\s*■').test(o.report || '')),
-          dept: kind === '특근' ? lines(o.dept).join(' ') || '직업' : '',
-          note: [...(kind === '특근' ? pur.slice(1) : []), ...lines(o.note)].join(' / '), actId: '',
-        });
-      });
-    });
-    // 동행 줄은 출장시간·방법을 비워 두는 경우가 많아, 같은 날·같은 곳·같은 용무 줄에서 채운다
-    out.forEach(r => ['time', 'method'].forEach(k => {
-      if (r[k]) return;
-      const mate = out.find(o => o !== r && o[k] && o.kind === r.kind && o.date === r.date && U.norm(o.place) === U.norm(r.place) && U.norm(o.purpose) === U.norm(r.purpose));
-      if (mate) r[k] = mate[k];
-    }));
+    for (let h = 0; h < Math.min(rows.length, 15); h++) {
+      const head = (rows[h] || []).map(c => String(c ?? '').replace(/\s/g, ''));
+      const col = {};
+      head.forEach((t, i) => Object.entries(EV_HEAD).forEach(([k, re]) => { if (col[k] == null && re.test(t)) col[k] = i; }));
+      if (col.date == null || col.title == null) continue;
+      for (let r = h + 1; r < rows.length; r++) {
+        const row = rows[r] || [];
+        const raw = row[col.date];
+        let date = '';
+        if (typeof raw === 'number' && raw > 30000) { const d = new Date(Math.round((raw - 25569) * 864e5)); const y = d.getUTCFullYear() < 2015 ? year : d.getUTCFullYear(); date = `${y}-${U.pad(d.getUTCMonth() + 1)}-${U.pad(d.getUTCDate())}`; }
+        else { const t = String(raw ?? ''); const k = t.match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/) || t.match(/^\s*(\d{1,2})[.\-/월\s]+(\d{1,2})/); if (k) date = k.length === 4 ? `${k[1]}-${U.pad(+k[2])}-${U.pad(+k[3])}` : `${year}-${U.pad(+k[1])}-${U.pad(+k[2])}`; }
+        const title = String(row[col.title] ?? '').replace(/\s+/g, ' ').trim();
+        if (!date || !title) continue;
+        const tm = String(row[col.time] ?? '').match(/(\d{1,2})[:시]?\s*(\d{2})?/);
+        const staff = String(row[col.staff] ?? '').trim();
+        out.push({ date, time: tm ? `${U.pad(+tm[1])}:${tm[2] || '00'}` : '', title, type: D.EVENT_TYPES.find(t => String(row[col.type] ?? '').includes(t)) || '기타', staff: S.staff().some(s => s.name === staff) ? staff : '', memo: String(row[col.memo] ?? '').trim(), targetType: '', targetId: '' });
+      }
+      break;
+    }
     return out;
   }
-  const tripKey = t => [t.kind, t.date, t.staff, U.norm(t.place || ''), U.norm(t.purpose || ''), (t.time || '').replace(/\s/g, '')].join('|');
-  function markDup(rows) {
-    const have = new Set(S.get().trips.map(tripKey));
-    rows.forEach(r => { r.dup = have.has(tripKey(r)); });
-    return rows;
+  function eventsFromWorkbook(wb, file) {
+    const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4));
+    return wb.SheetNames.flatMap(n => eventsFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }), year));
   }
-  function hwpDialog(state) {
-    const rows = state.rows || [];
-    const fresh = rows.filter(r => !r.dup);
-    const months = [...new Set(rows.map(r => r.date.slice(0, 7)))].sort();
-    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">한글 명령부 불러오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
-      <div class="dr-body">
-        <p class="sub">${e(state.files.join(', '))}</p>
-        ${state.errors.length ? `<p class="sub" style="color:var(--danger)">${state.errors.map(e).join('<br>')}</p>` : ''}
-        ${rows.length ? `<p class="sub">${months.map(V.monthLabel).join(', ')} · 관내출장 ${rows.filter(r => r.kind === '출장').length}줄, 특근 ${rows.filter(r => r.kind === '특근').length}줄을 읽었습니다.${rows.length - fresh.length ? ` 이미 있는 ${rows.length - fresh.length}줄은 건너뜁니다.` : ''}</p>
-          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>구분</th><th>날짜</th><th>성명</th><th>출장지</th><th>용무·내용</th><th>시간</th><th>복명</th><th>비고</th></tr></thead><tbody>
-          ${rows.map(r => `<tr class="${r.dup ? 'muted' : ''}"><td>${r.kind}${r.dup ? ' <span class="sub">(있음)</span>' : ''}</td><td class="num">${e(r.date)}</td><td><b>${e(r.staff)}</b></td><td>${e(r.place)}</td><td>${e(r.purpose)}</td><td class="nowrap">${e(r.time)}</td><td>${e(r.report.join(', '))}</td><td>${e(r.note)}</td></tr>`).join('')}
-          </tbody></table></div>` : state.errors.length ? '' : '<p class="sub">명령부 표(출장일 또는 특근일자 칸)를 찾지 못했습니다.</p>'}
-      </div>
-      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="od-hwp-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
-  }
-  function commitHwp(rows) {
-    const fresh = rows.filter(r => !r.dup).map(({ dup, ...r }) => r);
-    S.upsertMany('trip', fresh);
-    const last = fresh.map(r => r.date.slice(0, 7)).sort().pop();
-    if (last) { ui.orders.month = last; ui.orders.kind = fresh.some(r => r.kind === '출장' && r.date.startsWith(last)) ? '출장' : '특근'; }
-    return fresh.length;
-  }
+  const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
 
-  /* ================= 개발대장 ================= */
   /** 공유 시트 '구인업체 개발 대장' 열 순서: 등록일, 업체명, 주소, 전화번호, 대표명(담당자), 직종/직무, 근무시간, 복리후생(기타), 비고, 실적 진행도, 상담자 */
   const progressOf = b => b.progress || ((b.jobAnalyses || []).length ? '직무분석지 작성완료' : S.actsOf('biz', b.id).some(a => a.type === '방문') ? '방문완료' : '');
   function ledgerTsv(list) {
@@ -851,13 +575,10 @@ window.R = (() => {
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
       ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
     ].sort(byDate('날짜'));
-    const tr = kind => v.trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((x, y) => (x.date || '').localeCompare(y.date || '') || (x.staff || '').localeCompare(y.staff || ''));
-    const trip = tr('출장').map(t => ({ '출장일': t.date, '성명': t.staff || '', '출장지': t.place || '', '출장용무': t.purpose || '', '방법': t.method || '', '출장시간': t.time || '', '출장복명': (t.report || []).join(', '), '비고': t.note || '', '식비': t.meal || '' }));
-    const ot = tr('특근').map(t => ({ '특근일자': t.date, '성명': t.staff || '', '부서명': t.dept || '직업', '특근시간': t.time || '', '업무내용': t.purpose || '', '비고': t.note || '', '식비': t.meal || '' }));
     const newBiz = v.businesses.filter(b => (S.bizFirst(b) || b.discoveredAt || '').startsWith(month)).map(b => ({ '최초 등록일': S.bizFirst(b) || b.discoveredAt || '', '사업체명': b.name, '업종': b.industry || '', '진행 단계': b.stage || '', '주소': b.address || '', '대표 전화': b.phone || '', '사업체 담당자': contactOf(b), '발굴 경로': b.source || '', '가능 직무': b.jobs || '', '담당 직원': b.staff || '', '메모': b.memo || '' })).sort(byDate('최초 등록일'));
     const ev = v.events.filter(x => (x.date || '').startsWith(month)).map(x => { const t = S.targetOf(x); return { '날짜': x.date, '시간': x.time || '', '유형': x.type || '', '제목': x.title || '', '사업체·기관': t ? t.name : '', '담당': x.staff || (t && t.staff) || '', '완료': x.done ? 'Y' : '', '메모': x.memo || '' }; }).sort(byDate('날짜'));
     const cards = v.cards.filter(c => (c.metAt || '').startsWith(month)).map(c => ({ '받은 날': c.metAt, '이름': c.name, '직함': c.title || '', '소속': c.org || '', '휴대전화': c.mobile || '', '사무실 전화': c.phone || '', '이메일': c.email || '', '받은 곳': c.metWhere || '' })).sort(byDate('받은 날'));
-    return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, trip, ot, newBiz, ev, cards };
+    return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, newBiz, ev, cards };
   }
   const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
   function sheetOf(rows, head) {
@@ -923,5 +644,5 @@ window.R = (() => {
     return out;
   }
 
-  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactRows, secStaffBar, contactTsv, reportTsv, addContact, registerBiz, parsePaste, parseCells, parseSheets, readFileSheets, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
+  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, jobLink, siteName, contactsPage, contactsResults, contactRows, secStaffBar, contactTsv, reportTsv, addContact, registerBiz, parsePaste, parseCells, parseSheets, readFileSheets, pasteDialog, commitPaste, eventsFromWorkbook, eventsFromHwp, ledgerTsv, progressOf };
 })();

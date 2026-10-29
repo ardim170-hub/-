@@ -605,20 +605,6 @@ function kakaoGeocode_(q) {
   return null;
 }
 /** 관리자: 카카오 REST 키 저장 (빈 값이면 지움). 저장 전에 주소 하나로 시험한다 */
-function api_setKakaoKey(key) {
-  requireAdmin_();
-  var props = PropertiesService.getScriptProperties();
-  key = String(key || '').trim();
-  if (!key) { props.deleteProperty(KAKAO_PROP); withLock_(function () { writeSettings_({ kakaoOn: '' }); }); return { ok: true, on: false }; }
-  var old = kakaoKey_();
-  props.setProperty(KAKAO_PROP, key);
-  try {
-    var j = kakaoGet_('https://dapi.kakao.com/v2/local/search/address.json?size=1&query=' + encodeURIComponent('경기도 화성시 향남읍 도이1길 104'));
-    if (!j) throw new Error('카카오 응답이 없어요');
-  } catch (e) { if (old) props.setProperty(KAKAO_PROP, old); else props.deleteProperty(KAKAO_PROP); throw e; }
-  withLock_(function () { writeSettings_({ kakaoOn: 'Y' }); });
-  return { ok: true, on: true };
-}
 /** 두 곳 사이 자동차 도로 거리(km)·시간(분)·경로 */
 function api_route(a, b) {
   requireMember_();
@@ -831,7 +817,7 @@ function orgPerfId_(v) {
 }
 function api_orgPerfSync(p) {
   var acc = requireMember_();
-  if (level_(acc, 'perf') < 2) throw new Error('실적 등록·수정 권한이 없습니다.');
+  if (level_(acc, 'orgsync') < 2) throw new Error('복지관 실적 시트 보내기 권한이 없어요. 관리자에게 요청하세요.');
   var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet));
   var gen = ss.getSheetByName('실적(일반)'), etc = ss.getSheetByName('실적(기타)'), cls = ss.getSheetByName('실적분류설정'), users = ss.getSheetByName('이용자입력');
   if (!gen || !etc || !cls) throw new Error('보낼 시트에 실적(일반)·실적(기타)·실적분류설정 탭이 없어요. 주소를 확인하세요.');

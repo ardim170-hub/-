@@ -26,7 +26,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     hub: { q: '', triage: false },
-    map: { engine: (() => { try { return localStorage.getItem('ardim.mapEngine') || 'leaflet'; } catch { return 'leaflet'; } })(), biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
@@ -495,7 +495,7 @@ window.V = (() => {
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
       ${f.mode === 'city' ? cityMap() : `
       <section class="panel map-layout">
-        <div class="map-main eng-${S.get().settings.naverKey ? (f.engine || 'leaflet') : 'leaflet'}">
+        <div class="map-main">
           <div class="map-tools">
             <input class="input" id="mapQ" type="search" placeholder="이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
@@ -509,11 +509,9 @@ window.V = (() => {
             <button type="button" class="btn btn-sm btn-add ${f.addMode ? 'on' : ''}" data-act="map-addmode" id="mapAddBtn" title="지도에서 자리를 찍어 새 사업체·기관 등록 (오른쪽 클릭도 돼요)">${f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'}</button>
             <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
-            ${S.get().settings.naverKey ? `<div class="seg map-engine" role="group" aria-label="지도 종류">${[['leaflet', '브이월드'], ['naver', '네이버'], ['compare', '나란히 비교']].map(([k, l]) => `<button type="button" class="${(f.engine || 'leaflet') === k ? 'on' : ''}" data-act="map-engine" data-v="${k}">${l}</button>`).join('')}</div>` : ''}
           </div>
           <div class="map-canvas">
             <div class="map-box" id="bigMap"></div>
-            <div class="map-box nm-box" id="nvMap"></div>
             <div class="place-box" id="placeBox">
               <form class="ps-form" data-form="place-q" autocomplete="off" role="search"><input class="input" id="placeQ" type="search" placeholder="장소·주소 검색 → 바로 등록 (예: 다이소 마도점)" value="${e(f.pq || '')}" aria-label="장소·주소 검색"><button class="btn btn-primary" type="submit" aria-label="검색">🔍</button></form>
               <div class="ps-res" id="placeRes" hidden></div>
@@ -700,11 +698,6 @@ window.V = (() => {
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
     const f = ui.sched;
-    const tabs = '';
-    f.view = 'work'; // 훈련반(직업훈련 일정표)은 뺐다
-    if (f.view === 'train') return `
-      <div class="page-head"><div><h1 class="page-title">직업훈련 일정표</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
-      ${tabs}<div id="tpBox"></div>`;
     const all = S.view().events.filter(x => !x.done);
     const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
     return `
@@ -713,7 +706,7 @@ window.V = (() => {
         <div class="inline"><button class="btn" type="button" data-act="ev-import">📂 엑셀·한글로 일정 불러오기</button><button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button></div>
       </div>
       ${calBar()}
-      ${tabs}
+      
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
         ${S.staffHere().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
@@ -747,17 +740,13 @@ window.V = (() => {
     if (calOn()) return `<div class="cal-bar on">📅 <b>구글 캘린더와 연결됨</b><span class="sub">${e(S.get().settings.calName || calId())} · 여기서 일정을 추가·수정·삭제하면 캘린더에도 자동으로 반영돼요</span><a class="btn btn-sm" href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(calId())}" target="_blank" rel="noopener">구글 캘린더 열기</a></div>`;
     return `<div class="cal-bar">📅 <b>구글 캘린더 연결 안 됨</b><span class="sub">${S.REMOTE ? (S.isAdmin() ? '데이터 관리 → 구글 캘린더에서 팀 캘린더를 연결하면 일정이 자동으로 들어가요.' : '관리자가 데이터 관리에서 연결하면 자동으로 들어가요.') : '팀 공유(구글 시트) 버전에서 연결할 수 있어요.'} 지금은 일정마다 📅 버튼으로 한 건씩 넣을 수 있어요.</span>${S.REMOTE && S.isAdmin() ? '<a class="btn btn-sm btn-primary" href="#/data" data-act="cal-goto">연결하러 가기</a>' : ''}</div>`;
   }
-  /** 데이터 관리: 구글·카카오 연결 (캘린더 외) */
+  /** 데이터 관리: 자동 백업·아침 메일·자동 작업 (캘린더 외) */
   function linkPanel() {
     if (!S.REMOTE || !S.isAdmin()) return '';
     const st = S.get().settings;
     const on = (k, v = 'Y') => st[k] === v;
     return `<section class="panel panel-pad link-panel">
-      <h2 class="section-title">🔗 카카오 지도 · 자동 백업 · 아침 메일</h2>
-      <div class="lk"><h3>🗺 카카오 지도 키 ${on('kakaoOn') ? '<span class="badge success">사용 중</span>' : '<span class="badge">없음</span>'}</h3>
-        <p class="sub">무료 키 하나로 <b>주소 → 정확한 위치</b>와 <b>실제 도로 거리(유류비)</b>를 계산해요. 키가 없으면 구글 지도(무료)로 위치만 찾아요.<br>
-        받는 법: developers.kakao.com 로그인 → 내 애플리케이션 → 애플리케이션 추가 → <b>앱 키의 REST API 키</b> 복사 · 같은 화면 <b>카카오맵</b> 사용 설정 ON · 도로 거리는 <b>카카오모빌리티 길찾기</b>도 사용 신청(무료 한도).</p>
-        <div class="acc-add"><input class="input" id="kakaoKey" type="password" placeholder="${on('kakaoOn') ? '저장됨 (바꾸려면 새 키 입력)' : 'REST API 키 붙여넣기'}" autocomplete="off" aria-label="카카오 REST API 키"><button class="btn btn-primary" type="button" data-act="kakao-save">시험하고 저장</button>${on('kakaoOn') ? '<button class="btn btn-ghost" type="button" data-act="kakao-off">지우기</button>' : ''}<button class="btn" type="button" data-act="nopos-refind" title="대략 위치·위치 없는 곳을 다시 찾아요">📍 위치 다시 찾기</button></div></div>
+      <h2 class="section-title">🔗 자동 백업 · 아침 메일</h2>
       <div class="lk"><h3>💾 자동 백업 <span class="sub" id="gLastBackup">${st.lastBackup ? '마지막 ' + e(st.lastBackup) : ''}</span></h3>
         <p class="sub">자동 작업을 켜면 <b>매일 새벽 2시</b>에 시트 전체를 드라이브 "아르딤 취업지원 백업" 폴더에 복사해요 (30개 보관). 실수로 지워도 되살릴 수 있어요.</p>
         <div class="inline"><button class="btn" type="button" data-act="backup-now">지금 백업</button><button class="btn btn-ghost" type="button" data-act="backup-list">백업 목록</button><label class="check"><input type="checkbox" data-act="backup-toggle" ${on('backupOn', 'N') ? '' : 'checked'}>매일 자동 백업</label></div><div id="gBackups"></div></div>
@@ -1037,7 +1026,7 @@ window.V = (() => {
           <div class="chips">${['', ...pros].map(n => `<button type="button" class="chip ${f.who === n ? 'on' : ''}" data-act="perf-who" data-who="${e(n)}">${n ? `<span class="dot" style="background:${staffColor(n)}"></span>${e(n)}` : '전체'}</button>`).join('')}</div>
           <div class="inline">
             <label class="check"><input type="checkbox" data-act="perf-no" ${f.withNo ? 'checked' : ''}>연번 포함해서 복사</label>
-            <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button><button class="btn btn-primary" type="button" data-act="org-sync" title="이 달 실적을 복지관 사업실적 시트(실적(일반)·실적(기타))에 바로 적어요">📤 복지관 실적 시트로 보내기</button>
+            <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button>${S.level('orgsync') >= 2 ? `<button class="btn btn-primary" type="button" data-act="org-sync" title="이 달 실적을 복지관 사업실적 시트(실적(일반)·실적(기타))에 바로 적어요">📤 복지관 실적 시트로 보내기</button>` : ''}
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
@@ -1132,10 +1121,6 @@ window.V = (() => {
             <button class="btn btn-primary" type="button" data-act="month-xlsx">시작 달 한 달 파일</button><button class="btn" type="button" data-act="month-xlsx" data-range="1">기간 전체 한 파일 (월별 요약 포함)</button></div>
           <p class="sub" style="margin:8px 0 0">지금 보는 범위(${e(S.scopeLabel())}) 기준이에요. 팀 공유 사이트는 매달 1일 새벽에 지난달 정리 파일이 구글 드라이브 '아르딤 취업지원 월별 정리' 폴더에 자동으로 만들어져요(자동 작업을 켠 경우).</p>
         </section>
-        ${st.trips.length ? `<section class="panel panel-pad">
-          <h2 class="section-title">🧾 출장·특근 기록 지우기 <span class="sub">출장명령부는 현장중심 메뉴에서 뺐어요. 남은 기록 ${st.trips.length}건</span></h2>
-          <div class="inline"><button class="btn btn-danger" type="button" data-act="trips-wipe">출장·특근 기록 ${st.trips.length}건 모두 지우기</button><span class="sub">관내·관외출장, 특근 명령부와 여비 계산 기록이 지워져요. 먼저 엑셀로 내보내 두면 안전해요.</span></div>
-        </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
           <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>
@@ -1217,13 +1202,6 @@ window.V = (() => {
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
           ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https://script.google.com')}" placeholder="https://script.google.com"></label>` : ''}
           ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
-        </section>
-        <section class="panel panel-pad">
-          <h2 class="section-title">🟢 네이버 지도 (실험) ${st.settings.naverKey ? '<span class="badge success">키 있음</span>' : '<span class="badge">키 없음</span>'}</h2>
-          <p>네이버 클라우드 플랫폼의 <b>Maps (Dynamic Map)</b> 키(Client ID)를 넣으면 지도 화면 위쪽에서 <b>브이월드 / 네이버 / 나란히 비교</b>를 골라 볼 수 있어요. 길찾기·여기에 추가·위치 옮기기는 브이월드(기본) 지도에서 해요.</p>
-          <ol class="steps-help"><li>네이버 클라우드 콘솔 → <b>Maps</b> → Application 등록 → <b>Dynamic Map</b> 체크</li><li><b>Web 서비스 URL</b>에 아래 주소를 넣어요${S.REMOTE ? ' (둘 다)' : ''}<div class="inline" style="margin-top:4px"><code>${e(location.origin)}</code>${S.REMOTE ? '<code>https://script.google.com</code>' : ''}</div></li><li>받은 <b>Client ID</b>를 아래에 넣고 저장 → 지도 화면에서 <b>네이버</b> 또는 <b>나란히 비교</b></li></ol>
-          <div class="inline" style="width:100%"><input class="input" id="naverKeyInput" value="${e(st.settings.naverKey || '')}" placeholder="네이버 지도 Client ID"><select class="select" id="naverParamInput" aria-label="키 방식" title="새 콘솔에서 받은 키는 ncpKeyId, 예전 키는 ncpClientId">${['ncpKeyId', 'ncpClientId'].map(k => `<option ${(st.settings.naverKeyParam || 'ncpKeyId') === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="btn" type="button" data-act="save-naver">저장</button></div>
-          <p class="sub" style="margin:6px 0 0">'인증 실패'가 나오면 위 주소 등록을 확인하고, 키 방식을 바꿔 저장해 보세요(새 콘솔 키 = ncpKeyId, 예전 키 = ncpClientId).</p>
         </section>
         ` : ''}
         ${admin ? `

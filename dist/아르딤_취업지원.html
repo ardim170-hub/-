@@ -1463,27 +1463,9 @@ mark { background: #FFF1B8; color: inherit; border-radius: 0; }
 .select.sm { padding-right: 24px; width: auto; }
 .link { cursor: pointer; }
 .link:hover { color: var(--accent); }
-.od-tbl td { padding: 6px 6px; white-space: nowrap; }
-.od-tbl .input.sm { min-width: 110px; }
-.od-tbl td:nth-child(3) .input.sm, .od-tbl td:nth-child(8) .input.sm { min-width: 170px; }
 .steps-help { margin: 0; padding-left: 20px; color: var(--text-2); font-size: 13.5px; line-height: 1.8; }
-.order-doc { page: order; font-size: 10pt; }
-.order-doc.measure { padding: 0; border: 0; }
 @page order { size: A4 portrait; margin: 10mm; }
-.order-doc .order-head { display: flex; justify-content: flex-end; }
-.order-doc .sign { width: auto; border-collapse: collapse; margin: 0; font-size: 10pt; }
-.order-doc .sign th, .order-doc .sign td { width: 20mm; text-align: center; border: 1px solid #444; padding: 1mm; }
-.order-doc .sign td { height: 14mm; }
-.order-doc .sign .sign-side { width: 7mm; }
-#printRoot .order-doc + .order-doc { page-break-before: always; break-before: page; }
-.order-doc h1 { margin: 2mm 0 1mm; font-size: 18pt; }
 .order-sub { text-align: center; margin: 0 0 3mm; color: #444; font-size: 9.5pt; }
-/* 표: 칸 너비는 colgroup(%)으로 고정, 글이 길면 칸 안에서 줄바꿈 */
-.order-doc .order-tbl { table-layout: fixed; width: 100%; margin: 0; }
-.order-doc .order-tbl th { width: auto; text-align: center; background: #F0F2F5; padding: 1.5mm 1mm; height: 9mm; white-space: nowrap; }
-.order-doc .order-tbl td { text-align: center; padding: .4mm 1.2mm; line-height: 1.25; word-break: keep-all; overflow-wrap: anywhere; vertical-align: middle; }
-.order-doc .order-tbl td.l { text-align: left; }
-.order-doc .order-tbl .rep { font-size: 88%; white-space: nowrap; }
 
 /* 사용 권한 */
 .notice { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 0; background: var(--accent-soft); color: var(--text); font-size: 14px; }
@@ -1718,50 +1700,7 @@ label.field .textarea { width: 100%; }
 .perm-cell .select.sm { width: auto; }
 .btn-link-to { background: var(--k-card-soft); border-color: #99D8CF; color: var(--k-card-ink); font-weight: 700; }
 .link-bar { border-color: #99D8CF; border-left-color: var(--k-card); background: var(--k-card-soft); color: var(--k-card-ink); }
-
-/* 담당자별 명령부 칸 */
-.od-each { border-top: 1px solid var(--line, #E5E7EB); }
-.od-each-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 8px; }
-.od-each-head .inline { margin-left: auto; }
-.od-each-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 8px; }
-.od-each-item > span:first-child { white-space: nowrap; }
-.od-each-item .inline { flex-wrap: nowrap; }
-.od-each-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line, #E5E7EB); border-radius: 0; }
-
-/* 여비 계산 */
-.tv-top { display: flex; flex-direction: column; gap: 10px; }
-.tv-rule { border: 1px solid var(--line); border-radius: 0; padding: 8px 12px; background: var(--surface-2); }
-.tv-rule summary { cursor: pointer; }
-.tv-rule-body { display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: flex-start; margin-top: 8px; }
-.tv-rule-body ul { margin: 0; padding-left: 18px; flex: 1 1 380px; line-height: 1.6; }
-.tv-rule-tbl { width: auto; font-size: 13px; }
-.tv-rule-tbl th, .tv-rule-tbl td { padding: 4px 10px; text-align: center; }
-.tv-set { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
-.tv-set label { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; }
-.tv-set .grow { flex: 1; }
-.tv-warn { margin: 0; padding: 8px 12px; border-radius: 0; background: #FFF6D6; color: #6B4E00; font-size: 13px; }
-.tv-sum { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 12px; }
-.tv-sum-item { display: flex; align-items: baseline; gap: 8px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 0; background: var(--surface); }
-.tv-sum-item b { font-size: 16px; }
-.tv-sum-item.all { background: var(--ps, #EAEEFC); border-color: var(--pc, #3B5BDB); }
-.tv-tbl { font-size: 13px; }
-.tv-tbl th { white-space: nowrap; font-size: 12px; }
-.tv-tbl th small { display: block; font-weight: 400; color: var(--text-2); }
-.tv-tbl td { vertical-align: top; padding: 6px 6px; }
-.tv-tbl tr.tv-day td { border-top: 2px solid var(--line-strong); }
-.tv-tbl .tv-place { min-width: 110px; font-weight: 600; }
-.tv-tbl .tv-in { padding: 3px 6px; }
-.tv-tbl .tv-c { background: var(--surface-2); text-align: right; white-space: nowrap; }
-.tv-tbl .tv-total { font-weight: 800; font-size: 14px; color: var(--pi, #2A44B0); }
-.tv-h { margin-top: 3px; font-size: 11.5px; white-space: nowrap; }
 .tv-over { color: var(--danger); font-size: 11.5px; white-space: nowrap; }
-.order-doc .doc-tbl td.r { text-align: right; }
-.order-doc .tv-doc-total th { background: #eee; }
-.order-doc .tv-doc-note { font-size: 8pt; text-align: left; margin-top: 4mm; }
-.tv-stack { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
-.tv-f { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--text-2); white-space: nowrap; }
-.tv-f > span { width: 26px; }
-.tv-tbl .tv-place { min-width: 100px; max-width: 170px; }
 
 /* 실적 목표 달성률 */
 .gl { padding: 16px 18px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; border-top: 4px solid var(--pc, #7C4DDB); }
@@ -1921,20 +1860,9 @@ label.field .textarea { width: 100%; }
 .at-src-list li:first-child { border-top: 0; }
 .btn-danger-ghost { color: var(--danger); border-color: #F5C2C2; }
 .btn-danger-ghost:hover { background: #FEF2F2; }
-/* 출장·특근: 담당자·여비 */
-.od-staff { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; border-bottom: 1px solid var(--line); padding-block: 12px; }
-.od-staff > b { margin-right: 4px; }
-.od-staff .chip { margin: 0; }
-.od-staff-chip { display: inline-flex; align-items: center; position: relative; }
 .od-staff-del { margin-left: -6px; width: 20px; height: 20px; border: 0; border-radius: 50%; background: #FEE2E2; color: #B91C1C; font-weight: 800; line-height: 20px; padding: 0; cursor: pointer; opacity: .55; }
 .od-staff-chip:hover .od-staff-del { opacity: 1; }
 .od-staff-add { display: inline-flex; gap: 4px; align-items: center; margin-left: 6px; }
-.od-tbl td.od-tv, .od-tbl th.od-tv { min-width: 120px; text-align: right; background: #FFFBEB; white-space: normal; }
-.od-tbl td.od-tv b { display: block; color: #92400E; }
-.od-tbl td.od-tv small { display: block; font-size: 11px; color: var(--text-2); line-height: 1.35; }
-.od-tbl td.od-tv.same { background: #FFFDF5; }
-.od-tbl tfoot th { padding: 8px; font-size: 13px; }
-.od-tv-sum { margin-left: 8px; font-size: 12.5px; font-weight: 700; color: #92400E; background: #FEF3C7; border-radius: 0; padding: 1px 8px; }
 /* 목표 달성률: 가로 표 + 막대그래프 */
 .gl-years { display: flex; gap: 6px; margin: 6px 0 4px; }
 .gl-years .chip small { font-weight: 400; opacity: .8; }
@@ -1966,7 +1894,6 @@ label.field .textarea { width: 100%; }
 .gl-base h3 { margin: 0 0 6px; font-size: 14px; }
 .gl-btbl tr.how td { white-space: normal; font-size: 11.5px; color: var(--text-2); text-align: left; min-width: 110px; }
 .glc { padding-top: 24px; }
-.od-tbl td.od-meal .input { width: 84px; min-width: 84px; text-align: right; }
 /* 출석부: 목표시간 미만 판 · 줄 버튼 */
 .at-short { margin: 0 16px 10px; padding: 10px 14px; border: 1.5px solid #FCA5A5; border-radius: 0; background: #FEF2F2; }
 .at-short.ok { border-color: #A7E3BF; background: #F0FAF4; }
@@ -1985,43 +1912,9 @@ label.field .textarea { width: 100%; }
 .at-tbl th.nm .at-rbtns { display: none; position: absolute; right: 2px; top: 50%; transform: translateY(-50%); gap: 2px; }
 .at-tbl tr:hover th.nm .at-rbtns { display: inline-flex; }
 .at-tbl th.nm .at-rfill { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #DBEAFE; color: #1D4ED8; font-weight: 800; line-height: 18px; padding: 0; cursor: pointer; }
-.od-each-item.empty { opacity: .8; background: var(--surface-2); }
-/* 여러 달 한꺼번에 인쇄 */
-.od-bulk { border-bottom: 1px solid var(--line); background: #F8FAFF; display: flex; flex-direction: column; gap: 10px; }
-.od-bulk-head { display: flex; align-items: center; gap: 10px; }
-.od-bulk-head .icon-btn { margin-left: auto; }
-.od-bulk-form { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: 13.5px; }
-.od-bulk-form label { display: inline-flex; align-items: center; gap: 4px; }
-.od-bulk-grp { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
-.od-bulk-tbl td { vertical-align: top; min-width: 150px; }
-.od-bulk-tbl td b { display: block; font-size: 14px; }
-.od-bulk-tbl td small { display: block; color: var(--text-2); font-size: 11.5px; }
-.od-bulk-tbl .tot, .od-bulk-tbl tr.tot td, .od-bulk-tbl tr.tot th { background: #FFF7ED; }
-.od-bulk-tbl td.tot b { color: #9A3412; font-size: 15px; }
-.od-bulk-acts { gap: 8px 12px; flex-wrap: wrap; align-items: center; }
 .btn-sync { white-space: nowrap; font-weight: 700; }
 .btn-sync.spinning { opacity: .7; cursor: progress; }
-@media (max-width: 860px) { .btn-sync { padding-inline: 10px; font-size: 13px; } }
-/* 여비 정산 */
-.tv-settle { padding: 14px 16px; border-bottom: 1px solid var(--line); background: #FFFBF3; display: flex; flex-direction: column; gap: 8px; }
-.tv-settle-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
-.tv-settle-head h3 { margin: 0; font-size: 16px; }
-.tv-settle-total { font-size: 14px; }
-.tv-settle-total b { font-size: 22px; color: #9A3412; margin-left: 6px; }
-.tv-settle-tbl th small { display: block; font-weight: 400; color: var(--text-2); font-size: 11px; }
-.tv-settle-tbl td b { display: block; }
-.tv-settle-tbl td small { display: block; color: var(--text-2); font-size: 11.5px; }
-.tv-settle-tbl .tot { background: #FFF1E0; }
-.tv-settle-tbl td.tot b { font-size: 15px; color: #9A3412; }
-.tv-settle-tbl tr.tot th, .tv-settle-tbl tr.tot td { background: #FFE8CC; }
-.tv-settle-tbl td .btn + .btn { margin-left: 4px; }
-.tv-detail-h { margin: 10px 16px 6px; font-size: 14px; }
-.order-doc .tv-doc-sec { font-size: 11pt; margin: 4mm 0 1.5mm; text-align: left; }
-.order-doc .tv-grand { margin-top: 4mm; width: 100%; border-collapse: collapse; }
-.order-doc .tv-grand th, .order-doc .tv-grand td { border: 1.5px solid #000; padding: 2mm 3mm; font-size: 12pt; }
-.order-doc .tv-grand th { background: #eee; text-align: left; }
-.order-doc .doc-tbl th.r, .order-doc .doc-tbl td.r { text-align: right; }
-.prog-mgr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 0; margin-bottom: 10px; }
+@media (max-width: 860px) { .btn-sync { padding-inline: 10px; font-size: 13px; } }.prog-mgr { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 8px 10px; border: 1px dashed var(--line-strong); border-radius: 0; margin-bottom: 10px; }
 .prog-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 0; border: 1.5px solid var(--c); color: var(--c); font-weight: 700; font-size: 13px; background: color-mix(in srgb, var(--c) 8%, transparent); }
 .prog-chip button { border: 0; background: none; color: var(--c); font-weight: 800; cursor: pointer; padding: 0 0 0 2px; }
 .prog-add { display: inline-flex; gap: 4px; margin-left: 4px; }
@@ -2029,65 +1922,7 @@ label.field .textarea { width: 100%; }
 .sched-tabs { margin-bottom: 12px; }
 .sched-tabs .chip small { font-weight: 400; opacity: .8; margin-left: 4px; }
 .tp { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
-.tp-classes { margin: 0; }
-.tp-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 14px; }
-.tp-title { margin: 0; font-size: 20px; letter-spacing: .5px; }
-.tp-staff { margin: 0; }
-.tp-wrap { overflow-x: auto; }
-.tp-tbl { width: 100%; min-width: 860px; border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
-.tp-tbl th, .tp-tbl td { border: 1px solid #9AA3B2; vertical-align: top; }
-.tp-tbl thead th { background: #EEECE1; padding: 6px; font-size: 14px; }
-.tp-tbl tr.tp-date td { background: #EEECE1; text-align: center; font-weight: 700; padding: 3px; cursor: pointer; }
-.tp-tbl tr.tp-date td.lab { background: #FFF59D; }
-.tp-tbl tr.tp-date td.lab b { color: #B42318; }
-.tp-tbl tr.tp-date td.none, .tp-tbl td.none { background: #fff; cursor: default; }
-.tp-tbl tr.tp-slot th { background: #fff; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 2px; }
-.tp-tbl tr.tp-slot th small { display: block; font-weight: 400; color: var(--text-2); font-size: 11px; }
-.tp-cell { padding: 5px 7px; cursor: pointer; height: 64px; }
-.tp-cell:hover { outline: 2px solid #2563EB; outline-offset: -2px; }
-.tp-cell.empty { text-align: center; vertical-align: middle; }
-.tp-plus { color: #C0C5CE; font-size: 18px; }
-.tp-cat { font-size: 10.5px; color: #475467; text-decoration: underline; margin-bottom: 2px; }
-.tp-txt { line-height: 1.45; }
-.tp-cell.big { text-align: center; vertical-align: middle; }
-.tp-cell.big .tp-txt { font-size: 17px; font-weight: 800; color: #DC2626; }
-.tp-notes { display: flex; flex-direction: column; gap: 6px; }
-.tp-notes label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; }
-.tp-modal { position: fixed; inset: 0; background: rgba(16,24,40,.45); display: grid; place-items: center; z-index: 2000; }
-.tp-modal .modal { background: var(--surface); border-radius: 0; padding: 18px 20px; width: min(460px, calc(100vw - 32px)); display: flex; flex-direction: column; gap: 10px; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
-.tp-modal h2 { margin: 0; font-size: 17px; }
-.tp-modal label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; }
-.tp-modal label.check { flex-direction: row; align-items: center; font-weight: 400; }
-.tp-modal-acts { justify-content: flex-end; gap: 6px; }
-/* 인쇄: A4 가로 */
-.tp-doc { page: tp; color: #000; }
 @page tp { size: A4 landscape; margin: 8mm; }
-.tp-doc h1 { text-align: center; font-size: 17pt; margin: 0 0 3mm; border: 1.5px solid #000; padding: 2mm; }
-.tp-doc .tp-tbl { min-width: 0; font-size: calc(7.6pt * var(--tps, 1)); }
-.tp-doc .tp-tbl th, .tp-doc .tp-tbl td { border-color: #000; }
-.tp-doc .tp-cell { height: auto; padding: calc(1mm * var(--tps, 1)) 1.5mm; cursor: default; line-height: 1.3; }
-.tp-doc .tp-plus { display: none; }
-.tp-doc .tp-cat { font-size: calc(6.6pt * var(--tps, 1)); margin-bottom: 0; }
-.tp-doc tr.tp-slot th { font-size: calc(8pt * var(--tps, 1)); }
-.tp-doc .tp-txt { line-height: 1.3; }
-.tp-doc .tp-cell.big .tp-txt { font-size: 13pt; }
-.tp-doc tr.tp-date td { padding: .6mm; }
-.tp-doc-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 1mm 6mm; margin-top: 2mm; font-size: 8pt; }
-.tp-doc-notes .r { text-align: right; }
-@media print { .tp-doc * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-/* 일정표: 엑셀처럼 입력 */
-.tp-wrap { position: relative; }
-.tp-ed { position: absolute; display: none; z-index: 6; box-sizing: border-box; margin: 0; padding: 5px 7px; border: 2px solid #1D4ED8; background: transparent; color: transparent; caret-color: transparent; font: inherit; font-size: 12.5px; line-height: 1.45; resize: none; outline: none; pointer-events: none; overflow: hidden; }
-.tp-ed.editing { background: #fff; color: #111; caret-color: #111; pointer-events: auto; box-shadow: 0 4px 14px rgba(29,78,216,.25); overflow: auto; }
-.tp-tbl td.sel { box-shadow: inset 0 0 0 999px rgba(29, 78, 216, .14); }
-.tp-tbl td.cur { outline: 2px solid #1D4ED8; outline-offset: -2px; }
-.tp-tbl td[data-r] { cursor: cell; }
-.tp-tbl .tp-dcell { cursor: cell; }
-.tp-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.tp-sw { width: 26px; height: 26px; border: 1.5px solid var(--line-strong); border-radius: 0; cursor: pointer; padding: 0; }
-.tp-sw.none { width: auto; padding: 0 8px; font-size: 12px; background: #fff; }
-.tp-sw:hover { outline: 2px solid #1D4ED8; }
-.tp-keys { flex-basis: 100%; }
 /* 현재 접속자 */
 .presence { position: relative; }
 .presence-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 0; padding: 3px 10px 3px 8px; font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
@@ -2101,28 +1936,6 @@ label.field .textarea { width: 100%; }
 .presence-row > i { margin: 0; }
 .presence-row small { display: block; color: var(--text-2); font-size: 11px; }
 @media (max-width: 860px) { .presence-btn b, .presence-btn { font-size: 0; gap: 2px; } .presence-btn b { font-size: 12px; } .presence-avs { display: none; } }
-/* 일정표 서식 도구 (엑셀 리본처럼) */
-.tp-ribbon { padding: 6px 8px; border: 1px solid var(--line); border-radius: 0; background: var(--surface-2); }
-.tp-tb { min-width: 30px; height: 30px; border: 1px solid var(--line-strong); border-radius: 0; background: #fff; cursor: pointer; font: inherit; font-size: 14px; padding: 0 6px; }
-.tp-tb.wide { font-size: 12.5px; }
-.tp-tb.on { background: #DBEAFE; border-color: #1D4ED8; color: #1D4ED8; }
-.tp-sep { width: 1px; height: 22px; background: var(--line-strong); margin: 0 2px; }
-.tp-grp { display: inline-flex; align-items: center; gap: 3px; }
-.tp-lbl { font-size: 11.5px; color: var(--text-2); margin-right: 2px; }
-.tp-sw.sm { width: 18px; height: 18px; border-radius: 0; }
-.tp-pick { width: 30px; height: 26px; padding: 0; border: 1px solid var(--line-strong); border-radius: 0; background: #fff; cursor: pointer; }
-.tp-cell { position: relative; }
-.tp-chk { display: inline-block; font-size: 1.25em; line-height: 1; margin-right: 4px; cursor: pointer; color: #475467; vertical-align: -2px; }
-.tp-chk.on { color: #15803D; }
-.tp-cell .tp-dd { display: none; position: absolute; right: 2px; bottom: 2px; width: 18px; height: 18px; border: 1px solid var(--line-strong); border-radius: 0; background: #fff; font-size: 10px; line-height: 1; padding: 0; cursor: pointer; z-index: 7; }
-.tp-cell.cur .tp-dd { display: block; }
-.tp-doc .tp-dd { display: none !important; }
-.tp-ddlist { position: absolute; z-index: 20; background: #fff; border: 1px solid var(--line-strong); border-radius: 0; box-shadow: 0 8px 24px rgba(16,24,40,.18); max-height: 260px; overflow: auto; display: flex; flex-direction: column; padding: 4px; }
-.tp-ddlist button { text-align: left; border: 0; background: none; padding: 6px 10px; font: inherit; font-size: 13px; cursor: pointer; border-radius: 0; white-space: nowrap; }
-.tp-ddlist button:hover { background: #EFF6FF; }
-.tp-ddlist button.clr { color: var(--danger); border-top: 1px solid var(--line); border-radius: 0; }
-.tp-cell .tp-cat { font-size: .84em; }
-
 /* ---------- 테마: 깔끔한 밝은 화면 + 메뉴마다 고유 색(퍼스널 컬러) ----------
  * 글씨는 순검정 대신 짙은 남회색, 선은 연한 회색, 글씨는 조금 크게.
  * 메뉴 색: --pc 본색 · --ps 연한 바탕 · --pi 글자·버튼용 진한 색 */
@@ -2550,16 +2363,6 @@ body { font-size: 16px; }
 .sdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex: none; }
 .sc-row > td:first-child { box-shadow: inset 5px 0 0 var(--sc, transparent); padding-left: 14px; }
 .sc-sel { border-left: 5px solid var(--sc, var(--line)) !important; font-weight: 700; min-width: 96px; }
-.od-tbl td { white-space: nowrap; }
-.od-tbl td .input, .od-tbl td .select { min-width: 0; }
-.od-tbl td:nth-child(2) .select { min-width: 104px; }
-/* 담당자별 명령부 카드: 이름이 깨지지 않게 넓히고 버튼은 아래로 */
-.od-each-list { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
-.od-each-item { flex-wrap: wrap; border-top: 4px solid var(--sc, var(--line)) !important; border-radius: 8px !important; padding: 10px 12px; }
-.od-each-name { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; min-width: 0; }
-.od-each-name b { font-size: 16px; }
-.od-each-item .inline { margin-left: auto; }
-.od-staff .chip { white-space: nowrap; }
 .sc-list { display: flex; flex-direction: column; gap: 8px; }
 .sc-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
 .sc-item.on { border-color: #E8A0AC; background: #FFF5F6; }
@@ -2829,30 +2632,6 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   .dp-ic-mid .dp-ring { width: 52px; height: 52px; }
   .dp-ic-num > b { font-size: 22px; }
 }
-
-/* ---------- 네이버 지도(실험) · 나란히 비교 ---------- */
-.map-main.eng-leaflet #nvMap { display: none; }
-.map-main.eng-naver #bigMap { position: absolute; inset: 0; visibility: hidden; }
-.map-main.eng-naver .map-legend, .map-main.eng-naver .place-box { display: none; }
-.map-main.eng-compare .map-canvas { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.map-main.eng-compare .map-canvas::before { content: '브이월드'; position: absolute; z-index: 3; left: 50%; top: 8px; transform: translateX(calc(-100% - 10px)); background: #172033; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 8px; pointer-events: none; }
-.map-main.eng-compare .map-canvas::after { content: '네이버'; position: absolute; z-index: 3; left: calc(50% + 10px); top: 8px; background: #03C75A; color: #fff; font-size: 12px; font-weight: 700; padding: 2px 8px; pointer-events: none; }
-.map-main.eng-compare .map-legend { display: none; }
-.nm-box { width: 100%; height: 100%; background: #F2F4F6; }
-.map-engine { margin-left: auto; }
-.map-engine button.on { background: #03C75A !important; }
-.nm-fail { padding: 28px 22px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; font-size: 14px; line-height: 1.6; }
-.nm-fail code { background: #fff; border: 1px solid var(--line-strong); padding: 2px 8px; font-size: 13px; }
-.nm-pin { position: relative; width: 16px; height: 16px; }
-.nm-pin i { position: absolute; inset: 0; background: var(--c); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
-.nm-pin.sq i { border-radius: 2px; transform: rotate(45deg) scale(.85); background: #172033; }
-.nm-pin.star i { inset: -6px; border-radius: 0; clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 35%); border: 0; }
-.nm-pin.hot i { box-shadow: 0 0 0 3px #172033; }
-.nm-pin span { display: none; position: absolute; top: 18px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: rgba(255,255,255,.94); border-radius: 4px; padding: 1px 6px; font-size: 11.5px; font-weight: 700; color: #222; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
-.nm-labels .nm-pin span, .nm-pin:hover span { display: block; }
-.nm-pop { padding: 10px 12px; max-width: 320px; font-size: 13px; }
-@media (max-width: 860px) { .map-main.eng-compare .map-canvas { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } .map-main.eng-compare .map-canvas::before, .map-main.eng-compare .map-canvas::after { display: none; } }
-
 /* ---------- 실적: 목표 바로 입력 ---------- */
 .goal-box { margin-bottom: 16px; }
 .goal-box > summary { cursor: pointer; padding: 14px 18px; font-size: 15px; }
@@ -2965,10 +2744,9 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <div class="toast-stack" id="toasts" aria-live="polite"></div>
 <div id="printRoot"></div>
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
-<input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.29 17:16";</script>
+<script>window.APP_VERSION = "2026.10.29 17:21";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3209,7 +2987,7 @@ window.D = (() => {
 
   /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
   /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
-  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근'], ['attend', '출석부']];
+  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orgsync', '복지관 실적 시트 보내기'], ['attend', '출석부']];
   const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
   const PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
@@ -4740,119 +4518,6 @@ window.M = (() => {
 
 </script>
 <script>
-/* 네이버 지도(실험): 데이터 관리에 넣은 네이버 지도 키(Client ID)로 네이버 지도 JavaScript API v3를 띄운다.
-   기본 지도(Leaflet·브이월드)와 같은 장소·목록·말풍선을 쓰고, '나란히 비교'에서는 두 지도가 같이 움직인다.
-   길찾기·여기에 추가·위치 옮기기는 기본 지도에서만 된다. */
-window.NM = (() => {
-  let loading = null, map = null, info = null, markers = {}, authFailed = false, el = null;
-  const key = () => String((S.get().settings || {}).naverKey || '').trim();
-  const param = () => String((S.get().settings || {}).naverKeyParam || 'ncpKeyId');
-  const ready = () => !!(window.naver && naver.maps && naver.maps.Map);
-
-  /** 지도 스크립트 불러오기 (한 번만) */
-  function load() {
-    if (ready()) return Promise.resolve();
-    if (loading) return loading;
-    loading = new Promise((res, rej) => {
-      // 키가 틀리거나 이 사이트 주소가 등록되지 않으면 네이버가 이 함수를 부른다
-      window.navermap_authFailure = () => { authFailed = true; showFail(); };
-      const s = document.createElement('script');
-      s.src = `https://oapi.map.naver.com/openapi/v3/maps.js?${param()}=${encodeURIComponent(key())}`;
-      s.onload = () => (ready() ? res() : rej(new Error('네이버 지도를 불러오지 못했어요.')));
-      s.onerror = () => { loading = null; rej(new Error('네이버 지도 스크립트를 받지 못했어요. 인터넷 연결이나 회사 방화벽을 확인하세요.')); };
-      document.head.appendChild(s);
-    });
-    return loading;
-  }
-  function showFail(msg) {
-    if (!el) return;
-    el.innerHTML = `<div class="nm-fail"><b>네이버 지도 인증에 실패했어요</b>
-      <p>${msg ? U.esc(msg) : '키(Client ID)가 맞는지, 네이버 클라우드 콘솔의 <b>Maps → Application → Web 서비스 URL</b>에 아래 주소가 들어 있는지 확인하세요.'}</p>
-      <code>${U.esc(location.origin)}</code>${S.REMOTE ? '<code>https://script.google.com</code>' : ''}
-      <p class="sub">주소를 넣은 뒤 몇 분 지나 새로고침하세요. 데이터 관리 → 네이버 지도에서 키 방식(ncpKeyId / ncpClientId)을 바꿔 볼 수도 있어요.</p></div>`;
-  }
-
-  const LL = (lat, lng) => new naver.maps.LatLng(+lat, +lng);
-  /** 지도 만들기 (컨테이너가 바뀌면 새로 만든다) */
-  async function mount(box, view) {
-    el = box;
-    if (!key()) { box.innerHTML = '<div class="nm-fail"><b>네이버 지도 키가 없어요</b><p>데이터 관리 → 네이버 지도에 Client ID를 넣어 주세요.</p></div>'; return false; }
-    try { await load(); } catch (err) { showFail(err.message); return false; }
-    if (authFailed) { showFail(); return false; }
-    if (map && map.getElement && map.getElement() === box) return true;
-    markers = {};
-    map = new naver.maps.Map(box, {
-      center: LL(view ? view.lat : D.CITY_CENTER[0], view ? view.lng : D.CITY_CENTER[1]), zoom: view ? Math.round(view.zoom) : 11,
-      zoomControl: true, zoomControlOptions: { position: naver.maps.Position.TOP_LEFT }, mapTypeControl: true, scaleControl: true,
-    });
-    info = new naver.maps.InfoWindow({ content: '', borderWidth: 1, borderColor: '#C9D3E0', backgroundColor: '#fff', anchorSize: new naver.maps.Size(12, 8), pixelOffset: new naver.maps.Point(0, -6), maxWidth: 340 });
-    naver.maps.Event.addListener(map, 'zoom_changed', labels);
-    naver.maps.Event.addListener(map, 'click', () => info.close());
-    return true;
-  }
-  const color = (kind, x) => (kind === 'biz' ? M.bizColor(x) : kind === 'net' ? (S.isHome(x) ? D.MAP_COLORS.home : D.MAP_COLORS.net) : D.MAP_COLORS.card);
-  const nameOf = (kind, x) => (kind === 'card' ? (x.org || x.name) : x.name);
-  function labels() {
-    if (!map || !el) return;
-    el.classList.toggle('nm-labels', map.getZoom() >= 14 || Object.keys(markers).length <= 30);
-  }
-  /** 점 맞추기: 바뀐 점만 다시 만든다 */
-  function update(shown) {
-    if (!map || authFailed) return;
-    const seen = new Set();
-    shown.forEach(({ kind, x, month }) => {
-      if (!M.hasPos(x)) return;
-      const k = kind + x.id, sig = [x.lat, x.lng, nameOf(kind, x), color(kind, x), month ? 1 : 0].join('|');
-      seen.add(k);
-      const old = markers[k];
-      if (old && old._sig === sig) return;
-      if (old) old.setMap(null);
-      const home = kind === 'net' && S.isHome(x), shape = home ? 'star' : kind === 'biz' ? 'dot' : 'sq';
-      const mk = new naver.maps.Marker({
-        position: LL(x.lat, x.lng), map, zIndex: home ? 1000 : month ? 300 : 100,
-        icon: { content: `<div class="nm-pin ${shape} ${month ? 'hot' : ''}" style="--c:${color(kind, x)}"><i></i><span>${U.esc(nameOf(kind, x))}</span></div>`, anchor: new naver.maps.Point(8, 8) },
-      });
-      mk._sig = sig; mk._ref = { kind, id: x.id };
-      naver.maps.Event.addListener(mk, 'click', () => open(kind, x.id));
-      markers[k] = mk;
-    });
-    Object.keys(markers).forEach(k => { if (!seen.has(k)) { markers[k].setMap(null); delete markers[k]; } });
-    labels();
-  }
-  function open(kind, id) {
-    const mk = markers[kind + id], x = S.find(kind, id);
-    if (!mk || !x) return;
-    info.setContent(`<div class="nm-pop">${M.popupHtml(kind, x)}</div>`);
-    info.open(map, mk);
-    if (NM.onOpen) NM.onOpen(kind, id);
-  }
-  /** 목록에서 고르면 부드럽게 옮긴 뒤 말풍선 */
-  function focus(kind, id) {
-    const mk = markers[kind + id];
-    if (!mk) return false;
-    info.close();
-    map.morph(mk.getPosition(), Math.max(map.getZoom(), 16), { duration: 600 });
-    setTimeout(() => open(kind, id), 650);
-    return true;
-  }
-  function fit(shown) {
-    if (!map) return;
-    const pts = shown.filter(i => M.hasPos(i.x));
-    if (!pts.length) return;
-    const b = new naver.maps.LatLngBounds(LL(pts[0].x.lat, pts[0].x.lng), LL(pts[0].x.lat, pts[0].x.lng));
-    pts.forEach(i => b.extend(LL(i.x.lat, i.x.lng)));
-    map.fitBounds(b, { top: 30, right: 30, bottom: 30, left: 30 });
-  }
-  const getView = () => (map ? { lat: map.getCenter().lat(), lng: map.getCenter().lng(), zoom: map.getZoom() } : null);
-  const setView = v => { if (map && v) map.setCenter(LL(v.lat, v.lng)), map.setZoom(Math.round(v.zoom), false); };
-  const onIdle = fn => { if (map) naver.maps.Event.addListener(map, 'idle', fn); };
-  const resize = () => { if (map && el) map.setSize(new naver.maps.Size(el.clientWidth, el.clientHeight)); };
-  const reset = () => { map = null; markers = {}; el = null; };
-  return { key, ready, mount, update, focus, open, fit, getView, setView, onIdle, resize, reset, close: () => info && info.close(), failed: () => authFailed };
-})();
-
-</script>
-<script>
 /* AI 도우미 (Claude API)
    - 공유 모드: 구글 Apps Script 서버가 대신 호출한다 (API 키는 스크립트 속성에 보관, 브라우저에 노출되지 않음)
    - 파일 모드: 이 PC 브라우저에 저장한 API 키로 직접 호출한다
@@ -5065,7 +4730,7 @@ window.V = (() => {
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
     hub: { q: '', triage: false },
-    map: { engine: (() => { try { return localStorage.getItem('ardim.mapEngine') || 'leaflet'; } catch { return 'leaflet'; } })(), biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
+    map: { biz: true, net: true, card: true, stages: new Set(D.STAGES.map(s => s.key)), q: '', mode: 'ours', gu: '', month: U.today().slice(0, 7), tab: 'all', sort: 'new', sel: null, cityFit: 'fit', prog: '', solo: null, pick: false, rprov: 'naver', rmode: 'car', rauto: true },
     sched: { month: U.today().slice(0, 7), sel: '', showDone: false, who: '', view: 'work' },
     dash: { month: U.today().slice(0, 7), sel: U.today() },
     perf: { month: U.today().slice(0, 7), set: '', withActs: true, withNo: false, glMode: 'hall' },
@@ -5534,7 +5199,7 @@ window.V = (() => {
       ${f.mode === 'city' ? '' : `<div class="chips gu-chips">${[['', '화성시 전체'], ...D.GUS.map(g => [g.name, g.name])].map(([k, l]) => `<button type="button" class="chip ${f.gu === k ? 'on' : ''}" data-act="map-gu" data-gu="${k}" ${k ? `style="--c:${D.GU[k].color}"` : ''}>${k ? '<span class="dot"></span>' : ''}${l}${k ? `<span class="n">${guCount(k)}</span>` : ''}</button>`).join('')}</div>`}</div>
       ${f.mode === 'city' ? cityMap() : `
       <section class="panel map-layout">
-        <div class="map-main eng-${S.get().settings.naverKey ? (f.engine || 'leaflet') : 'leaflet'}">
+        <div class="map-main">
           <div class="map-tools">
             <input class="input" id="mapQ" type="search" placeholder="이름 찾기 (초성 가능)" value="${e(f.q)}">
             <div class="chips">
@@ -5548,11 +5213,9 @@ window.V = (() => {
             <button type="button" class="btn btn-sm btn-add ${f.addMode ? 'on' : ''}" data-act="map-addmode" id="mapAddBtn" title="지도에서 자리를 찍어 새 사업체·기관 등록 (오른쪽 클릭도 돼요)">${f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'}</button>
             <button type="button" class="btn btn-sm btn-pick ${f.pick ? 'on' : ''}" data-act="route-pick" id="routePickBtn" aria-pressed="${!!f.pick}">${f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'}</button>
             ${S.view().networks.some(n => S.isHome(n) && M.hasPos(n)) ? '' : `<button class="btn btn-sm" type="button" data-act="home-add">★ 복지관 위치 등록</button>`}
-            ${S.get().settings.naverKey ? `<div class="seg map-engine" role="group" aria-label="지도 종류">${[['leaflet', '브이월드'], ['naver', '네이버'], ['compare', '나란히 비교']].map(([k, l]) => `<button type="button" class="${(f.engine || 'leaflet') === k ? 'on' : ''}" data-act="map-engine" data-v="${k}">${l}</button>`).join('')}</div>` : ''}
           </div>
           <div class="map-canvas">
             <div class="map-box" id="bigMap"></div>
-            <div class="map-box nm-box" id="nvMap"></div>
             <div class="place-box" id="placeBox">
               <form class="ps-form" data-form="place-q" autocomplete="off" role="search"><input class="input" id="placeQ" type="search" placeholder="장소·주소 검색 → 바로 등록 (예: 다이소 마도점)" value="${e(f.pq || '')}" aria-label="장소·주소 검색"><button class="btn btn-primary" type="submit" aria-label="검색">🔍</button></form>
               <div class="ps-res" id="placeRes" hidden></div>
@@ -5739,11 +5402,6 @@ window.V = (() => {
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
     const f = ui.sched;
-    const tabs = '';
-    f.view = 'work'; // 훈련반(직업훈련 일정표)은 뺐다
-    if (f.view === 'train') return `
-      <div class="page-head"><div><h1 class="page-title">직업훈련 일정표</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
-      ${tabs}<div id="tpBox"></div>`;
     const all = S.view().events.filter(x => !x.done);
     const n = name => all.filter(x => (name === '' ? true : name === '-' ? !evStaff(x) : evStaff(x) === name)).length;
     return `
@@ -5752,7 +5410,7 @@ window.V = (() => {
         <div class="inline"><button class="btn" type="button" data-act="ev-import">📂 엑셀·한글로 일정 불러오기</button><button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button></div>
       </div>
       ${calBar()}
-      ${tabs}
+      
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
         ${S.staffHere().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}
@@ -5786,17 +5444,13 @@ window.V = (() => {
     if (calOn()) return `<div class="cal-bar on">📅 <b>구글 캘린더와 연결됨</b><span class="sub">${e(S.get().settings.calName || calId())} · 여기서 일정을 추가·수정·삭제하면 캘린더에도 자동으로 반영돼요</span><a class="btn btn-sm" href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(calId())}" target="_blank" rel="noopener">구글 캘린더 열기</a></div>`;
     return `<div class="cal-bar">📅 <b>구글 캘린더 연결 안 됨</b><span class="sub">${S.REMOTE ? (S.isAdmin() ? '데이터 관리 → 구글 캘린더에서 팀 캘린더를 연결하면 일정이 자동으로 들어가요.' : '관리자가 데이터 관리에서 연결하면 자동으로 들어가요.') : '팀 공유(구글 시트) 버전에서 연결할 수 있어요.'} 지금은 일정마다 📅 버튼으로 한 건씩 넣을 수 있어요.</span>${S.REMOTE && S.isAdmin() ? '<a class="btn btn-sm btn-primary" href="#/data" data-act="cal-goto">연결하러 가기</a>' : ''}</div>`;
   }
-  /** 데이터 관리: 구글·카카오 연결 (캘린더 외) */
+  /** 데이터 관리: 자동 백업·아침 메일·자동 작업 (캘린더 외) */
   function linkPanel() {
     if (!S.REMOTE || !S.isAdmin()) return '';
     const st = S.get().settings;
     const on = (k, v = 'Y') => st[k] === v;
     return `<section class="panel panel-pad link-panel">
-      <h2 class="section-title">🔗 카카오 지도 · 자동 백업 · 아침 메일</h2>
-      <div class="lk"><h3>🗺 카카오 지도 키 ${on('kakaoOn') ? '<span class="badge success">사용 중</span>' : '<span class="badge">없음</span>'}</h3>
-        <p class="sub">무료 키 하나로 <b>주소 → 정확한 위치</b>와 <b>실제 도로 거리(유류비)</b>를 계산해요. 키가 없으면 구글 지도(무료)로 위치만 찾아요.<br>
-        받는 법: developers.kakao.com 로그인 → 내 애플리케이션 → 애플리케이션 추가 → <b>앱 키의 REST API 키</b> 복사 · 같은 화면 <b>카카오맵</b> 사용 설정 ON · 도로 거리는 <b>카카오모빌리티 길찾기</b>도 사용 신청(무료 한도).</p>
-        <div class="acc-add"><input class="input" id="kakaoKey" type="password" placeholder="${on('kakaoOn') ? '저장됨 (바꾸려면 새 키 입력)' : 'REST API 키 붙여넣기'}" autocomplete="off" aria-label="카카오 REST API 키"><button class="btn btn-primary" type="button" data-act="kakao-save">시험하고 저장</button>${on('kakaoOn') ? '<button class="btn btn-ghost" type="button" data-act="kakao-off">지우기</button>' : ''}<button class="btn" type="button" data-act="nopos-refind" title="대략 위치·위치 없는 곳을 다시 찾아요">📍 위치 다시 찾기</button></div></div>
+      <h2 class="section-title">🔗 자동 백업 · 아침 메일</h2>
       <div class="lk"><h3>💾 자동 백업 <span class="sub" id="gLastBackup">${st.lastBackup ? '마지막 ' + e(st.lastBackup) : ''}</span></h3>
         <p class="sub">자동 작업을 켜면 <b>매일 새벽 2시</b>에 시트 전체를 드라이브 "아르딤 취업지원 백업" 폴더에 복사해요 (30개 보관). 실수로 지워도 되살릴 수 있어요.</p>
         <div class="inline"><button class="btn" type="button" data-act="backup-now">지금 백업</button><button class="btn btn-ghost" type="button" data-act="backup-list">백업 목록</button><label class="check"><input type="checkbox" data-act="backup-toggle" ${on('backupOn', 'N') ? '' : 'checked'}>매일 자동 백업</label></div><div id="gBackups"></div></div>
@@ -6076,7 +5730,7 @@ window.V = (() => {
           <div class="chips">${['', ...pros].map(n => `<button type="button" class="chip ${f.who === n ? 'on' : ''}" data-act="perf-who" data-who="${e(n)}">${n ? `<span class="dot" style="background:${staffColor(n)}"></span>${e(n)}` : '전체'}</button>`).join('')}</div>
           <div class="inline">
             <label class="check"><input type="checkbox" data-act="perf-no" ${f.withNo ? 'checked' : ''}>연번 포함해서 복사</label>
-            <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button><button class="btn btn-primary" type="button" data-act="org-sync" title="이 달 실적을 복지관 사업실적 시트(실적(일반)·실적(기타))에 바로 적어요">📤 복지관 실적 시트로 보내기</button>
+            <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button>${S.level('orgsync') >= 2 ? `<button class="btn btn-primary" type="button" data-act="org-sync" title="이 달 실적을 복지관 사업실적 시트(실적(일반)·실적(기타))에 바로 적어요">📤 복지관 실적 시트로 보내기</button>` : ''}
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
@@ -6171,10 +5825,6 @@ window.V = (() => {
             <button class="btn btn-primary" type="button" data-act="month-xlsx">시작 달 한 달 파일</button><button class="btn" type="button" data-act="month-xlsx" data-range="1">기간 전체 한 파일 (월별 요약 포함)</button></div>
           <p class="sub" style="margin:8px 0 0">지금 보는 범위(${e(S.scopeLabel())}) 기준이에요. 팀 공유 사이트는 매달 1일 새벽에 지난달 정리 파일이 구글 드라이브 '아르딤 취업지원 월별 정리' 폴더에 자동으로 만들어져요(자동 작업을 켠 경우).</p>
         </section>
-        ${st.trips.length ? `<section class="panel panel-pad">
-          <h2 class="section-title">🧾 출장·특근 기록 지우기 <span class="sub">출장명령부는 현장중심 메뉴에서 뺐어요. 남은 기록 ${st.trips.length}건</span></h2>
-          <div class="inline"><button class="btn btn-danger" type="button" data-act="trips-wipe">출장·특근 기록 ${st.trips.length}건 모두 지우기</button><span class="sub">관내·관외출장, 특근 명령부와 여비 계산 기록이 지워져요. 먼저 엑셀로 내보내 두면 안전해요.</span></div>
-        </section>` : ''}
         <section class="panel panel-pad">
           <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
           <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>
@@ -6256,13 +5906,6 @@ window.V = (() => {
           <div class="inline" style="width:100%"><input class="input" id="vworldKeyInput" value="${e(st.settings.vworldKey || '')}" placeholder="브이월드 인증키 (선택)"><button class="btn" type="button" data-act="save-vworld">저장</button></div>
           ${S.REMOTE ? `<label class="field" style="width:100%"><span>키를 받을 때 등록한 서비스 URL</span><input class="input" id="vworldDomainInput" value="${e(st.settings.vworldDomain || 'https://script.google.com')}" placeholder="https://script.google.com"></label>` : ''}
           ${st.settings.vworldKey ? '<div class="inline"><button class="btn btn-sm" type="button" data-act="vworld-test">주소 찾기 시험</button><button class="btn btn-sm" type="button" data-act="vworld-refind">등록된 곳 위치 브이월드로 다시 찾기</button></div>' : ''}
-        </section>
-        <section class="panel panel-pad">
-          <h2 class="section-title">🟢 네이버 지도 (실험) ${st.settings.naverKey ? '<span class="badge success">키 있음</span>' : '<span class="badge">키 없음</span>'}</h2>
-          <p>네이버 클라우드 플랫폼의 <b>Maps (Dynamic Map)</b> 키(Client ID)를 넣으면 지도 화면 위쪽에서 <b>브이월드 / 네이버 / 나란히 비교</b>를 골라 볼 수 있어요. 길찾기·여기에 추가·위치 옮기기는 브이월드(기본) 지도에서 해요.</p>
-          <ol class="steps-help"><li>네이버 클라우드 콘솔 → <b>Maps</b> → Application 등록 → <b>Dynamic Map</b> 체크</li><li><b>Web 서비스 URL</b>에 아래 주소를 넣어요${S.REMOTE ? ' (둘 다)' : ''}<div class="inline" style="margin-top:4px"><code>${e(location.origin)}</code>${S.REMOTE ? '<code>https://script.google.com</code>' : ''}</div></li><li>받은 <b>Client ID</b>를 아래에 넣고 저장 → 지도 화면에서 <b>네이버</b> 또는 <b>나란히 비교</b></li></ol>
-          <div class="inline" style="width:100%"><input class="input" id="naverKeyInput" value="${e(st.settings.naverKey || '')}" placeholder="네이버 지도 Client ID"><select class="select" id="naverParamInput" aria-label="키 방식" title="새 콘솔에서 받은 키는 ncpKeyId, 예전 키는 ncpClientId">${['ncpKeyId', 'ncpClientId'].map(k => `<option ${(st.settings.naverKeyParam || 'ncpKeyId') === k ? 'selected' : ''}>${k}</option>`).join('')}</select><button class="btn" type="button" data-act="save-naver">저장</button></div>
-          <p class="sub" style="margin:6px 0 0">'인증 실패'가 나오면 위 주소 등록을 확인하고, 키 방식을 바꿔 저장해 보세요(새 콘솔 키 = ncpKeyId, 예전 키 = ncpClientId).</p>
         </section>
         ` : ''}
         ${admin ? `
@@ -7625,7 +7268,6 @@ window.R = (() => {
   const e = U.esc;
   const ui = {
     contacts: { month: U.today().slice(0, 7), tab: 'log', q: '' },
-    orders: { month: U.today().slice(0, 7), kind: '출장', who: '' },
   };
   const CONTACT_TYPES = ['전화', '방문', '이메일', '미팅'];
   const md = d => { if (!U.isDate(d)) return d || ''; const x = U.parse(d); return `${x.getMonth() + 1}월 ${x.getDate()}일`; };
@@ -8149,312 +7791,37 @@ window.R = (() => {
 
   /* ================= 출장·특근 명령부 ================= */
   // 명령부는 팀 문서라 보기 범위(전체 팀/직원)와 상관없이 모든 직원 줄을 쓴다. 사람별로는 위 담당자 버튼으로 거른다
-  const trips = (month, kind) => S.get().trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((a, b) => (a.date || '').localeCompare(b.date || '') || (a.staff || '').localeCompare(b.staff || ''));
-  function ordersPage() {
-    const f = ui.orders;
-    return `
-      <div class="page-head">
-        <div><h1 class="page-title">출장·특근 명령부</h1><div class="page-desc">현장중심센터 월별 관내출장 명령부와 특근 명령부를 만들고, 한글 서식 모양으로 인쇄합니다.</div></div>
-      </div>
-      <div class="toolbar perf-bar">${monthNav('od-month', f.month)}
-        <div class="chips"><button type="button" class="chip ${f.kind === '출장' ? 'on' : ''}" data-act="od-kind" data-kind="출장">관내출장 명령부</button><button type="button" class="chip ${f.kind === '특근' ? 'on' : ''}" data-act="od-kind" data-kind="특근">특근 명령부</button><button type="button" class="chip ${f.kind === '여비' ? 'on' : ''}" data-act="od-kind" data-kind="여비">💰 여비 정산</button></div>
-      </div>
-      <div id="odResults"></div>`;
-  }
-  function ordersResults() {
-    const f = ui.orders;
-    if (f.kind === '여비') return TV.page(f.month);
-    const all = trips(f.month, f.kind);
-    const list = f.who ? all.filter(t => (t.staff || '(담당자 없음)') === f.who) : all;
-    // 여비: 담당자·날짜별 하루 계산을 줄마다 붙인다 (하루 첫 줄에 그날 합계)
-    const trip0 = f.kind === '출장';
-    const tvDays = trip0 ? TV.days(all) : TV.otDays(all);
-    const tvRow = {}, tvStaff = {};
-    // 담당자 합계·특근 식비는 정산(출장·특근 식비 합쳐 하루 2만원)과 같은 숫자를 쓴다
-    const stl = TV.settle(f.month);
-    stl.people.forEach(p => { tvStaff[p.name] = trip0 ? p.inTotal + p.outTotal : p.otTotal; });
-    const otMeal = {}; stl.people.forEach(p => p.ot.forEach(r => { otMeal[`${p.name}|${r.date}`] = r; }));
-    tvDays.forEach(d => { if (!trip0) { const r = otMeal[`${d.staff}|${d.date}`]; if (r) { d.meal = r.meal; d.total = r.total; d.over = r.capped; } } d.rows.forEach((r, i) => { tvRow[(r.t || r).id] = { d, r, first: i === 0 }; }); });
-    const won = n => Math.round(n).toLocaleString('ko-KR');
-    const mealIn = t => `<td class="od-meal"><input class="input sm num" data-chg="trip-field" data-id="${t.id}" data-field="meal" value="${e(t.meal || '')}" placeholder="0" inputmode="numeric" aria-label="식비"></td>`;
-    const tvCell = t => {
-      const x = tvRow[t.id]; if (!x) return '<td></td>';
-      const { d, r, first } = x;
-      if (!trip0) return `<td class="od-tv ${first ? '' : 'same'}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${first ? `특근비 ${won(d.pay || 0)}${d.noTime ? ' (시간 없음 → 4시간 미만)' : ''} · 식비 ${won(d.meal)}${d.over ? ' (출장 식비와 합쳐 하루 2만원까지)' : ''}` : ''}</small></td>`;
-      const parts = [first && `일비 ${won(d.daily)}`, first && d.meal && `식비 ${won(d.meal)}${!d.out ? '' : ''}`, r.c.fuel && `유류 ${won(r.c.fuel)}`, r.c.toll + r.c.parking && `통행·주차 ${won(r.c.toll + r.c.parking)}`, r.c.fare + r.c.lodge && `운임·숙박 ${won(r.c.fare + r.c.lodge)}`].filter(Boolean);
-      return `<td class="od-tv ${first ? '' : 'same'}" title="${e(d.why)}">${first ? `<b class="num">${won(d.total)}원</b>` : '<span class="sub">같은 날 ↑</span>'}<small>${parts.join(' · ') || (first ? '' : '')}</small>${first && d.noTime ? '<small class="tv-over">시간 입력 필요</small>' : ''}</td>`;
-    };
-    const staffBar = staffManager(all);
-    const staffOpts = sel => opts([...new Set([...S.staffHere().map(s => s.name), sel].filter(Boolean))], sel);
-    const cell = (t, k, attrs = '') => `<input class="input sm" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] || '')}" ${attrs}>`;
-    const trip = f.kind === '출장';
-    const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
-    const visitsLeft = trip ? S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id)).length : 0;
-    return `<section class="panel">
-      ${staffBar}
-      ${f.bulk ? bulkPanel() : ''}
-      <div class="panel-pad perf-actions">
-        <div class="inline">
-          ${trip ? `<button class="btn" type="button" data-act="od-import" ${visitsLeft ? '' : 'disabled'}>이 달 방문 기록 불러오기${visitsLeft ? ` (${visitsLeft}건)` : ''}</button>` : ''}
-          <button class="btn" type="button" data-act="od-add">+ 줄 추가</button>
-          <button class="btn" type="button" data-act="od-hwp">한글 명령부 불러오기</button>
-        </div>
-        <div class="inline"><button class="btn" type="button" data-act="od-bulk">🗂 여러 달 한꺼번에 인쇄</button><button class="btn" type="button" data-act="od-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}한글 표용 복사</button><button class="btn btn-primary" type="button" data-act="od-print" ${list.length ? '' : 'disabled'}>전체 한 장 인쇄</button></div>
-      </div>
-      ${`<div class="panel-pad od-each">
-        <div class="od-each-head"><b>담당자별 명령부</b><span class="sub">한 사람당 한 장씩, 결재란(담당·팀장)이 따로 들어갑니다.</span>
-          <span class="inline"><button class="btn btn-sm" type="button" data-act="od-print-each" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 인쇄</button><button class="btn btn-sm" type="button" data-act="od-file" ${all.length ? '' : 'disabled'}>기록 있는 사람 모두 파일</button></span></div>
-        <div class="od-each-list">${orderStaff().map(s => { const n = all.filter(t => (t.staff || '(담당자 없음)') === s).length; return `<div class="od-each-item ${n ? '' : 'empty'}" style="--sc:${V.staffColor(s)}"><span class="od-each-name">${V.staffDot(s)}<b>${e(s)}</b> <span class="sub">${n ? `${n}건` : '0건 · 빈 양식'}</span>${tvStaff[s] != null ? ` <span class="od-tv-sum" title="${trip ? '규정집 기준 여비 합계' : '특근비·식비 합계'}">💰 ${won(tvStaff[s])}원</span>` : ''}</span><span class="inline"><button class="btn btn-sm" type="button" data-act="od-print" data-staff="${e(s)}">인쇄 · PDF</button><button class="btn btn-sm" type="button" data-act="od-file" data-staff="${e(s)}">파일 받기</button></span></div>`; }).join('')}</div>
-      </div>`}
-      <p class="sub perf-help">${trip ? '방문 기록을 불러오면 출장일·성명·출장지·출장용무가 채워집니다. 함께 간 직원은 <b>동행 추가</b>로 한 줄 더 만드세요.' : '특근한 날짜와 시간, 업무 내용을 적습니다.'} 칸을 고치면 바로 저장됩니다.</p>
-      ${list.length ? `<div class="table-wrap"><table class="tbl od-tbl"><thead><tr>${trip
-        ? '<th>출장일</th><th>성명</th><th>출장지</th><th>출장용무</th><th>방법</th><th>출장시간</th><th>출장복명</th><th>비고</th><th>식비</th><th>여비 <button type="button" class="linklike" data-act="od-kind" data-kind="여비">자세히</button></th><th></th>'
-        : '<th>특근일자</th><th>성명</th><th>부서명</th><th>특근시간</th><th>특근 업무내용</th><th>비고</th><th>식비</th><th>여비(식비)</th><th></th>'}</tr></thead><tbody>
-        ${list.map(t => `<tr class="sc-row" style="--sc:${V.staffColor(t.staff)}">
-          <td>${cell(t, 'date', 'type="date"')}</td>
-          <td><select class="select sm sc-sel" data-chg="trip-field" data-id="${t.id}" data-field="staff">${staffOpts(t.staff)}</select></td>
-          ${trip ? `<td>${cell(t, 'place')}</td><td>${cell(t, 'purpose')}</td>
-            <td><input class="input sm" list="odMethods" data-chg="trip-field" data-id="${t.id}" data-field="method" value="${e(t.method || '')}"></td>
-            <td>${cell(t, 'time', 'placeholder="9 ~ 12시"')}</td>
-            <td class="nowrap">${D.TRIP_REPORTS.map(r => `<label class="check"><input type="checkbox" data-chg="trip-report" data-id="${t.id}" value="${r}" ${(t.report || []).includes(r) ? 'checked' : ''}>${r}</label>`).join(' ')}</td>
-            <td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`
-          : `<td>${cell(t, 'dept', 'placeholder="직업"')}</td><td>${cell(t, 'time', 'placeholder="14 ~ 18시"')}</td><td>${cell(t, 'purpose')}</td><td>${cell(t, 'note')}</td>${mealIn(t)}${tvCell(t)}`}
-          <td class="nowrap">${trip ? `<button class="btn btn-ghost btn-sm" type="button" data-act="od-dup" data-id="${t.id}">동행 추가</button>` : ''}<button class="icon-btn" type="button" aria-label="삭제" data-act="od-del" data-id="${t.id}">${V.I.close}</button></td>
-        </tr>`).join('')}
-      </tbody>${tvDays.length ? `<tfoot><tr><th colspan="${trip ? 9 : 7}" class="r">${f.who ? e(f.who) + ' ' : ''}${trip ? '여비 합계' : '특근비·식비 합계'} <span class="sub">(${trip ? '규정집 2026 기준 · 일비·유류비·통행료·주차료·식비 등을 같이 계산' : `특근비(하루 4시간 미만 ${won(TV.otRate().short)}원·이상 ${won(TV.otRate().long)}원) + 적은 식비(하루 2만원까지)`})</span></th><th class="od-tv"><b class="num">${won(tvDays.filter(d => !f.who || d.staff === f.who).reduce((a, d) => a + d.total, 0))}원</b></th><th></th></tr></tfoot>` : ''}</table></div><datalist id="odMethods">${D.TRIP_METHODS.map(m => `<option value="${e(m)}">`).join('')}</datalist>`
-      : `<div class="empty"><strong>${V.monthLabel(f.month)} ${trip ? '관내출장' : '특근'} 명령부가 비어 있습니다</strong>${trip ? '방문 기록을 불러오거나, 예전에 쓴 한글 명령부를 불러오거나, 줄을 추가하세요.' : '한글 명령부를 불러오거나 줄 추가로 특근 기록을 넣으세요.'}</div>`}
-    </section>`;
-  }
-  /** 담당자 추가·삭제 (직원 목록은 모든 화면이 같이 쓴다). 이름을 누르면 그 사람 줄만 보기 */
-  function staffManager(all) {
-    const f = ui.orders;
-    const admin = S.isAdmin();
-    const staff = S.staffHere();
-    const cnt = n => all.filter(t => (t.staff || '(담당자 없음)') === n).length;
-    return `<div class="panel-pad od-staff">
-      <b>담당자</b>
-      <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
-      ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${V.staffDot(s.name)}${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
-      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option value="${e(p.key)}">${e(D.progLabel(p.key))}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
-    </div>`;
-  }
-  function importVisits() {
-    const f = ui.orders;
-    const imported = new Set(S.get().trips.map(t => t.actId).filter(Boolean));
-    const acts = S.view().activities.filter(a => (a.type === '방문' || (a.targetType === 'net' && ['미팅', '행사', '홍보'].includes(a.type))) && a.date.startsWith(f.month) && !imported.has(a.id));
-    return S.upsertMany('trip', acts.map(a => {
-      const t = S.targetOf(a);
-      return { kind: '출장', date: a.date, staff: a.staff || S.me(), place: t ? t.name : '', purpose: a.targetType === 'biz' ? '사업체개발' : '홍보', method: '복지관 차량', time: '', report: [], dept: '', note: a.content || '', actId: a.id };
-    })).length;
-  }
-  const reportText = t => D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join(' / ');
-  const ordersTsv = () => {
-    const f = ui.orders;
-    return tsv(trips(f.month, f.kind).map(t => f.kind === '출장'
-      ? [md(t.date), t.staff, t.place, t.purpose, t.method, t.time, reportText(t), t.note]
-      : [md(t.date), t.staff, t.dept || '직업', t.time, [t.purpose, t.note].filter(Boolean).join(' / ')]));
-  };
-  /** 담당자별 명령부: 직원 목록의 모든 사람(이 달 기록이 없으면 빈 양식) + 목록에 없는 이름으로 적힌 줄 */
-  const orderStaff = () => { const f = ui.orders; return [...new Set([...S.staffHere().map(s => s.name), ...trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')])]; };
-  const orderTitle = kind => kind === '출장' ? '관내출장 명령부' : '특근 명령부';
-  /** staff를 주면 그 담당자 줄만 모아 결재란이 따로 있는 한 장을 만든다. 없으면 전체 */
-  /* 명령부 양식: 칸 너비는 늘 같은 비율(%)로 고정하고, 표는 최소 MIN_ROWS 줄(빈 줄 채움)로 매달 같은 모양.
-   * 줄이 많으면 줄 높이·글자 크기를 줄여 A4 세로 한 쪽에 담는다. scale은 인쇄 전에 실제 크기를 재서 더 줄일 때 쓴다 */
-  const MIN_ROWS = 14;
-  const COLS_TRIP = [['출장일', 10], ['성명', 8], ['출장지', 17], ['출장용무', 12], ['방 법', 10], ['출장시간', 10], ['출장복명', 13], ['비고', 20]];
-  const COLS_OT = [['특근일자', 12], ['특근자 성명', 12], ['부서명', 10], ['특근시간', 14], ['특 근 업 무 내 용', 52]];
-  function orderDoc(staff, scale = 1) {
-    const f = ui.orders;
-    if (staff === undefined || staff === '') staff = null;
-    const list = trips(f.month, f.kind).filter(t => staff == null || (t.staff || '(담당자 없음)') === staff);
-    const trip = f.kind === '출장';
-    const cols = trip ? COLS_TRIP : COLS_OT;
-    const n = Math.max(MIN_ROWS, list.length);
-    // 표 본문에 쓸 수 있는 높이 약 205mm (A4 297 − 여백 20 − 결재란·제목 약 60 − 머리줄 12)
-    const rowMm = +(Math.min(13, 205 / n) * scale).toFixed(2);
-    const fs = +((rowMm >= 11 ? 10 : rowMm >= 9 ? 9.5 : rowMm >= 7.5 ? 8.5 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
-    const cell = (v, cls = '') => `<td${cls ? ` class="${cls}"` : ''}>${v}</td>`;
-    const rep = t => `<span class="rep">${D.TRIP_REPORTS.map(r => `${r} ${(t.report || []).includes(r) ? '■' : '□'}`).join('<br>')}</span>`;
-    const rows = list.map(t => trip
-      ? cell(e(md(t.date))) + cell(e(t.staff)) + cell(e(t.place), 'l') + cell(e(t.purpose)) + cell(e(t.method)) + cell(e(t.time)) + cell(rep(t)) + cell(e(t.note), 'l')
-      : cell(e(md(t.date))) + cell(e(t.staff)) + cell(e(t.dept || '직업')) + cell(e(t.time)) + cell(`${e(t.purpose)}${t.note ? `<br>${e(t.note)}` : ''}`, 'l'));
-    while (rows.length < n) rows.push(cols.map(([h]) => cell(h === '출장복명' ? rep({}) : '&nbsp;')).join(''));
-    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
-    return `<article class="doc order-doc" style="font-size:${fs}pt">
-      <div class="order-head">${sign}</div>
-      <h1>${orderTitle(f.kind)}</h1>
-      <p class="order-sub">${V.monthLabel(f.month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)${staff != null ? ` · <b>${trip ? '출장자' : '특근자'}: ${e(staff)}</b>` : ''}</p>
-      <table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${cols.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
-        <thead><tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(r => `<tr style="height:${rowMm}mm">${r}</tr>`).join('')}</tbody></table>
-    </article>`;
-  }
-  /** 담당자마다 한 장씩, 페이지를 나눠 이어 붙인다 (fit: 인쇄 전에 한 쪽에 맞추는 함수) */
-  // 전원 인쇄·파일은 이 달 기록이 있는 사람만 (빈 양식은 사람별 버튼으로)
-  const orderDocsEach = (fit = s => orderDoc(s)) => { const f = ui.orders, have = new Set(trips(f.month, f.kind).map(t => t.staff || '(담당자 없음)')); return orderStaff().filter(s => have.has(s)).map(s => fit(s)).join(''); };
-  /** 한글에서 열 수 있는 워드 호환 문서(.doc)로 저장 */
-  /* ---------- 여러 달 한꺼번에 (사람 → 달 → 출장·특근 순서) ---------- */
-  const monthsBetween = (a, b) => { const out = []; let [y, m] = a.split('-').map(Number); const [y2, m2] = b.split('-').map(Number); while ((y < y2 || (y === y2 && m <= m2)) && out.length < 24) { out.push(`${y}-${U.pad(m)}`); m++; if (m > 12) { m = 1; y++; } } return out; };
-  /** 직원 목록 + 명령부에 적힌 이름 (목록에 없는 사람도 고를 수 있게) */
-  const bulkNames = () => [...new Set([...S.staffHere().map(x => x.name), ...S.get().trips.map(t => t.staff).filter(Boolean)])];
-  function bulkState() {
-    const f = ui.orders;
-    if (!f.bulk) {
-      const to = f.month, [y, m] = to.split('-').map(Number), d = new Date(y, m - 4, 1);
-      const from = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`;
-      const have = new Set(S.get().trips.filter(t => t.date >= from && t.date <= to + '-31').map(t => t.staff));
-      f.bulk = { from, to, staff: bulkNames().filter(n => have.has(n)), kinds: ['출장', '특근'], empty: false, summary: true };
-    }
-    return f.bulk;
-  }
-  /** 사람·달별 금액: 출장 여비(규정집 기준) + 특근 식비 */
-  function bulkSummary(b = bulkState()) {
-    const months = monthsBetween(b.from, b.to);
-    const rows = b.staff.map(name => {
-      const per = months.map(m => {
-        const tr = trips(m, '출장').filter(t => t.staff === name), ot = trips(m, '특근').filter(t => t.staff === name);
-        const p = TV.settle(m).people.find(x => x.name === name) || { in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
-        return { m, trips: tr.length, tv: p.inTotal + p.outTotal, inT: p.inTotal, outT: p.outTotal, ots: ot.length, meal: p.ot.reduce((a, r) => a + r.meal, 0), otPay: p.ot.reduce((a, r) => a + r.pay, 0), otTotal: p.otTotal, otMin: p.ot.reduce((a, r) => a + r.min, 0), noTime: [...p.in].filter(r => r.noTime).length, total: p.total };
-      });
-      return { name, per, total: per.reduce((a, x) => a + x.total, 0) };
-    });
-    return { months, rows, total: rows.reduce((a, r) => a + r.total, 0) };
-  }
-  const won = n => Math.round(n).toLocaleString('ko-KR');
-  const hrs = min => (min ? `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}` : '-');
-  function bulkPanel() {
-    const b = bulkState();
-    const sm = bulkSummary(b);
-    const pages = b.staff.length * sm.months.length * b.kinds.length;
-    const realPages = b.staff.reduce((a, n) => a + sm.months.reduce((c, m) => c + b.kinds.filter(k => b.empty || trips(m, k).some(t => t.staff === n)).length, 0), 0);
-    return `<div class="panel-pad od-bulk" id="odBulk">
-      <div class="od-bulk-head"><b>🗂 여러 달 한꺼번에 인쇄</b><span class="sub">사람마다 달별로 출장 → 특근 순서로 이어서 인쇄해요.</span><button class="icon-btn" type="button" data-act="od-bulk" aria-label="닫기">${V.I.close}</button></div>
-      <div class="od-bulk-form">
-        <label>기간 <input class="input sm" type="month" data-bulk="from" value="${b.from}"> ~ <input class="input sm" type="month" data-bulk="to" value="${b.to}"></label>
-        <span class="od-bulk-grp"><span class="sub">담당자</span>${bulkNames().map(n => `<label class="check"><input type="checkbox" data-bulk="staff" value="${e(n)}" ${b.staff.includes(n) ? 'checked' : ''}>${e(n)}</label>`).join('')}</span>
-        <span class="od-bulk-grp"><span class="sub">명령부</span>${['출장', '특근'].map(k => `<label class="check"><input type="checkbox" data-bulk="kinds" value="${k}" ${b.kinds.includes(k) ? 'checked' : ''}>${k === '출장' ? '관내출장' : '특근'}</label>`).join('')}</span>
-        <label class="check"><input type="checkbox" data-bulk="empty" ${b.empty ? 'checked' : ''}>기록 없는 달도 빈 양식으로</label>
-        <label class="check"><input type="checkbox" data-bulk="summary" ${b.summary ? 'checked' : ''}>맨 뒤에 금액 요약 한 장</label>
-      </div>
-      ${b.staff.length && b.kinds.length ? `<div class="table-wrap"><table class="tbl od-bulk-tbl"><thead><tr><th>담당자</th>${sm.months.map(m => `<th>${+m.slice(5)}월</th>`).join('')}<th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => `<tr><th>${e(r.name)}</th>${r.per.map(x => `<td><b class="num">${won(x.total)}원</b><small>관내 ${won(x.inT)} · 관외 ${won(x.outT)}원 (출장 ${x.trips}건)${x.noTime ? ` <span class="tv-over">(시간 없는 날 ${x.noTime})</span>` : ''}</small><small>특근 ${x.ots}건 · ${hrs(x.otMin)} · 특근비 ${won(x.otPay)} · 식비 ${won(x.meal)}원</small></td>`).join('')}<td class="tot"><b class="num">${won(r.total)}원</b></td></tr>`).join('')}
-        <tr class="tot"><th>합계</th>${sm.months.map((m, i) => `<td><b class="num">${won(sm.rows.reduce((a, r) => a + r.per[i].total, 0))}원</b></td>`).join('')}<td class="tot"><b class="num">${won(sm.total)}원</b></td></tr>
-      </tbody></table></div>` : '<p class="sub">담당자와 명령부 종류를 골라 주세요.</p>'}
-      <div class="inline od-bulk-acts"><button class="btn btn-primary" type="button" data-act="od-bulk-print" ${realPages ? '' : 'disabled'}>🖨 한꺼번에 인쇄 (${realPages}장${b.summary && realPages ? ' + 요약 1장' : ''})</button><button class="btn" type="button" data-act="od-bulk-file" ${realPages ? '' : 'disabled'}>한 파일로 받기 (.doc)</button>
-        <span class="sub">출장 여비 = 규정집 2026 기준(일비·유류비·통행료·주차료·식비 등), 특근 = 적은 식비(하루 2만원까지). ${pages > realPages ? `기록 없는 ${pages - realPages}장은 빠져요.` : ''}</span></div>
-    </div>`;
-  }
-  /** 인쇄할 문서들: fit(staff) 은 지금 ui.orders 의 달·종류로 한 장을 만든다 */
-  function bulkDocs(fit) {
-    const b = bulkState(), f = ui.orders, keep = { month: f.month, kind: f.kind };
-    const months = monthsBetween(b.from, b.to);
-    let html = '';
-    try {
-      b.staff.forEach(name => months.forEach(m => b.kinds.forEach(k => {
-        if (!b.empty && !trips(m, k).some(t => t.staff === name)) return;
-        f.month = m; f.kind = k;
-        html += fit(name);
-      })));
-    } finally { f.month = keep.month; f.kind = keep.kind; }
-    if (b.summary && html) html += bulkSummaryDoc();
-    return html;
-  }
-  function bulkSummaryDoc() {
-    const sm = bulkSummary();
-    return `<article class="doc order-doc" style="font-size:10pt">
-      <h1>출장 여비 · 특근비 요약</h1>
-      <p class="order-sub">${V.monthLabel(sm.months[0])} ~ ${V.monthLabel(sm.months[sm.months.length - 1])} · 화성시아르딤복지관 직업지원팀</p>
-      <table class="doc-tbl order-tbl"><thead><tr><th>담당자</th><th>월</th><th>출장</th><th>출장 여비</th><th>특근</th><th>특근 시간</th><th>특근비</th><th>특근 식비</th><th>합계</th></tr></thead><tbody>
-        ${sm.rows.map(r => r.per.map((x, i) => `<tr style="height:8mm">${i === 0 ? `<td rowspan="${r.per.length + 1}"><b>${e(r.name)}</b></td>` : ''}<td>${+x.m.slice(5)}월</td><td>${x.trips}건</td><td class="r">${won(x.tv)}</td><td>${x.ots}건</td><td>${hrs(x.otMin)}</td><td class="r">${won(x.otPay)}</td><td class="r">${won(x.meal)}</td><td class="r"><b>${won(x.total)}</b></td></tr>`).join('') + `<tr style="height:8mm" class="tv-doc-total"><th colspan="7">소계</th><th class="r">${won(r.total)}</th></tr>`).join('')}
-        <tr class="tv-doc-total" style="height:9mm"><th colspan="7">총 합계</th><th class="r">${won(sm.total)}</th></tr>
-      </tbody></table>
-      <p class="order-sub tv-doc-note">출장 여비: 중증장애인직업재활지원사업 규정집 2026 여비 기준(근무지 내 일비 4시간 기준·차량배치 유무, 유류비, 통행료, 주차료, 식비). 특근: 명령부에 적은 식비(1일 2만원 이내).</p>
-    </article>`;
-  }
-  function bulkFile(fit) {
-    const b = bulkState();
-    const body = bulkDocs(fit).replace(/<\/article>\s*<article/g, '</article><br style="page-break-before:always"><article');
-    const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl td.r,.doc-tbl th.r{text-align:right}.doc-tbl th{background:#eee}.rep{font-size:90%}';
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>출장·특근 명령부</title><style>${css}</style></head><body>${body}</body></html>`;
-    const name = `${V.monthLabel(b.from)}~${+b.to.slice(5)}월 출장·특근 명령부_${b.staff.join('·')}.doc`.replace(/[\\/:*?"<>|]/g, '');
-    return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
-  }
-  function orderFile(staff, fit = s => orderDoc(s)) {
-    const f = ui.orders;
-    const css = 'body{font-family:"맑은 고딕",sans-serif}@page{size:A4 portrait;margin:10mm}h1{text-align:center;font-size:18pt;letter-spacing:4px;margin:4pt 0}.order-head{text-align:right}.sign{margin-left:auto;border-collapse:collapse}.sign th,.sign td{border:1px solid #000;width:56pt;text-align:center;padding:2pt}.sign td{height:40pt}.sign .sign-side{width:18pt}.order-sub{text-align:center;margin:0 0 6pt}.doc-tbl{width:100%;border-collapse:collapse;table-layout:fixed}.doc-tbl th,.doc-tbl td{border:1px solid #000;padding:1pt 2pt;text-align:center;vertical-align:middle;word-break:keep-all}.doc-tbl td.l{text-align:left}.doc-tbl th{background:#eee}.rep{font-size:90%}';
-    const body = staff == null ? orderDocsEach(fit).replace(/<\/article>\s*<article/g, '</article><br style="page-break-before:always"><article') : fit(staff);
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><title>${orderTitle(f.kind)}</title><style>${css}</style></head><body>${body}</body></html>`;
-    const name = `${V.monthLabel(f.month)} ${orderTitle(f.kind)}${staff != null ? '_' + staff : '_담당자별'}.doc`.replace(/[\\/:*?"<>|]/g, '');
-    return { name, blob: new Blob(['\ufeff' + html], { type: 'application/msword' }) };
-  }
-
-  /* ---------- 한글 명령부 불러오기 ---------- */
-  const HEAD = { 출장일: 'date', 특근일자: 'date', 성명: 'staff', 특근자성명: 'staff', 출장지: 'place', 출장용무: 'purpose', 방법: 'method', 출장시간: 'time', 특근시간: 'time', 출장복명: 'report', 비고: 'note', 부서명: 'dept', 특근업무내용: 'purpose' };
-  /** HWP.readTables 결과 → 명령부 줄. year는 파일 이름에서 찾은 해 */
-  function parseOrderTables(tables, year) {
+  /* ---------- 업무 일정 불러오기 (엑셀·한글 표: 날짜·시간·제목/내용·유형·담당·메모) ---------- */
+  const EV_HEAD = { date: /^(날짜|일자|일시|일정일|월일)$/, time: /^(시간|시각)$/, title: /^(제목|일정|내용|일정내용|업무|업무내용|행사명|프로그램)$/, type: /^(유형|구분|종류)$/, staff: /^(담당|담당자|담당직원|성명|직원)$/, memo: /^(메모|비고|장소)$/ };
+  function eventsFromRows(rows, year) {
     const out = [];
-    tables.forEach(t => {
-      const hi = t.rows.findIndex(r => r.some(c => /^(출장일|특근일자)$/.test(c.replace(/\s/g, ''))));
-      if (hi < 0) return;
-      const kind = t.rows[hi].some(c => c.replace(/\s/g, '') === '출장일') ? '출장' : '특근';
-      const cols = [];
-      t.rows[hi].forEach((c, i) => { const k = HEAD[c.replace(/\s/g, '')]; if (k) cols.push({ k, from: i, to: i + ((t.spans[hi] || [])[i] || 1) }); });
-      t.rows.slice(hi + 1).forEach(r => {
-        const o = {};
-        cols.forEach(c => { o[c.k] = r.slice(c.from, c.to).filter(Boolean).join('\n').trim(); });
-        const m = (o.date || '').match(/(\d{1,2})\s*월\s*(\d{1,2})/);
-        if (!m || !o.staff) return;
-        const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
-        const pur = lines(o.purpose);
-        out.push({
-          kind, date: `${year}-${m[1].padStart(2, '0')}-${m[2].padStart(2, '0')}`, staff: o.staff.replace(/\s/g, ''),
-          place: lines(o.place).join(' '),
-          purpose: kind === '특근' ? pur[0] || '' : pur.join(' '),
-          method: lines(o.method).join(' '), time: lines(o.time).join(' ').replace(/∼/g, '~'),
-          report: D.TRIP_REPORTS.filter(x => new RegExp(x + '\\s*■').test(o.report || '')),
-          dept: kind === '특근' ? lines(o.dept).join(' ') || '직업' : '',
-          note: [...(kind === '특근' ? pur.slice(1) : []), ...lines(o.note)].join(' / '), actId: '',
-        });
-      });
-    });
-    // 동행 줄은 출장시간·방법을 비워 두는 경우가 많아, 같은 날·같은 곳·같은 용무 줄에서 채운다
-    out.forEach(r => ['time', 'method'].forEach(k => {
-      if (r[k]) return;
-      const mate = out.find(o => o !== r && o[k] && o.kind === r.kind && o.date === r.date && U.norm(o.place) === U.norm(r.place) && U.norm(o.purpose) === U.norm(r.purpose));
-      if (mate) r[k] = mate[k];
-    }));
+    for (let h = 0; h < Math.min(rows.length, 15); h++) {
+      const head = (rows[h] || []).map(c => String(c ?? '').replace(/\s/g, ''));
+      const col = {};
+      head.forEach((t, i) => Object.entries(EV_HEAD).forEach(([k, re]) => { if (col[k] == null && re.test(t)) col[k] = i; }));
+      if (col.date == null || col.title == null) continue;
+      for (let r = h + 1; r < rows.length; r++) {
+        const row = rows[r] || [];
+        const raw = row[col.date];
+        let date = '';
+        if (typeof raw === 'number' && raw > 30000) { const d = new Date(Math.round((raw - 25569) * 864e5)); const y = d.getUTCFullYear() < 2015 ? year : d.getUTCFullYear(); date = `${y}-${U.pad(d.getUTCMonth() + 1)}-${U.pad(d.getUTCDate())}`; }
+        else { const t = String(raw ?? ''); const k = t.match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/) || t.match(/^\s*(\d{1,2})[.\-/월\s]+(\d{1,2})/); if (k) date = k.length === 4 ? `${k[1]}-${U.pad(+k[2])}-${U.pad(+k[3])}` : `${year}-${U.pad(+k[1])}-${U.pad(+k[2])}`; }
+        const title = String(row[col.title] ?? '').replace(/\s+/g, ' ').trim();
+        if (!date || !title) continue;
+        const tm = String(row[col.time] ?? '').match(/(\d{1,2})[:시]?\s*(\d{2})?/);
+        const staff = String(row[col.staff] ?? '').trim();
+        out.push({ date, time: tm ? `${U.pad(+tm[1])}:${tm[2] || '00'}` : '', title, type: D.EVENT_TYPES.find(t => String(row[col.type] ?? '').includes(t)) || '기타', staff: S.staff().some(s => s.name === staff) ? staff : '', memo: String(row[col.memo] ?? '').trim(), targetType: '', targetId: '' });
+      }
+      break;
+    }
     return out;
   }
-  const tripKey = t => [t.kind, t.date, t.staff, U.norm(t.place || ''), U.norm(t.purpose || ''), (t.time || '').replace(/\s/g, '')].join('|');
-  function markDup(rows) {
-    const have = new Set(S.get().trips.map(tripKey));
-    rows.forEach(r => { r.dup = have.has(tripKey(r)); });
-    return rows;
+  function eventsFromWorkbook(wb, file) {
+    const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4));
+    return wb.SheetNames.flatMap(n => eventsFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }), year));
   }
-  function hwpDialog(state) {
-    const rows = state.rows || [];
-    const fresh = rows.filter(r => !r.dup);
-    const months = [...new Set(rows.map(r => r.date.slice(0, 7)))].sort();
-    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">한글 명령부 불러오기</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div></div>
-      <div class="dr-body">
-        <p class="sub">${e(state.files.join(', '))}</p>
-        ${state.errors.length ? `<p class="sub" style="color:var(--danger)">${state.errors.map(e).join('<br>')}</p>` : ''}
-        ${rows.length ? `<p class="sub">${months.map(V.monthLabel).join(', ')} · 관내출장 ${rows.filter(r => r.kind === '출장').length}줄, 특근 ${rows.filter(r => r.kind === '특근').length}줄을 읽었습니다.${rows.length - fresh.length ? ` 이미 있는 ${rows.length - fresh.length}줄은 건너뜁니다.` : ''}</p>
-          <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th>구분</th><th>날짜</th><th>성명</th><th>출장지</th><th>용무·내용</th><th>시간</th><th>복명</th><th>비고</th></tr></thead><tbody>
-          ${rows.map(r => `<tr class="${r.dup ? 'muted' : ''}"><td>${r.kind}${r.dup ? ' <span class="sub">(있음)</span>' : ''}</td><td class="num">${e(r.date)}</td><td><b>${e(r.staff)}</b></td><td>${e(r.place)}</td><td>${e(r.purpose)}</td><td class="nowrap">${e(r.time)}</td><td>${e(r.report.join(', '))}</td><td>${e(r.note)}</td></tr>`).join('')}
-          </tbody></table></div>` : state.errors.length ? '' : '<p class="sub">명령부 표(출장일 또는 특근일자 칸)를 찾지 못했습니다.</p>'}
-      </div>
-      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">취소</button><button class="btn btn-primary" type="button" data-act="od-hwp-commit" ${fresh.length ? '' : 'disabled'}>${fresh.length}줄 가져오기</button></div>`;
-  }
-  function commitHwp(rows) {
-    const fresh = rows.filter(r => !r.dup).map(({ dup, ...r }) => r);
-    S.upsertMany('trip', fresh);
-    const last = fresh.map(r => r.date.slice(0, 7)).sort().pop();
-    if (last) { ui.orders.month = last; ui.orders.kind = fresh.some(r => r.kind === '출장' && r.date.startsWith(last)) ? '출장' : '특근'; }
-    return fresh.length;
-  }
+  const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
 
-  /* ================= 개발대장 ================= */
   /** 공유 시트 '구인업체 개발 대장' 열 순서: 등록일, 업체명, 주소, 전화번호, 대표명(담당자), 직종/직무, 근무시간, 복리후생(기타), 비고, 실적 진행도, 상담자 */
   const progressOf = b => b.progress || ((b.jobAnalyses || []).length ? '직무분석지 작성완료' : S.actsOf('biz', b.id).some(a => a.type === '방문') ? '방문완료' : '');
   function ledgerTsv(list) {
@@ -8472,13 +7839,10 @@ window.R = (() => {
       ...S.perfRows(month, v).map(({ a, p, t, d }) => ({ '날짜': d, '사업': p.set || '', '세부사업': p.item, '사업체·기관': t ? t.name : '', '내용': a.content || '', '담당': a.staff || '', '구분': `${a.type} 기록` })),
       ...v.perfs.filter(p => (p.date || '').startsWith(month)).map(p => ({ '날짜': p.date, '사업': p.set || '', '세부사업': p.item, '사업체·기관': p.place || '', '내용': p.note || '', '담당': p.staff || '', '구분': '직접 입력' })),
     ].sort(byDate('날짜'));
-    const tr = kind => v.trips.filter(t => t.kind === kind && (t.date || '').startsWith(month)).sort((x, y) => (x.date || '').localeCompare(y.date || '') || (x.staff || '').localeCompare(y.staff || ''));
-    const trip = tr('출장').map(t => ({ '출장일': t.date, '성명': t.staff || '', '출장지': t.place || '', '출장용무': t.purpose || '', '방법': t.method || '', '출장시간': t.time || '', '출장복명': (t.report || []).join(', '), '비고': t.note || '', '식비': t.meal || '' }));
-    const ot = tr('특근').map(t => ({ '특근일자': t.date, '성명': t.staff || '', '부서명': t.dept || '직업', '특근시간': t.time || '', '업무내용': t.purpose || '', '비고': t.note || '', '식비': t.meal || '' }));
     const newBiz = v.businesses.filter(b => (S.bizFirst(b) || b.discoveredAt || '').startsWith(month)).map(b => ({ '최초 등록일': S.bizFirst(b) || b.discoveredAt || '', '사업체명': b.name, '업종': b.industry || '', '진행 단계': b.stage || '', '주소': b.address || '', '대표 전화': b.phone || '', '사업체 담당자': contactOf(b), '발굴 경로': b.source || '', '가능 직무': b.jobs || '', '담당 직원': b.staff || '', '메모': b.memo || '' })).sort(byDate('최초 등록일'));
     const ev = v.events.filter(x => (x.date || '').startsWith(month)).map(x => { const t = S.targetOf(x); return { '날짜': x.date, '시간': x.time || '', '유형': x.type || '', '제목': x.title || '', '사업체·기관': t ? t.name : '', '담당': x.staff || (t && t.staff) || '', '완료': x.done ? 'Y' : '', '메모': x.memo || '' }; }).sort(byDate('날짜'));
     const cards = v.cards.filter(c => (c.metAt || '').startsWith(month)).map(c => ({ '받은 날': c.metAt, '이름': c.name, '직함': c.title || '', '소속': c.org || '', '휴대전화': c.mobile || '', '사무실 전화': c.phone || '', '이메일': c.email || '', '받은 곳': c.metWhere || '' })).sort(byDate('받은 날'));
-    return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, trip, ot, newBiz, ev, cards };
+    return { contact, visit: contact.filter(r => r['방식'] === '방문'), perf, newBiz, ev, cards };
   }
   const BOOK = [['contact', '연락이력'], ['visit', '방문 사업체'], ['perf', '실적'], ['newBiz', '신규 사업체'], ['ev', '일정'], ['cards', '받은 명함']];
   function sheetOf(rows, head) {
@@ -8544,331 +7908,7 @@ window.R = (() => {
     return out;
   }
 
-  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, bulkState, bulkSummary, bulkDocs, bulkFile, jobLink, siteName, contactsPage, contactsResults, contactRows, secStaffBar, contactTsv, reportTsv, addContact, registerBiz, parsePaste, parseCells, parseSheets, readFileSheets, pasteDialog, commitPaste, ordersPage, ordersResults, importVisits, ordersTsv, orderDoc, orderDocsEach, orderFile, parseOrderTables, markDup, hwpDialog, commitHwp, ledgerTsv, progressOf };
-})();
-
-</script>
-<script>
-/* 출장 여비 계산 (중증장애인직업재활지원사업 규정집 2026 여비 기준 + 복지관 정산 기준)
-   - 근무지 내(관내, 화성시 안): 일비 4시간 미만 5천원 · 4시간 이상 1만원 (기관차량·자차 같음) + 유류비 + 통행료 + 주차료
-   - 식비: 한 사람 하루 최대 2만원 (출장·특근 식비를 합쳐서)
-   - 근무지 외(관외): 운임 + 숙박비(상한) + 식비(1일 2만원 이내) + 일비(1일 2만원 이내)
-   - 하루에 여러 번 나가면 출장시간을 모두 더해 계산하되 1일 기준 금액을 넘지 않는다
-   - 하루에 관내·관외를 같이 가면 관외 기준으로 준다 */
-window.TV = (() => {
-  const e = U.esc;
-  const RULE = {
-    daily: { long: { car: 10000, nocar: 10000 }, short: { car: 5000, nocar: 5000 } }, // 관내 일비: 4시간 이상 1만원 / 미만 5천원 (복지관 정산 기준: 기관차량·자차 같음)
-    outDaily: 20000, // 관외 일비 1일 상한
-    meal: 20000, // 식비 1일 상한 (관외는 안 적으면 상한으로 잡음, 관내·특근은 적은 금액을 같이 계산)
-    lodge: { 특별시: 70000, 광역시: 60000, '그 외': 50000 }, // 숙박비 1박 상한
-    ot: { short: 5000, long: 10000 }, // 특근비 1일: 4시간 미만 / 4시간 이상 (데이터 관리 없이 출장·특근 화면에서 관리자가 바꿀 수 있음)
-  };
-  /** 특근비 단가 (설정값이 있으면 그것) */
-  const otRate = () => ({ short: num((S.get().settings || {}).otShort) || RULE.ot.short, long: num((S.get().settings || {}).otLong) || RULE.ot.long });
-  const LODGE_REGIONS = Object.keys(RULE.lodge);
-  const METRO = /서울|인천|대전|대구|광주광역|울산|부산/;
-  // 화성시 밖 지명 (관외 자동 판단용). 화성시 안 지명은 D.AREAS에서 본다
-  const OTHER_CITY = /서울|인천|대전|대구|광주|울산|부산|세종|수원|오산|평택|안산|용인|시흥|안양|군포|의왕|광명|부천|성남|과천|하남|이천|안성|여주|김포|고양|파주|의정부|남양주|구리|천안|아산|당진|청주|춘천|원주|강릉|전주|제주|창원|포항|경주|양평|가평|포천|동두천|양주|연천|충청|전라|경상|강원/;
-  const num = v => { const n = Number(String(v ?? '').replace(/[^0-9.]/g, '')); return Number.isFinite(n) ? n : 0; };
-  const won = n => `${Math.round(n).toLocaleString('ko-KR')}`;
-
-  /** "9 ~ 12시", "09:00~12:30", "14시~18시", "1~5시"(오후) → 분. 모르면 0 */
-  function minutesOf(text) {
-    const s = String(text || '').replace(/\s/g, '');
-    const m = s.match(/(오전|오후)?(\d{1,2})(?:[:시.](\d{2}))?(?:분)?(?:시)?[~\-–〜](오전|오후)?(\d{1,2})(?:[:시.](\d{2}))?/);
-    if (!m) return 0;
-    let a = +m[2] + (+m[3] || 0) / 60, b = +m[5] + (+m[6] || 0) / 60;
-    if (m[1] === '오후' && a < 12) a += 12;
-    if ((m[4] === '오후' || (m[1] === '오후' && !m[4])) && b < 12) b += 12;
-    if (!m[1] && a >= 1 && a <= 7) a += 12; // 1~7시는 오후로 본다 (근무시간)
-    if (!m[4] && !m[1] && b >= 1 && b <= 8 && b < a) b += 12;
-    if (b <= a && b + 12 > a) b += 12;
-    const min = Math.round((b - a) * 60);
-    return min > 0 && min <= 24 * 60 ? min : 0;
-  }
-  const hm = min => (min ? `${Math.floor(min / 60)}시간${min % 60 ? ` ${min % 60}분` : ''}` : '');
-
-  /** 출장지 이름으로 지도에 있는 사업체·기관을 찾는다 */
-  function placeOf(t) {
-    const key = U.orgKey(t.place || '');
-    if (key.length < 2) return null;
-    const st = S.view();
-    const all = [...st.businesses, ...st.networks];
-    return all.find(x => U.orgKey(x.name) === key) || all.find(x => { const k = U.orgKey(x.name); return k.length >= 2 && (k.includes(key) || key.includes(k)); }) || null;
-  }
-  const homeOf = () => S.get().networks.find(n => S.isHome(n) && M.hasPos(n)) || null;
-  /** 관내·관외: 직접 고른 값이 먼저, 없으면 출장지·주소로 판단 (모르면 관내 = 관내출장 명령부) */
-  function zoneOf(t) {
-    if (t.zone === '관내' || t.zone === '관외') return t.zone;
-    const p = placeOf(t);
-    const text = [t.place, p && p.address].filter(Boolean).join(' ');
-    if (/화성/.test(text)) return '관내';
-    if (p && p.area && D.AREA_BY_NAME && D.AREA_BY_NAME[p.area]) return '관내';
-    return OTHER_CITY.test(text) ? '관외' : '관내';
-  }
-  function regionOf(t) {
-    if (LODGE_REGIONS.includes(t.lodgeRegion)) return t.lodgeRegion;
-    const p = placeOf(t);
-    const text = [t.place, p && p.address].filter(Boolean).join(' ');
-    return /서울/.test(text) ? '특별시' : METRO.test(text) ? '광역시' : '그 외';
-  }
-  const hasCar = t => /복지관|기관|관용|공용/.test(t.method || '');
-  const ownCar = t => /개인|자가|본인/.test(t.method || '');
-  /** 왕복 거리(km): 적은 값이 먼저, 없으면 복지관↔출장지 직선거리 × 1.35(도로 보정) × 2 로 어림 */
-  function kmOf(t) {
-    if (num(t.km)) return { km: num(t.km), est: false };
-    const p = placeOf(t), h = homeOf();
-    if (!p || !h || !M.hasPos(p)) return { km: 0, est: true };
-    return { km: Math.round(M.distKm(h, p) * 1.35 * 2 * 10) / 10, est: true };
-  }
-  const settings = () => S.get().settings || {};
-  const effOf = t => num(t.fuelEff) || num(settings().fuelEff);
-  const priceOf = t => num(t.fuelPrice) || num(settings().fuelPrice);
-  /** 한 줄(출장 1건)의 실비: 유류비·통행료·주차료·운임·숙박비 */
-  function rowCost(t) {
-    const zone = zoneOf(t);
-    const { km, est } = kmOf(t);
-    const eff = effOf(t), price = priceOf(t);
-    const fuel = ownCar(t) && km && eff && price ? Math.round(km * price / eff) : 0;
-    const need = ownCar(t) ? [!km && '거리', !price && '유가', !eff && '연비'].filter(Boolean) : [];
-    const lodgeCap = RULE.lodge[regionOf(t)] * Math.max(1, num(t.lodgeNights) || 1);
-    const lodge = zone === '관외' ? Math.min(num(t.lodging), lodgeCap) : 0;
-    const fare = zone === '관외' ? num(t.fare) : 0;
-    return { zone, km, est, fuel, need, toll: num(t.toll), parking: num(t.parking), fare, lodge, lodgeCap, lodgeOver: zone === '관외' && num(t.lodging) > lodgeCap };
-  }
-  /** 담당자·날짜별로 묶어 일비·식비를 하루 단위로 계산 */
-  function days(list) {
-    const map = new Map();
-    list.forEach(t => { const k = `${t.staff || ''}|${t.date || ''}`; if (!map.has(k)) map.set(k, []); map.get(k).push(t); });
-    return [...map.values()].map(g => {
-      const rows = g.map(t => ({ t, c: rowCost(t), min: minutesOf(t.time) }));
-      const out = rows.some(r => r.c.zone === '관외');
-      const min = rows.reduce((s, r) => s + r.min, 0);
-      const car = rows.some(r => hasCar(r.t));
-      let daily, why;
-      if (out) { daily = RULE.outDaily; why = '관외 1일 정액'; } else {
-        const long = min >= 240;
-        daily = RULE.daily[long ? 'long' : 'short'][car ? 'car' : 'nocar'];
-        why = `관내 ${min ? hm(min) : '시간 미입력'}${min ? (long ? ' (4시간 이상)' : ' (4시간 미만)') : ''}`;
-      }
-      // 식비는 관외 출장일에만. 적은 금액이 없으면 상한(2만원)으로 잡는다
-      // 식비: 그날 줄마다 적은 금액을 더해 1일 2만원까지. 관외인데 아무것도 안 적었으면 2만원
-      const mealTyped = rows.some(r => String(r.t.meal ?? '').trim() !== '');
-      const mealSum = rows.reduce((a, r) => a + num(r.t.meal), 0);
-      const meal = Math.min(RULE.meal, mealTyped ? mealSum : out ? RULE.meal : 0);
-      const sum = k => rows.reduce((s, r) => s + r.c[k], 0);
-      const actual = sum('fuel') + sum('toll') + sum('parking') + sum('fare') + sum('lodge');
-      return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows, out, min, car, daily, why, meal, actual, total: daily + meal + actual, noTime: !out && !min };
-    }).sort((a, b) => (a.staff).localeCompare(b.staff) || (a.date || '').localeCompare(b.date || ''));
-  }
-  /** 특근: 담당자·날짜별 특근비(하루 특근시간 합: 4시간 미만·이상) + 식비(적은 금액, 1일 2만원까지) */
-  function otDays(list) {
-    const map = new Map();
-    const rate = otRate();
-    list.forEach(t => { const k = `${t.staff || ''}|${t.date || ''}`; if (!map.has(k)) map.set(k, []); map.get(k).push(t); });
-    return [...map.values()].map(g => {
-      const sum = g.reduce((a, t) => a + num(t.meal), 0);
-      const meal = Math.min(RULE.meal, sum);
-      const min = g.reduce((a, t) => a + minutesOf(t.time), 0);
-      const pay = min >= 240 ? rate.long : rate.short;
-      return { staff: g[0].staff || '(담당자 없음)', date: g[0].date, rows: g, meal, pay, noTime: !min, over: sum > RULE.meal, total: pay + meal, min };
-    });
-  }
-  /** 한 달 정산: 사람마다 관내 출장 · 관외 출장 · 특근(식비) 묶음. 식비는 출장·특근 합쳐 하루 2만원까지 */
-  function settle(month) {
-    const ds = days(monthTrips(month));
-    const ots = S.get().trips.filter(t => t.kind === '특근' && (t.date || '').startsWith(month));
-    const people = new Map();
-    const P = name => { if (!people.has(name)) people.set(name, { name, in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 }); return people.get(name); };
-    const tripMeal = new Map();
-    ds.forEach(d => {
-      const p = P(d.staff);
-      const c = k => d.rows.reduce((a, r) => a + r.c[k], 0);
-      const row = { date: d.date, where: d.rows.map(r => r.t.place).filter(Boolean).join(', '), time: d.rows.map(r => r.t.time).filter(Boolean).join(', '), min: d.min, why: d.why, daily: d.daily, fuel: c('fuel'), tollPark: c('toll') + c('parking'), fareLodge: c('fare') + c('lodge'), meal: d.meal, total: d.total, noTime: d.noTime };
-      (d.out ? p.out : p.in).push(row);
-      tripMeal.set(`${d.staff}|${d.date}`, d.meal);
-    });
-    otDays(ots).forEach(o => {
-      const p = P(o.staff);
-      const left = Math.max(0, RULE.meal - (tripMeal.get(`${o.staff}|${o.date}`) || 0));
-      const typed = o.rows.reduce((a, t) => a + num(t.meal), 0);
-      const meal = Math.min(typed, left);
-      p.ot.push({ date: o.date, where: o.rows.map(t => t.purpose).filter(Boolean).join(', '), time: o.rows.map(t => t.time).filter(Boolean).join(', '), min: o.min, pay: o.pay, noTime: o.noTime, meal, typed, capped: typed > meal, total: o.pay + meal, ids: o.rows.map(t => t.id) });
-    });
-    const byDate = (a, b) => (a.date || '').localeCompare(b.date || '');
-    const list = [...people.values()].map(p => {
-      p.in.sort(byDate); p.out.sort(byDate); p.ot.sort(byDate);
-      p.inTotal = p.in.reduce((a, r) => a + r.total, 0); p.outTotal = p.out.reduce((a, r) => a + r.total, 0); p.otTotal = p.ot.reduce((a, r) => a + r.total, 0);
-      p.total = p.inTotal + p.outTotal + p.otTotal;
-      return p;
-    });
-    const order = S.staff().map(x => x.name);
-    list.sort((a, b) => ((order.indexOf(a.name) + 1) || 99) - ((order.indexOf(b.name) + 1) || 99));
-    const sum = k => list.reduce((a, p) => a + p[k], 0);
-    return { month, people: list, inTotal: sum('inTotal'), outTotal: sum('outTotal'), otTotal: sum('otTotal'), total: sum('total') };
-  }
-  const PART = { in: '관내 출장', out: '관외 출장', ot: '특근 (특근비·식비)', all: '전체 정산' };
-  /** 정산 판: 월 전체 합계 + 사람마다 관내·관외·특근 금액과 인쇄 버튼 */
-  function settlePanel(month) {
-    const st = settle(month);
-    if (!st.people.length) return '';
-    const cell = (rows, total) => rows.length ? `<b class="num">${won(total)}원</b><small>${rows.length}일</small>` : '<span class="sub">-</span>';
-    const pbtn = (name, part, n) => `<button class="btn btn-sm" type="button" data-act="tv-print-part" data-staff="${e(name)}" data-part="${part}" ${n ? '' : 'disabled'}>${PART[part].replace(' (특근비·식비)', '')}</button>`;
-    return `<div class="tv-settle">
-      <div class="tv-settle-head"><h3>📋 ${V.monthLabel(month)} 현장중심센터 여비 정산</h3><span class="tv-settle-total">전 직원 합계 <b class="num">${won(st.total)}원</b></span></div>
-      <div class="table-wrap"><table class="tbl tv-settle-tbl"><thead><tr><th>담당자</th><th>관내 출장<small>(화성시 안)</small></th><th>관외 출장<small>(화성시 밖)</small></th><th>특근<small>(특근비 + 식비)</small></th><th class="tot">정산 받을 금액</th><th>인쇄</th></tr></thead><tbody>
-        ${st.people.map(p => `<tr class="sc-row" style="--sc:${V.staffColor(p.name)}"><th>${V.staffDot(p.name)}${e(p.name)}</th><td>${cell(p.in, p.inTotal)}</td><td>${cell(p.out, p.outTotal)}</td><td>${cell(p.ot, p.otTotal)}${p.ot.length ? `<small>특근비 ${won(p.ot.reduce((a, r) => a + r.pay, 0))} · 식비 ${won(p.ot.reduce((a, r) => a + r.meal, 0))}</small>` : ''}${p.ot.some(r => r.capped) ? '<small class="tv-over">하루 2만원까지만</small>' : ''}</td><td class="tot"><b class="num">${won(p.total)}원</b></td>
-          <td class="nowrap">${pbtn(p.name, 'in', p.in.length)}${pbtn(p.name, 'out', p.out.length)}${pbtn(p.name, 'ot', p.ot.length)}<button class="btn btn-sm btn-primary" type="button" data-act="tv-print-part" data-staff="${e(p.name)}" data-part="all">전체</button></td></tr>`).join('')}
-        <tr class="tot"><th>전 직원 합계</th><td><b class="num">${won(st.inTotal)}원</b></td><td><b class="num">${won(st.outTotal)}원</b></td><td><b class="num">${won(st.otTotal)}원</b></td><td class="tot"><b class="num">${won(st.total)}원</b></td>
-          <td class="nowrap"><button class="btn btn-sm" type="button" data-act="tv-print-sum">전체 요약 인쇄</button><button class="btn btn-sm btn-primary" type="button" data-act="tv-print-all">전원 정산서 인쇄</button></td></tr>
-      </tbody></table></div>
-      <p class="sub" style="margin:4px 0 0">관내: 4시간 미만 5천원 · 4시간 이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외: 일비 2만원 + 운임·숙박비 / 하루에 관내·관외를 같이 가면 관외 / 식비는 출장·특근 합쳐 한 사람 하루 최대 2만원 / 특근비: 그날 특근시간 4시간 미만 ${won(otRate().short)}원 · 4시간 이상 ${won(otRate().long)}원 (특근 명령부의 시간 칸 기준, 시간이 없으면 4시간 미만). 특근 식비는 특근 명령부의 식비 칸에서 적어요.</p>
-    </div>`;
-  }
-  /** 정산서 한 장: part = in | out | ot | all */
-  function settleDoc(month, name, part, scale = 1) {
-    const p = settle(month).people.find(x => x.name === name) || { name, in: [], out: [], ot: [], inTotal: 0, outTotal: 0, otTotal: 0, total: 0 };
-    const parts = part === 'all' ? ['in', 'out', 'ot'] : [part];
-    const rowsOf = k => p[k];
-    const nRows = parts.reduce((a, k) => a + Math.max(3, rowsOf(k).length) + 2, 0);
-    const rowMm = +(Math.min(9, 190 / Math.max(14, nRows)) * scale).toFixed(2);
-    const fs = +((rowMm >= 8 ? 10 : rowMm >= 6.5 ? 9 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
-    const COLS = { in: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['유류·통행·주차', 14], ['식비', 11], ['합계', 16]], out: [['날짜', 9], ['출장지', 25], ['출장시간', 14], ['일비', 11], ['운임·숙박', 14], ['식비', 11], ['합계', 16]], ot: [['날짜', 9], ['특근 업무', 31], ['특근시간', 15], ['특근비', 14], ['식비', 14], ['합계', 17]] };
-    const sec = k => {
-      const rows = rowsOf(k), cols = COLS[k];
-      const body = rows.map(r => `<tr style="height:${rowMm}mm"><td>${U.md(r.date)}</td><td class="l">${e(r.where)}</td><td>${e(r.time)}</td>${k === 'ot' ? `<td class="r">${won(r.pay)}</td><td class="r">${won(r.meal)}${r.capped ? '*' : ''}</td>` : `<td class="r">${won(r.daily)}</td><td class="r">${won(k === 'in' ? r.fuel + r.tollPark : r.fareLodge + r.fuel + r.tollPark)}</td><td class="r">${won(r.meal)}</td>`}<td class="r"><b>${won(r.total)}</b></td></tr>`);
-      while (body.length < 3) body.push(`<tr style="height:${rowMm}mm">${cols.map(() => '<td>&nbsp;</td>').join('')}</tr>`);
-      return `<h2 class="tv-doc-sec">${PART[k]}</h2><table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${cols.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
-        <thead><tr>${cols.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${body.join('')}
-        <tr class="tv-doc-total"><th colspan="${cols.length - 1}">${PART[k]} 소계 (${rows.length}일)</th><th class="r">${won(p[k + 'Total'])}</th></tr></tbody></table>`;
-    };
-    const total = parts.reduce((a, k) => a + p[k + 'Total'], 0);
-    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
-    return `<article class="doc order-doc tv-settle-doc" style="font-size:${fs}pt">
-      <div class="order-head">${sign}</div>
-      <h1>${part === 'all' ? '여비 정산서' : `${PART[part]} 정산서`}</h1>
-      <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터) · <b>${e(name)}</b></p>
-      ${parts.map(sec).join('')}
-      <table class="doc-tbl tv-grand"><tr><th>정산 받을 금액${part === 'all' ? ' (관내 + 관외 + 특근)' : ''}</th><td class="r"><b>${won(total)}원</b></td></tr></table>
-      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음), 관외 일비 2만원, 하루에 관내·관외를 같이 가면 관외. 특근비 4시간 미만 ${won(otRate().short)}원·이상 ${won(otRate().long)}원. 식비는 출장·특근 합쳐 1인 1일 2만원 이내${p.ot.some(r => r.capped) ? ' (*표시: 상한 적용)' : ''}. 유류비·통행료·주차료·운임·숙박비는 영수증 첨부.</p>
-    </article>`;
-  }
-  /** 전 직원 월 합계 한 장 */
-  function settleSumDoc(month) {
-    const st = settle(month);
-    return `<article class="doc order-doc" style="font-size:10pt">
-      <div class="order-head"><table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table></div>
-      <h1>여비 정산 총괄표</h1>
-      <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 (현장중심직업재활센터)</p>
-      <table class="doc-tbl order-tbl"><colgroup><col style="width:16%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:10%"><col style="width:12%"><col style="width:14%"></colgroup>
-        <thead><tr><th>담당자</th><th>관내 일수</th><th>관내 금액</th><th>관외 일수</th><th>관외 금액</th><th>특근 일수</th><th>특근비·식비</th><th>정산 금액</th></tr></thead><tbody>
-        ${st.people.map(p => `<tr style="height:10mm"><td><b>${e(p.name)}</b></td><td>${p.in.length}</td><td class="r">${won(p.inTotal)}</td><td>${p.out.length}</td><td class="r">${won(p.outTotal)}</td><td>${p.ot.length}</td><td class="r">${won(p.otTotal)}</td><td class="r"><b>${won(p.total)}</b></td></tr>`).join('')}
-        <tr class="tv-doc-total" style="height:11mm"><th>합계</th><th></th><th class="r">${won(st.inTotal)}</th><th></th><th class="r">${won(st.outTotal)}</th><th></th><th class="r">${won(st.otTotal)}</th><th class="r">${won(st.total)}원</th></tr>
-      </tbody></table>
-      <p class="order-sub tv-doc-note">관내 일비 4시간 미만 5천원·이상 1만원(기관차량·자차 같음) + 유류비·통행료·주차료 / 관외 일비 2만원 + 운임·숙박비 / 특근비 4시간 미만 ${won(otRate().short)}원·이상 ${won(otRate().long)}원 / 식비 1인 1일 2만원 이내(출장·특근 합산).</p>
-    </article>`;
-  }
-  const monthTrips = month => S.get().trips.filter(t => t.kind === '출장' && (t.date || '').startsWith(month));
-
-  /* ---------- 화면 ---------- */
-  function page(month) {
-    const list = monthTrips(month);
-    const ds = days(list);
-    const st = settings();
-    const admin = S.isAdmin();
-    const staffs = [...new Set(ds.map(d => d.staff))];
-    const inp = (t, k, ph = '', w = 78, type = 'text') => `<input class="input sm tv-in" style="width:${w}px" data-chg="trip-field" data-id="${t.id}" data-field="${k}" value="${e(t[k] ?? '')}" placeholder="${ph}" ${type === 'num' ? 'inputmode="numeric"' : ''}>`;
-    const sel = (t, k, list, auto) => `<select class="select sm tv-in" data-chg="trip-field" data-id="${t.id}" data-field="${k}"><option value="">자동(${auto})</option>${list.map(v => `<option ${t[k] === v ? 'selected' : ''}>${v}</option>`).join('')}</select>`;
-    const staffTotal = s => ds.filter(d => d.staff === s).reduce((a, d) => a + d.total, 0);
-    const warn = ds.filter(d => d.noTime).length;
-    const fuelNeed = ds.reduce((n, d) => n + d.rows.filter(r => r.c.need.length).length, 0);
-    return `<section class="panel">
-      ${settlePanel(month)}
-      <div class="panel-pad tv-top">
-        <details class="tv-rule"><summary><b>여비 지급 기준</b> <span class="sub">규정집 2026 · 누르면 펼쳐져요</span></summary>
-          <div class="tv-rule-body">
-            <table class="tbl tv-rule-tbl"><thead><tr><th>구분</th><th>일비</th></tr></thead>
-              <tbody><tr><td>근무지 내 (화성시 안) 4시간 미만</td><td>${won(RULE.daily.short.car)}원</td></tr><tr><td>근무지 내 4시간 이상</td><td>${won(RULE.daily.long.car)}원</td></tr><tr><td>근무지 외 (화성시 밖)</td><td>${won(RULE.outDaily)}원</td></tr><tr><td>식비 (출장·특근 합쳐 1인 1일)</td><td>최대 ${won(RULE.meal)}원</td></tr><tr><td>특근비 (하루 특근시간) 4시간 미만</td><td>${won(otRate().short)}원</td></tr><tr><td>특근비 4시간 이상</td><td>${won(otRate().long)}원</td></tr></tbody></table>
-            <ul class="sub">
-              <li><b>근무지 내(화성시 안)</b>: 일비 + 유류비(출장거리 × 유가 ÷ 연비, 개인 차량일 때) + 통행료 + 주차료(영수증)</li>
-              <li><b>근무지 외</b>: 운임(실비) + 숙박비(1박 상한 특별시 7만 · 광역시 6만 · 그 외 5만원) + 식비(1일 2만원 이내) + 일비(1일 2만원 이내)</li>
-              <li>하루에 여러 번 나가면 <b>출장시간을 모두 더해</b> 계산하고, 1일 기준 금액을 넘지 않아요. 하루에 관내·관외를 같이 가면 <b>관외 기준</b>으로 줘요.</li>
-              <li>관내 일비는 <b>기관차량·자차 상관없이</b> 4시간 미만 5천원, 4시간 이상 1만원이에요. 자차는 유류비를 따로 더해요.</li>
-              <li>식비는 출장 식비와 특근 식비를 합쳐 <b>한 사람 하루 최대 2만원</b>이에요.</li>
-            </ul>
-          </div>
-        </details>
-        <div class="tv-set">
-          <span class="sub">개인 차량 유류비 기본값</span>
-          <label>연비 <input class="input sm" style="width:64px" id="tvEff" value="${e(st.fuelEff || '')}" placeholder="km/L" inputmode="decimal" ${admin ? '' : 'disabled'}> km/L</label>
-          <label>유가 <input class="input sm" style="width:76px" id="tvPrice" value="${e(st.fuelPrice || '')}" placeholder="원/L" inputmode="numeric" ${admin ? '' : 'disabled'}> 원/L</label>
-          <span class="sub">특근비</span>
-          <label>4시간 미만 <input class="input sm" style="width:76px" id="tvOtS" value="${e((st.otShort || '') + '')}" placeholder="${RULE.ot.short}" inputmode="numeric" ${admin ? '' : 'disabled'}> 원</label>
-          <label>이상 <input class="input sm" style="width:76px" id="tvOtL" value="${e((st.otLong || '') + '')}" placeholder="${RULE.ot.long}" inputmode="numeric" ${admin ? '' : 'disabled'}> 원</label>
-          ${admin ? '<button class="btn btn-sm" type="button" data-act="tv-save-set">저장</button>' : '<span class="sub">(관리자가 정해요 · 줄마다 따로 적을 수 있어요)</span>'}
-          <span class="grow"></span>
-          <button class="btn btn-sm" type="button" data-act="tv-road" ${list.length ? '' : 'disabled'}>🚗 개인 차량 거리 도로로 채우기</button>
-          <button class="btn btn-sm" type="button" data-act="tv-copy" ${list.length ? '' : 'disabled'}>${V.I.copy}표 복사</button>
-          <button class="btn btn-sm btn-primary" type="button" data-act="tv-print" ${list.length ? '' : 'disabled'}>여비 명세 인쇄</button>
-        </div>
-        ${warn || fuelNeed ? `<p class="tv-warn">${warn ? `⏰ 출장시간이 없는 날 <b>${warn}</b>일은 4시간 미만으로 계산했어요. 시간 칸에 <b>9~12시</b>처럼 적어 주세요. ` : ''}${fuelNeed ? `⛽ 개인 차량 <b>${fuelNeed}</b>건은 거리·유가·연비가 모자라 유류비가 0원이에요.` : ''}</p>` : ''}
-      </div>
-      ${list.length ? `<h3 class="tv-detail-h">출장 날짜별 계산 <span class="sub">시간·방법·영수증 금액을 여기서 고치면 위 정산에 바로 반영돼요</span></h3>
-      <div class="table-wrap"><table class="tbl tv-tbl"><thead><tr>
-        <th>날짜·성명</th><th>출장지</th><th>출장시간</th><th>방법 · 구분</th><th>유류비 계산<small>개인 차량</small></th><th>통행료 · 주차료</th><th>관외 비용<small>운임·숙박·식비</small></th>
-        <th class="tv-c">유류비</th><th class="tv-c">일비<small>(하루)</small></th><th class="tv-c">하루 합계</th></tr></thead><tbody>
-        ${ds.map(d => d.rows.map((r, i) => { const { t, c } = r; const n = d.rows.length; const lab = (l, h) => `<label class="tv-f"><span>${l}</span>${h}</label>`; return `<tr class="${i === 0 ? 'tv-day' : ''}">
-          ${i === 0 ? `<td rowspan="${n}" class="nowrap"><b>${U.md(d.date)}</b><div class="sub">${e(d.staff)}</div></td>` : ''}
-          <td class="tv-place">${e(t.place || '')}</td>
-          <td>${inp(t, 'time', '9~12시', 84)}${r.min ? `<div class="sub tv-h">${hm(r.min)}</div>` : ''}</td>
-          <td><div class="tv-stack"><select class="select sm tv-in" data-chg="trip-field" data-id="${t.id}" data-field="method">${[...new Set([...D.TRIP_METHODS, t.method].filter(Boolean))].map(m => `<option ${t.method === m ? 'selected' : ''}>${e(m)}</option>`).join('')}</select>${sel(t, 'zone', ['관내', '관외'], zoneOf({ ...t, zone: '' }))}</div></td>
-          <td>${ownCar(t) ? `<div class="tv-stack">${lab('왕복', inp(t, 'km', c.km ? `${c.km}${c.est ? ' 어림' : ''}` : 'km', 70, 'num'))}${lab('유가', inp(t, 'fuelPrice', priceOf(t) ? String(priceOf(t)) : '원/L', 70, 'num'))}${lab('연비', inp(t, 'fuelEff', effOf(t) ? String(effOf(t)) : 'km/L', 70, 'num'))}</div>` : '<span class="sub">-</span>'}</td>
-          <td><div class="tv-stack">${lab('통행', inp(t, 'toll', '0', 70, 'num'))}${lab('주차', inp(t, 'parking', '0', 70, 'num'))}</div></td>
-          <td>${c.zone === '관외' ? `<div class="tv-stack">${lab('운임', inp(t, 'fare', '0', 76, 'num'))}${lab('숙박', inp(t, 'lodging', '0', 76, 'num'))}${lab('지역', sel(t, 'lodgeRegion', LODGE_REGIONS, regionOf({ ...t, lodgeRegion: '' })))}${c.lodgeOver ? `<div class="tv-over">숙박 상한 ${won(c.lodgeCap)}원까지</div>` : ''}${lab('식비', inp(t, 'meal', i === 0 && d.out ? won(RULE.meal) : '0', 76, 'num'))}</div>` : `<div class="tv-stack">${lab('식비', inp(t, 'meal', '0', 76, 'num'))}</div>`}</td>
-          <td class="tv-c num">${c.fuel ? won(c.fuel) : ownCar(t) && c.need.length ? `<span class="tv-over">${c.need.join('·')}<br>필요</span>` : '-'}</td>
-          ${i === 0 ? `<td rowspan="${n}" class="tv-c"><b class="num">${won(d.daily)}</b><div class="sub tv-h">${e(d.why)}</div>${d.meal ? `<div class="sub tv-h">식비 ${won(d.meal)}</div>` : ''}</td><td rowspan="${n}" class="tv-c tv-total num">${won(d.total)}</td>` : ''}
-        </tr>`; }).join('')).join('')}
-      </tbody></table></div>`
-      : `<div class="empty"><strong>이 달 관내출장 기록이 없습니다</strong>관내출장 명령부에 출장을 넣으면 여기서 여비가 계산돼요.</div>`}
-      <p class="sub perf-help">출장지·날짜·성명은 <b>관내출장 명령부</b>에서 고치고, 여기서는 시간·방법과 영수증 금액만 적으면 돼요. 구분(관내/관외)과 거리는 자동으로 잡고, 필요하면 직접 바꿀 수 있어요. 금액은 원 단위 숫자만 적으세요.</p>
-    </section>`;
-  }
-
-  /** 한글·엑셀에 붙여 넣을 표 */
-  function tsv(month) {
-    const head = ['날짜', '성명', '출장지', '출장시간', '방법', '구분', '왕복km', '유류비', '통행료', '주차료', '운임', '숙박비', '식비', '일비', '하루합계'];
-    const lines = [head];
-    days(monthTrips(month)).forEach(d => d.rows.forEach((r, i) => lines.push([U.md(d.date), d.staff, r.t.place || '', r.t.time || '', r.t.method || '', r.c.zone, r.c.km || '', r.c.fuel, r.c.toll, r.c.parking, r.c.fare, r.c.lodge, i ? '' : d.meal, i ? '' : d.daily, i ? '' : d.total])));
-    return lines.map(l => l.map(v => String(v ?? '').replace(/[\t\n]/g, ' ')).join('\t')).join('\n');
-  }
-
-  /** 담당자별 여비 지급 명세 (명령부와 같은 모양: 고정 칸 너비, 최소 줄 수, A4 한 장) */
-  const COLS = [['출장일', 8], ['출장지', 18], ['출장시간', 10], ['구분', 6], ['일비', 9], ['유류비', 9], ['통행·주차', 10], ['운임·숙박', 10], ['식비', 9], ['합계', 11]];
-  function doc(month, staff, scale = 1) {
-    const ds = days(monthTrips(month)).filter(d => d.staff === staff);
-    const rows = [];
-    ds.forEach(d => d.rows.forEach((r, i) => rows.push([U.md(d.date), e(r.t.place || ''), e(r.t.time || ''), r.c.zone, i ? '' : won(d.daily), r.c.fuel ? won(r.c.fuel) : '', r.c.toll + r.c.parking ? won(r.c.toll + r.c.parking) : '', r.c.fare + r.c.lodge ? won(r.c.fare + r.c.lodge) : '', !i && d.meal ? won(d.meal) : '', i ? '' : won(d.total)])));
-    const n = Math.max(14, rows.length);
-    const rowMm = +(Math.min(12, 200 / n) * scale).toFixed(2);
-    const fs = +((rowMm >= 10 ? 10 : rowMm >= 8.5 ? 9.5 : rowMm >= 7.5 ? 8.5 : 8) * Math.min(1, scale + 0.08)).toFixed(2);
-    while (rows.length < n) rows.push(COLS.map(() => '&nbsp;'));
-    const total = ds.reduce((a, d) => a + d.total, 0);
-    const sign = '<table class="sign"><tr><th rowspan="2" class="sign-side">결<br>재</th><th>담 당</th><th>팀 장</th></tr><tr><td></td><td></td></tr></table>';
-    return `<article class="doc order-doc" style="font-size:${fs}pt">
-      <div class="order-head">${sign}</div>
-      <h1>출장 여비 지급 명세</h1>
-      <p class="order-sub">${V.monthLabel(month)} · 화성시아르딤복지관 직업지원팀 · <b>출장자: ${e(staff)}</b></p>
-      <table class="doc-tbl order-tbl" style="font-size:${fs}pt"><colgroup>${COLS.map(([, w]) => `<col style="width:${w}%">`).join('')}</colgroup>
-        <thead><tr>${COLS.map(([h]) => `<th>${h}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(r => `<tr style="height:${rowMm}mm">${r.map((v, i) => `<td${i === 1 ? ' class="l"' : i >= 4 ? ' class="r"' : ''}>${v}</td>`).join('')}</tr>`).join('')}
-          <tr class="tv-doc-total"><th colspan="9">합 계 (${ds.length}일)</th><th class="r">${won(total)}</th></tr></tbody></table>
-      <p class="order-sub tv-doc-note">근무지 내 일비: 4시간 이상 차량배치 유 1만원·무 2만원 / 4시간 미만 유 5천원·무 1만원. 유류비 = 출장거리 × 유가 ÷ 연비. 통행료·주차료·운임·숙박비는 영수증 첨부.</p>
-    </article>`;
-  }
-  const staffOf = month => [...new Set(days(monthTrips(month)).map(d => d.staff))];
-
-  return { RULE, otRate, settle, settleDoc, settleSumDoc, PART, otDays, minutesOf, zoneOf, regionOf, rowCost, days, page, tsv, doc, staffOf, monthTrips, placeOf, homeOf, ownCar };
+  return { ARCHIVE_SECTIONS, archiveFiles, archiveMonths, monthData, monthBook, ui, jobLink, siteName, contactsPage, contactsResults, contactRows, secStaffBar, contactTsv, reportTsv, addContact, registerBiz, parsePaste, parseCells, parseSheets, readFileSheets, pasteDialog, commitPaste, eventsFromWorkbook, eventsFromHwp, ledgerTsv, progressOf };
 })();
 
 </script>
@@ -9872,613 +8912,6 @@ window.AT = (() => {
 
 </script>
 <script>
-/* 직업훈련 반별 월간 일정표 (JOB이음터 · 일과놀이반): 월~금 × 오전·오후 칸에 훈련 구분과 내용을 적는다
-   - 칸 하나 = 기록 한 줄 { date, slot: 오전|오후|종일, cat: 훈련 구분, content: 내용, color }
-   - 날짜 옆 표시(예: 7 (건강관리))는 slot '라벨', 아래 안내 문구는 그 달 1일의 slot '안내'
-   - 엑셀(지금 쓰는 일정표 양식)·한글 파일을 여러 개 불러와 한 달에 합칠 수 있다 */
-window.TR = (() => {
-  const e = U.esc;
-  const CLASSES = ['JOB이음터', '일과놀이반'];
-  const ui = { month: U.today().slice(0, 7), cls: CLASSES[0], edit: null, imp: null };
-  const SLOTS = ['오전', '오후'];
-  const TIMES = { 오전: '10:00~12:00', 오후: '13:30~16:00' };
-  // 칸 색: 엑셀에서 쓰던 색 그대로
-  const COLORS = [['', '없음'], ['F2DCDB', '분홍 (외부 활동)'], ['D7E4BD', '연두 (견학·탐색)'], ['DBEEF4', '하늘 (대회·행사)'], ['E6E0EC', '보라 (특별 교육)'], ['FDEADA', '살구'], ['FFFF00', '노랑 (강조)'], ['EEECE1', '회색 (휴관·미운영)']];
-  // 반 칸이 비어 있는 예전 기록은 JOB이음터로 본다
-  const clsOf = x => x.cls || CLASSES[0];
-  const plans = (m, cls = ui.cls) => S.get().trainPlans.filter(x => (x.date || '').startsWith(m) && clsOf(x) === cls);
-  const at = (m, d, slot, cls = ui.cls) => plans(m, cls).find(x => x.date === `${m}-${U.pad(d)}` && x.slot === slot);
-  const dim = m => new Date(+m.slice(0, 4), +m.slice(5, 7), 0).getDate();
-  const wd = (m, d) => new Date(+m.slice(0, 4), +m.slice(5, 7) - 1, d).getDay();
-  const staffNames = () => S.staff().filter(s => s.program === '직업훈련').map(s => s.name);
-
-  /** 월~금 주 단위로 날짜 묶기 */
-  function weeks(m) {
-    const out = []; let cur = null;
-    for (let d = 1; d <= dim(m); d++) {
-      const w = wd(m, d); if (w === 0 || w === 6) continue;
-      if (!cur || w === 1) { cur = [null, null, null, null, null]; out.push(cur); }
-      cur[w - 1] = d;
-    }
-    return out;
-  }
-  const FONTS = [['', '기본 글씨체'], ['Malgun Gothic, 맑은 고딕', '맑은 고딕'], ['NanumGothic, 나눔고딕', '나눔고딕'], ['Gulim, 굴림', '굴림'], ['Dotum, 돋움', '돋움'], ['Batang, 바탕, serif', '바탕'], ['Gungsuh, 궁서, serif', '궁서']];
-  const SIZES = [9, 10, 11, 12, 13, 14, 16, 18, 20, 24, 28];
-  const TEXT_COLORS = ['111111', 'DC2626', 'C2410C', 'B08800', '15803D', '1D4ED8', '7C3AED', '6B7280'];
-  const CAT_LIST = ['직업탐색훈련', '직업준비훈련', '작업훈련', '권익옹호훈련', '사회적응훈련', '직업탐색훈련 / 작업훈련', '직업탐색훈련 / 직업준비훈련', '직업준비훈련 / 작업훈련', '직업준비훈련 / 권익옹호훈련', '권익옹호훈련 / 작업훈련', '사회적응훈련 / 직업탐색훈련', '사회적응훈련 / 직업준비훈련'];
-  const catList = () => [...new Set([...CAT_LIST, ...S.get().trainPlans.map(p => p.cat).filter(Boolean)])];
-  const fmtOf = x => (x && x.fmt && typeof x.fmt === 'object' ? x.fmt : {});
-  /** 칸 서식 → style (배경·글자색·크기·글씨체·굵게·기울임·밑줄·정렬) */
-  function styleOf(x, print) {
-    if (!x) return '';
-    const f = fmtOf(x), st = [];
-    if (x.color) st.push(`background:#${x.color}`);
-    if (f.fc) st.push(`color:#${f.fc}`);
-    if (f.size) st.push(print ? `font-size:calc(${f.size * 0.62}pt * var(--tps, 1))` : `font-size:${f.size}px`);
-    if (f.font) st.push(`font-family:${f.font}, sans-serif`);
-    if (f.b) st.push('font-weight:800');
-    if (f.i) st.push('font-style:italic');
-    if (f.u) st.push('text-decoration:underline');
-    if (f.al) st.push(`text-align:${f.al}`);
-    return st.length ? `style="${st.join(';')}"` : '';
-  }
-  function cellHtml(m, d, slot, rowspan, R, c, print) {
-    const x = at(m, d, slot);
-    const bg = styleOf(x, print);
-    const f = fmtOf(x);
-    const lines = x ? String(x.content || '').split('\n').filter(Boolean) : [];
-    const big = x && !x.cat && lines.length <= 2 && /휴관|미운영|휴가|연휴|추석|공휴일/.test(x.content || '');
-    return `<td class="tp-cell ${x ? '' : 'empty'} ${big ? 'big' : ''}" ${rowspan ? `rowspan="${rowspan}"` : ''} ${bg} data-r="${R}" data-c="${c}" ${rowspan ? `data-r2="${R + 1}"` : ''}>
-      ${f.chk ? `<span class="tp-chk ${f.on ? 'on' : ''}" data-act="tp-check" data-r="${R}" data-c="${c}" role="checkbox" aria-checked="${!!f.on}" title="눌러서 체크">${f.on ? '☑' : '☐'}</span>` : ''}${x && (x.cat || x.content) ? `${x.cat ? `<div class="tp-cat">${e(x.cat)}</div>` : ''}<div class="tp-txt">${lines.map(l => e(l)).join('<br>')}</div>` : ''}<button type="button" class="tp-dd" data-act="tp-dd" data-r="${R}" data-c="${c}" tabindex="-1" aria-label="훈련 구분 고르기" title="훈련 구분 고르기">▾</button></td>`;
-  }
-  function grid(m, forPrint) {
-    const ws = weeks(m);
-    const label = d => { const x = at(m, d, '라벨'); return x && x.content ? x.content : ''; };
-    return `<table class="tp-tbl ${forPrint ? 'print' : ''}"><colgroup><col style="width:9%">${'<col style="width:18.2%">'.repeat(5)}</colgroup>
-      <thead><tr><th></th>${['월', '화', '수', '목', '금'].map(w => `<th>${w}</th>`).join('')}</tr></thead>
-      <tbody>${ws.map((wk, wi) => `
-        <tr class="tp-date"><td></td>${wk.map((d, c) => d ? `<td class="tp-dcell ${label(d) ? 'lab' : ''}" data-r="${wi * 3}" data-c="${c}" title="글자를 치면 날짜 옆 표시 (예: 건강관리)">${d}${label(d) ? ` <b>(${e(label(d))})</b>` : ''}</td>` : '<td class="none"></td>').join('')}</tr>
-        ${SLOTS.map((slot, si) => `<tr class="tp-slot"><th>${slot}<small>(${TIMES[slot]})</small></th>${wk.map((d, c) => {
-          if (!d) return si === 0 ? '<td class="none" rowspan="2"></td>' : '';
-          const full = at(m, d, '종일');
-          if (full) return si === 0 ? cellHtml(m, d, '종일', 2, wi * 3 + 1, c, forPrint) : '';
-          return cellHtml(m, d, slot, 0, wi * 3 + 1 + si, c, forPrint);
-        }).join('')}</tr>`).join('')}`).join('')}
-      </tbody></table>`;
-  }
-  // 출석부와 같은 공휴일 목록을 쓴다 (없으면 빈 목록)
-  const AT_HOL = m => { try { return (window.AT && AT.meta(m).holidays || []).map(Number); } catch { return []; } };
-  const notesOf = m => { const x = at(m, 1, '안내'); return x ? x.content || '' : ''; };
-
-  function view() {
-    const m = ui.month, names = staffNames();
-    const n = plans(m).filter(x => SLOTS.includes(x.slot) || x.slot === '종일').length;
-    return `<section class="panel tp">
-      <div class="chips tp-classes" role="tablist" aria-label="반 고르기">${CLASSES.map(c => `<button type="button" role="tab" class="chip ${ui.cls === c ? 'on' : ''}" data-act="tp-cls" data-cls="${e(c)}">${e(c)} <span class="n">${plans(m, c).filter(x => SLOTS.includes(x.slot) || x.slot === '종일').length}</span></button>`).join('')}</div>
-      <div class="tp-head">
-        <div class="month-nav"><button class="icon-btn" type="button" data-act="tp-month" data-d="-1" aria-label="이전 달">${V.I.back}</button><b class="num">${V.monthLabel(m)}</b><button class="icon-btn" type="button" data-act="tp-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${V.I.back}</button></div>
-        <h2 class="tp-title">${e(ui.cls)} ${+m.slice(5)}월 일정표</h2>
-        <div class="inline">
-          <button class="btn" type="button" data-act="tp-import">📂 엑셀·한글 불러오기</button>
-          <button class="btn" type="button" data-act="tp-copy-prev" title="지난달 같은 요일 프로그램으로 빈 칸 채우기">지난달 요일별로 채우기</button>
-          <button class="btn btn-primary" type="button" data-act="tp-print" ${n ? '' : 'disabled'}>🖨 인쇄</button>
-        </div>
-      </div>
-      <p class="sub tp-staff">직업훈련 담당: ${names.length ? names.map(x => `<b>${e(x)}</b>`).join(', ') : '<span class="tv-over">데이터 관리에서 직원 소속을 "직업훈련"으로 정해 주세요</span>'}</p>
-      ${ui.imp ? importPanel() : ''}
-      <div class="tp-tools tp-ribbon">
-        <select class="select sm" id="tpFont" data-tpfmt="font" title="글씨체" tabindex="-1">${FONTS.map(([v, l]) => `<option value="${e(v)}">${l}</option>`).join('')}</select>
-        <select class="select sm" id="tpSize" data-tpfmt="size" title="글씨 크기" tabindex="-1"><option value="">크기</option>${SIZES.map(z => `<option value="${z}">${z}</option>`).join('')}</select>
-        <button type="button" class="tp-tb" data-act="tp-fmt" data-k="b" title="굵게 (Ctrl+B)" tabindex="-1"><b>가</b></button>
-        <button type="button" class="tp-tb" data-act="tp-fmt" data-k="i" title="기울임 (Ctrl+I)" tabindex="-1"><i>가</i></button>
-        <button type="button" class="tp-tb" data-act="tp-fmt" data-k="u" title="밑줄 (Ctrl+U)" tabindex="-1"><u>가</u></button>
-        <span class="tp-sep"></span>
-        <span class="tp-grp" title="글자색"><span class="tp-lbl">글자</span>${TEXT_COLORS.map(c => `<button type="button" class="tp-sw sm" style="background:#${c}" data-act="tp-fc" data-color="${c}" title="글자색" tabindex="-1"></button>`).join('')}<input type="color" class="tp-pick" data-tpfmt="fc" title="글자색 직접 고르기" tabindex="-1"></span>
-        <span class="tp-sep"></span>
-        <button type="button" class="tp-tb" data-act="tp-align" data-al="left" title="왼쪽 정렬" tabindex="-1">⬅</button>
-        <button type="button" class="tp-tb" data-act="tp-align" data-al="center" title="가운데 정렬" tabindex="-1">↔</button>
-        <button type="button" class="tp-tb" data-act="tp-align" data-al="right" title="오른쪽 정렬" tabindex="-1">➡</button>
-        <span class="tp-sep"></span>
-        <button type="button" class="tp-tb wide" data-act="tp-chkbox" title="고른 칸에 체크박스 넣기/빼기" tabindex="-1">☑ 체크박스</button>
-        <select class="select sm" id="tpCatSel" data-tpfmt="cat" title="고른 칸의 훈련 구분 (드롭다운)" tabindex="-1"><option value="">▾ 훈련 구분 고르기</option>${catList().map(c => `<option>${e(c)}</option>`).join('')}<option value="-">(훈련 구분 지우기)</option></select>
-        <button type="button" class="tp-tb wide" data-act="tp-fmt-clear" title="고른 칸의 글씨 서식 지우기" tabindex="-1">서식 지우기</button>
-      </div>
-      <div class="tp-tools">
-        <span class="sub">칸 색</span>
-        ${COLORS.map(([c, l]) => `<button type="button" class="tp-sw ${c ? '' : 'none'}" style="${c ? `background:#${c}` : ''}" data-act="tp-color" data-color="${c}" title="칸 색: ${l}" tabindex="-1">${c ? '' : '색 없음'}</button>`).join('')}<input type="color" class="tp-pick" data-tpfmt="bg" title="칸 색 직접 고르기" tabindex="-1">
-        <button type="button" class="btn btn-sm" data-act="tp-merge" tabindex="-1" title="오전·오후를 한 칸으로 합치거나 나눠요">⇕ 오전·오후 합치기/나누기</button>
-        <button type="button" class="btn btn-sm" data-act="tp-undo" tabindex="-1">↶ 되돌리기</button>
-        <details class="at-keys tp-keys"><summary>⌨️ 엑셀처럼 쓰기</summary><div class="sub">칸을 누르고 바로 글자를 치면 새로 써져요. <kbd>Enter</kbd> 저장 후 아래로, <kbd>Alt</kbd>+<kbd>Enter</kbd> 칸 안에서 줄 바꿈, <kbd>Tab</kbd> 오른쪽으로, <kbd>←↑→↓</kbd> 이동, <kbd>F2</kbd>·두 번 누르기 = 있던 글 고치기, <kbd>Delete</kbd> 지우기, <kbd>Shift</kbd>+방향키·끌기 = 여러 칸, <kbd>Ctrl</kbd>+<kbd>C</kbd>/<kbd>V</kbd> 복사·붙여넣기(엑셀에서 복사한 칸도 됨), <kbd>Ctrl</kbd>+<kbd>Z</kbd> 되돌리기.
-          칸의 첫 줄이 "직업탐색훈련 / 작업훈련"처럼 훈련 이름이면 훈련 구분(밑줄)으로 들어가요. 날짜 칸에 글자를 치면 "(건강관리)" 같은 표시가 붙어요.</div></details>
-      </div>
-      <div class="tp-wrap" id="tpWrap"><textarea class="tp-ed" id="tpEd" spellcheck="false" aria-label="일정표 칸 입력"></textarea>${grid(m)}<div class="tp-ddlist" id="tpDD" hidden></div></div>
-      <div class="tp-notes"><label>아래 안내 문구 <span class="sub">(한 줄에 하나, 인쇄할 때 표 아래에 나와요)</span><textarea class="textarea" id="tpNotes" rows="3" placeholder="※복지관 상황에 따라 일정이 변동될 수 있습니다.">${e(notesOf(m))}</textarea></label>
-        <div class="inline"><button class="btn btn-sm" type="button" data-act="tp-notes-save">안내 저장</button>${n ? `<button class="btn btn-sm btn-danger-ghost" type="button" data-act="tp-clear">${+m.slice(5)}월 일정표 비우기 (${n}칸)</button>` : ''}</div></div>
-    </section>`;
-  }
-  function editDialog() {
-    const { date, slot } = ui.edit;
-    const m = date.slice(0, 7), d = +date.slice(8);
-    const x = at(m, d, slot) || at(m, d, '종일') || {};
-    const full = slot === '종일' || !!at(m, d, '종일');
-    return `<div class="modal-layer tp-modal" id="tpModal"><div class="modal" role="dialog" aria-label="일정표 칸 고치기">
-      <h2>${+date.slice(5, 7)}월 ${d}일 (${['일', '월', '화', '수', '목', '금', '토'][wd(m, d)]}) ${full ? '하루 종일' : slot}</h2>
-      <label>훈련 구분 <input class="input" id="tpCat" value="${e(x.cat || '')}" list="tpCats" placeholder="예: 직업탐색훈련 / 작업훈련"></label>
-      <datalist id="tpCats">${[...new Set(S.get().trainPlans.map(p => p.cat).filter(Boolean))].slice(0, 40).map(c => `<option value="${e(c)}">`).join('')}</datalist>
-      <label>내용 <textarea class="textarea" id="tpContent" rows="4" placeholder="- 바리스타&#10;- 댄스 유산소">${e(x.content || '')}</textarea></label>
-      <label>칸 색 <select class="select" id="tpColor">${COLORS.map(([c, l]) => `<option value="${c}" ${(x.color || '') === c ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
-      <label class="check"><input type="checkbox" id="tpFull" ${full ? 'checked' : ''}> 오전·오후 합쳐서 하루 종일 (휴관·외부 일정 등)</label>
-      <div class="inline tp-modal-acts"><button class="btn btn-primary" type="button" data-act="tp-save">저장</button>${x.id ? '<button class="btn btn-danger-ghost" type="button" data-act="tp-del">칸 비우기</button>' : ''}<button class="btn" type="button" data-act="tp-cancel">닫기</button></div>
-    </div></div>`;
-  }
-  function save() {
-    const { date, slot } = ui.edit;
-    const m = date.slice(0, 7), d = +date.slice(8);
-    const full = document.getElementById('tpFull').checked;
-    const rec = { date, cat: document.getElementById('tpCat').value.trim(), content: document.getElementById('tpContent').value.replace(/\r/g, '').trim(), color: document.getElementById('tpColor').value };
-    const old = full ? [at(m, d, '오전'), at(m, d, '오후'), at(m, d, '종일')] : [at(m, d, '종일')];
-    const keep = full ? at(m, d, '종일') : at(m, d, slot);
-    const drop = old.filter(o => o && (!keep || o.id !== keep.id)).map(o => o.id);
-    if (drop.length) S.removeMany('tp', drop);
-    if (rec.cat || rec.content) S.putMany('tp', [{ ...(keep ? { id: keep.id } : {}), ...rec, cls: ui.cls, slot: full ? '종일' : (slot === '종일' ? '오전' : slot) }]);
-    else if (keep) S.removeMany('tp', [keep.id]);
-    ui.edit = null;
-  }
-  function remove() {
-    const { date, slot } = ui.edit; const m = date.slice(0, 7), d = +date.slice(8);
-    const ids = [at(m, d, slot), at(m, d, '종일')].filter(Boolean).map(x => x.id);
-    ui.edit = null;
-    return ids.length ? S.removeMany('tp', ids) : null;
-  }
-  function setLabel(date, text) {
-    const m = date.slice(0, 7), d = +date.slice(8);
-    const x = at(m, d, '라벨');
-    if (!text) { if (x) S.removeMany('tp', [x.id]); return; }
-    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date, slot: '라벨', cat: '', content: text, color: '', cls: ui.cls }]);
-  }
-  function saveNotes(text) {
-    const m = ui.month, x = at(m, 1, '안내');
-    if (!text.trim()) { if (x) S.removeMany('tp', [x.id]); return; }
-    S.putMany('tp', [{ ...(x ? { id: x.id } : {}), date: `${m}-01`, slot: '안내', cat: '', content: text.trim(), color: '', cls: ui.cls }]);
-  }
-  function clearMonth() {
-    const ids = plans(ui.month).map(x => x.id);
-    return ids.length ? S.removeMany('tp', ids) : null;
-  }
-  /** 지난달 같은 요일(마지막 주 기준이 아니라 가장 흔한 내용)로 이번 달 빈 칸 채우기. 휴관·특별 일정은 빼고 */
-  function copyPrev() {
-    const m = ui.month, [y, mo] = m.split('-').map(Number), pd = new Date(y, mo - 2, 1);
-    const pm = `${pd.getFullYear()}-${U.pad(pd.getMonth() + 1)}`;
-    const src = plans(pm).filter(x => SLOTS.includes(x.slot) && !x.color && x.cat);
-    const best = {};
-    src.forEach(x => { const k = `${wd(pm, +x.date.slice(8))}|${x.slot}`; const v = `${x.cat}\u0000${x.content}`; (best[k] ||= {})[v] = ((best[k] || {})[v] || 0) + 1; });
-    const hol = AT_HOL(m);
-    const recs = [];
-    for (let d = 1; d <= dim(m); d++) {
-      const w = wd(m, d); if (w === 0 || w === 6 || hol.includes(d) || at(m, d, '종일')) continue;
-      SLOTS.forEach(slot => {
-        if (at(m, d, slot)) return;
-        const c = best[`${w}|${slot}`]; if (!c) return;
-        const [v] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
-        const [cat, content] = v.split('\u0000');
-        recs.push({ date: `${m}-${U.pad(d)}`, slot, cat, content, color: '', cls: ui.cls });
-      });
-    }
-    if (recs.length) S.putMany('tp', recs);
-    return { n: recs.length, from: pm };
-  }
-
-  /* ---------- 엑셀처럼 표에서 바로 입력 ---------- */
-  // 행 번호 R: 주마다 3줄 (날짜 · 오전 · 오후), 열 c: 0~4 (월~금)
-  const G = { sel: null, anc: null, editing: false, down: false, active: false, undo: [] };
-  const CAT_RE = /^\s*[가-힣+·]+(훈련|교육)(\s*\/\s*[가-힣+·]+(훈련|교육))*\s*$/;
-  function cellInfo(R, c, m = ui.month) {
-    const wk = weeks(m)[Math.floor(R / 3)]; if (!wk) return null;
-    const d = wk[c]; if (!d) return null;
-    const row = R % 3;
-    if (row === 0) return { d, slot: '라벨', date: `${m}-${U.pad(d)}` };
-    const full = at(m, d, '종일');
-    return { d, slot: full ? '종일' : SLOTS[row - 1], date: `${m}-${U.pad(d)}`, full: !!full };
-  }
-  const textOf = x => (x ? [x.cat, x.content].filter(Boolean).join('\n') : '');
-  const tdAt = (R, c) => document.querySelector(`#tpWrap [data-r="${R}"][data-c="${c}"]`) || document.querySelector(`#tpWrap [data-r2="${R}"][data-c="${c}"]`);
-  function rangeCells() {
-    if (!G.sel) return [];
-    const a = G.anc || G.sel, b = G.sel, out = [];
-    for (let R = Math.min(a.R, b.R); R <= Math.max(a.R, b.R); R++) for (let c = Math.min(a.c, b.c); c <= Math.max(a.c, b.c); c++) if (cellInfo(R, c)) out.push({ R, c });
-    return out;
-  }
-  function paint() {
-    document.querySelectorAll('#tpWrap .sel, #tpWrap .cur').forEach(x => x.classList.remove('sel', 'cur'));
-    if (!G.sel) return;
-    rangeCells().forEach(({ R, c }) => tdAt(R, c)?.classList.add('sel'));
-    tdAt(G.sel.R, G.sel.c)?.classList.add('cur');
-    place(); syncRibbon(); closeDD();
-  }
-  function place() {
-    const ed = document.getElementById('tpEd'), wrap = document.getElementById('tpWrap'), td = G.sel && tdAt(G.sel.R, G.sel.c);
-    if (!ed || !wrap || !td) { if (ed) ed.style.display = 'none'; return; }
-    const tr = td.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
-    Object.assign(ed.style, { display: 'block', left: `${tr.left - wr.left + wrap.scrollLeft}px`, top: `${tr.top - wr.top + wrap.scrollTop}px`, width: `${tr.width}px`, height: `${G.editing ? Math.max(tr.height, 90) : tr.height}px` });
-    ed.classList.toggle('editing', G.editing);
-  }
-  const focusEd = () => { const ed = document.getElementById('tpEd'); if (ed && document.activeElement !== ed) ed.focus({ preventScroll: true }); };
-  function select(R, c, extend) {
-    const maxR = weeks(ui.month).length * 3 - 1;
-    R = Math.max(0, Math.min(maxR, R)); c = Math.max(0, Math.min(4, c));
-    if (!extend) G.anc = null; else if (!G.anc) G.anc = G.sel;
-    G.sel = { R, c }; G.active = true;
-    paint(); tdAt(R, c)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); focusEd();
-  }
-  /** 다음 칸으로 (날짜 없는 칸·합쳐진 칸은 건너뜀) */
-  function move(dR, dc, extend) {
-    if (!G.sel) return select(1, 0);
-    let { R, c } = G.sel;
-    const info = cellInfo(R, c);
-    if (dR > 0 && info && info.full && R % 3 === 1) R++; // 합쳐진 칸 아래로
-    if (dR < 0 && info && info.full && R % 3 === 2) R--;
-    const maxR = weeks(ui.month).length * 3 - 1;
-    for (let i = 0; i < 40; i++) { R += dR; c += dc; if (R < 0 || R > maxR || c < 0 || c > 4) return; if (cellInfo(R, c)) break; }
-    const ni = cellInfo(R, c);
-    if (ni && ni.full && R % 3 === 2) R--; // 합쳐진 칸은 위쪽 칸으로
-    select(R, c, extend);
-  }
-  /** 한 칸에 글 넣기: 날짜 칸은 표시, 나머지는 훈련 구분 + 내용 */
-  function recFor(R, c, text) {
-    const info = cellInfo(R, c); if (!info) return null;
-    const m = ui.month;
-    const old = at(m, info.d, info.slot);
-    const t = String(text ?? '').replace(/\r/g, '').replace(/\s+$/, '');
-    if (info.slot === '라벨') return { old, rec: t ? { date: info.date, slot: '라벨', cat: '', content: t.replace(/^\(|\)$/g, ''), color: '', cls: ui.cls } : null };
-    if (!t.trim()) return { old, rec: old && fmtOf(old).chk ? { ...old, cat: '', content: '' } : null };
-    const lines = t.split('\n');
-    const isCat = lines.length > 1 && CAT_RE.test(lines[0]);
-    return { old, rec: { date: info.date, slot: info.slot, cat: isCat ? lines[0].trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: old ? old.color || '' : '', fmt: old ? old.fmt || null : null, cls: ui.cls } };
-  }
-  /** 여러 칸 저장 + 되돌리기 기록 */
-  function apply(list) {
-    const put = [], drop = [], before = [];
-    list.forEach(({ old, rec }) => {
-      if (old) before.push({ ...old });
-      if (rec) put.push({ ...(old ? { id: old.id } : {}), ...rec });
-      else if (old) drop.push(old.id);
-    });
-    if (!put.length && !drop.length) return;
-    const created = put.filter(p => !p.id).map(p => (p.id = U.uid('R'), p.id));
-    G.undo.push({ before, created });
-    if (G.undo.length > 50) G.undo.shift();
-    if (drop.length) S.removeMany('tp', drop);
-    if (put.length) S.putMany('tp', put);
-  }
-  function undo(toast) {
-    const u = G.undo.pop(); if (!u) return toast && toast('되돌릴 것이 없어요.');
-    if (u.created.length) S.removeMany('tp', u.created);
-    if (u.before.length) S.putMany('tp', u.before);
-  }
-  function commitEdit(dR, dc) {
-    const ed = document.getElementById('tpEd'); if (!ed || !G.sel) return;
-    if (G.editing) {
-      const txt = ed.value; G.editing = false; ed.value = '';
-      const cells = rangeCells().length > 1 ? rangeCells() : [G.sel];
-      apply(cells.map(({ R, c }) => recFor(R, c, txt)).filter(Boolean));
-    }
-    if (dR || dc) move(dR, dc); else place();
-  }
-  function startEdit(withValue) {
-    const ed = document.getElementById('tpEd'); if (!ed || !G.sel) return;
-    const info = cellInfo(G.sel.R, G.sel.c); if (!info) return;
-    G.editing = true;
-    if (withValue) { const x = at(ui.month, info.d, info.slot); ed.value = info.slot === '라벨' ? (x ? x.content : '') : textOf(x); ed.setSelectionRange(ed.value.length, ed.value.length); }
-    place();
-  }
-  /** 엑셀 복사 형식(TSV, 줄 바꿈 있는 칸은 "따옴표") 읽기·쓰기 */
-  function parseTsv(t) {
-    const rows = [[]]; let cur = '', q = false;
-    t = String(t).replace(/\r\n?/g, '\n');
-    for (let i = 0; i < t.length; i++) {
-      const ch = t[i];
-      if (q) { if (ch === '"' && t[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; continue; }
-      if (ch === '"' && cur === '') q = true;
-      else if (ch === '\t') { rows[rows.length - 1].push(cur); cur = ''; }
-      else if (ch === '\n') { rows[rows.length - 1].push(cur); cur = ''; rows.push([]); }
-      else cur += ch;
-    }
-    rows[rows.length - 1].push(cur);
-    if (rows.length > 1 && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === '') rows.pop();
-    return rows;
-  }
-  const tsvCell = v => (/[\t\n"]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  function copySel() {
-    const cells = rangeCells(); if (!cells.length) return '';
-    const Rs = [...new Set(cells.map(x => x.R))].sort((a, b) => a - b), cs = [...new Set(cells.map(x => x.c))].sort((a, b) => a - b);
-    return Rs.map(R => cs.map(c => { const i = cellInfo(R, c); if (!i) return ''; const x = at(ui.month, i.d, i.slot); return tsvCell(i.slot === '라벨' ? (x ? x.content : '') : textOf(x)); }).join('\t')).join('\n');
-  }
-  function paste(text) {
-    if (!G.sel) return;
-    const rows = parseTsv(text);
-    const list = [];
-    let R = G.sel.R;
-    rows.forEach(cols => {
-      cols.forEach((v, j) => { const r = recFor(R, G.sel.c + j, v); if (r) list.push(r); });
-      // 다음 줄: 합쳐진 칸은 한 줄로 친다
-      const i = cellInfo(R, G.sel.c); R += i && i.full && R % 3 === 1 ? 2 : 1;
-    });
-    apply(list);
-  }
-  function setColor(color) {
-    const list = rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); if (!i || i.slot === '라벨') return null; const old = at(ui.month, i.d, i.slot); return old ? { old, rec: { ...old, color } } : null; }).filter(Boolean);
-    apply(list);
-  }
-  /** 고른 칸 서식 바꾸기. 빈 칸에도 서식을 걸 수 있다 (나중에 글을 치면 그 서식으로) */
-  function setFmt(patch, toggleKey) {
-    const cells = rangeCells().map(({ R, c }) => ({ R, c, i: cellInfo(R, c) })).filter(x => x.i && x.i.slot !== '라벨');
-    if (!cells.length) return;
-    const all = toggleKey ? cells.every(x => fmtOf(at(ui.month, x.i.d, x.i.slot))[toggleKey]) : false;
-    apply(cells.map(({ i }) => {
-      const old = at(ui.month, i.d, i.slot);
-      const f = { ...fmtOf(old), ...(toggleKey ? { [toggleKey]: !all } : patch) };
-      Object.keys(f).forEach(k => { if (f[k] === '' || f[k] == null || f[k] === false) delete f[k]; });
-      const base = old ? { ...old } : { date: i.date, slot: i.slot, cat: '', content: '', color: '', cls: ui.cls };
-      return { old, rec: { ...base, fmt: Object.keys(f).length ? f : null } };
-    }));
-  }
-  function clearFmt() { setFmt({ font: '', size: '', b: false, i: false, u: false, fc: '', al: '' }); }
-  function toggleCheck(R, c) {
-    const i = cellInfo(R, c); if (!i) return;
-    const old = at(ui.month, i.d, i.slot); if (!old) return;
-    const f = { ...fmtOf(old), on: !fmtOf(old).on };
-    apply([{ old, rec: { ...old, fmt: f } }]);
-  }
-  function setCat(cat) {
-    const list = rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); if (!i || i.slot === '라벨') return null; const old = at(ui.month, i.d, i.slot); const base = old ? { ...old } : { date: i.date, slot: i.slot, cat: '', content: '', color: '', cls: ui.cls }; return { old, rec: { ...base, cat: cat === '-' ? '' : cat } }; }).filter(Boolean);
-    apply(list);
-  }
-  /** 칸 오른쪽 아래 ▾ : 훈련 구분 목록 */
-  function openDD(R, c) {
-    const dd = document.getElementById('tpDD'), wrap = document.getElementById('tpWrap'), td = tdAt(R, c);
-    if (!dd || !td) return;
-    G.sel = { R, c }; G.anc = null; paint();
-    const tr = td.getBoundingClientRect(), wr = wrap.getBoundingClientRect();
-    dd.innerHTML = catList().map(v => `<button type="button" data-act="tp-dd-pick" data-v="${e(v)}">${e(v)}</button>`).join('') + '<button type="button" class="clr" data-act="tp-dd-pick" data-v="-">훈련 구분 지우기</button>';
-    Object.assign(dd.style, { left: `${tr.left - wr.left + wrap.scrollLeft}px`, top: `${tr.bottom - wr.top + wrap.scrollTop}px`, minWidth: `${tr.width}px` });
-    dd.hidden = false;
-  }
-  const closeDD = () => { const dd = document.getElementById('tpDD'); if (dd) dd.hidden = true; };
-  /** 지금 칸의 서식을 도구 막대에 보여 준다 */
-  function syncRibbon() {
-    const i = G.sel && cellInfo(G.sel.R, G.sel.c); const x = i && at(ui.month, i.d, i.slot); const f = fmtOf(x);
-    document.querySelectorAll('.tp-ribbon [data-act="tp-fmt"]').forEach(b => b.classList.toggle('on', !!f[b.dataset.k]));
-    document.querySelectorAll('.tp-ribbon [data-act="tp-align"]').forEach(b => b.classList.toggle('on', (f.al || '') === b.dataset.al));
-    document.querySelector('.tp-ribbon [data-act="tp-chkbox"]')?.classList.toggle('on', !!f.chk);
-    const fs = document.getElementById('tpFont'), sz = document.getElementById('tpSize'), cs = document.getElementById('tpCatSel');
-    if (fs) fs.value = f.font || ''; if (sz) sz.value = f.size || ''; if (cs) cs.value = '';
-  }
-  /** 오전·오후 합치기/나누기: 합치면 두 칸 글을 이어 붙이고, 나누면 오전 칸으로 옮긴다 */
-  function toggleMerge() {
-    const m = ui.month, list = [];
-    const days = [...new Set(rangeCells().map(({ R, c }) => { const i = cellInfo(R, c); return i && i.slot !== '라벨' ? i.d : null; }).filter(Boolean))];
-    days.forEach(d => {
-      const date = `${m}-${U.pad(d)}`;
-      const full = at(m, d, '종일'), am = at(m, d, '오전'), pm = at(m, d, '오후');
-      if (full) {
-        list.push({ old: full, rec: null });
-        list.push({ old: null, rec: { date, slot: '오전', cat: full.cat || '', content: full.content || '', color: full.color || '', cls: ui.cls } });
-      } else {
-        const lines = [textOf(am), textOf(pm)].filter(Boolean).join('\n').split('\n');
-        const isCat = lines.length > 1 && CAT_RE.test(lines[0]);
-        if (am) list.push({ old: am, rec: null });
-        if (pm) list.push({ old: pm, rec: null });
-        list.push({ old: null, rec: { date, slot: '종일', cat: isCat ? lines[0].trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: (am && am.color) || (pm && pm.color) || 'EEECE1', cls: ui.cls } });
-      }
-    });
-    apply(list);
-    if (G.sel && G.sel.R % 3 === 2) G.sel.R--;
-  }
-  function onKey(ev) {
-    const ed = ev.target, k = ev.key, ctrl = ev.ctrlKey || ev.metaKey;
-    if (ev.isComposing || ev.keyCode === 229) { if (k === 'Enter' && !ev.altKey) setTimeout(() => commitEdit(1, 0), 0); return; }
-    if (ctrl && (k === 'z' || k === 'Z')) { ev.preventDefault(); undo(toastFn); return; }
-    if (ctrl && !G.editing && ['b', 'i', 'u', 'B', 'I', 'U'].includes(k)) { ev.preventDefault(); setFmt(null, k.toLowerCase()); return; }
-    if (ev.altKey && k === 'ArrowDown' && !G.editing) { ev.preventDefault(); openDD(G.sel.R, G.sel.c); return; }
-    if (ctrl && (k === 'c' || k === 'C') && !G.editing) { ev.preventDefault(); const t = copySel(); navigator.clipboard?.writeText(t).catch(() => {}); ed.value = t; ed.select(); setTimeout(() => { ed.value = ''; }, 0); return; }
-    if (ctrl) return;
-    if (k === 'Enter' && ev.altKey) { ev.preventDefault(); if (!G.editing) startEdit(true); const p = ed.selectionStart; ed.value = ed.value.slice(0, p) + '\n' + ed.value.slice(ed.selectionEnd); ed.setSelectionRange(p + 1, p + 1); return; }
-    if (k === 'Enter') { ev.preventDefault(); if (G.editing) commitEdit(ev.shiftKey ? -1 : 1, 0); else move(ev.shiftKey ? -1 : 1, 0); return; }
-    if (k === 'Tab') { ev.preventDefault(); if (G.editing) commitEdit(0, ev.shiftKey ? -1 : 1); else move(0, ev.shiftKey ? -1 : 1); return; }
-    if (k === 'Escape') { ed.value = ''; G.editing = false; place(); return; }
-    if (k === 'F2') { ev.preventDefault(); startEdit(true); return; }
-    const arrows = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-    if (arrows[k] && !G.editing) { ev.preventDefault(); move(...arrows[k], ev.shiftKey); return; }
-    if ((k === 'Delete' || k === 'Backspace') && !G.editing) { ev.preventDefault(); apply(rangeCells().map(({ R, c }) => recFor(R, c, '')).filter(Boolean)); }
-  }
-  let toastFn = null;
-  function bindGrid(toast) {
-    toastFn = toast;
-    const wrap = document.getElementById('tpWrap'), ed = document.getElementById('tpEd');
-    if (!wrap || !ed) return;
-    wrap.addEventListener('pointerdown', ev => {
-      const td = ev.target.closest('[data-r][data-c]'); if (!td || ev.button !== 0 || ev.target === ed) return;
-      ev.preventDefault();
-      if (G.editing) commitEdit(0, 0);
-      G.down = true; select(+td.dataset.r, +td.dataset.c, ev.shiftKey);
-    });
-    wrap.addEventListener('pointerover', ev => { if (!G.down || !(ev.buttons & 1)) { G.down = false; return; } const td = ev.target.closest('[data-r][data-c]'); if (td && G.sel && (+td.dataset.r !== G.sel.R || +td.dataset.c !== G.sel.c)) { if (!G.anc) G.anc = G.sel; G.sel = { R: +td.dataset.r, c: +td.dataset.c }; paint(); } });
-    wrap.addEventListener('dblclick', ev => { if (ev.target.closest('[data-r][data-c]')) startEdit(true); });
-    ed.addEventListener('keydown', onKey);
-    ed.addEventListener('input', () => { if (!G.editing && ed.value) { G.editing = true; place(); } });
-    ed.addEventListener('paste', ev => { if (G.editing) return; ev.preventDefault(); paste(ev.clipboardData.getData('text/plain')); });
-    ed.addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== ed && G.editing) commitEdit(0, 0); }, 0));
-    wrap.addEventListener('scroll', place);
-    if (G.sel) { paint(); if (G.active) focusEd(); }
-  }
-  window.addEventListener('pointerdown', ev => { if (!ev.target.closest('#tpWrap, .tp-tools')) { G.active = false; closeDD(); } }, true);
-  window.addEventListener('pointerup', () => { if (G.down) { G.down = false; if (G.active) focusEd(); } });
-  const resetGrid = () => { G.sel = null; G.anc = null; G.editing = false; G.active = false; };
-
-  /* ---------- 엑셀·한글 불러오기 ---------- */
-  /** G = { r0, r1, c0, c1, txt(r,c), fill(r,c), merge(r,c) → {r0,r1,c0,c1}|null } */
-  function parseGrid(G, hint) {
-    const out = [];
-    // 요일 머리줄 찾기
-    let head = -1, cols = {};
-    for (let r = G.r0; r <= G.r1 && head < 0; r++) {
-      const found = {};
-      for (let c = G.c0; c <= G.c1; c++) { const t = G.txt(r, c).replace(/\s/g, ''); const i = ['월', '화', '수', '목', '금'].indexOf(t); if (i >= 0) found[i + 1] = c; }
-      if (Object.keys(found).length >= 4) { head = r; cols = found; }
-    }
-    if (head < 0) return null;
-    // 해·월: 시트 이름·제목·파일 이름에서
-    let year = 0, month = 0;
-    const scan = s => { const k = String(s || '').match(/(20\d{2})\s*년/); if (k && !year) year = +k[1]; const mm = String(s || '').match(/(\d{1,2})\s*월/); if (mm && !month) month = +mm[1]; };
-    scan(hint.sheet); for (let r = G.r0; r < head; r++) for (let c = G.c0; c <= G.c1; c++) scan(G.txt(r, c)); scan(hint.file);
-    if (!year) year = +ui.month.slice(0, 4);
-    if (!month) return null;
-    // 반: 제목(예: 일과놀이반 10월 일정표)·시트·파일 이름에서, 없으면 지금 보고 있는 반
-    let cls = '';
-    const findCls = t => { const n = String(t || '').replace(/\s/g, ''); const c = CLASSES.find(k => n.includes(k.replace(/\s/g, '')) || (k === 'JOB이음터' && /JOB|이음터/i.test(n))); if (c && !cls) cls = c; };
-    for (let r = G.r0; r < head; r++) for (let c = G.c0; c <= G.c1; c++) findCls(G.txt(r, c));
-    findCls(hint.sheet); findCls(hint.file);
-    if (!cls) cls = ui.cls;
-    const m = `${year}-${U.pad(month)}`;
-    const slotOf = r => { for (let c = G.c0; c < Math.min(...Object.values(cols)); c++) { const t = G.txt(r, c); if (/오전/.test(t)) return '오전'; if (/오후/.test(t)) return '오후'; } return ''; };
-    const dateRow = r => { const ds = {}; Object.entries(cols).forEach(([w, c]) => { const k = G.txt(r, c).match(/^\s*(\d{1,2})\s*(?:일)?\s*(?:\(?\s*([^)]*?)\s*\)?)?\s*$/); if (k && +k[1] >= 1 && +k[1] <= 31) ds[w] = { d: +k[1], label: (k[2] || '').replace(/^\(|\)$/g, '').trim() }; }); return Object.keys(ds).length ? ds : null; };
-    let cur = null, last = head;
-    const seen = new Set();
-    for (let r = head + 1; r <= G.r1; r++) {
-      const dr = dateRow(r);
-      if (dr) { cur = dr; Object.values(dr).forEach(x => { if (x.label) out.push({ date: `${m}-${U.pad(x.d)}`, slot: '라벨', cat: '', content: x.label, color: '' }); }); last = r; continue; }
-      const slot = slotOf(r);
-      if (!slot || !cur) continue;
-      last = r;
-      Object.entries(cols).forEach(([w, c]) => {
-        const info = cur[w]; if (!info) return;
-        const mg = G.merge(r, c);
-        const tr = mg ? mg.r0 : r, tc = mg ? mg.c0 : c;
-        const raw = G.txt(tr, tc); if (!raw) return;
-        const span2 = mg && mg.r1 > mg.r0 && slotOf(mg.r1) !== slotOf(mg.r0);
-        const sl = span2 ? '종일' : slot;
-        const key = `${info.d}|${sl}`; if (seen.has(key)) return; seen.add(key);
-        const lines = raw.replace(/\r/g, '').split('\n').map(x => x.replace(/\s+$/, ''));
-        while (lines.length && !lines[0].trim()) lines.shift();
-        const first = lines[0] || '';
-        // 첫 줄이 '직업탐색훈련 / 작업훈련'처럼 훈련 이름만으로 되어 있으면 훈련 구분
-        const isCat = lines.length > 1 && /^\s*[가-힣+·]+(훈련|교육)(\s*\/\s*[가-힣+·]+(훈련|교육))*\s*$/.test(first);
-        const color = (G.fill(tr, tc) || '').toUpperCase();
-        out.push({ date: `${m}-${U.pad(info.d)}`, slot: sl, cat: isCat ? first.trim() : '', content: (isCat ? lines.slice(1) : lines).join('\n').trim(), color: color === 'FFFFFF' ? '' : color });
-      });
-    }
-    // 표 아래 안내 문구
-    const notes = [];
-    for (let r = last + 1; r <= G.r1; r++) for (let c = G.c0; c <= G.c1; c++) { const t = G.txt(r, c); if (t && t.length > 3 && !notes.includes(t)) notes.push(t.replace(/\r/g, '')); }
-    if (notes.length) out.push({ date: `${m}-01`, slot: '안내', cat: '', content: notes.join('\n'), color: '' });
-    out.forEach(r => { r.cls = cls; });
-    return { month: m, cls, recs: out };
-  }
-  function fromWorkbook(wb, file) {
-    return wb.SheetNames.map(name => {
-      const ws = wb.Sheets[name]; if (!ws['!ref']) return null;
-      const rg = XLSX.utils.decode_range(ws['!ref']);
-      const cellAt = (r, c) => ws[XLSX.utils.encode_cell({ r, c })];
-      const merges = ws['!merges'] || [];
-      return parseGrid({ r0: rg.s.r, r1: rg.e.r, c0: rg.s.c, c1: rg.e.c,
-        txt: (r, c) => { const x = cellAt(r, c); return x && x.v != null ? String(x.v).trim() : ''; },
-        fill: (r, c) => { const x = cellAt(r, c); return x && x.s && x.s.fgColor && x.s.fgColor.rgb ? String(x.s.fgColor.rgb).slice(-6) : ''; },
-        merge: (r, c) => { const g = merges.find(g => r >= g.s.r && r <= g.e.r && c >= g.s.c && c <= g.e.c); return g ? { r0: g.s.r, r1: g.e.r, c0: g.s.c, c1: g.e.c } : null; } }, { sheet: name, file });
-    }).filter(Boolean);
-  }
-  /** 한글 표: 칸 합치기(가로·세로)를 펼쳐 엑셀과 같은 격자로 만든다 */
-  function fromHwpTables(tables, file) {
-    return tables.map(t => {
-      const grid = [], owner = [];
-      t.rows.forEach((row, r) => (row || []).forEach((v, c) => {
-        if (v == null) return;
-        const cs = (t.spans[r] || [])[c] || 1, rs = ((t.rspans || [])[r] || [])[c] || 1;
-        for (let i = 0; i < rs; i++) for (let j = 0; j < cs; j++) { (owner[r + i] ||= [])[c + j] = { r0: r, c0: c, r1: r + rs - 1, c1: c + cs - 1 }; }
-        (grid[r] ||= [])[c] = v;
-      }));
-      const rows = Math.max(grid.length, owner.length), cols = Math.max(0, ...owner.map(x => (x || []).length));
-      return parseGrid({ r0: 0, r1: rows - 1, c0: 0, c1: cols - 1, txt: (r, c) => String((grid[r] || [])[c] ?? '').trim(), fill: () => '', merge: (r, c) => { const o = (owner[r] || [])[c]; return o && (o.r1 > o.r0 || o.c1 > o.c0) ? o : null; } }, { sheet: '', file });
-    }).filter(Boolean);
-  }
-  function importPanel() {
-    const g = ui.imp;
-    return `<div class="at-imp tp-imp"><b>불러온 일정표</b> <span class="sub">${e(g.files.join(', '))}</span>
-      <div class="at-imp-list">${g.found.map((x, i) => { const have = plans(x.month, x.cls).filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; const cells = x.recs.filter(p => SLOTS.includes(p.slot) || p.slot === '종일').length; return `<label class="check"><input type="checkbox" data-act="tp-imp-toggle" data-i="${i}" ${x.on ? 'checked' : ''}><b>${e(x.cls)}</b> ${e(V.monthLabel(x.month))} · ${cells}칸${have ? ` <span class="sub">(지금 ${have}칸 있음)</span>` : ''}</label>`; }).join('')}</div>
-      <div class="inline" style="margin-top:6px"><label class="check"><input type="radio" name="tpMerge" value="over" ${g.mode === 'over' ? 'checked' : ''} data-act="tp-imp-mode">같은 칸은 새 파일로 바꾸기</label><label class="check"><input type="radio" name="tpMerge" value="keep" ${g.mode === 'keep' ? 'checked' : ''} data-act="tp-imp-mode">이미 적힌 칸은 그대로 두고 빈 칸만 채우기</label></div>
-      <div class="inline" style="margin-top:6px"><button class="btn btn-sm btn-primary" type="button" data-act="tp-imp-commit">합치기</button><button class="btn btn-sm" type="button" data-act="tp-imp-cancel">취소</button></div></div>`;
-  }
-  function commitImport() {
-    const g = ui.imp; let put = [], drop = [], skipped = 0;
-    const months = [];
-    g.found.filter(x => x.on).forEach(x => {
-      months.push(x.month);
-      x.recs.forEach(r => {
-        const m = r.date.slice(0, 7), d = +r.date.slice(8), c = r.cls;
-        const same = at(m, d, r.slot, c);
-        const clash = r.slot === '종일' ? [at(m, d, '오전', c), at(m, d, '오후', c)].filter(Boolean) : SLOTS.includes(r.slot) ? [at(m, d, '종일', c)].filter(Boolean) : [];
-        if (g.mode === 'keep' && (same || clash.length)) { skipped++; return; }
-        clash.forEach(c => drop.push(c.id));
-        put.push({ ...(same ? { id: same.id } : {}), ...r, src: g.files.join(', ') });
-      });
-    });
-    if (drop.length) S.removeMany('tp', drop);
-    if (put.length) S.putMany('tp', put);
-    if (months.length) ui.month = months.sort()[months.length - 1];
-    const lastCls = g.found.filter(x => x.on).map(x => x.cls).pop(); if (lastCls) ui.cls = lastCls;
-    ui.imp = null;
-    return { put: put.length, skipped, months };
-  }
-
-  /** 인쇄: A4 가로 한 장, 엑셀 양식과 같은 모양 */
-  function doc(m = ui.month, cls = ui.cls, scale = 1) {
-    const keep = ui.cls; ui.cls = cls;
-    try {
-    const notes = notesOf(m).split('\n').filter(Boolean);
-    const names = staffNames();
-    return `<article class="doc tp-doc" style="--tps:${scale}">
-      <h1>${e(cls)} ${+m.slice(5)}월 일정표</h1>
-      ${grid(m, true)}
-      <div class="tp-doc-notes">${notes.map(n => `<div>${e(n)}</div>`).join('')}${names.length && !notes.some(n => /담당/.test(n)) ? `<div class="r">담당: 직업지원팀 ${names.map(e).join(', ')}</div>` : ''}</div>
-    </article>`;
-    } finally { ui.cls = keep; }
-  }
-
-  /* ---------- 업무 일정 불러오기 (엑셀·한글 표: 날짜·시간·제목/내용·유형·담당·메모) ---------- */
-  const EV_HEAD = { date: /^(날짜|일자|일시|일정일|월일)$/, time: /^(시간|시각)$/, title: /^(제목|일정|내용|일정내용|업무|업무내용|행사명|프로그램)$/, type: /^(유형|구분|종류)$/, staff: /^(담당|담당자|담당직원|성명|직원)$/, memo: /^(메모|비고|장소)$/ };
-  function eventsFromRows(rows, year) {
-    const out = [];
-    for (let h = 0; h < Math.min(rows.length, 15); h++) {
-      const head = (rows[h] || []).map(c => String(c ?? '').replace(/\s/g, ''));
-      const col = {};
-      head.forEach((t, i) => Object.entries(EV_HEAD).forEach(([k, re]) => { if (col[k] == null && re.test(t)) col[k] = i; }));
-      if (col.date == null || col.title == null) continue;
-      for (let r = h + 1; r < rows.length; r++) {
-        const row = rows[r] || [];
-        const raw = row[col.date];
-        let date = '';
-        if (typeof raw === 'number' && raw > 30000) { const d = new Date(Math.round((raw - 25569) * 864e5)); const y = d.getUTCFullYear() < 2015 ? year : d.getUTCFullYear(); date = `${y}-${U.pad(d.getUTCMonth() + 1)}-${U.pad(d.getUTCDate())}`; }
-        else { const t = String(raw ?? ''); const k = t.match(/(20\d{2})[.\-/년\s]+(\d{1,2})[.\-/월\s]+(\d{1,2})/) || t.match(/^\s*(\d{1,2})[.\-/월\s]+(\d{1,2})/); if (k) date = k.length === 4 ? `${k[1]}-${U.pad(+k[2])}-${U.pad(+k[3])}` : `${year}-${U.pad(+k[1])}-${U.pad(+k[2])}`; }
-        const title = String(row[col.title] ?? '').replace(/\s+/g, ' ').trim();
-        if (!date || !title) continue;
-        const tm = String(row[col.time] ?? '').match(/(\d{1,2})[:시]?\s*(\d{2})?/);
-        const staff = String(row[col.staff] ?? '').trim();
-        out.push({ date, time: tm ? `${U.pad(+tm[1])}:${tm[2] || '00'}` : '', title, type: D.EVENT_TYPES.find(t => String(row[col.type] ?? '').includes(t)) || '기타', staff: S.staff().some(s => s.name === staff) ? staff : '', memo: String(row[col.memo] ?? '').trim(), targetType: '', targetId: '' });
-      }
-      break;
-    }
-    return out;
-  }
-  function eventsFromWorkbook(wb, file) {
-    const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4));
-    return wb.SheetNames.flatMap(n => eventsFromRows(XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: true, defval: '' }), year));
-  }
-  const eventsFromHwp = (tables, file) => { const year = +((String(file).match(/(20\d{2})/) || [])[1] || U.today().slice(0, 4)); return tables.flatMap(t => eventsFromRows(t.rows, year)); };
-
-  return { ui, setFmt, clearFmt, toggleCheck, setCat, openDD, closeDD, bindGrid, resetGrid, setColor, toggleMerge, undo: t => undo(t), CLASSES, eventsFromWorkbook, eventsFromHwp, view, doc, save, remove, setLabel, saveNotes, clearMonth, copyPrev, fromWorkbook, fromHwpTables, commitImport, plans, at };
-})();
-
-</script>
-<script>
 /* 홍보·방문처: 행정복지센터·직업재활시설·장애인단체·특수학급 고등학교·특수학교·임대아파트 등
  * 엑셀(기관 목록)을 한 번에 넣고, 분류별로 몇 곳 중 몇 곳을 다녀왔는지 한눈에 보고, 방문을 바로 기록한다.
  * 데이터는 네트워크 기관(분류·주소·연락처·세부 정보)으로 저장해 지도·상세 화면에도 같이 나온다. */
@@ -11039,7 +9472,6 @@ window.App = (() => {
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력', 'log'],
     ['perf', '실적', 'perf'],
-    ['orders', '출장·특근', 'trip'],
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
@@ -11054,7 +9486,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', orders: () => '출장·특근 명령부·여비', attend: () => `참여자 ${S.get().jobPeople.length}명`, training: () => 'JOB이음터 · 일과놀이반', data: () => '백업·가져오기·권한',
+    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -11120,9 +9552,9 @@ window.App = (() => {
     'nopos-refind': [['biz', 2]], 'new-net': [['network', 2]], 'or-commit': [['network', 2]], 'or-visit': [['network', 2]], 'or-file': [['network', 2]], 'home-add': [['network', 2]],
     'new-card': [['cards', 2]], 'card-link-to': [['cards', 2]], 'card-autolink': [['cards', 2]], 'card-photo': [['cards', 2]], 'card-pdf': [['cards', 2]], 'card-bulk-commit': [['cards', 2]], 'photo-clear': [['cards', 2]],
     'map-addmode': [['biz', 2]],
-    'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
+    'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['perf', 2]], 'org-sync-commit': [['perf', 2]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -11137,7 +9569,7 @@ window.App = (() => {
     return GATES[act] || null;
   }
   const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]], 'trip-field': [['orders', 2]], 'trip-report': [['orders', 2]] };
+  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -11166,14 +9598,14 @@ window.App = (() => {
     applyPermClasses();
     const n = navOf(r);
     const sec = curSec();
-    const seeSec = x => (x.k === 'data' ? S.isAdmin() : x.items.some(k => canSee(k === 'training' ? 'schedule' : k)));
+    const seeSec = x => (x.k === 'data' ? S.isAdmin() : x.items.some(k => canSee(k)));
     $('#secNav').innerHTML = SECS.filter(seeSec).map(x => `<button type="button" class="sec-btn sec-${x.k} ${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}" ${x.k === sec.k ? 'aria-current="true"' : ''}>${x.label}</button>`).join('');
     $('#secTitle').innerHTML = `<b>${U.esc(sec.label)}</b><span>${U.esc(sec.desc)}</span>`;
     const byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
-    $('#sideNav').innerHTML = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
-    const mItems = sec.items.filter(k => canSee(k === 'training' ? 'schedule' : k)).slice(0, 4);
+    $('#sideNav').innerHTML = sec.items.filter(k => canSee(k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
+    const mItems = sec.items.filter(k => canSee(k)).slice(0, 4);
     const moreActive = !mItems.includes(n);
-    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', orders: '출장', attend: '출석부', training: '일정표', data: '데이터' };
+    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
     $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
@@ -11276,7 +9708,6 @@ window.App = (() => {
     const pages = {
       dashboard: [V.dashboard],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
-      training: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched], // 훈련반은 뺐다: 예전 주소로 와도 업무 일정
 
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
@@ -11284,7 +9715,6 @@ window.App = (() => {
       schedule: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched],
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
-      orders: [R.ordersPage, () => { $('#odResults').innerHTML = R.ordersResults(); }],
       outreach: [OR.page, bindOutreach],
       attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
@@ -11390,9 +9820,7 @@ window.App = (() => {
     if (V.ui.map.mode === 'city') return fitCity();
     bigMap = M.create($('#bigMap'), { showLayers: false });
     markerGroup = null; markerIndex = {};
-    NM.reset();
     refreshMap(true);
-    bindNaver();
     const fx = V.ui.map.focus;
     if (fx) { V.ui.map.focus = null; setTimeout(() => A['map-focus']({ dataset: fx }), 350); }
     $('#mapQ').addEventListener('input', U.debounce(ev => { V.ui.map.q = ev.target.value.trim(); refreshMap(false); }, 150));
@@ -11440,25 +9868,6 @@ window.App = (() => {
     cityRO.observe(wrap);
     apply();
   }
-  /** 네이버 지도(실험): '네이버'면 그 지도만, '나란히 비교'면 두 지도가 같이 움직인다 */
-  const engine = () => (S.get().settings.naverKey ? V.ui.map.engine || 'leaflet' : 'leaflet');
-  let syncing = false;
-  async function bindNaver() {
-    const eng = engine(), box = $('#nvMap');
-    if (eng === 'leaflet' || !box || !bigMap) return;
-    const c = bigMap.getCenter();
-    const ok = await NM.mount(box, { lat: c.lat, lng: c.lng, zoom: bigMap.getZoom() });
-    if (!ok || !$('#nvMap')) return;
-    setTimeout(() => bigMap && bigMap.invalidateSize(), 50);
-    NM.onOpen = (kind, id) => selPlace(kind, id, true);
-    refreshMap(false);
-    if (eng === 'naver') NM.fit(V.mapItems().filter(i => M.hasPos(i.x)));
-    else {
-      // 나란히 비교: 한쪽을 움직이면 다른 쪽도 같은 곳·같은 확대로
-      bigMap.on('moveend', () => { if (syncing) return; syncing = true; const v = bigMap.getCenter(); NM.setView({ lat: v.lat, lng: v.lng, zoom: bigMap.getZoom() }); setTimeout(() => { syncing = false; }, 300); });
-      NM.onIdle(() => { if (syncing || !bigMap) return; syncing = true; const v = NM.getView(); bigMap.setView([v.lat, v.lng], v.zoom, { animate: false }); setTimeout(() => { syncing = false; }, 300); });
-    }
-  }
   /** 이름표: 가까이 보거나 점이 적으면 늘 보이게 */
   function mapLabels() {
     if (!bigMap) return;
@@ -11478,8 +9887,6 @@ window.App = (() => {
   /** 고른 곳으로 부드럽게 날아간 뒤 말풍선을 연다 (점은 다시 그리지 않는다) */
   function focusPlace(kind, id) {
     const key = kind + id;
-    if (engine() === 'naver') { selPlace(kind, id, false); if (!NM.focus(kind, id)) openDetail(kind, id, false); return; }
-    if (engine() === 'compare') NM.focus(kind, id);
     const m = markerIndex[key];
     if (!m || !bigMap) return openDetail(kind, id, false);
     selPlace(kind, id, false);
@@ -11549,7 +9956,6 @@ window.App = (() => {
       if (reopen) m.openPopup();
     });
     Object.keys(markerIndex).forEach(k => { if (!seen.has(k)) { markerGroup.removeLayer(markerIndex[k]); delete markerIndex[k]; } });
-    if (engine() !== 'leaflet') NM.update(shown);
     mapLabels();
     $('#bigMap')?.classList.toggle('picking', !!f.pick);
     drawRoute();
@@ -11685,7 +10091,7 @@ window.App = (() => {
       ${mine.length ? `<div class="ps-sec">등록된 곳</div>${mine.map(([k, x]) => `<button type="button" class="ps-item mine" data-act="map-focus" data-kind="${k}" data-id="${x.id}"><b>${U.esc(x.name)}</b><span>${U.esc(k === 'biz' ? (x.industry || '사업체') : (x.category || '기관'))} · ${U.esc(x.address || x.area || '')}</span><em>등록됨</em></button>`).join('')}` : ''}
       <div class="ps-sec">새로 찾은 곳 ${placeList.length ? `<span class="sub">${placeList.length}곳</span>` : ''}</div>
       ${placeList.length ? placeList.map((p, i) => { const g = reg(p); return `<button type="button" class="ps-item" data-act="place-pick" data-i="${i}"><b>${U.esc(p.name)}</b><span>${U.esc([p.cat, p.road || p.addr].filter(Boolean).join(' · '))}</span>${p.phone ? `<span>📞 ${U.esc(p.phone)}</span>` : ''}${g ? '<em>등록됨</em>' : ''}</button>`; }).join('')
-        : `<div class="ps-empty">찾지 못했어요. 주소(예: 향남읍 발안로 1)나 다른 이름으로 찾아보세요.${S.REMOTE && S.get().settings.kakaoOn !== 'Y' ? '<br><span class="sub">데이터 관리에 카카오 키를 넣으면 상호명으로도 잘 찾아요.</span>' : ''}</div>`}`;
+        : `<div class="ps-empty">찾지 못했어요. 주소(예: 향남읍 발안로 1)나 다른 이름으로 찾아보세요.</div>`}`;
   }
   function placeCard(p) {
     const k = U.orgKey(p.name);
@@ -11727,7 +10133,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { training: '직업훈련 일정표', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', orders: '출장·특근', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -11763,69 +10169,6 @@ window.App = (() => {
       ta.remove(); return ok;
     }
   }
-  async function handleHwpFiles(files) {
-    push({ type: 'loading', title: '한글 명령부 불러오기', body: `${files.length}개 파일을 읽는 중입니다.` });
-    const rows = [], errors = [];
-    for (const f of files) {
-      try {
-        const year = (f.name.match(/20\d\d/) || [])[0] || R.ui.orders.month.slice(0, 4);
-        const got = R.parseOrderTables(await HWP.readTables(await f.arrayBuffer()), year);
-        if (!got.length) errors.push(`${f.name}: 명령부 표를 찾지 못했습니다.`);
-        rows.push(...got);
-      } catch (err) { errors.push(`${f.name}: ${err.message}`); }
-    }
-    rows.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind));
-    push({ type: 'hwp', state: { files: files.map(f => f.name), rows: R.markDup(rows), errors } });
-  }
-  /** 명령부를 A4 세로 한 쪽에 맞춘다: 화면 밖에서 실제 크기(190mm 폭)를 재고, 넘치면 줄 높이·글자를 조금씩 줄여 다시 그린다 */
-  function fitOrder(staff) {
-    const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
-    document.body.appendChild(box);
-    const limit = 272 * 96 / 25.4; // A4 297mm − 위아래 여백 20mm − 여유 5mm
-    let html = '';
-    for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
-      html = R.orderDoc(staff, scale);
-      box.innerHTML = html;
-      const art = box.querySelector('.order-doc');
-      art.classList.add('measure');
-      if (art.getBoundingClientRect().height <= limit) break;
-    }
-    box.remove();
-    return html;
-  }
-  /** 아무 문서나 A4 세로 한 쪽에 맞추기: make(scale) → html */
-  function fitA4(make) {
-    const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
-    document.body.appendChild(box);
-    const limit = 272 * 96 / 25.4;
-    let html = '';
-    for (const scale of [1, 0.92, 0.84, 0.76, 0.68, 0.6, 0.52]) {
-      html = make(scale); box.innerHTML = html;
-      const art = box.querySelector('.order-doc'); art.classList.add('measure');
-      if (art.getBoundingClientRect().height <= limit) break;
-    }
-    box.remove();
-    return html;
-  }
-  /** 여비 명세도 명령부와 같이 A4 한 쪽에 맞춘다 */
-  function fitTravel(staff) {
-    const box = document.createElement('div');
-    box.style.cssText = 'position:absolute;left:-10000px;top:0;width:190mm;visibility:hidden';
-    document.body.appendChild(box);
-    const limit = 272 * 96 / 25.4;
-    let html = '';
-    for (const scale of [1, 0.93, 0.86, 0.8, 0.74, 0.68, 0.62, 0.56]) {
-      html = TV.doc(R.ui.orders.month, staff, scale);
-      box.innerHTML = html;
-      const art = box.querySelector('.order-doc');
-      art.classList.add('measure');
-      if (art.getBoundingClientRect().height <= limit) break;
-    }
-    box.remove();
-    return html;
-  }
   function printHtml(html) {
     const root = $('#printRoot');
     root.innerHTML = html;
@@ -11835,13 +10178,6 @@ window.App = (() => {
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
   function bindSched() {
-    if (V.ui.sched.view === 'train') {
-      const b = $('#tpBox'); if (!b) return;
-      const w0 = $('#tpWrap'), sx = w0 ? w0.scrollLeft : 0, y = window.scrollY;
-      b.innerHTML = TR.view(); TR.bindGrid(toast);
-      const w = $('#tpWrap'); if (w) w.scrollLeft = sx; window.scrollTo(0, y);
-      return;
-    }
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
   }
@@ -12120,11 +10456,6 @@ window.App = (() => {
         $('#ctPasteBox').setSelectionRange(9e9, 9e9);
       }, 250);
       if (!keepScroll) box.focus();
-      return;
-    }
-    if (top.type === 'hwp') {
-      inner.innerHTML = R.hwpDialog(top.state);
-      showDrawer();
       return;
     }
     if (top.type === 'loading') {
@@ -12532,7 +10863,7 @@ window.App = (() => {
       closeMore();
       secKey = x.k; lsSetSec(x.k);
       // 주소를 먼저 그 구역 첫 화면으로 바꿔 둔다 (범위를 바꾸면 바로 다시 그리는데, 그때 옛 화면 주소면 구역이 되돌아간다)
-      const first0 = x.items.find(k => canSee(k === 'training' ? 'schedule' : k)) || x.items[0];
+      const first0 = x.items.find(k => canSee(k)) || x.items[0];
       const target0 = '#/' + hrefOf(first0), moved = location.hash !== target0;
       if (moved) history.pushState(null, '', target0);
       if (x.prog) {
@@ -12544,58 +10875,13 @@ window.App = (() => {
       render();
       if (moved) window.scrollTo(0, 0);
     },
-    'tp-cls': el => { TR.ui.cls = el.dataset.cls; TR.resetGrid(); bindSched(); },
-    'tp-color': el => TR.setColor(el.dataset.color),
-    'tp-merge': () => TR.toggleMerge(),
-    'tp-fmt': el => TR.setFmt(null, el.dataset.k),
-    'tp-fc': el => TR.setFmt({ fc: el.dataset.color }),
-    'tp-align': el => TR.setFmt({ al: el.dataset.al }),
-    'tp-chkbox': () => TR.setFmt(null, 'chk'),
-    'tp-fmt-clear': () => TR.clearFmt(),
-    'tp-check': el => TR.toggleCheck(+el.dataset.r, +el.dataset.c),
-    'tp-dd': el => TR.openDD(+el.dataset.r, +el.dataset.c),
-    'tp-dd-pick': el => { TR.setCat(el.dataset.v); TR.closeDD(); },
-    'tp-undo': () => TR.undo(toast),
-    'tp-month': el => { const [y, m] = TR.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); TR.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; TR.resetGrid(); bindSched(); },
-    'tp-edit': el => { TR.ui.edit = { date: el.dataset.date, slot: el.dataset.slot }; bindSched(); setTimeout(() => $('#tpCat')?.focus(), 30); },
-    'tp-cancel': () => { TR.ui.edit = null; bindSched(); },
-    'tp-save': () => { TR.save(); bindSched(); toast('일정표 칸을 저장했어요.'); },
-    'tp-del': () => { const undo = TR.remove(); bindSched(); toast('칸을 비웠어요.', '', undo ? { undo } : {}); },
-    'tp-label': el => { const cur = (TR.at(el.dataset.date.slice(0, 7), +el.dataset.date.slice(8), '라벨') || {}).content || ''; const v = prompt(`${+el.dataset.date.slice(5, 7)}월 ${+el.dataset.date.slice(8)}일 옆에 붙일 표시 (예: 건강관리, 식권 발급 X). 비우면 지워요.`, cur); if (v == null) return; TR.setLabel(el.dataset.date, v.trim()); },
-    'tp-notes-save': () => { TR.saveNotes($('#tpNotes').value); toast('안내 문구를 저장했어요.'); },
-    'tp-clear': async () => { if (!(await confirmBox(`${TR.ui.cls} ${+TR.ui.month.slice(5)}월 일정표를 비울까요?`, '이 반의 이 달 칸·표시·안내를 모두 지워요. 바로 되돌릴 수 있어요.', '비우기'))) return; const undo = TR.clearMonth(); toast('일정표를 비웠어요.', '', undo ? { undo } : {}); },
-    'tp-copy-prev': () => { const r = TR.copyPrev(); toast(r.n ? `${V.monthLabel(r.from)} 요일별 프로그램으로 빈 칸 ${r.n}개를 채웠어요. 휴관·특별 일정은 직접 고쳐 주세요.` : `${V.monthLabel(r.from)}에 가져올 요일별 프로그램이 없어요.`); },
-    'tp-print': () => {
-      // A4 가로 한 장에 들어가게 글자·칸 크기를 줄여 가며 잰다
-      const box = document.createElement('div'); box.style.cssText = 'position:absolute;left:-10000px;top:0;width:281mm;visibility:hidden';
-      document.body.appendChild(box);
-      const limit = 192 * 96 / 25.4; let html = '';
-      for (const sc of [1, 0.92, 0.85, 0.78, 0.72, 0.66, 0.6]) { html = TR.doc(undefined, undefined, sc); box.innerHTML = html; if (box.firstElementChild.getBoundingClientRect().height <= limit) break; }
-      box.remove(); printHtml(html);
-    },
-    'tp-import': () => pickFiles('.xlsx,.xls,.hwp', true, async files => {
-      const found = [];
-      for (const f of files) {
-        try {
-          if (/\.hwp$/i.test(f.name)) found.push(...TR.fromHwpTables(await HWP.readTables(await f.arrayBuffer()), f.name));
-          else found.push(...TR.fromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer()), { cellStyles: true }), f.name));
-        } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
-      }
-      if (!found.length) return toast('일정표를 찾지 못했어요. 월·화·수·목·금 머리줄과 오전·오후 칸이 있는 표인지 확인해 주세요.', 'error');
-      found.forEach(x => { x.on = true; });
-      TR.ui.imp = { files: files.map(f => f.name), found, mode: 'over' }; bindSched();
-    }),
-    'tp-imp-toggle': el => { TR.ui.imp.found[+el.dataset.i].on = el.checked; },
-    'tp-imp-mode': el => { TR.ui.imp.mode = el.value; },
-    'tp-imp-cancel': () => { TR.ui.imp = null; bindSched(); },
-    'tp-imp-commit': () => { const r = TR.commitImport(); toast(`${r.put}칸을 합쳤어요.${r.skipped ? ` 이미 적힌 ${r.skipped}칸은 그대로 뒀어요.` : ''}`); render(); },
     'ev-import': () => pickFiles('.xlsx,.xls,.csv,.hwp', true, async files => {
       let evs = [];
       for (const f of files) {
         try {
-          if (/\.hwp$/i.test(f.name)) evs.push(...TR.eventsFromHwp(await HWP.readTables(await f.arrayBuffer()), f.name));
-          else if (/\.csv$/i.test(f.name)) evs.push(...TR.eventsFromWorkbook(XLSX.read(await f.text(), { type: 'string' }), f.name));
-          else evs.push(...TR.eventsFromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer())), f.name));
+          if (/\.hwp$/i.test(f.name)) evs.push(...R.eventsFromHwp(await HWP.readTables(await f.arrayBuffer()), f.name));
+          else if (/\.csv$/i.test(f.name)) evs.push(...R.eventsFromWorkbook(XLSX.read(await f.text(), { type: 'string' }), f.name));
+          else evs.push(...R.eventsFromWorkbook(XLSX.read(new Uint8Array(await f.arrayBuffer())), f.name));
         } catch (err) { toast(`${f.name}을(를) 읽지 못했어요: ${err.message}`, 'error'); }
       }
       const have = new Set(S.get().events.map(x => `${x.date}|${x.title}`));
@@ -13015,9 +11301,6 @@ window.App = (() => {
     },
     'sv-clear': el => { el.closest('form').querySelectorAll(`[name="${el.dataset.name}"]`).forEach(x => { x.checked = false; }); },
     'sv-print': () => printHtml($('#svDoc').innerHTML),
-    'od-print': el => printHtml(fitOrder(el.dataset.staff || null)),
-    'od-hwp': () => $('#hwpFile').click(),
-    'od-hwp-commit': () => { const top = stack[stack.length - 1]; if (!top || top.type !== 'hwp') return; const n = R.commitHwp(top.state.rows); closeDrawer(); toast(`명령부 ${n}줄을 가져왔습니다.`); render(); },
     'presence-toggle': () => { const m = $('#presenceMenu'); if (m) m.hidden = !m.hidden; },
     'sync-now': async el => {
       const btn = el || $('#syncBtn');
@@ -13035,12 +11318,6 @@ window.App = (() => {
         toast('새로 불러오지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요. (' + (err && err.message || err) + ')', 'error');
       } finally { btn.disabled = false; btn.classList.remove('spinning'); }
     },
-    'od-print-each': () => printHtml(R.orderDocsEach(fitOrder)),
-    'od-bulk': () => { const f = R.ui.orders; if (f.bulk && f.bulkOpen) { f.bulkOpen = false; f.bulk = null; } else { f.bulkOpen = true; R.bulkState(); } $('#odResults').innerHTML = R.ordersResults(); },
-    'od-bulk-print': () => { const html = R.bulkDocs(fitOrder); if (html) printHtml(html); },
-    'od-bulk-file': () => { const { name, blob } = R.bulkFile(fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았어요. 한글 또는 워드로 열 수 있어요.`); },
-    'od-file': el => { const { name, blob } = R.orderFile(el.dataset.staff || null, fitOrder); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); toast(`${name} 파일을 받았습니다. 한글 또는 워드로 열 수 있습니다.`); },
-    'od-month': el => { const f = R.ui.orders; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'at-month': el => { const [y, m] = AT.ui.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); AT.ui.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'at-year': el => { const y = +AT.ui.month.slice(0, 4) + +el.dataset.d; AT.ui.month = `${y}-${AT.ui.month.slice(5, 7)}`; render(); },
     'at-goto': el => { AT.ui.month = el.dataset.m; AT.ui.view = 'month'; render(); },
@@ -13195,26 +11472,6 @@ window.App = (() => {
       await S.saveSettings({ perfGoal: JSON.stringify(g) });
       toast(`실적 목표 기준을 저장했어요 (${g.baseYear}년 ${g.months}개월 기준 · 인원 ${g.staffNow}/${g.staffNeed}명).`);
     },
-    'od-who': el => { R.ui.orders.who = el.dataset.who; $('#odResults').innerHTML = R.ordersResults(); },
-    'od-staff-add': async () => {
-      if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
-      const name = ($('#odStaffNew').value || '').trim();
-      if (!name) return $('#odStaffNew').focus();
-      if (S.staff().some(s => s.name === name)) return toast(`${name}은(는) 이미 담당자 목록에 있어요.`, 'error');
-      await S.saveSettings({ staff: [...S.staff(), { name, program: $('#odStaffProg').value }] });
-      toast(`담당자 ${name}을(를) 추가했어요. 일정·실적·지도 등 모든 화면의 담당자 목록에 같이 들어가요.`);
-    },
-    'od-staff-del': async el => {
-      const name = el.dataset.name;
-      if (!S.isAdmin()) return toast('담당자 삭제는 관리자만 할 수 있어요.', 'error');
-      if (S.staff().length <= 1) return toast('담당자가 한 명은 있어야 해요.', 'error');
-      const n = S.get().trips.filter(t => t.staff === name).length;
-      if (!(await confirmBox(`담당자 ${name}을(를) 목록에서 뺄까요?`, `담당자 목록에서만 빠지고, 이미 적힌 명령부${n ? ` ${n}건` : ''}·일정·사업체 기록은 그대로 남아요.`, '빼기'))) return;
-      const before = S.staff().map(s => ({ ...s }));
-      await S.saveSettings({ staff: S.staff().filter(s => s.name !== name) });
-      if (R.ui.orders.who === name) R.ui.orders.who = '';
-      toast(`${name}을(를) 담당자 목록에서 뺐어요.`, '', { undo: () => S.saveSettings({ staff: before }) });
-    },
     'dp-mode': el => { DP.ui.mode = el.dataset.mode; if (DP.ui.mode === 'month' && !DP.ui.month.startsWith(String(DP.ui.year))) DP.ui.month = String(DP.ui.year) === U.today().slice(0, 4) ? U.today().slice(0, 7) : `${DP.ui.year}-12`; render(); },
     'dp-move': el => {
       const d = +el.dataset.d;
@@ -13253,15 +11510,6 @@ window.App = (() => {
       S.upsert('act', { targetType: 'net', targetId: n.id, date: U.today(), type: '홍보', content: '홍보 방문', staff: S.me() });
       toast(`${n.name} 오늘 홍보 방문을 기록했어요. 이름을 누르면 내용을 고칠 수 있어요.`);
     },
-    'trips-wipe': async () => {
-      if (!S.isAdmin()) return toast('관리자만 지울 수 있어요.', 'error');
-      const all = S.get().trips;
-      if (!all.length) return toast('지울 출장·특근 기록이 없어요.');
-      if (!(await confirmBox(`출장·특근 기록 ${all.length}건을 모두 지울까요?`, '관내출장·관외출장·특근 명령부와 여비 계산 기록이 모두 지워져요. 되돌릴 수 없으니 필요하면 먼저 "엑셀로 내보내기"로 백업하세요.', '모두 지우기'))) return;
-      S.removeMany('trip', all.map(t => t.id));
-      toast(`출장·특근 기록 ${all.length}건을 지웠어요.`);
-      render();
-    },
     'sec-staff-add': async el => {
       if (!S.isAdmin()) return toast('담당자 추가는 관리자만 할 수 있어요.', 'error');
       const inp = $('#secStaffNew'), name = ((inp && inp.value) || '').trim(), prog = el.dataset.prog;
@@ -13273,43 +11521,6 @@ window.App = (() => {
       toast(`${name}을(를) ${prog} 담당자로 ${ex ? '옮겼어요' : '추가했어요'}. 바로 상담자로 고를 수 있어요.`);
       render();
     },
-    'od-kind': el => { R.ui.orders.kind = el.dataset.kind; render(); },
-    'tv-save-set': async () => {
-      const eff = $('#tvEff').value.replace(/[^0-9.]/g, ''), price = $('#tvPrice').value.replace(/[^0-9]/g, '');
-      const otS = ($('#tvOtS')?.value || '').replace(/[^0-9]/g, ''), otL = ($('#tvOtL')?.value || '').replace(/[^0-9]/g, '');
-      await S.saveSettings({ fuelEff: eff, fuelPrice: price, otShort: otS, otLong: otL });
-      const r = TV.otRate();
-      toast(`저장했어요: 연비 ${eff || '-'}km/L · 유가 ${price ? (+price).toLocaleString() : '-'}원/L · 특근비 4시간 미만 ${r.short.toLocaleString()}원 · 이상 ${r.long.toLocaleString()}원`);
-    },
-    'tv-copy': async () => { const ok = await copyText(TV.tsv(R.ui.orders.month)); toast(ok ? '여비 표를 복사했어요. 엑셀·한글 표에 붙여 넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
-    'tv-print-part': el => { const m = R.ui.orders.month; printHtml(fitA4(sc => TV.settleDoc(m, el.dataset.staff, el.dataset.part, sc))); },
-    'tv-print-sum': () => printHtml(TV.settleSumDoc(R.ui.orders.month)),
-    'tv-print-all': () => { const m = R.ui.orders.month; printHtml(TV.settle(m).people.map(p => fitA4(sc => TV.settleDoc(m, p.name, 'all', sc))).join('') + TV.settleSumDoc(m)); },
-    'tv-print': () => { const list = TV.staffOf(R.ui.orders.month); if (list.length) printHtml(list.map(fitTravel).join('')); },
-    'tv-road': async () => {
-      // 개인 차량으로 간 줄 중 거리를 안 적은 곳: 복지관 ↔ 출장지 도로 거리 × 2(왕복)를 채운다
-      const home = TV.homeOf();
-      if (!home) return toast('복지관 위치가 없어 거리를 잴 수 없어요. 지도에서 ★ 복지관 위치를 먼저 등록해 주세요.', 'error');
-      const list = TV.monthTrips(R.ui.orders.month).filter(t => TV.ownCar(t) && !Number(t.km));
-      if (!list.length) return toast('거리를 채울 개인 차량 출장이 없어요. (방법이 "개인 차량"인 줄만 채워요)');
-      let ok = 0, miss = 0;
-      const patch = [];
-      for (const t of list) {
-        const p = TV.placeOf(t);
-        if (!p || !M.hasPos(p)) { miss++; continue; }
-        const road = await M.roadRoute(home, p);
-        const km = road ? road.km * 2 : M.distKm(home, p) * 1.35 * 2;
-        patch.push({ id: t.id, km: String(Math.round(km * 10) / 10) });
-        ok++;
-      }
-      patch.forEach(p => S.upsert('trip', p));
-      toast(`${ok}건의 왕복 거리를 채웠어요.${miss ? ` ${miss}건은 출장지를 지도에서 못 찾아 직접 적어 주세요.` : ''}`);
-    },
-    'od-import': () => { const n = R.importVisits(); toast(`방문 기록 ${n}건을 관내출장 명령부로 불러왔습니다. 출장시간·출장복명을 채워 주세요.`); },
-    'od-add': () => { const f = R.ui.orders; const d = f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'; S.upsert('trip', { kind: f.kind, date: d, staff: f.who || S.me(), place: '', purpose: f.kind === '특근' ? '사업체 개발' : '사업체개발', method: f.kind === '출장' ? '복지관 차량' : '', time: '', report: [], dept: f.kind === '특근' ? '직업' : '', note: '' }); },
-    'od-dup': el => { const t = S.find('trip', el.dataset.id); if (!t) return; const other = S.staff().map(s => s.name).find(n => n !== t.staff) || t.staff; S.upsert('trip', { ...t, id: undefined, staff: other, actId: '' }); toast(`${other} 동행 줄을 추가했습니다. 성명을 확인하세요.`); },
-    'od-del': el => { const undo = S.remove('trip', el.dataset.id); if (undo) toast('한 줄을 삭제했습니다.', '', { undo }); },
-    'od-copy': async () => { const ok = await copyText(R.ordersTsv()); toast(ok ? '복사했습니다. 한글 명령부 표에서 첫 칸을 블록 지정한 뒤 붙여넣으세요.' : '복사하지 못했습니다.', ok ? '' : 'error'); },
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
     'ct-reg': el => { const r = R.registerBiz(el.dataset.id, el.dataset.kind); if (r) toast(r.kind === 'net' ? `${r.x.name} 기관(네트워크)에 연락 기록을 옮겼어요. 기관 상세·홍보·방문처에서 볼 수 있어요.` : `${r.x.name}을(를) 사업체로 등록했어요. 사업체 개발·지도에 나와요.`); },
@@ -13418,14 +11629,6 @@ window.App = (() => {
       el.disabled = false;
     },
     'cal-pull-toggle': async el => { await S.saveSettings({ calPull: el.checked ? '' : 'N' }); toast(el.checked ? '캘린더 일정도 가져와요.' : '캘린더 일정은 가져오지 않아요.'); },
-    'kakao-save': async el => {
-      const key = ($('#kakaoKey')?.value || '').trim();
-      if (!key) return toast('카카오 REST API 키를 붙여넣어 주세요.', 'error');
-      el.disabled = true;
-      try { await S.call('api_setKakaoKey', key); await S.reload(); toast('카카오 키를 저장했어요. 이제 주소 위치와 도로 거리를 카카오로 계산해요.'); render(); }
-      catch (err) { toast('저장하지 못했어요: ' + (err.message || err), 'error'); el.disabled = false; }
-    },
-    'kakao-off': async () => { await S.call('api_setKakaoKey', ''); await S.reload(); toast('카카오 키를 지웠어요.'); render(); },
     'backup-now': async el => {
       el.disabled = true; el.textContent = '백업 중…';
       try { const r = await S.call('api_backupNow'); toast(`백업했어요: ${r.name}`, '', { action: { label: '열기', run: () => window.open(r.url, '_blank') } }); A['backup-list'](); }
@@ -13501,13 +11704,6 @@ window.App = (() => {
       await savePerms(email, {});
       toast(`${email}을(를) 뺐습니다.`);
     },
-    'save-naver': async () => {
-      const patch = { naverKey: $('#naverKeyInput').value.trim(), naverKeyParam: $('#naverParamInput').value };
-      await S.saveSettings(patch);
-      toast(patch.naverKey ? '네이버 지도 키를 저장했어요. 지도 화면 위쪽에서 네이버 / 나란히 비교를 고르세요. (키를 바꿨으면 새로고침 한 번)' : '네이버 지도 키를 지웠어요.');
-      render();
-    },
-    'map-engine': el => { V.ui.map.engine = el.dataset.v; try { localStorage.setItem('ardim.mapEngine', el.dataset.v); } catch { /* 저장 불가 */ } render(); },
     'save-vworld': async () => {
       const patch = { vworldKey: $('#vworldKeyInput').value.trim() };
       if ($('#vworldDomainInput')) patch.vworldDomain = $('#vworldDomainInput').value.trim();
@@ -13595,10 +11791,8 @@ window.App = (() => {
         if (drawerOpen()) return (stack.length > 1 ? A['dr-back']() : closeDrawer());
       }
       if (ev.key === 'Enter' && ev.target.matches('[data-act][tabindex]')) ev.target.click();
-      if (ev.key === 'Enter' && ev.target.id === 'odStaffNew' && !ev.isComposing) { ev.preventDefault(); A['od-staff-add'](); }
     });
     $('#searchTrigger').onclick = openSearch;
-    $('#hwpFile').onchange = ev => { const files = [...ev.target.files]; ev.target.value = ''; if (files.length) handleHwpFiles(files); };
     $('#globalBizFile').onchange = async ev => {
       const files = [...ev.target.files]; ev.target.value = '';
       if (!files.length) return;
@@ -13627,28 +11821,6 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
-      // 일정표 도구: 글씨체·크기·글자색·칸 색·훈련 구분
-      const tf = ev.target.closest('[data-tpfmt]');
-      if (tf) {
-        if (!allowed([['schedule', 2]])) return;
-        const k = tf.dataset.tpfmt, v = tf.value;
-        if (k === 'font') TR.setFmt({ font: v });
-        else if (k === 'size') TR.setFmt({ size: v ? +v : '' });
-        else if (k === 'fc') TR.setFmt({ fc: v.replace('#', '').toUpperCase() });
-        else if (k === 'bg') TR.setColor(v.replace('#', '').toUpperCase());
-        else if (k === 'cat' && v) TR.setCat(v);
-        return;
-      }
-      const bk = ev.target.closest('#odBulk [data-bulk]');
-      if (bk) {
-        const b = R.bulkState(), k = bk.dataset.bulk, box = $('#odBulk');
-        if (k === 'from' || k === 'to') b[k] = bk.value || b[k];
-        else if (k === 'staff' || k === 'kinds') b[k] = [...box.querySelectorAll(`[data-bulk="${k}"]:checked`)].map(x => x.value);
-        else b[k] = bk.checked;
-        if (b.from > b.to) [b.from, b.to] = [b.to, b.from];
-        $('#odResults').innerHTML = R.ordersResults();
-        return;
-      }
       const el = ev.target.closest('[data-chg]');
       if (!el) return;
       const { id, field } = el.dataset;
@@ -13691,14 +11863,7 @@ window.App = (() => {
         if (el.value.trim() && !R.jobLink(el.value)) { inlineEdit = false; toast('구인공고 칸에는 사이트 주소만 넣을 수 있어요. 공고 화면 위쪽 주소창의 주소(https://…)를 복사해 붙여 넣으세요.', 'error'); el.select(); return; }
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
       } else if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
-      else if (el.dataset.chg === 'trip-field') S.upsert('trip', { id, [field]: el.value });
       else if (el.dataset.chg === 'jp-field') S.upsert('jp', { id, [field]: el.value.trim() });
-      else if (el.dataset.chg === 'trip-report') {
-        const t = S.find('trip', id);
-        const set = new Set(t.report || []);
-        if (el.checked) set.add(el.value); else set.delete(el.value);
-        S.upsert('trip', { id, report: D.TRIP_REPORTS.filter(r => set.has(r)) });
-      }
     });
     document.addEventListener('submit', async ev => {
       const form = ev.target;
@@ -13831,20 +11996,9 @@ window.App = (() => {
           bindAttend();
           if (id && fd) $(`#atPeople [data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
         }, 0);
-        // 여비 계산은 금액이 바로 바뀌어야 하므로 다시 그리되, 커서가 있던 칸으로 돌아간다
-        if (route() === 'orders') setTimeout(() => {
-          // Tab으로 다음 칸에 커서가 옮겨 간 뒤에 다시 그려야 그 칸을 기억할 수 있다
-          const a = document.activeElement, id = a && a.dataset && a.dataset.id, fd = a && a.dataset && a.dataset.field;
-          const y = window.scrollY, wrap = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'), x = wrap ? wrap.scrollLeft : 0;
-          $('#odResults').innerHTML = R.ordersResults();
-          const w2 = $('.tv-tbl, .od-tbl')?.closest('.table-wrap'); if (w2) w2.scrollLeft = x;
-          window.scrollTo(0, y);
-          if (id && fd) $(`[data-id="${id}"][data-field="${fd}"]`)?.focus({ preventScroll: true });
-        }, 0);
-        return;
+
       }
       if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
-      else if (route() === 'schedule' && V.ui.sched.view === 'train' && $('#tpBox') && !drawerOpen()) { bindSched(); renderNav(); }
       else if (route() === 'map' && V.ui.map.mode !== 'city' && bigMap && $('#mapList')) softMap();
       else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
       if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);

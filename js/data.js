@@ -86,7 +86,7 @@ window.D = (() => {
 
   /** 지도 표시 색: 사업체 개발(노랑) · 취업 연계(주황) · 지원고용(빨강) · 현장훈련(보라) · 기관(검정) · 우리 복지관(금색 별) */
   /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
-  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orders', '출장·특근'], ['attend', '출석부']];
+  const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['perf', '실적'], ['orgsync', '복지관 실적 시트 보내기'], ['attend', '출석부']];
   const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
   const PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
   const SUPPORT_TYPES = ['지원고용', '현장훈련'];
