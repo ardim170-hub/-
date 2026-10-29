@@ -41,8 +41,17 @@ function doGet(e) {
 
 /** index.html 안의 <?!= include('style'); ?> 자리에 그 파일 내용을 그대로 넣는다 */
 function include(name) {
-  if (remoteFiles_ && remoteFiles_[name]) return remoteFiles_[name];
+  if (remoteFiles_ && remoteFiles_[name]) return wrapRemote_(remoteFiles_[name]);
   return HtmlService.createHtmlOutputFromFile(name).getContent();
+}
+
+/** GitHub에서 받은 파일은 구글이 화면을 내보낼 때 주석을 지우면서 코드를 망가뜨릴 수 있어서,
+ * 글자를 base64로 감싸 보내고 브라우저에서 풀어 그 자리에 넣는다 */
+function wrapRemote_(text) {
+  var b = Utilities.base64EncodeWebSafe(text, Utilities.Charset.UTF_8);
+  return '<script>(function(b){var s=document.currentScript,t=atob(b.split("-").join("+").split("_").join("/")),u=new Uint8Array(t.length);' +
+    'for(var i=0;i<t.length;i++)u[i]=t.charCodeAt(i);' +
+    's.parentNode.insertBefore(document.createRange().createContextualFragment(new TextDecoder("utf-8").decode(u)),s);})("' + b + '");</script>';
 }
 
 /** GitHub의 최신 화면 파일 5개 (캐시 10분). 하나라도 못 받으면 섞이지 않게 전부 안의 파일로 */
