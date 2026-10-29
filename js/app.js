@@ -13,14 +13,12 @@ window.App = (() => {
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
-    ['training', '직업훈련 일정표', 'cal'],
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
-    { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
-    { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·실적·홍보' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+    { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
   const SEC_HINT = {
@@ -94,7 +92,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -184,7 +182,7 @@ window.App = (() => {
     }
     const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key) || S.getScope() === 'p:' + p.key); // 지금 구역은 담당자가 없어도 보이게
     sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
-      progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
+      progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(D.progLabel(p.key))} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
       `<optgroup label="직원별">${staff.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>`;
     sel.value = cur;
     if (sel.value !== cur) { sel.value = 'all'; }
@@ -248,7 +246,7 @@ window.App = (() => {
     const pages = {
       dashboard: [V.dashboard],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
-      training: [() => { V.ui.sched.view = 'train'; return V.schedPage(); }, bindSched],
+      training: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched], // 훈련반은 뺐다: 예전 주소로 와도 업무 일정
 
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
@@ -275,6 +273,23 @@ window.App = (() => {
     renderSync(S.sync);
   }
 
+  /** 연락이력: 캡처(구인공고·문자 등) → AI가 필요한 정보만 뽑아 '연락 기록 추가' 칸을 채운다. 저장은 확인 후 직접 */
+  async function fillContactFromShot(file) {
+    const form = document.querySelector('[data-form="ct-add"]');
+    if (!form) return;
+    if (!AI.available()) return toast('캡처 읽기는 AI 키가 있어야 해요. 데이터 관리 → AI 도우미에서 키를 넣어 주세요.', 'error');
+    toast('캡처를 읽는 중이에요… (10초쯤)');
+    let r;
+    try {
+      const data = file.type === 'application/pdf' ? await readDataUrl(file) : await F.resizeImage(file, 1800, .85);
+      r = await AI.readContactShot(data);
+    } catch (err) { return toast('캡처를 읽지 못했어요: ' + err.message, 'error'); }
+    const set = (k, v) => { const el = form.elements[k]; if (!el || !v) return 0; el.value = v; el.classList.add('ai-filled'); return 1; };
+    const n = set('name', r.name) + set('phone', r.phone) + set('address', r.address) + set('contactName', r.contactName) + set('jobType', r.jobType) + set('content', r.content) + set('jobUrl', R.jobLink(r.jobUrl) ? r.jobUrl : '');
+    if (!n) return toast('캡처에서 쓸 만한 정보를 찾지 못했어요. 공고 화면이 잘 보이게 다시 찍어 보세요.', 'error');
+    form.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    toast(`캡처에서 ${n}칸을 채웠어요. 노란 칸을 확인·수정하고 방식·결과를 고른 뒤 '추가'를 누르세요.`);
+  }
   /** 방금 넣은 기록의 담당이 지금 보는 범위(한 사람)에 없으면 바로 알려 준다 */
   function hiddenHere(who) {
     const sc = S.getScope();
@@ -1430,7 +1445,7 @@ window.App = (() => {
       const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
-    'sched-view': el => { location.hash = el.dataset.v === 'train' ? '#/training' : '#/schedule'; },
+    'sched-view': () => { location.hash = '#/schedule'; },
     /** 상단 구역 바꾸기: 보기 범위를 그 사업 직원으로, 지도는 그 사업 지도로 맞추고 첫 기능으로 간다 */
     sec: el => {
       const x = SECS.find(s => s.k === el.dataset.sec); if (!x) return;
@@ -1505,7 +1520,7 @@ window.App = (() => {
       }
       const have = new Set(S.get().events.map(x => `${x.date}|${x.title}`));
       const fresh = evs.filter(x => !have.has(`${x.date}|${x.title}`) && (have.add(`${x.date}|${x.title}`), true));
-      if (!evs.length) return toast('일정을 찾지 못했어요. 표 첫 줄에 "날짜"와 "제목(또는 내용·일정)" 칸이 있어야 해요. 직업훈련 일정표는 위 "직업훈련 일정표" 탭에서 불러오세요.', 'error');
+      if (!evs.length) return toast('일정을 찾지 못했어요. 표 첫 줄에 "날짜"와 "제목(또는 내용·일정)" 칸이 있어야 해요.', 'error');
       if (!fresh.length) return toast(`${evs.length}건 모두 이미 있는 일정이에요.`);
       if (!(await confirmBox(`일정 ${fresh.length}건을 추가할까요?`, `${files.map(f => f.name).join(', ')}에서 ${evs.length}건을 찾았고, 날짜·제목이 같은 ${evs.length - fresh.length}건은 빼요.`, '추가'))) return;
       S.upsertMany('ev', fresh); toast(`일정 ${fresh.length}건을 추가했어요.`);
@@ -2019,6 +2034,69 @@ window.App = (() => {
       ps.forEach(p => S.remove('perf', p.id)); as.forEach(a => S.remove('act', a.id));
       toast('지웠어요.');
     },
+    'dp-mgr': () => { DP.ui.mgr = !DP.ui.mgr; },
+    'dp-mgr-open': () => { DP.ui.mgr = true; location.hash = '#/dashboard'; setTimeout(() => $('#dpMgr')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 400); },
+    /** 대시보드 세부사업·목표 저장: 목표 + 직접 더한 항목의 이름·세는 법. 이름을 바꾸면 그동안 넣은 실적도 옮긴다 */
+    'dp-mgr-save': async () => {
+      const set = DP.setOfScope(); if (!set) return;
+      const num = v => { const t = String(v ?? '').replace(/[^0-9.]/g, ''); return t === '' ? null : Number(t); };
+      const st = S.get(), list = D.customItems(set).map(x => ({ ...x }));
+      // 이름 바꾸기
+      const renames = [];
+      document.querySelectorAll('[data-mgr-name]').forEach(el => { const from = el.dataset.mgrName, to = el.value.trim(); if (to && to !== from) renames.push([from, to]); });
+      for (const [from, to] of renames) {
+        if (D.PERF_SETS[set].items.includes(to) && !renames.some(r => r[0] === to)) return toast(`'${to}'은(는) 이미 있는 세부사업 이름이에요.`, 'error');
+      }
+      const newName = n => (renames.find(r => r[0] === n) || [, n])[1];
+      list.forEach(x => { x.name = newName(x.name); });
+      document.querySelectorAll('[data-mgr-only]').forEach(el => { const it = list.find(x => x.name === newName(el.dataset.mgrOnly)); if (it) it.countOnly = el.checked; });
+      // 목표
+      const goalsIn = {};
+      document.querySelectorAll('[data-mgr-goal]').forEach(el => { const i = newName(el.dataset.mgrGoal); (goalsIn[i] = goalsIn[i] || [null, null, null])[+el.dataset.k] = num(el.value); });
+      const patch = { perfItems: { ...(st.settings.perfItems || {}), [set]: list } };
+      if (set === GL.SET) {
+        const g = GL.goal(), rows = {};
+        Object.entries(g.rows).forEach(([i, r]) => { rows[newName(i)] = r; });
+        Object.entries(goalsIn).forEach(([i, r]) => { rows[i] = r; });
+        patch.perfGoal = JSON.stringify({ ...g, rows, baseYear: num($('#mgrBaseYear')?.value) || g.baseYear, months: Math.min(12, Math.max(1, num($('#mgrMonths')?.value) || g.months)) });
+      } else {
+        let custom = st.settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = {}; } }
+        const mine = {};
+        Object.entries(goalsIn).forEach(([i, r]) => { mine[i] = r[0] == null ? '' : r[0]; });
+        patch.goalsBySet = JSON.stringify({ ...(custom || {}), [set]: mine });
+      }
+      // 그동안 넣은 실적도 새 이름으로
+      if (renames.length) {
+        const ps = st.perfs.filter(p => p.set === set && renames.some(r => r[0] === p.item)).map(p => ({ id: p.id, item: newName(p.item) }));
+        const as = st.activities.filter(a => a.fromPerf === 'Y' && renames.some(r => r[0] === a.perf)).map(a => ({ id: a.id, perf: newName(a.perf) }));
+        if (ps.length) S.putMany('perf', ps); if (as.length) S.putMany('act', as);
+      }
+      await S.saveSettings(patch);
+      toast(`세부사업·목표를 저장했어요.${renames.length ? ` 이름을 바꾼 ${renames.length}개 항목의 실적도 옮겼어요.` : ''} 실적 탭에 바로 반영돼요.`);
+      render();
+    },
+    'dp-mgr-add': async () => {
+      const set = DP.setOfScope(); if (!set) return;
+      const name = ($('#mgrNewName')?.value || '').trim();
+      if (!name) return $('#mgrNewName')?.focus();
+      if (D.PERF_SETS[set].items.includes(name)) return toast(`'${name}'은(는) 이미 있어요.`, 'error');
+      const num = id => { const t = String($(id)?.value || '').replace(/[^0-9.]/g, ''); return t === '' ? null : Number(t); };
+      const st = S.get(), list = [...D.customItems(set), { name, countOnly: !!$('#mgrNewOnly')?.checked }];
+      const patch = { perfItems: { ...(st.settings.perfItems || {}), [set]: list } };
+      if (set === GL.SET) { const g = GL.goal(); patch.perfGoal = JSON.stringify({ ...g, rows: { ...g.rows, [name]: [num('#mgrNewG0'), num('#mgrNewG1'), num('#mgrNewG2')] } }); }
+      else { let custom = st.settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = {}; } } patch.goalsBySet = JSON.stringify({ ...(custom || {}), [set]: { ...((custom || {})[set] || {}), [name]: num('#mgrNewG0') ?? '' } }); }
+      DP.ui.mgr = true;
+      await S.saveSettings(patch);
+      toast(`'${name}' 세부사업을 더했어요. 실적 탭 입력칸에서도 바로 고를 수 있어요.`);
+      render();
+    },
+    'dp-mgr-del': async el => {
+      const set = DP.setOfScope(), name = el.dataset.item; if (!set) return;
+      if (!(await confirmBox(`'${name}' 세부사업을 지울까요?`, '목표도 같이 지워져요. (기록이 있는 항목은 지울 수 없어요)', '지우기'))) return;
+      const st = S.get();
+      await S.saveSettings({ perfItems: { ...(st.settings.perfItems || {}), [set]: D.customItems(set).filter(x => x.name !== name) } });
+      toast(`'${name}'을(를) 지웠어요.`); render();
+    },
     'goal-open': () => { V.ui.perf.goalOpen = !V.ui.perf.goalOpen; },
     'gl-save': async () => {
       const g = GL.readEditor();
@@ -2143,11 +2221,15 @@ window.App = (() => {
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
     'ct-reg': el => { const r = R.registerBiz(el.dataset.id, el.dataset.kind); if (r) toast(r.kind === 'net' ? `${r.x.name} 기관(네트워크)에 연락 기록을 옮겼어요. 기관 상세·홍보·방문처에서 볼 수 있어요.` : `${r.x.name}을(를) 사업체로 등록했어요. 사업체 개발·지도에 나와요.`); },
+    'ct-shot': () => pickFiles('image/*,.pdf', false, files => files[0] && fillContactFromShot(files[0])),
     'ct-reg-form': el => {
       // 연락만 한 곳 → 등록 화면을 열어 직접 입력 (저장하면 이 연락 기록도 그곳으로 이어진다)
       const b = S.find('biz', el.dataset.id); if (!b) return;
       const kind = el.dataset.kind === 'net' ? 'net' : 'biz';
-      const preset = { name: b.name, phone: b.phone || '', address: b.address || '', ...(b.programs && b.programs.length ? { programs: b.programs } : {}), ...(kind === 'net' ? { category: D.guessCategory(b.name) || '' } : { stage: b.stage, discoveredAt: b.discoveredAt, jobs: b.jobs || '' }) };
+      // 연락이력에 적은 담당자(예: '김재윤 부장')를 이름·직함으로 나눠 채우고, 전화번호도 넘긴다 → 저장하면 명함까지 만들어져 사업체 탭에 보인다
+      const cn = (S.actsOf('biz', b.id).find(a => a.contactName) || {}).contactName || '';
+      const m = cn.split(/[\/,]/)[0].trim().match(/^(\S+)\s*(.*)$/) || [];
+      const preset = { name: b.name, phone: b.phone || '', address: b.address || '', cName: m[1] || '', cTitle: (m[2] || '').trim(), cPhone: b.phone || '', ...(b.programs && b.programs.length ? { programs: b.programs } : {}), ...(kind === 'net' ? { category: D.guessCategory(b.name) || '' } : { stage: b.stage, discoveredAt: b.discoveredAt, jobs: b.jobs || '' }) };
       push({ type: 'form', kind, preset, adopt: b.id }, false);
     },
     'ct-reg-all': async () => {
@@ -2392,6 +2474,14 @@ window.App = (() => {
   };
 
   function bindGlobal() {
+    // 연락이력 화면에서 캡처 이미지를 Ctrl+V 하면 그 캡처로 칸을 채운다
+    document.addEventListener('paste', ev => {
+      if (route() !== 'contacts' || drawerOpen()) return;
+      const f = [...((ev.clipboardData && ev.clipboardData.files) || [])].find(x => /^image\//.test(x.type));
+      if (!f) return;
+      ev.preventDefault();
+      fillContactFromShot(f);
+    });
     document.addEventListener('click', ev => {
       if (!ev.target.closest('.menu-wrap')) $('#quickMenu').hidden = true;
       if (!ev.target.closest('.more-sheet, [data-act="more"]')) closeMore();

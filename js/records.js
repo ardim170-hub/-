@@ -43,7 +43,7 @@ window.R = (() => {
   function secStaffBar() {
     const sc = S.getScope(), prog = sc.startsWith('p:') ? sc.slice(2) : '';
     if (!prog) return '';
-    const list = S.staffHere(), admin = S.isAdmin(), label = ({ '장애인개발원': '현장중심' })[prog] || prog;
+    const list = S.staffHere(), admin = S.isAdmin(), label = D.progLabel(prog);
     return `<section class="panel panel-pad sec-staff">
       <b>${e(label)} 담당자</b>
       ${list.length ? list.map(x => `<span class="sec-staff-chip">${V.staffDot(x.name)}${e(x.name)}${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(x.name)}" aria-label="${e(x.name)} 빼기" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('') : '<span class="sub">아직 이 구역 담당자가 없어요. 이름을 넣고 추가해야 연락·실적 기록을 넣을 수 있어요.</span>'}
@@ -64,7 +64,8 @@ window.R = (() => {
       </div>
       ${secStaffBar()}
       <section class="panel panel-pad perf-input">
-        <h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 곳은 <b>미등록</b>으로 연락이력에만 남아요. 아래 목록에서 <b>사업체로 등록</b>을 눌러야 사업체 개발·지도에 올라가요</span></h2>
+        <div class="ct-add-head"><h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 곳은 <b>미등록</b>으로 연락이력에만 남아요. 아래 목록에서 <b>사업체 등록</b>을 눌러야 사업체 개발·지도에 올라가요</span></h2>
+          <span class="ct-shot"><button class="btn btn-sm" type="button" data-act="ct-shot">📷 캡처로 채우기</button><span class="sub">구인공고·문자 캡처를 고르거나, 이 화면에서 <b>Ctrl+V</b>로 붙여넣으면 칸을 채워 줘요</span></span></div>
         <form class="perf-form" data-form="ct-add" autocomplete="off">
           <label>날짜<input class="input" type="date" name="date" value="${f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
           <label>방식<select class="select" name="type">${opts(CONTACT_TYPES, '전화')}</select></label>
@@ -613,7 +614,7 @@ window.R = (() => {
       <b>담당자</b>
       <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
       ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${V.staffDot(s.name)}${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
-      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option>${e(p.key)}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
+      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option value="${e(p.key)}">${e(D.progLabel(p.key))}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
     </div>`;
   }
   function importVisits() {

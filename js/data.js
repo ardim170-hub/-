@@ -106,11 +106,14 @@ window.D = (() => {
 
   /** 직원 소속 사업 (같은 업무라도 지원 기관별로 실적을 나눠 본다) */
   const PROGRAMS = [
-    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
-    { key: '고용공단', short: '공단', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
-    { key: '장애인일자리', short: '일자리', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
-    { key: '직업훈련', short: '훈련', color: '#2563EB', hex: '#2563EB', map: '' },
+    // key = 시트에 저장되는 소속 값(바꾸지 않음), label = 화면에 쓰는 이름, full = 정식 사업명·주관 기관
+    { key: '장애인개발원', label: '현장중심', short: '현장중심', full: '현장중심직업재활센터 (한국장애인개발원)', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
+    { key: '고용공단', label: '고용공단', short: '고용공단', full: '고용지원사업 (한국장애인고용공단)', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
+    { key: '장애인일자리', label: '장애인일자리', short: '일자리', full: '장애인일자리사업', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
   ];
+  /** 소속 값 → 화면 이름 (현장중심 / 고용공단 / 장애인일자리) */
+  const progLabel = k => (PROGRAM[k] && PROGRAM[k].label) || k || '';
+  const progFull = k => (PROGRAM[k] && PROGRAM[k].full) || k || '';
   const BUILTIN_PROGRAMS = PROGRAMS.map(p => p.key);
   const PROG_COLORS = ['#0E9384', '#B42318', '#7C4DDB', '#B08800', '#C2255C', '#475467'];
   /** 데이터 관리에서 추가한 소속을 목록에 합친다 (지도 탭은 만들지 않음) */
@@ -132,6 +135,19 @@ window.D = (() => {
     '현장중심직업재활센터': { big: '중증장애인직업재활사업(현장중심직업재활센터)', mid: '현장중심직업재활센터', items: ['직업상담(현장중심)', '직업평가', '현장중심 직업훈련', '사업체개발', '취업알선(현장중심)', '취업', '취업후적응지도'] },
     '고용지원사업': { big: '직업지원사업', mid: '고용지원사업', items: ['직업상담', '취업알선', '취업확정', '사후관리', '취업자자조모임', '고용자원개발', '사업체관리', '고용네트워크'] },
   };
+  /* 세부사업(실적 명목): 기관 실적표의 기본 항목 + 대시보드에서 더한 항목 */
+  const BUILTIN_ITEMS = Object.fromEntries(Object.entries(PERF_SETS).map(([k, v]) => [k, v.items.slice()]));
+  let CUSTOM_ITEMS = {};
+  /** 대시보드에서 더한 세부사업을 분류표에 붙인다. map = { 분류표: [{ name, countOnly }] } */
+  function setCustomItems(map) {
+    CUSTOM_ITEMS = map && typeof map === 'object' ? map : {};
+    Object.keys(PERF_SETS).forEach(k => {
+      const add = (CUSTOM_ITEMS[k] || []).map(x => String((x && x.name) || '').trim()).filter((n, i, a) => n && !BUILTIN_ITEMS[k].includes(n) && a.indexOf(n) === i);
+      PERF_SETS[k].items.splice(0, PERF_SETS[k].items.length, ...BUILTIN_ITEMS[k], ...add);
+    });
+  }
+  const customItems = set => (CUSTOM_ITEMS[set] || []).filter(x => x && x.name);
+  const isBuiltinItem = (set, item) => !!(BUILTIN_ITEMS[set] || []).includes(item);
   /** 소속 → 실적 분류표 (데이터 관리에서 바꿀 수 있음) */
   const DEFAULT_PERF_BY_PROGRAM = { '장애인개발원': '현장중심직업재활센터', '고용공단': '고용지원사업' };
   /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님
@@ -357,5 +373,5 @@ window.D = (() => {
     };
   }
 
-  return { BUILTIN_PROGRAMS, setCustomPrograms, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { BUILTIN_PROGRAMS, progLabel, progFull, setCustomPrograms, setCustomItems, customItems, isBuiltinItem, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

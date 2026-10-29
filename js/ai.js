@@ -162,5 +162,20 @@ ${facts}` }],
     return textOf(msg);
   }
 
-  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, research, summarize, coach };
+  /* ---------- 연락이력: 캡처(구인공고·문자·메모 화면) → 연락 기록 칸 ---------- */
+  const SHOT_SCHEMA = obj({
+    name: str('사업체(회사) 이름. 지점명이 있으면 포함'), address: str('사업장 주소 전체'), phone: str('사업체·채용 담당 전화번호, 하이픈 포함. 여러 개면 " / "로'),
+    contactName: str('채용 담당자 이름과 직함 (예: 김재윤 부장)'), jobType: str('모집 직종·직무 (짧게)'),
+    content: str('연락 기록에 남길 핵심 한두 줄: 근무시간·급여·인원·마감일 등 (화면에 있는 것만)'), jobUrl: str('화면에 보이는 공고 주소(https로 시작). 없으면 빈 문자열'),
+  });
+  async function readContactShot(dataUrl) {
+    const msg = await run({
+      max_tokens: 3000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: SHOT_SCHEMA } },
+      messages: [{ role: 'user', content: [imageBlock(dataUrl), { type: 'text', text: '장애인 취업지원 직업재활사가 사업체에 연락하기 전에 찍은 캡처예요(구인공고, 문자, 메모 등). 연락이력에 등록할 정보만 뽑아 주세요. 화면에 없는 항목은 빈 문자열로 두고 짐작해서 채우지 마세요.' }] }],
+    });
+    return JSON.parse(textOf(msg));
+  }
+
+  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, readContactShot, research, summarize, coach };
 })();

@@ -75,7 +75,7 @@ window.V = (() => {
 
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
-  const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(p.key)}">${e(p.short)}</span>` : ''; };
+  const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(D.progFull(p.key))}">${e(p.short || p.key)}</span>` : ''; };
   const staffTag = name => name ? `<span class="staff-tag">${staffDot(name)}${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
   const scopeNote = () => S.getScope() === 'all' ? '' : ` · <b>${e(S.scopeLabel())}</b> 기준`;
   const ddayBadge = date => { const d = U.dday(date); return `<span class="badge ${d.tone} num">${d.label}</span>`; };
@@ -172,11 +172,11 @@ window.V = (() => {
     if (prog) { ss.groups = ss.groups.filter(g => g.key === prog); ss.total = ss.groups[0] ? ss.groups[0].total : { biz: 0, active: 0, placed: 0, net: 0, actsMonth: 0 }; ss.orphan = 0; }
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
     return `<section class="panel panel-pad">
-      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체 · 행을 누르면 그 범위로 봅니다'}</span></div>
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(D.progLabel(prog))} 직원만` : '팀 전체 · 행을 누르면 그 범위로 봅니다'}</span></div>
       <div class="table-wrap"><table class="tbl staff-tbl">
         <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
         <tbody>${ss.groups.map(g => `
-          ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
+          ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(D.progLabel(g.key))}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
           ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', prog ? '' : `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
           ${prog ? '' : row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
         </tbody></table></div>
@@ -331,7 +331,11 @@ window.V = (() => {
             <td>${stageBadge(b.stage)}</td>
             <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
-            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc) || b.phone || '')}</div>` : (() => {
+              // 명함이 없으면 연락이력에 적은 담당자와 사업체 대표 전화로 보여 준다
+              const cn = (S.actsOf('biz', b.id).find(a => a.contactName) || {}).contactName || '';
+              return cn || b.phone ? `<div>${e(cn || '-')}${cn ? ' <span class="meta">(연락이력)</span>' : ''}</div><div class="meta num">${e(b.phone || '')}</div>` : '<span class="meta">-</span>';
+            })()}</td>
             <td class="nowrap">${staffTag(b.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '<span class="meta">-</span>'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
@@ -399,7 +403,7 @@ window.V = (() => {
             <td><div class="name">${S.isHome(n) ? '<span class="home-star" aria-hidden="true">★</span>' : ''}${U.hl(n.name, f.q)}${dupTag(dup, n.id)}${M.hasPos(n) ? '' : ` <button type="button" class="badge nopos" data-act="edit-loc" data-kind="net" data-id="${n.id}" title="지도에 안 나와요. 눌러서 위치 지정">📍 위치 없음</button>`}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
-            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc) || n.phone || '')}</div>` : (n.phone ? `<div class="meta num">${e(n.phone)}</div>` : '<span class="meta">명함 없음</span>')}</td>
             <td class="nowrap">${staffTag(n.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '-'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
@@ -696,7 +700,8 @@ window.V = (() => {
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
     const f = ui.sched;
-    const tabs = `<div class="chips sched-tabs" role="tablist"><button type="button" role="tab" class="chip ${f.view !== 'train' ? 'on' : ''}" data-act="sched-view" data-v="work">📅 업무 일정</button><button type="button" role="tab" class="chip ${f.view === 'train' ? 'on' : ''}" data-act="sched-view" data-v="train">🗓 직업훈련 일정표 <small>JOB이음터 · 일과놀이반</small></button></div>`;
+    const tabs = '';
+    f.view = 'work'; // 훈련반(직업훈련 일정표)은 뺐다
     if (f.view === 'train') return `
       <div class="page-head"><div><h1 class="page-title">직업훈련 일정표</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
       ${tabs}<div id="tpBox"></div>`;
@@ -931,7 +936,8 @@ window.V = (() => {
   /** 목표를 실적 화면에서 바로 넣고 고치기 */
   function goalBox(f) {
     const set = f.set, isGL = set === GL.SET, items = D.PERF_SETS[set].items, Y = +f.month.slice(0, 4);
-    const canEdit = S.can('perf', 2), G = DP.goals(set, Y), num = v => (v == null || v === '' ? '' : v);
+    // 목표·세부사업은 대시보드에서만 고친다 (여기는 보기만, 고치면 바로 여기에 반영)
+    const canEdit = false, G = DP.goals(set, Y), num = v => (v == null || v === '' ? '' : v);
     const inp = (i, k, v) => `<input class="input sm num goal-in" data-goal="${e(i)}" data-k="${k}" value="${num(v)}" placeholder="-" inputmode="numeric" ${canEdit ? '' : 'disabled'} aria-label="${e(i)} 목표">`;
     let head, body, top = '';
     if (isGL) {
@@ -945,10 +951,10 @@ window.V = (() => {
       body = items.map(i => `<tr><th>${e(i)}</th><td class="r">${inp(i, 0, m[i])}</td><td class="r num sub">${G.month(i, +f.month.slice(5, 7)) ?? '-'}</td></tr>`).join('');
     }
     const tot = items.reduce((a, i) => a + (G.year(i) || 0), 0);
-    return `<details class="panel goal-box" ${f.goalOpen ? 'open' : ''}><summary data-act="goal-open"><b>🎯 목표</b> <span class="sub">${Y}년 연간 목표 합계 <b class="num">${U.num(tot)}</b>건 · 눌러서 ${canEdit ? '바로 입력·수정' : '보기'}</span></summary>
+    return `<details class="panel goal-box" ${f.goalOpen ? 'open' : ''}><summary data-act="goal-open"><b>🎯 목표</b> <span class="sub">${Y}년 연간 목표 합계 <b class="num">${U.num(tot)}</b>건 · 눌러서 보기 · 고치기는 대시보드에서</span></summary>
       <div class="goal-body">${top}
         <div class="table-wrap"><table class="tbl goal-tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">빈칸은 '해당 없음'. 월 목표는 연간 목표를 달마다 나눠 다 더하면 연간 목표와 같아요.</span>${canEdit ? '<button class="btn btn-primary" type="button" data-act="goal-save">목표 저장</button>' : ''}</div>
+        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">빈칸은 '해당 없음'. 월 목표는 연간 목표를 달마다 나눠 다 더하면 연간 목표와 같아요.</span>${S.can('perf', 2) ? '<button class="btn btn-primary" type="button" data-act="dp-mgr-open">✏️ 대시보드에서 세부사업·목표 고치기</button>' : ''}</div>
       </div></details>`;
   }
   function perfPage() {
@@ -1164,9 +1170,9 @@ window.V = (() => {
         ${admin ? `
         <section class="panel panel-pad staff-editor">
           <h2 class="section-title">담당 직원과 소속 사업</h2>
-          <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
+          <p>소속이 곧 화면 구역이에요. <b>현장중심</b> = 현장중심직업재활센터(한국장애인개발원), <b>고용공단</b> = 고용지원사업(한국장애인고용공단), <b>장애인일자리</b> = 장애인일자리사업. 직원마다 소속을 꼭 정해 주세요. 소속이 없으면 어느 구역에서도 담당자로 고를 수 없어요.</p>
           <div class="prog-mgr"><b>소속 사업</b>
-            ${D.PROGRAMS.map(p => `<span class="prog-chip" style="--c:${p.hex}">${e(p.key)}${p.custom ? `<button type="button" data-act="prog-del" data-key="${e(p.key)}" aria-label="${e(p.key)} 소속 삭제" title="소속 삭제">×</button>` : ''}</span>`).join('')}
+            ${D.PROGRAMS.map(p => `<span class="prog-chip" style="--c:${p.hex}" title="${e(D.progFull(p.key))}">${e(D.progLabel(p.key))}${p.custom ? `<button type="button" data-act="prog-del" data-key="${e(p.key)}" aria-label="${e(p.key)} 소속 삭제" title="소속 삭제">×</button>` : ''}</span>`).join('')}
             <span class="prog-add"><input class="input sm" id="progNew" placeholder="새 소속 이름" style="width:130px"><button class="btn btn-sm" type="button" data-act="prog-add">+ 소속 추가</button></span>
           </div>
           <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
@@ -1177,7 +1183,7 @@ window.V = (() => {
         <section class="panel panel-pad">
           <h2 class="section-title">소속별 실적 분류표</h2>
           <p>활동 기록을 어느 실적표(대분류·중분류·세부사업명)로 집계할지 정합니다.</p>
-          ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600">${e(pr.key)}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
+          ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600" title="${e(D.progFull(pr.key))}">${e(D.progLabel(pr.key))}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
           <button class="btn btn-sm" type="button" data-act="save-perfmap">저장</button>
         </section>
         ` : ''}
@@ -1238,7 +1244,7 @@ window.V = (() => {
   }
 
   const linkRow = (l = { label: '', url: '' }) => `<div class="staff-row"><input class="input" name="linkLabel" value="${e(l.label)}" placeholder="이름 (예: 고용24)" aria-label="바로가기 이름"><input class="input" name="linkUrl" value="${e(l.url)}" placeholder="https://..." aria-label="주소"><button class="icon-btn" type="button" data-act="staff-del" aria-label="바로가기 삭제">${I.close}</button></div>`;
-  const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option ${p.key === s.program ? 'selected' : ''}>${e(p.key)}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
+  const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option value="${e(p.key)}" ${p.key === s.program ? 'selected' : ''}>${e(D.progLabel(p.key))}${p.full ? ` — ${e(p.full)}` : ''}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
 
   /* ================= 상세 Drawer ================= */
   function drHead(title, badges, actions, canBack) {

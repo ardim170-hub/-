@@ -6,7 +6,7 @@ window.DP = (() => {
   const ui = { mode: 'year', year: +U.today().slice(0, 4), month: now() };
   // 고용지원사업 기본 연간 목표(횟수) — 기관 사업계획 2026 기준. 데이터 관리에서 바꾸려면 settings.goalsBySet
   const GOALS = { '고용지원사업': { '직업상담': 120, '취업알선': 66, '취업확정': 54, '사후관리': 60, '취업자자조모임': 7, '고용자원개발': 60, '사업체관리': 120, '고용네트워크': 2 } };
-  const SEC_LABEL = { '장애인개발원': '현장중심', '고용공단': '고용공단' };
+  const SEC_LABEL = new Proxy({}, { get: (_, k) => D.progLabel(k) }); // 소속 값 → 화면 이름
 
   /** 지금 보는 구역의 실적 분류표 */
   function setOfScope() {
@@ -206,6 +206,7 @@ window.DP = (() => {
       <div class="dp-kpis">${kpis}</div>
       <div class="dp-sec-t">세부사업별 달성 현황 <span class="sub">원 = 누적 달성률(연간 목표 대비) · 아래 막대 = 달별 실적, 선 = 그 달 목표 · 카드를 누르면 자세히</span></div>
       <div class="dp-items">${items.map(itemCard).join('')}</div>
+      ${mgrHtml(set, Y)}
       <div class="dp-sec-t dp-chart-t"><span>${isCum ? '누적 실적 추이' : '월별 실적 현황'} <span class="sub">${Y}년 · 막대 = ${isCum ? '그 달까지 쌓인 실적' : '그 달 실적'}, 가로선 = ${isCum ? '그 달까지의 목표' : '그 달 목표'} · 막대를 누르면 그 달로</span></span>
         <span class="seg"><button type="button" class="${isCum ? '' : 'on'}" data-act="dp-view" data-v="month">월별</button><button type="button" class="${isCum ? 'on' : ''}" data-act="dp-view" data-v="cum">누적</button></span></div>
       <div class="dp-chart" role="img" aria-label="${Y}년 ${isCum ? '누적' : '월별'} 실적: ${vals.map((n, k) => `${k + 1}월 ${n}건`).join(', ')}">${bars}</div>
@@ -221,6 +222,34 @@ window.DP = (() => {
     </section>`;
   }
 
+  /** ⚙️ 세부사업·목표 관리: 기관 기본 항목은 목표만, 대시보드에서 더한 항목은 이름·목표·삭제까지. 저장하면 실적 탭에 바로 반영 */
+  function mgrHtml(set, Y) {
+    if (!S.can('perf', 2)) return '';
+    const items = D.PERF_SETS[set].items, isGL = set === GL.SET, G = goals(set, Y);
+    const cnt = i => S.get().perfs.filter(p => p.set === set && p.item === i).length + S.get().activities.filter(a => a.fromPerf === 'Y' && a.perf === i).length;
+    const num = v => (v == null || v === '' ? '' : v);
+    const inp = (i, k, v) => `<input class="input sm num mgr-in" data-mgr-goal="${e(i)}" data-k="${k}" value="${num(v)}" placeholder="-" inputmode="numeric" aria-label="${e(i)} 목표">`;
+    const g = isGL ? GL.goal() : null, gm = isGL ? null : goalMap(set);
+    const custom = new Map(D.customItems(set).map(x => [x.name, x]));
+    const row = i => {
+      const own = !D.isBuiltinItem(set, i), c = custom.get(i) || {}, n = cnt(i);
+      const goalsCells = isGL ? [0, 1, 2].map(k => `<td class="r">${inp(i, k, (g.rows[i] || [])[k])}</td>`).join('') : `<td class="r">${inp(i, 0, gm[i])}</td>`;
+      return `<tr data-mgr-row="${e(i)}" class="${own ? 'own' : ''}"><th>${own ? `<input class="input sm mgr-name" data-mgr-name="${e(i)}" value="${e(i)}" aria-label="세부사업 이름">` : `${e(i)} <span class="badge">기관 기본</span>`}</th>
+        ${goalsCells}<td class="r num sub">${G.year(i) ?? '-'}</td>
+        <td>${own ? `<label class="check sub"><input type="checkbox" data-mgr-only="${e(i)}" ${c.countOnly ? 'checked' : ''}>횟수만</label>` : `<span class="sub">${S.NO_PEOPLE.has(i) ? '횟수만' : '사람 수도'}</span>`}</td>
+        <td class="r num sub">${n}건</td>
+        <td>${own ? `<button class="icon-btn" type="button" data-act="dp-mgr-del" data-item="${e(i)}" aria-label="${e(i)} 지우기" title="${n ? '기록이 있으면 못 지워요' : '지우기'}" ${n ? 'disabled' : ''}>${V.I.close}</button>` : ''}</td></tr>`;
+    };
+    const gHead = isGL ? '<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>' : '<th class="r">연간 목표(횟수)</th>';
+    return `<details class="dp-mgr" ${ui.mgr ? 'open' : ''} id="dpMgr"><summary data-act="dp-mgr"><b>⚙️ 세부사업·목표 관리</b> <span class="sub">세부사업 추가·이름 바꾸기·목표 고치기 · 저장하면 실적 탭에 바로 반영돼요</span></summary>
+      <div class="dp-mgr-body">
+        ${isGL ? `<div class="inline goal-top"><label>기준 연도 <input class="input sm num" id="mgrBaseYear" value="${g.baseYear}" style="width:72px"></label><label>기준 개월 수 <input class="input sm num" id="mgrMonths" value="${g.months}" style="width:56px"></label><span class="sub">${g.baseYear}년은 ${13 - (Number(g.months) || 12)}~12월 목표, 다음 해부터 × 12 ÷ ${g.months}</span></div>` : ''}
+        <div class="table-wrap"><table class="tbl dp-mgr-tbl"><thead><tr><th>세부사업</th>${gHead}<th class="r sub">${Y}년 목표</th><th>세는 법</th><th class="r">기록</th><th></th></tr></thead>
+          <tbody>${items.map(row).join('')}</tbody>
+          <tfoot><tr class="dp-mgr-new"><th><input class="input sm" id="mgrNewName" placeholder="새 세부사업 이름 (예: 직장체험)"></th>${isGL ? [0, 1, 2].map(k => `<td class="r"><input class="input sm num mgr-in" id="mgrNewG${k}" placeholder="-" inputmode="numeric"></td>`).join('') : '<td class="r"><input class="input sm num mgr-in" id="mgrNewG0" placeholder="-" inputmode="numeric"></td>'}<td></td><td><label class="check sub"><input type="checkbox" id="mgrNewOnly">횟수만</label></td><td></td><td><button class="btn btn-sm" type="button" data-act="dp-mgr-add">+ 추가</button></td></tr></tfoot></table></div>
+        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">기관 기본 항목은 이름은 그대로, 목표만 고칠 수 있어요. 직접 더한 항목은 이름을 바꾸면 그동안 넣은 실적도 새 이름으로 옮겨져요. '횟수만' = 사업체개발처럼 사람 수(연·실인원) 없이 건수만 세요.</span><button class="btn btn-primary" type="button" data-act="dp-mgr-save">저장</button></div>
+      </div></details>`;
+  }
   /** 지금 보는 기간의 공통 값 */
   function ctx() {
     const set = setOfScope();

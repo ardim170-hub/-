@@ -2869,6 +2869,18 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .ver-warn button { margin-left: 8px; border: 1px solid #D92D20; background: #fff; color: #8A1C12; padding: 2px 10px; cursor: pointer; }
 .scope-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 14px; padding: 10px 14px; background: #EFF4FF; border: 1px solid #B9CCF5; border-left: 4px solid #2563EB; font-size: 14px; }
 
+/* ---------- 대시보드: 세부사업·목표 관리 ---------- */
+.dp-mgr { margin: 4px 18px 16px; border: 1px solid var(--line); border-radius: 10px; }
+.dp-mgr > summary { cursor: pointer; padding: 12px 14px; }
+.dp-mgr-body { padding: 4px 14px 14px; }
+.dp-mgr-tbl input.mgr-in { width: 84px; text-align: right; font-weight: 700; }
+.dp-mgr-tbl .mgr-name { min-width: 180px; font-weight: 700; }
+.dp-mgr-tbl tr.own th { background: #F6F3FF; }
+.dp-mgr-new th, .dp-mgr-new td { background: #F7F9FC; }
+.ct-add-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
+.ct-shot { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.ai-filled { background: #FFF9DB !important; border-color: #E9B949 !important; }
+
 </style>
 </head>
 <body>
@@ -2956,7 +2968,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="hwpFile" accept=".hwp" multiple hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.27 17:54";</script>
+<script>window.APP_VERSION = "2026.10.29 11:25";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3217,11 +3229,14 @@ window.D = (() => {
 
   /** 직원 소속 사업 (같은 업무라도 지원 기관별로 실적을 나눠 본다) */
   const PROGRAMS = [
-    { key: '장애인개발원', short: '개발원', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
-    { key: '고용공단', short: '공단', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
-    { key: '장애인일자리', short: '일자리', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
-    { key: '직업훈련', short: '훈련', color: '#2563EB', hex: '#2563EB', map: '' },
+    // key = 시트에 저장되는 소속 값(바꾸지 않음), label = 화면에 쓰는 이름, full = 정식 사업명·주관 기관
+    { key: '장애인개발원', label: '현장중심', short: '현장중심', full: '현장중심직업재활센터 (한국장애인개발원)', color: 'var(--prog-a)', hex: '#0F7B7B', map: '현장중심직업재활센터' },
+    { key: '고용공단', label: '고용공단', short: '고용공단', full: '고용지원사업 (한국장애인고용공단)', color: 'var(--prog-b)', hex: '#6A4FB8', map: '고용공단' },
+    { key: '장애인일자리', label: '장애인일자리', short: '일자리', full: '장애인일자리사업', color: 'var(--prog-c)', hex: '#C2410C', map: '장애인일자리' },
   ];
+  /** 소속 값 → 화면 이름 (현장중심 / 고용공단 / 장애인일자리) */
+  const progLabel = k => (PROGRAM[k] && PROGRAM[k].label) || k || '';
+  const progFull = k => (PROGRAM[k] && PROGRAM[k].full) || k || '';
   const BUILTIN_PROGRAMS = PROGRAMS.map(p => p.key);
   const PROG_COLORS = ['#0E9384', '#B42318', '#7C4DDB', '#B08800', '#C2255C', '#475467'];
   /** 데이터 관리에서 추가한 소속을 목록에 합친다 (지도 탭은 만들지 않음) */
@@ -3243,6 +3258,19 @@ window.D = (() => {
     '현장중심직업재활센터': { big: '중증장애인직업재활사업(현장중심직업재활센터)', mid: '현장중심직업재활센터', items: ['직업상담(현장중심)', '직업평가', '현장중심 직업훈련', '사업체개발', '취업알선(현장중심)', '취업', '취업후적응지도'] },
     '고용지원사업': { big: '직업지원사업', mid: '고용지원사업', items: ['직업상담', '취업알선', '취업확정', '사후관리', '취업자자조모임', '고용자원개발', '사업체관리', '고용네트워크'] },
   };
+  /* 세부사업(실적 명목): 기관 실적표의 기본 항목 + 대시보드에서 더한 항목 */
+  const BUILTIN_ITEMS = Object.fromEntries(Object.entries(PERF_SETS).map(([k, v]) => [k, v.items.slice()]));
+  let CUSTOM_ITEMS = {};
+  /** 대시보드에서 더한 세부사업을 분류표에 붙인다. map = { 분류표: [{ name, countOnly }] } */
+  function setCustomItems(map) {
+    CUSTOM_ITEMS = map && typeof map === 'object' ? map : {};
+    Object.keys(PERF_SETS).forEach(k => {
+      const add = (CUSTOM_ITEMS[k] || []).map(x => String((x && x.name) || '').trim()).filter((n, i, a) => n && !BUILTIN_ITEMS[k].includes(n) && a.indexOf(n) === i);
+      PERF_SETS[k].items.splice(0, PERF_SETS[k].items.length, ...BUILTIN_ITEMS[k], ...add);
+    });
+  }
+  const customItems = set => (CUSTOM_ITEMS[set] || []).filter(x => x && x.name);
+  const isBuiltinItem = (set, item) => !!(BUILTIN_ITEMS[set] || []).includes(item);
   /** 소속 → 실적 분류표 (데이터 관리에서 바꿀 수 있음) */
   const DEFAULT_PERF_BY_PROGRAM = { '장애인개발원': '현장중심직업재활센터', '고용공단': '고용지원사업' };
   /** 활동 기록에 맞는 세부사업명 추천. null이면 실적 아님
@@ -3468,7 +3496,7 @@ window.D = (() => {
     };
   }
 
-  return { BUILTIN_PROGRAMS, setCustomPrograms, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { BUILTIN_PROGRAMS, progLabel, progFull, setCustomPrograms, setCustomItems, customItems, isBuiltinItem, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();
 
 </script>
@@ -3545,6 +3573,12 @@ window.S = (() => {
     if (typeof next.settings.programs === 'string') { try { next.settings.programs = JSON.parse(next.settings.programs); } catch { next.settings.programs = []; } }
     if (!Array.isArray(next.settings.programs)) next.settings.programs = [];
     D.setCustomPrograms(next.settings.programs);
+    // 대시보드에서 더한 세부사업(실적 명목)
+    if (typeof next.settings.perfItems === 'string') { try { next.settings.perfItems = JSON.parse(next.settings.perfItems); } catch { next.settings.perfItems = {}; } }
+    if (!next.settings.perfItems || typeof next.settings.perfItems !== 'object') next.settings.perfItems = {};
+    D.setCustomItems(next.settings.perfItems);
+    NO_PEOPLE.clear(); BASE_NO_PEOPLE.forEach(x => NO_PEOPLE.add(x));
+    Object.values(next.settings.perfItems).flat().forEach(x => { if (x && x.countOnly && x.name) NO_PEOPLE.add(x.name); });
     next.cards.forEach(c => place(c));
     next.businesses.forEach(b => { if (!D.STAGE[b.stage]) b.stage = '발굴'; place(b); });
     next.networks.forEach(n => { if (!D.NET_STATUS.includes(n.status)) n.status = '보통'; place(n); });
@@ -4118,7 +4152,7 @@ window.S = (() => {
   const staffHere = () => (scope === 'all' ? staff() : staff().filter(x => staffInScope(x.name)));
   const inScope = (name, sc = scope) => staffInScope(name, sc);
   function scopeLabel() {
-    if (scope.startsWith('p:')) return scope.slice(2);
+    if (scope.startsWith('p:')) return D.progLabel(scope.slice(2));
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
     return '전체 팀';
   }
@@ -4229,7 +4263,8 @@ window.S = (() => {
      현장중심 직업훈련은 (훈련받은 날 수의 합 / 훈련 인원 / 훈련한 날짜 수): 1명이 한 달 20일 나가면 20/1/20.
      사업체개발처럼 사람을 세지 않는 항목은 횟수만. */
   const pplOf = r => String((r && r.ppl) || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
-  const NO_PEOPLE = new Set(['사업체개발', '고용자원개발', '사업체관리', '고용네트워크']);
+  const BASE_NO_PEOPLE = ['사업체개발', '고용자원개발', '사업체관리', '고용네트워크'];
+  const NO_PEOPLE = new Set(BASE_NO_PEOPLE); // + 대시보드에서 '횟수만'으로 더한 세부사업
   const isTrain = item => /훈련/.test(item || '');
   /** lines: [{ item, d, ppl: [이름], n: 이름이 없을 때 인원, key: 이름이 없을 때 같은 사람으로 볼 사업체·기관 }] → { yeon, sil, cnt } (사람을 안 세는 항목은 yeon·sil = null) */
   function perfCount(lines, item) {
@@ -4982,7 +5017,22 @@ ${facts}` }],
     return textOf(msg);
   }
 
-  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, research, summarize, coach };
+  /* ---------- 연락이력: 캡처(구인공고·문자·메모 화면) → 연락 기록 칸 ---------- */
+  const SHOT_SCHEMA = obj({
+    name: str('사업체(회사) 이름. 지점명이 있으면 포함'), address: str('사업장 주소 전체'), phone: str('사업체·채용 담당 전화번호, 하이픈 포함. 여러 개면 " / "로'),
+    contactName: str('채용 담당자 이름과 직함 (예: 김재윤 부장)'), jobType: str('모집 직종·직무 (짧게)'),
+    content: str('연락 기록에 남길 핵심 한두 줄: 근무시간·급여·인원·마감일 등 (화면에 있는 것만)'), jobUrl: str('화면에 보이는 공고 주소(https로 시작). 없으면 빈 문자열'),
+  });
+  async function readContactShot(dataUrl) {
+    const msg = await run({
+      max_tokens: 3000,
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: SHOT_SCHEMA } },
+      messages: [{ role: 'user', content: [imageBlock(dataUrl), { type: 'text', text: '장애인 취업지원 직업재활사가 사업체에 연락하기 전에 찍은 캡처예요(구인공고, 문자, 메모 등). 연락이력에 등록할 정보만 뽑아 주세요. 화면에 없는 항목은 빈 문자열로 두고 짐작해서 채우지 마세요.' }] }],
+    });
+    return JSON.parse(textOf(msg));
+  }
+
+  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, readContactShot, research, summarize, coach };
 })();
 
 </script>
@@ -5064,7 +5114,7 @@ window.V = (() => {
 
   const stageBadge = s => { const st = D.STAGE[s] || D.STAGE['발굴']; return `<span class="badge stage-badge" style="--c:${st.color}"><span class="dot"></span>${e(s)}</span>`; };
   const statusBadge = s => `<span class="badge ${s === '활발' ? 'success' : s === '휴면' ? '' : 'navy'}">${e(s)}</span>`;
-  const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(p.key)}">${e(p.short)}</span>` : ''; };
+  const progBadge = prog => { const p = D.PROGRAM[prog]; return p ? `<span class="badge prog" style="--c:${p.color}" title="${e(D.progFull(p.key))}">${e(p.short || p.key)}</span>` : ''; };
   const staffTag = name => name ? `<span class="staff-tag">${staffDot(name)}${e(name)}${progBadge(S.programOf(name))}</span>` : '<span class="meta">담당 미지정</span>';
   const scopeNote = () => S.getScope() === 'all' ? '' : ` · <b>${e(S.scopeLabel())}</b> 기준`;
   const ddayBadge = date => { const d = U.dday(date); return `<span class="badge ${d.tone} num">${d.label}</span>`; };
@@ -5161,11 +5211,11 @@ window.V = (() => {
     if (prog) { ss.groups = ss.groups.filter(g => g.key === prog); ss.total = ss.groups[0] ? ss.groups[0].total : { biz: 0, active: 0, placed: 0, net: 0, actsMonth: 0 }; ss.orphan = 0; }
     const row = (label, r, cls = '', act = '') => `<tr class="${cls}" ${act}><td>${label}</td><td class="r">${r.biz}</td><td class="r">${r.active}</td><td class="r"><b>${r.placed}</b><span class="meta">명</span></td><td class="r">${r.net}</td><td class="r">${r.actsMonth}</td></tr>`;
     return `<section class="panel panel-pad">
-      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(prog)} 직원만` : '팀 전체 · 행을 누르면 그 범위로 봅니다'}</span></div>
+      <div class="section-head"><h2 class="section-title">담당자별 현황</h2><span class="sub">${prog ? `${e(D.progLabel(prog))} 직원만` : '팀 전체 · 행을 누르면 그 범위로 봅니다'}</span></div>
       <div class="table-wrap"><table class="tbl staff-tbl">
         <thead><tr><th>담당</th><th class="r">사업체</th><th class="r">진행 중</th><th class="r">채용</th><th class="r">기관</th><th class="r">이번 달 활동</th></tr></thead>
         <tbody>${ss.groups.map(g => `
-          ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(g.key)}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
+          ${ss.groups.length > 1 || g.key ? row(g.key ? `<span class="prog-dot" style="--c:${D.PROGRAM[g.key].color}"></span><b>${e(D.progLabel(g.key))}</b> <span class="meta">${g.people.length}명</span>` : '<b>소속 미지정</b>', g.total, 'grp', g.key ? `data-act="scope-set" data-scope="p:${e(g.key)}"` : '') : ''}
           ${g.people.map(p => row(`<span class="indent">${e(p.name)}${p.name === S.me() ? ' <span class="meta">(나)</span>' : ''}</span>`, p, '', prog ? '' : `data-act="scope-set" data-scope="s:${e(p.name)}"`)).join('')}`).join('')}
           ${prog ? '' : row('<b>팀 전체</b>', ss.total, 'grp total', 'data-act="scope-set" data-scope="all"')}
         </tbody></table></div>
@@ -5320,7 +5370,11 @@ window.V = (() => {
             <td>${stageBadge(b.stage)}</td>
             <td class="nowrap num">${b.discoveredAt ? U.dateDot(b.discoveredAt) : '-'}</td>
             <td><div class="clip" title="${e(b.jobs)}">${e(b.jobs || '-')}</div></td>
-            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc) || b.phone || '')}</div>` : (() => {
+              // 명함이 없으면 연락이력에 적은 담당자와 사업체 대표 전화로 보여 준다
+              const cn = (S.actsOf('biz', b.id).find(a => a.contactName) || {}).contactName || '';
+              return cn || b.phone ? `<div>${e(cn || '-')}${cn ? ' <span class="meta">(연락이력)</span>' : ''}</div><div class="meta num">${e(b.phone || '')}</div>` : '<span class="meta">-</span>';
+            })()}</td>
             <td class="nowrap">${staffTag(b.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '<span class="meta">-</span>'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
@@ -5388,7 +5442,7 @@ window.V = (() => {
             <td><div class="name">${S.isHome(n) ? '<span class="home-star" aria-hidden="true">★</span>' : ''}${U.hl(n.name, f.q)}${dupTag(dup, n.id)}${M.hasPos(n) ? '' : ` <button type="button" class="badge nopos" data-act="edit-loc" data-kind="net" data-id="${n.id}" title="지도에 안 나와요. 눌러서 위치 지정">📍 위치 없음</button>`}</div><div class="meta">${e(n.category)} · ${e(n.area || '')}</div></td>
             <td>${statusBadge(n.status)}</td>
             <td><div class="clip" title="${e(n.relation)}">${e(n.relation || '-')}</div><div class="meta clip">홍보: ${e(n.promo || '-')}</div></td>
-            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc))}</div>` : '<span class="meta">명함 없음</span>'}</td>
+            <td>${pc ? `<div>${e(pc.name)} <span class="meta">${e(pc.title || '')}</span></div><div class="meta num">${e(tel(pc) || n.phone || '')}</div>` : (n.phone ? `<div class="meta num">${e(n.phone)}</div>` : '<span class="meta">명함 없음</span>')}</td>
             <td class="nowrap">${staffTag(n.staff)}</td>
             <td class="nowrap">${la ? `<div class="num">${U.dateDot(la.date)}</div><div class="meta">${e(la.type)} · ${U.ago(la.date)}</div>` : '-'}</td>
             <td class="nowrap">${ne ? `${ddayBadge(ne.date)}<div class="meta">${e(ne.type)}</div>` : '<span class="meta">-</span>'}</td>
@@ -5685,7 +5739,8 @@ window.V = (() => {
   const evStaff = ev => ev.staff || (S.targetOf(ev) || {}).staff || '';
   function schedPage() {
     const f = ui.sched;
-    const tabs = `<div class="chips sched-tabs" role="tablist"><button type="button" role="tab" class="chip ${f.view !== 'train' ? 'on' : ''}" data-act="sched-view" data-v="work">📅 업무 일정</button><button type="button" role="tab" class="chip ${f.view === 'train' ? 'on' : ''}" data-act="sched-view" data-v="train">🗓 직업훈련 일정표 <small>JOB이음터 · 일과놀이반</small></button></div>`;
+    const tabs = '';
+    f.view = 'work'; // 훈련반(직업훈련 일정표)은 뺐다
     if (f.view === 'train') return `
       <div class="page-head"><div><h1 class="page-title">직업훈련 일정표</h1><div class="page-desc">직업훈련 반(JOB이음터·일과놀이반)의 월간 일정표. 엑셀·한글 일정표를 불러와 합치고 인쇄합니다.</div></div></div>
       ${tabs}<div id="tpBox"></div>`;
@@ -5920,7 +5975,8 @@ window.V = (() => {
   /** 목표를 실적 화면에서 바로 넣고 고치기 */
   function goalBox(f) {
     const set = f.set, isGL = set === GL.SET, items = D.PERF_SETS[set].items, Y = +f.month.slice(0, 4);
-    const canEdit = S.can('perf', 2), G = DP.goals(set, Y), num = v => (v == null || v === '' ? '' : v);
+    // 목표·세부사업은 대시보드에서만 고친다 (여기는 보기만, 고치면 바로 여기에 반영)
+    const canEdit = false, G = DP.goals(set, Y), num = v => (v == null || v === '' ? '' : v);
     const inp = (i, k, v) => `<input class="input sm num goal-in" data-goal="${e(i)}" data-k="${k}" value="${num(v)}" placeholder="-" inputmode="numeric" ${canEdit ? '' : 'disabled'} aria-label="${e(i)} 목표">`;
     let head, body, top = '';
     if (isGL) {
@@ -5934,10 +5990,10 @@ window.V = (() => {
       body = items.map(i => `<tr><th>${e(i)}</th><td class="r">${inp(i, 0, m[i])}</td><td class="r num sub">${G.month(i, +f.month.slice(5, 7)) ?? '-'}</td></tr>`).join('');
     }
     const tot = items.reduce((a, i) => a + (G.year(i) || 0), 0);
-    return `<details class="panel goal-box" ${f.goalOpen ? 'open' : ''}><summary data-act="goal-open"><b>🎯 목표</b> <span class="sub">${Y}년 연간 목표 합계 <b class="num">${U.num(tot)}</b>건 · 눌러서 ${canEdit ? '바로 입력·수정' : '보기'}</span></summary>
+    return `<details class="panel goal-box" ${f.goalOpen ? 'open' : ''}><summary data-act="goal-open"><b>🎯 목표</b> <span class="sub">${Y}년 연간 목표 합계 <b class="num">${U.num(tot)}</b>건 · 눌러서 보기 · 고치기는 대시보드에서</span></summary>
       <div class="goal-body">${top}
         <div class="table-wrap"><table class="tbl goal-tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">빈칸은 '해당 없음'. 월 목표는 연간 목표를 달마다 나눠 다 더하면 연간 목표와 같아요.</span>${canEdit ? '<button class="btn btn-primary" type="button" data-act="goal-save">목표 저장</button>' : ''}</div>
+        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">빈칸은 '해당 없음'. 월 목표는 연간 목표를 달마다 나눠 다 더하면 연간 목표와 같아요.</span>${S.can('perf', 2) ? '<button class="btn btn-primary" type="button" data-act="dp-mgr-open">✏️ 대시보드에서 세부사업·목표 고치기</button>' : ''}</div>
       </div></details>`;
   }
   function perfPage() {
@@ -6153,9 +6209,9 @@ window.V = (() => {
         ${admin ? `
         <section class="panel panel-pad staff-editor">
           <h2 class="section-title">담당 직원과 소속 사업</h2>
-          <p>같은 업무라도 장애인개발원·고용공단 소속을 나눠 두면 목록과 대시보드에서 구분해 볼 수 있습니다.</p>
+          <p>소속이 곧 화면 구역이에요. <b>현장중심</b> = 현장중심직업재활센터(한국장애인개발원), <b>고용공단</b> = 고용지원사업(한국장애인고용공단), <b>장애인일자리</b> = 장애인일자리사업. 직원마다 소속을 꼭 정해 주세요. 소속이 없으면 어느 구역에서도 담당자로 고를 수 없어요.</p>
           <div class="prog-mgr"><b>소속 사업</b>
-            ${D.PROGRAMS.map(p => `<span class="prog-chip" style="--c:${p.hex}">${e(p.key)}${p.custom ? `<button type="button" data-act="prog-del" data-key="${e(p.key)}" aria-label="${e(p.key)} 소속 삭제" title="소속 삭제">×</button>` : ''}</span>`).join('')}
+            ${D.PROGRAMS.map(p => `<span class="prog-chip" style="--c:${p.hex}" title="${e(D.progFull(p.key))}">${e(D.progLabel(p.key))}${p.custom ? `<button type="button" data-act="prog-del" data-key="${e(p.key)}" aria-label="${e(p.key)} 소속 삭제" title="소속 삭제">×</button>` : ''}</span>`).join('')}
             <span class="prog-add"><input class="input sm" id="progNew" placeholder="새 소속 이름" style="width:130px"><button class="btn btn-sm" type="button" data-act="prog-add">+ 소속 추가</button></span>
           </div>
           <div class="staff-rows" id="staffRows">${st.settings.staff.map(s => staffRow(s)).join('')}</div>
@@ -6166,7 +6222,7 @@ window.V = (() => {
         <section class="panel panel-pad">
           <h2 class="section-title">소속별 실적 분류표</h2>
           <p>활동 기록을 어느 실적표(대분류·중분류·세부사업명)로 집계할지 정합니다.</p>
-          ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600">${e(pr.key)}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
+          ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600" title="${e(D.progFull(pr.key))}">${e(D.progLabel(pr.key))}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
           <button class="btn btn-sm" type="button" data-act="save-perfmap">저장</button>
         </section>
         ` : ''}
@@ -6227,7 +6283,7 @@ window.V = (() => {
   }
 
   const linkRow = (l = { label: '', url: '' }) => `<div class="staff-row"><input class="input" name="linkLabel" value="${e(l.label)}" placeholder="이름 (예: 고용24)" aria-label="바로가기 이름"><input class="input" name="linkUrl" value="${e(l.url)}" placeholder="https://..." aria-label="주소"><button class="icon-btn" type="button" data-act="staff-del" aria-label="바로가기 삭제">${I.close}</button></div>`;
-  const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option ${p.key === s.program ? 'selected' : ''}>${e(p.key)}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
+  const staffRow = (s = { name: '', program: '' }) => `<div class="staff-row"><input class="input" name="staffName" value="${e(s.name)}" placeholder="이름" aria-label="직원 이름"><select class="select" name="staffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option value="${e(p.key)}" ${p.key === s.program ? 'selected' : ''}>${e(D.progLabel(p.key))}${p.full ? ` — ${e(p.full)}` : ''}</option>`).join('')}</select><button class="icon-btn" type="button" data-act="staff-del" aria-label="직원 삭제">${I.close}</button></div>`;
 
   /* ================= 상세 Drawer ================= */
   function drHead(title, badges, actions, canBack) {
@@ -7608,7 +7664,7 @@ window.R = (() => {
   function secStaffBar() {
     const sc = S.getScope(), prog = sc.startsWith('p:') ? sc.slice(2) : '';
     if (!prog) return '';
-    const list = S.staffHere(), admin = S.isAdmin(), label = ({ '장애인개발원': '현장중심' })[prog] || prog;
+    const list = S.staffHere(), admin = S.isAdmin(), label = D.progLabel(prog);
     return `<section class="panel panel-pad sec-staff">
       <b>${e(label)} 담당자</b>
       ${list.length ? list.map(x => `<span class="sec-staff-chip">${V.staffDot(x.name)}${e(x.name)}${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(x.name)}" aria-label="${e(x.name)} 빼기" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('') : '<span class="sub">아직 이 구역 담당자가 없어요. 이름을 넣고 추가해야 연락·실적 기록을 넣을 수 있어요.</span>'}
@@ -7629,7 +7685,8 @@ window.R = (() => {
       </div>
       ${secStaffBar()}
       <section class="panel panel-pad perf-input">
-        <h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 곳은 <b>미등록</b>으로 연락이력에만 남아요. 아래 목록에서 <b>사업체로 등록</b>을 눌러야 사업체 개발·지도에 올라가요</span></h2>
+        <div class="ct-add-head"><h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 곳은 <b>미등록</b>으로 연락이력에만 남아요. 아래 목록에서 <b>사업체 등록</b>을 눌러야 사업체 개발·지도에 올라가요</span></h2>
+          <span class="ct-shot"><button class="btn btn-sm" type="button" data-act="ct-shot">📷 캡처로 채우기</button><span class="sub">구인공고·문자 캡처를 고르거나, 이 화면에서 <b>Ctrl+V</b>로 붙여넣으면 칸을 채워 줘요</span></span></div>
         <form class="perf-form" data-form="ct-add" autocomplete="off">
           <label>날짜<input class="input" type="date" name="date" value="${f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
           <label>방식<select class="select" name="type">${opts(CONTACT_TYPES, '전화')}</select></label>
@@ -8178,7 +8235,7 @@ window.R = (() => {
       <b>담당자</b>
       <button type="button" class="chip ${!f.who ? 'on' : ''}" data-act="od-who" data-who="">전체 <span class="n">${all.length}</span></button>
       ${staff.map(s => `<span class="od-staff-chip ${f.who === s.name ? 'on' : ''}"><button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="od-who" data-who="${e(s.name)}">${V.staffDot(s.name)}${e(s.name)} <span class="n">${cnt(s.name)}</span></button>${admin ? `<button type="button" class="od-staff-del" data-act="od-staff-del" data-name="${e(s.name)}" aria-label="${e(s.name)} 담당자 삭제" title="담당자 목록에서 빼기">×</button>` : ''}</span>`).join('')}
-      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option>${e(p.key)}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
+      ${admin ? `<span class="od-staff-add"><input class="input sm" id="odStaffNew" placeholder="새 담당자 이름" style="width:120px"><select class="select sm" id="odStaffProg" aria-label="소속 사업"><option value="">소속 미지정</option>${D.PROGRAMS.map(p => `<option value="${e(p.key)}">${e(D.progLabel(p.key))}</option>`).join('')}</select><button class="btn btn-sm" type="button" data-act="od-staff-add">+ 추가</button></span>` : '<span class="sub">담당자 추가·삭제는 관리자만 할 수 있어요.</span>'}
     </div>`;
   }
   function importVisits() {
@@ -10636,7 +10693,7 @@ window.DP = (() => {
   const ui = { mode: 'year', year: +U.today().slice(0, 4), month: now() };
   // 고용지원사업 기본 연간 목표(횟수) — 기관 사업계획 2026 기준. 데이터 관리에서 바꾸려면 settings.goalsBySet
   const GOALS = { '고용지원사업': { '직업상담': 120, '취업알선': 66, '취업확정': 54, '사후관리': 60, '취업자자조모임': 7, '고용자원개발': 60, '사업체관리': 120, '고용네트워크': 2 } };
-  const SEC_LABEL = { '장애인개발원': '현장중심', '고용공단': '고용공단' };
+  const SEC_LABEL = new Proxy({}, { get: (_, k) => D.progLabel(k) }); // 소속 값 → 화면 이름
 
   /** 지금 보는 구역의 실적 분류표 */
   function setOfScope() {
@@ -10836,6 +10893,7 @@ window.DP = (() => {
       <div class="dp-kpis">${kpis}</div>
       <div class="dp-sec-t">세부사업별 달성 현황 <span class="sub">원 = 누적 달성률(연간 목표 대비) · 아래 막대 = 달별 실적, 선 = 그 달 목표 · 카드를 누르면 자세히</span></div>
       <div class="dp-items">${items.map(itemCard).join('')}</div>
+      ${mgrHtml(set, Y)}
       <div class="dp-sec-t dp-chart-t"><span>${isCum ? '누적 실적 추이' : '월별 실적 현황'} <span class="sub">${Y}년 · 막대 = ${isCum ? '그 달까지 쌓인 실적' : '그 달 실적'}, 가로선 = ${isCum ? '그 달까지의 목표' : '그 달 목표'} · 막대를 누르면 그 달로</span></span>
         <span class="seg"><button type="button" class="${isCum ? '' : 'on'}" data-act="dp-view" data-v="month">월별</button><button type="button" class="${isCum ? 'on' : ''}" data-act="dp-view" data-v="cum">누적</button></span></div>
       <div class="dp-chart" role="img" aria-label="${Y}년 ${isCum ? '누적' : '월별'} 실적: ${vals.map((n, k) => `${k + 1}월 ${n}건`).join(', ')}">${bars}</div>
@@ -10851,6 +10909,34 @@ window.DP = (() => {
     </section>`;
   }
 
+  /** ⚙️ 세부사업·목표 관리: 기관 기본 항목은 목표만, 대시보드에서 더한 항목은 이름·목표·삭제까지. 저장하면 실적 탭에 바로 반영 */
+  function mgrHtml(set, Y) {
+    if (!S.can('perf', 2)) return '';
+    const items = D.PERF_SETS[set].items, isGL = set === GL.SET, G = goals(set, Y);
+    const cnt = i => S.get().perfs.filter(p => p.set === set && p.item === i).length + S.get().activities.filter(a => a.fromPerf === 'Y' && a.perf === i).length;
+    const num = v => (v == null || v === '' ? '' : v);
+    const inp = (i, k, v) => `<input class="input sm num mgr-in" data-mgr-goal="${e(i)}" data-k="${k}" value="${num(v)}" placeholder="-" inputmode="numeric" aria-label="${e(i)} 목표">`;
+    const g = isGL ? GL.goal() : null, gm = isGL ? null : goalMap(set);
+    const custom = new Map(D.customItems(set).map(x => [x.name, x]));
+    const row = i => {
+      const own = !D.isBuiltinItem(set, i), c = custom.get(i) || {}, n = cnt(i);
+      const goalsCells = isGL ? [0, 1, 2].map(k => `<td class="r">${inp(i, k, (g.rows[i] || [])[k])}</td>`).join('') : `<td class="r">${inp(i, 0, gm[i])}</td>`;
+      return `<tr data-mgr-row="${e(i)}" class="${own ? 'own' : ''}"><th>${own ? `<input class="input sm mgr-name" data-mgr-name="${e(i)}" value="${e(i)}" aria-label="세부사업 이름">` : `${e(i)} <span class="badge">기관 기본</span>`}</th>
+        ${goalsCells}<td class="r num sub">${G.year(i) ?? '-'}</td>
+        <td>${own ? `<label class="check sub"><input type="checkbox" data-mgr-only="${e(i)}" ${c.countOnly ? 'checked' : ''}>횟수만</label>` : `<span class="sub">${S.NO_PEOPLE.has(i) ? '횟수만' : '사람 수도'}</span>`}</td>
+        <td class="r num sub">${n}건</td>
+        <td>${own ? `<button class="icon-btn" type="button" data-act="dp-mgr-del" data-item="${e(i)}" aria-label="${e(i)} 지우기" title="${n ? '기록이 있으면 못 지워요' : '지우기'}" ${n ? 'disabled' : ''}>${V.I.close}</button>` : ''}</td></tr>`;
+    };
+    const gHead = isGL ? '<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>' : '<th class="r">연간 목표(횟수)</th>';
+    return `<details class="dp-mgr" ${ui.mgr ? 'open' : ''} id="dpMgr"><summary data-act="dp-mgr"><b>⚙️ 세부사업·목표 관리</b> <span class="sub">세부사업 추가·이름 바꾸기·목표 고치기 · 저장하면 실적 탭에 바로 반영돼요</span></summary>
+      <div class="dp-mgr-body">
+        ${isGL ? `<div class="inline goal-top"><label>기준 연도 <input class="input sm num" id="mgrBaseYear" value="${g.baseYear}" style="width:72px"></label><label>기준 개월 수 <input class="input sm num" id="mgrMonths" value="${g.months}" style="width:56px"></label><span class="sub">${g.baseYear}년은 ${13 - (Number(g.months) || 12)}~12월 목표, 다음 해부터 × 12 ÷ ${g.months}</span></div>` : ''}
+        <div class="table-wrap"><table class="tbl dp-mgr-tbl"><thead><tr><th>세부사업</th>${gHead}<th class="r sub">${Y}년 목표</th><th>세는 법</th><th class="r">기록</th><th></th></tr></thead>
+          <tbody>${items.map(row).join('')}</tbody>
+          <tfoot><tr class="dp-mgr-new"><th><input class="input sm" id="mgrNewName" placeholder="새 세부사업 이름 (예: 직장체험)"></th>${isGL ? [0, 1, 2].map(k => `<td class="r"><input class="input sm num mgr-in" id="mgrNewG${k}" placeholder="-" inputmode="numeric"></td>`).join('') : '<td class="r"><input class="input sm num mgr-in" id="mgrNewG0" placeholder="-" inputmode="numeric"></td>'}<td></td><td><label class="check sub"><input type="checkbox" id="mgrNewOnly">횟수만</label></td><td></td><td><button class="btn btn-sm" type="button" data-act="dp-mgr-add">+ 추가</button></td></tr></tfoot></table></div>
+        <div class="inline" style="justify-content:space-between;margin-top:8px"><span class="sub">기관 기본 항목은 이름은 그대로, 목표만 고칠 수 있어요. 직접 더한 항목은 이름을 바꾸면 그동안 넣은 실적도 새 이름으로 옮겨져요. '횟수만' = 사업체개발처럼 사람 수(연·실인원) 없이 건수만 세요.</span><button class="btn btn-primary" type="button" data-act="dp-mgr-save">저장</button></div>
+      </div></details>`;
+  }
   /** 지금 보는 기간의 공통 값 */
   function ctx() {
     const set = setOfScope();
@@ -10957,14 +11043,12 @@ window.App = (() => {
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
-    ['training', '직업훈련 일정표', 'cal'],
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 · 사업체 개발·연락·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '한국장애인고용공단 사업 · 사업체·연락' },
-    { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리 참여자 출석·근무처' },
-    { k: 'train', label: '훈련반', prog: '직업훈련', items: ['training', 'schedule'], desc: 'JOB이음터 · 일과놀이반 월간 일정표' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·실적·홍보' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+    { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
   const SEC_HINT = {
@@ -11038,7 +11122,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -11128,7 +11212,7 @@ window.App = (() => {
     }
     const progs = D.PROGRAMS.filter(p => staff.some(s => s.program === p.key) || S.getScope() === 'p:' + p.key); // 지금 구역은 담당자가 없어도 보이게
     sel.innerHTML = `<option value="all">전체 팀 (${staff.length}명)</option>` +
-      progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(p.key)} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
+      progs.map(p => `<option value="p:${U.esc(p.key)}">${U.esc(D.progLabel(p.key))} (${staff.filter(s => s.program === p.key).length}명)</option>`).join('') +
       `<optgroup label="직원별">${staff.map(s => `<option value="s:${U.esc(s.name)}">${U.esc(s.name)}${s.name === S.me() ? ' (나)' : ''}</option>`).join('')}</optgroup>`;
     sel.value = cur;
     if (sel.value !== cur) { sel.value = 'all'; }
@@ -11192,7 +11276,7 @@ window.App = (() => {
     const pages = {
       dashboard: [V.dashboard],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
-      training: [() => { V.ui.sched.view = 'train'; return V.schedPage(); }, bindSched],
+      training: [() => { V.ui.sched.view = 'work'; return V.schedPage(); }, bindSched], // 훈련반은 뺐다: 예전 주소로 와도 업무 일정
 
       map: [V.mapPage, bindMap],
       cards: [V.cardsPage, bindCards],
@@ -11219,6 +11303,23 @@ window.App = (() => {
     renderSync(S.sync);
   }
 
+  /** 연락이력: 캡처(구인공고·문자 등) → AI가 필요한 정보만 뽑아 '연락 기록 추가' 칸을 채운다. 저장은 확인 후 직접 */
+  async function fillContactFromShot(file) {
+    const form = document.querySelector('[data-form="ct-add"]');
+    if (!form) return;
+    if (!AI.available()) return toast('캡처 읽기는 AI 키가 있어야 해요. 데이터 관리 → AI 도우미에서 키를 넣어 주세요.', 'error');
+    toast('캡처를 읽는 중이에요… (10초쯤)');
+    let r;
+    try {
+      const data = file.type === 'application/pdf' ? await readDataUrl(file) : await F.resizeImage(file, 1800, .85);
+      r = await AI.readContactShot(data);
+    } catch (err) { return toast('캡처를 읽지 못했어요: ' + err.message, 'error'); }
+    const set = (k, v) => { const el = form.elements[k]; if (!el || !v) return 0; el.value = v; el.classList.add('ai-filled'); return 1; };
+    const n = set('name', r.name) + set('phone', r.phone) + set('address', r.address) + set('contactName', r.contactName) + set('jobType', r.jobType) + set('content', r.content) + set('jobUrl', R.jobLink(r.jobUrl) ? r.jobUrl : '');
+    if (!n) return toast('캡처에서 쓸 만한 정보를 찾지 못했어요. 공고 화면이 잘 보이게 다시 찍어 보세요.', 'error');
+    form.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    toast(`캡처에서 ${n}칸을 채웠어요. 노란 칸을 확인·수정하고 방식·결과를 고른 뒤 '추가'를 누르세요.`);
+  }
   /** 방금 넣은 기록의 담당이 지금 보는 범위(한 사람)에 없으면 바로 알려 준다 */
   function hiddenHere(who) {
     const sc = S.getScope();
@@ -12374,7 +12475,7 @@ window.App = (() => {
       const who = el.dataset.staff || (V.ui.sched.who && V.ui.sched.who !== '-' && route() === 'schedule' ? V.ui.sched.who : '');
       push({ type: 'form', kind: 'ev', preset: { ...(lt ? { targetType: lt, targetId: li } : {}), ...(el.dataset.date ? { date: el.dataset.date } : {}), ...(who ? { staff: who } : {}) } }, fd);
     },
-    'sched-view': el => { location.hash = el.dataset.v === 'train' ? '#/training' : '#/schedule'; },
+    'sched-view': () => { location.hash = '#/schedule'; },
     /** 상단 구역 바꾸기: 보기 범위를 그 사업 직원으로, 지도는 그 사업 지도로 맞추고 첫 기능으로 간다 */
     sec: el => {
       const x = SECS.find(s => s.k === el.dataset.sec); if (!x) return;
@@ -12449,7 +12550,7 @@ window.App = (() => {
       }
       const have = new Set(S.get().events.map(x => `${x.date}|${x.title}`));
       const fresh = evs.filter(x => !have.has(`${x.date}|${x.title}`) && (have.add(`${x.date}|${x.title}`), true));
-      if (!evs.length) return toast('일정을 찾지 못했어요. 표 첫 줄에 "날짜"와 "제목(또는 내용·일정)" 칸이 있어야 해요. 직업훈련 일정표는 위 "직업훈련 일정표" 탭에서 불러오세요.', 'error');
+      if (!evs.length) return toast('일정을 찾지 못했어요. 표 첫 줄에 "날짜"와 "제목(또는 내용·일정)" 칸이 있어야 해요.', 'error');
       if (!fresh.length) return toast(`${evs.length}건 모두 이미 있는 일정이에요.`);
       if (!(await confirmBox(`일정 ${fresh.length}건을 추가할까요?`, `${files.map(f => f.name).join(', ')}에서 ${evs.length}건을 찾았고, 날짜·제목이 같은 ${evs.length - fresh.length}건은 빼요.`, '추가'))) return;
       S.upsertMany('ev', fresh); toast(`일정 ${fresh.length}건을 추가했어요.`);
@@ -12963,6 +13064,69 @@ window.App = (() => {
       ps.forEach(p => S.remove('perf', p.id)); as.forEach(a => S.remove('act', a.id));
       toast('지웠어요.');
     },
+    'dp-mgr': () => { DP.ui.mgr = !DP.ui.mgr; },
+    'dp-mgr-open': () => { DP.ui.mgr = true; location.hash = '#/dashboard'; setTimeout(() => $('#dpMgr')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 400); },
+    /** 대시보드 세부사업·목표 저장: 목표 + 직접 더한 항목의 이름·세는 법. 이름을 바꾸면 그동안 넣은 실적도 옮긴다 */
+    'dp-mgr-save': async () => {
+      const set = DP.setOfScope(); if (!set) return;
+      const num = v => { const t = String(v ?? '').replace(/[^0-9.]/g, ''); return t === '' ? null : Number(t); };
+      const st = S.get(), list = D.customItems(set).map(x => ({ ...x }));
+      // 이름 바꾸기
+      const renames = [];
+      document.querySelectorAll('[data-mgr-name]').forEach(el => { const from = el.dataset.mgrName, to = el.value.trim(); if (to && to !== from) renames.push([from, to]); });
+      for (const [from, to] of renames) {
+        if (D.PERF_SETS[set].items.includes(to) && !renames.some(r => r[0] === to)) return toast(`'${to}'은(는) 이미 있는 세부사업 이름이에요.`, 'error');
+      }
+      const newName = n => (renames.find(r => r[0] === n) || [, n])[1];
+      list.forEach(x => { x.name = newName(x.name); });
+      document.querySelectorAll('[data-mgr-only]').forEach(el => { const it = list.find(x => x.name === newName(el.dataset.mgrOnly)); if (it) it.countOnly = el.checked; });
+      // 목표
+      const goalsIn = {};
+      document.querySelectorAll('[data-mgr-goal]').forEach(el => { const i = newName(el.dataset.mgrGoal); (goalsIn[i] = goalsIn[i] || [null, null, null])[+el.dataset.k] = num(el.value); });
+      const patch = { perfItems: { ...(st.settings.perfItems || {}), [set]: list } };
+      if (set === GL.SET) {
+        const g = GL.goal(), rows = {};
+        Object.entries(g.rows).forEach(([i, r]) => { rows[newName(i)] = r; });
+        Object.entries(goalsIn).forEach(([i, r]) => { rows[i] = r; });
+        patch.perfGoal = JSON.stringify({ ...g, rows, baseYear: num($('#mgrBaseYear')?.value) || g.baseYear, months: Math.min(12, Math.max(1, num($('#mgrMonths')?.value) || g.months)) });
+      } else {
+        let custom = st.settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = {}; } }
+        const mine = {};
+        Object.entries(goalsIn).forEach(([i, r]) => { mine[i] = r[0] == null ? '' : r[0]; });
+        patch.goalsBySet = JSON.stringify({ ...(custom || {}), [set]: mine });
+      }
+      // 그동안 넣은 실적도 새 이름으로
+      if (renames.length) {
+        const ps = st.perfs.filter(p => p.set === set && renames.some(r => r[0] === p.item)).map(p => ({ id: p.id, item: newName(p.item) }));
+        const as = st.activities.filter(a => a.fromPerf === 'Y' && renames.some(r => r[0] === a.perf)).map(a => ({ id: a.id, perf: newName(a.perf) }));
+        if (ps.length) S.putMany('perf', ps); if (as.length) S.putMany('act', as);
+      }
+      await S.saveSettings(patch);
+      toast(`세부사업·목표를 저장했어요.${renames.length ? ` 이름을 바꾼 ${renames.length}개 항목의 실적도 옮겼어요.` : ''} 실적 탭에 바로 반영돼요.`);
+      render();
+    },
+    'dp-mgr-add': async () => {
+      const set = DP.setOfScope(); if (!set) return;
+      const name = ($('#mgrNewName')?.value || '').trim();
+      if (!name) return $('#mgrNewName')?.focus();
+      if (D.PERF_SETS[set].items.includes(name)) return toast(`'${name}'은(는) 이미 있어요.`, 'error');
+      const num = id => { const t = String($(id)?.value || '').replace(/[^0-9.]/g, ''); return t === '' ? null : Number(t); };
+      const st = S.get(), list = [...D.customItems(set), { name, countOnly: !!$('#mgrNewOnly')?.checked }];
+      const patch = { perfItems: { ...(st.settings.perfItems || {}), [set]: list } };
+      if (set === GL.SET) { const g = GL.goal(); patch.perfGoal = JSON.stringify({ ...g, rows: { ...g.rows, [name]: [num('#mgrNewG0'), num('#mgrNewG1'), num('#mgrNewG2')] } }); }
+      else { let custom = st.settings.goalsBySet; if (typeof custom === 'string') { try { custom = JSON.parse(custom); } catch { custom = {}; } } patch.goalsBySet = JSON.stringify({ ...(custom || {}), [set]: { ...((custom || {})[set] || {}), [name]: num('#mgrNewG0') ?? '' } }); }
+      DP.ui.mgr = true;
+      await S.saveSettings(patch);
+      toast(`'${name}' 세부사업을 더했어요. 실적 탭 입력칸에서도 바로 고를 수 있어요.`);
+      render();
+    },
+    'dp-mgr-del': async el => {
+      const set = DP.setOfScope(), name = el.dataset.item; if (!set) return;
+      if (!(await confirmBox(`'${name}' 세부사업을 지울까요?`, '목표도 같이 지워져요. (기록이 있는 항목은 지울 수 없어요)', '지우기'))) return;
+      const st = S.get();
+      await S.saveSettings({ perfItems: { ...(st.settings.perfItems || {}), [set]: D.customItems(set).filter(x => x.name !== name) } });
+      toast(`'${name}'을(를) 지웠어요.`); render();
+    },
     'goal-open': () => { V.ui.perf.goalOpen = !V.ui.perf.goalOpen; },
     'gl-save': async () => {
       const g = GL.readEditor();
@@ -13087,11 +13251,15 @@ window.App = (() => {
     'ct-month': el => { const f = R.ui.contacts; const [y, m] = f.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); f.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'ct-tab': el => { R.ui.contacts.tab = el.dataset.tab; render(); },
     'ct-reg': el => { const r = R.registerBiz(el.dataset.id, el.dataset.kind); if (r) toast(r.kind === 'net' ? `${r.x.name} 기관(네트워크)에 연락 기록을 옮겼어요. 기관 상세·홍보·방문처에서 볼 수 있어요.` : `${r.x.name}을(를) 사업체로 등록했어요. 사업체 개발·지도에 나와요.`); },
+    'ct-shot': () => pickFiles('image/*,.pdf', false, files => files[0] && fillContactFromShot(files[0])),
     'ct-reg-form': el => {
       // 연락만 한 곳 → 등록 화면을 열어 직접 입력 (저장하면 이 연락 기록도 그곳으로 이어진다)
       const b = S.find('biz', el.dataset.id); if (!b) return;
       const kind = el.dataset.kind === 'net' ? 'net' : 'biz';
-      const preset = { name: b.name, phone: b.phone || '', address: b.address || '', ...(b.programs && b.programs.length ? { programs: b.programs } : {}), ...(kind === 'net' ? { category: D.guessCategory(b.name) || '' } : { stage: b.stage, discoveredAt: b.discoveredAt, jobs: b.jobs || '' }) };
+      // 연락이력에 적은 담당자(예: '김재윤 부장')를 이름·직함으로 나눠 채우고, 전화번호도 넘긴다 → 저장하면 명함까지 만들어져 사업체 탭에 보인다
+      const cn = (S.actsOf('biz', b.id).find(a => a.contactName) || {}).contactName || '';
+      const m = cn.split(/[\/,]/)[0].trim().match(/^(\S+)\s*(.*)$/) || [];
+      const preset = { name: b.name, phone: b.phone || '', address: b.address || '', cName: m[1] || '', cTitle: (m[2] || '').trim(), cPhone: b.phone || '', ...(b.programs && b.programs.length ? { programs: b.programs } : {}), ...(kind === 'net' ? { category: D.guessCategory(b.name) || '' } : { stage: b.stage, discoveredAt: b.discoveredAt, jobs: b.jobs || '' }) };
       push({ type: 'form', kind, preset, adopt: b.id }, false);
     },
     'ct-reg-all': async () => {
@@ -13336,6 +13504,14 @@ window.App = (() => {
   };
 
   function bindGlobal() {
+    // 연락이력 화면에서 캡처 이미지를 Ctrl+V 하면 그 캡처로 칸을 채운다
+    document.addEventListener('paste', ev => {
+      if (route() !== 'contacts' || drawerOpen()) return;
+      const f = [...((ev.clipboardData && ev.clipboardData.files) || [])].find(x => /^image\//.test(x.type));
+      if (!f) return;
+      ev.preventDefault();
+      fillContactFromShot(f);
+    });
     document.addEventListener('click', ev => {
       if (!ev.target.closest('.menu-wrap')) $('#quickMenu').hidden = true;
       if (!ev.target.closest('.more-sheet, [data-act="more"]')) closeMore();

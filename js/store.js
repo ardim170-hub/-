@@ -70,6 +70,12 @@ window.S = (() => {
     if (typeof next.settings.programs === 'string') { try { next.settings.programs = JSON.parse(next.settings.programs); } catch { next.settings.programs = []; } }
     if (!Array.isArray(next.settings.programs)) next.settings.programs = [];
     D.setCustomPrograms(next.settings.programs);
+    // 대시보드에서 더한 세부사업(실적 명목)
+    if (typeof next.settings.perfItems === 'string') { try { next.settings.perfItems = JSON.parse(next.settings.perfItems); } catch { next.settings.perfItems = {}; } }
+    if (!next.settings.perfItems || typeof next.settings.perfItems !== 'object') next.settings.perfItems = {};
+    D.setCustomItems(next.settings.perfItems);
+    NO_PEOPLE.clear(); BASE_NO_PEOPLE.forEach(x => NO_PEOPLE.add(x));
+    Object.values(next.settings.perfItems).flat().forEach(x => { if (x && x.countOnly && x.name) NO_PEOPLE.add(x.name); });
     next.cards.forEach(c => place(c));
     next.businesses.forEach(b => { if (!D.STAGE[b.stage]) b.stage = '발굴'; place(b); });
     next.networks.forEach(n => { if (!D.NET_STATUS.includes(n.status)) n.status = '보통'; place(n); });
@@ -643,7 +649,7 @@ window.S = (() => {
   const staffHere = () => (scope === 'all' ? staff() : staff().filter(x => staffInScope(x.name)));
   const inScope = (name, sc = scope) => staffInScope(name, sc);
   function scopeLabel() {
-    if (scope.startsWith('p:')) return scope.slice(2);
+    if (scope.startsWith('p:')) return D.progLabel(scope.slice(2));
     if (scope.startsWith('s:')) return scope.slice(2) + ' 담당';
     return '전체 팀';
   }
@@ -754,7 +760,8 @@ window.S = (() => {
      현장중심 직업훈련은 (훈련받은 날 수의 합 / 훈련 인원 / 훈련한 날짜 수): 1명이 한 달 20일 나가면 20/1/20.
      사업체개발처럼 사람을 세지 않는 항목은 횟수만. */
   const pplOf = r => String((r && r.ppl) || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
-  const NO_PEOPLE = new Set(['사업체개발', '고용자원개발', '사업체관리', '고용네트워크']);
+  const BASE_NO_PEOPLE = ['사업체개발', '고용자원개발', '사업체관리', '고용네트워크'];
+  const NO_PEOPLE = new Set(BASE_NO_PEOPLE); // + 대시보드에서 '횟수만'으로 더한 세부사업
   const isTrain = item => /훈련/.test(item || '');
   /** lines: [{ item, d, ppl: [이름], n: 이름이 없을 때 인원, key: 이름이 없을 때 같은 사람으로 볼 사업체·기관 }] → { yeon, sil, cnt } (사람을 안 세는 항목은 yeon·sil = null) */
   function perfCount(lines, item) {
