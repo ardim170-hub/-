@@ -954,12 +954,14 @@ window.V = (() => {
     if (!pros.includes(f.who)) f.who = '';
     return `
       <div class="page-head">
-        <div><h1 class="page-title">실적</h1><div class="page-desc">실적을 입력하고, 구글 시트 '실적(기타)'에 그대로 붙여넣을 수 있게 정리합니다.${scopeNote()}</div></div>
+        <div><h1 class="page-title">실적</h1><div class="page-desc">실적을 입력하고, 실적 연동 탭에서 복지관 사업실적 시트로 보냅니다.${scopeNote()}</div></div>
       </div>
       <div class="toolbar perf-bar">
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <span class="sub">${e(def.mid)} · 한 달 기준</span>
       </div>
+      <div class="seg perf-tabs" role="tablist" aria-label="실적 화면"><button type="button" role="tab" class="${f.tab === 'sync' ? '' : 'on'}" aria-selected="${f.tab !== 'sync'}" data-act="perf-tab" data-tab="input">✏️ 실적 입력</button>${S.level('orgsync') >= 2 ? `<button type="button" role="tab" class="${f.tab === 'sync' ? 'on' : ''}" aria-selected="${f.tab === 'sync'}" data-act="perf-tab" data-tab="sync">📤 실적 연동 <small>복지관 시트로 보내기</small></button>` : ''}</div>
+      ${f.tab === 'sync' && S.level('orgsync') >= 2 ? '<div id="perfResults"></div>' : `
       ${R.secStaffBar()}
       ${perfWrongBox(f, pros)}
       ${perfMonth(f)}
@@ -983,7 +985,7 @@ window.V = (() => {
         <p class="sub" style="margin:8px 0 0"><b>실적은 이 화면에서 넣은 것만</b> 세요. 연락이력·사업체 개발·상세 화면에 남긴 기록은 실적에 들어가지 않아요. 사업체·기관 칸에 있는 곳 이름을 넣으면 그 곳 기록과도 이어져요.</p>
       </section>
       <div id="perfResults"></div>
-      ${f.set !== GL.SET ? '' : `<details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 설정</b> <span class="sub">기준 실적(목표) 고치기 · 2026년(6개월)·2027년(12개월)</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`}`;
+      ${f.set !== GL.SET ? '' : `<details class="panel gl-year-box" ${f.glOpen ? 'open' : ''}><summary data-act="gl-open"><b>연간 목표 설정</b> <span class="sub">기준 실적(목표) 고치기 · 2026년(6개월)·2027년(12개월)</span></summary>${GL.panel(f.month, f.glMode, f.glYear)}</details>`}`}`;
   }
   /** 실적표: 세부사업 항목마다 칸을 나누고, 그 아래에 날짜순으로 한 줄씩. 칸을 고치면 바로 저장 */
   function perfResults() {

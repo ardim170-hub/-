@@ -1989,3 +1989,14 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .ou-box { margin: 10px 0; }
 .ou-tbl td, .ou-tbl th { padding: 4px 6px; vertical-align: middle; }
 .ou-tbl .input.sm, .ou-tbl .select.sm { min-width: 0; }
+/* 실적 화면 탭: 실적 입력 | 실적 연동 */
+.perf-tabs { margin: 0 0 12px; }
+.perf-tabs button { padding: 8px 16px; font-weight: 700; }
+.perf-tabs small { font-weight: 400; opacity: .75; margin-left: 4px; }
+.os .os-h { margin: 18px 0 6px; font-size: 15px; }
+.os .os-acts { margin: 8px 0; }
+.os-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); margin: 6px 0; }
+.os-tbl td { vertical-align: middle; }
+.os-tbl tr.os-dup td, .os-tbl tr.os-skip td { opacity: .55; }
+.os-tbl tr.os-bad td { background: #FDECEC; }
+.os-tbl tr.os-add-nouser td { background: #FFF8E1; }

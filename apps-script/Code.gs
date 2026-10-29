@@ -17,6 +17,7 @@ var PHOTO_CHUNK = 45000; // 셀 하나에 5만 자까지 들어가므로 나눠 
  * 새 버전을 올리면 10분 안에 모든 컴퓨터에 반영되고, 여기에 다시 붙여넣거나 새 버전 배포를 하지 않아도 된다.
  * 가져오지 못하면(인터넷·GitHub 문제) 이 프로젝트 안에 있는 파일로 연다. 주소 끝에 ?local=1 을 붙이면 늘 안의 파일로 연다.
  * 바로 반영하고 싶으면 편집기에서 clearUpdateCache 를 한 번 실행한다. */
+var UPDATE_ON = false; // true = GitHub live 갈래에서 화면 파일을 받아 옴. 지금은 이 프로젝트에 붙여 넣은 파일로만 연다
 var UPDATE_BASE = 'https://raw.githubusercontent.com/ardim170-hub/-/live/dist/apps-script/';
 var UPDATE_FILES = ['index', 'style', 'app1', 'app2', 'app3'];
 var UPDATE_TTL = 600; // 초 (10분)
@@ -24,7 +25,7 @@ var UPDATE_CHUNK = 25000; // 캐시 한 칸 100KB 제한 → 한글 3바이트 �
 var remoteFiles_ = null; // 이번 요청에서 쓸 파일들 (null = 안의 파일)
 
 function doGet(e) {
-  remoteFiles_ = (e && e.parameter && e.parameter.local === '1') ? null : loadRemote_();
+  remoteFiles_ = !UPDATE_ON || (e && e.parameter && e.parameter.local === '1') ? null : loadRemote_();
   // 화면 파일은 1MB 제한 때문에 index(뼈대) + style + app1~app3 으로 나눠 두고 여기서 합친다
   var out = null;
   if (remoteFiles_) {
@@ -844,21 +845,27 @@ function api_orgPerfSync(p) {
       var d2 = day(eB[j]);
       if (d2.indexOf(month) === 0) { var k2 = d2 + '|' + norm(eE[j]) + '|' + norm(eI[j]); haveE[k2] = (haveE[k2] || 0) + 1; }
     }
-    var out = { title: ss.getName(), url: ss.getUrl(), add: { gen: 0, etc: 0 }, dup: { gen: 0, etc: 0 }, badItems: {}, unknown: {}, wrote: false };
+    // st: 보낸 줄마다 결과 (add = 새로 넣음, dup = 이미 있음, bad = 실적분류설정에 없는 세부사업, skip = 다른 달)
+    var out = { title: ss.getName(), url: ss.getUrl(), add: { gen: 0, etc: 0 }, dup: { gen: 0, etc: 0 }, badItems: {}, unknown: {}, st: { gen: [], etc: [] }, wrote: false };
     var addG = [], addE = [];
     (p.gen || []).forEach(function (r) {
-      if (String(r.date || '').indexOf(month) !== 0) return;
-      if (!items[r.item]) { out.badItems[r.item] = (out.badItems[r.item] || 0) + 1; return; }
+      var st = out.st.gen;
+      if (String(r.date || '').indexOf(month) !== 0) return st.push('skip');
+      if (!items[r.item]) { out.badItems[r.item] = (out.badItems[r.item] || 0) + 1; return st.push('bad'); }
       var k = norm(r.name) + '|' + r.date + '|' + norm(r.item);
-      if (have[k]) { have[k]--; out.dup.gen++; return; }
-      if (!known[norm(r.name)]) out.unknown[r.name] = (out.unknown[r.name] || 0) + 1;
+      if (have[k]) { have[k]--; out.dup.gen++; return st.push('dup'); }
+      var who = known[norm(r.name)];
+      if (!who) out.unknown[r.name] = (out.unknown[r.name] || 0) + 1;
+      st.push(who ? 'add' : 'add-nouser');
       addG.push(r);
     });
     (p.etc || []).forEach(function (r) {
-      if (String(r.date || '').indexOf(month) !== 0) return;
-      if (!items[r.item]) { out.badItems[r.item] = (out.badItems[r.item] || 0) + 1; return; }
+      var st = out.st.etc;
+      if (String(r.date || '').indexOf(month) !== 0) return st.push('skip');
+      if (!items[r.item]) { out.badItems[r.item] = (out.badItems[r.item] || 0) + 1; return st.push('bad'); }
       var k = r.date + '|' + norm(r.item) + '|' + norm(r.note);
-      if (haveE[k]) { haveE[k]--; out.dup.etc++; return; }
+      if (haveE[k]) { haveE[k]--; out.dup.etc++; return st.push('dup'); }
+      st.push('add');
       addE.push(r);
     });
     out.add.gen = addG.length; out.add.etc = addE.length;
@@ -870,6 +877,7 @@ function api_orgPerfSync(p) {
       if (gen.getMaxRows() < r0 + addG.length) gen.insertRowsAfter(gen.getMaxRows(), r0 + addG.length - gen.getMaxRows());
       put(gen, r0, 3, addG.map(function (r) { return r.name; }));
       put(gen, r0, 10, addG.map(function (r) { return dt(r.date); }));
+      gen.getRange(r0, 10, addG.length, 1).setNumberFormat('yyyy-mm-dd');
       put(gen, r0, 13, addG.map(function (r) { return r.item; }));
       put(gen, r0, 14, addG.map(function (r) { return r.round === '' || r.round == null ? '' : r.round; }));
       put(gen, r0, 15, addG.map(function (r) { return r.note || ''; }));
@@ -878,6 +886,7 @@ function api_orgPerfSync(p) {
       var e0 = eLast + 2;
       if (etc.getMaxRows() < e0 + addE.length) etc.insertRowsAfter(etc.getMaxRows(), e0 + addE.length - etc.getMaxRows());
       put(etc, e0, 2, addE.map(function (r) { return dt(r.date); }));
+      etc.getRange(e0, 2, addE.length, 1).setNumberFormat('yyyy-mm-dd');
       put(etc, e0, 5, addE.map(function (r) { return r.item; }));
       put(etc, e0, 6, addE.map(function (r) { return r.people === '' || r.people == null ? '' : r.people; }));
       put(etc, e0, 7, addE.map(function (r) { return r.newPeople === '' || r.newPeople == null ? '' : r.newPeople; }));
