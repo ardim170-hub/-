@@ -91,7 +91,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-name-save': [['perf', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -869,42 +869,36 @@ window.App = (() => {
   }
   /* ---------- 실적 연동: 복지관 사업실적 시트로 보내기 (실적 화면의 '실적 연동' 탭) ---------- */
   /** 한 달·한 분류표의 실적(실적 화면에서 넣은 것)을 기관 시트 모양으로.
-   *  사람마다 세는 항목 → gen(실적(일반), 이름마다 한 줄), 건수만 → etc(실적(기타)). 이름이 없으면 noName */
+   *  사람마다 세는 항목 → need(실적(일반): 이 탭에서 이름을 직접 적으면 이름마다 한 줄), 건수만 → etc(실적(기타)) */
   function orgPerfRows(month, set) {
-    const st = S.get(), gen = [], etc = [], noName = [];
-    DP.lines(set, month, st).forEach(l => {
+    const need = [], etc = [];
+    DP.lines(set, month, S.get()).forEach(l => {
       const rec = l.kind === 'perf' ? S.find('perf', l.id) || {} : {};
-      const src = { kind: l.kind === 'perf' ? 'perf' : 'act', id: l.id, staff: l.staff };
-      if (S.NO_PEOPLE.has(l.item)) etc.push({ date: l.d, item: l.item, people: rec.people || '', newPeople: rec.newPeople || '', round: rec.round || '', note: l.name || l.content || '', src });
-      else if ((l.ppl || []).length) l.ppl.forEach(name => gen.push({ name, date: l.d, item: l.item, round: rec.round || '', note: l.name || '', src }));
-      else noName.push({ ...l, src });
+      const key = `${l.kind === 'perf' ? 'perf' : 'act'}:${l.id}`;
+      if (S.NO_PEOPLE.has(l.item)) etc.push({ date: l.d, item: l.item, people: rec.people || '', note: l.name || l.content || '', staff: l.staff });
+      else need.push({ key, date: l.d, item: l.item, place: l.name || l.content || '', staff: l.staff, ppl: l.ppl || [] });
     });
-    return { gen, etc, noName };
+    return { need, etc };
   }
-  /** 이름이 빠진 실적에서 이름 추천: 사업체 칸에 사람 이름을 적은 경우('이항섭', '빈센트병원 - 문보람'),
-   *  아니면 같은 세부사업·같은 곳에서 최근에 쓴 이름 (예: 다이소 마도 현장훈련 → 정민지) */
-  function guessName(l) {
-    const place = String(l.name || '').trim(), known = new Set([...S.get().businesses, ...S.get().networks].map(x => U.orgKey(x.name)));
-    const tail = place.split(/\s+[-–·/]\s+|\s*[-–]\s*/).pop().trim();
-    const isPerson = t => /^[가-힣]{2,4}$/.test(t) && !known.has(U.orgKey(t)) && !/(센터|병원|학교|회사|마트|공장|협회|작업장|복지관|사단|기관|식당|카페|약국)$/.test(t);
-    if (isPerson(place)) return place;
-    if (place !== tail && isPerson(tail)) return tail;
-    const k = U.orgKey(place);
-    const prev = DP.lines(V.ui.perf.set, '', S.get()).filter(x => x.item === l.item && U.orgKey(x.name) === k && (x.ppl || []).length).pop();
-    return prev ? prev.ppl.join(', ') : '';
-  }
-  const org = { key: '', res: null, busy: false, err: '', done: null };
+  /* 이름은 이 탭에서 직접 적는다. 적은 이름은 이 화면에만 두고 복지관 시트로 보낼 때만 쓴다 (우리 사이트 시트에는 저장하지 않음) */
+  const org = { key: '', res: null, busy: false, err: '', done: null, names: {}, sent: [], stale: false };
   const orgKey = () => `${V.ui.perf.month}|${V.ui.perf.set}`;
+  const splitNames = v => String(v || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
+  const namesOf = n => (org.names[n.key] != null ? splitNames(org.names[n.key]) : n.ppl);
+  function orgPayload(rows) {
+    const gen = [], sent = [];
+    rows.need.forEach(n => namesOf(n).forEach(name => { gen.push({ name, date: n.date, item: n.item }); sent.push({ key: n.key, name }); }));
+    return { gen, sent, etc: rows.etc.map(({ staff, ...r }) => r) };
+  }
   async function orgSyncRun(commit) {
-    const f = V.ui.perf, rows = orgPerfRows(f.month, f.set), key = orgKey();
-    Object.assign(org, { key, busy: true, err: '', done: commit ? null : org.done && org.key === key ? org.done : null });
+    const f = V.ui.perf, key = orgKey(), pl = orgPayload(orgPerfRows(f.month, f.set));
+    Object.assign(org, { key, busy: true, err: '', stale: false, done: commit ? null : org.done && org.key === key ? org.done : null });
     bindPerf();
     try {
-      const strip = list => list.map(({ src, ...r }) => r);
-      const res = await S.call('api_orgPerfSync', { month: f.month, gen: strip(rows.gen), etc: strip(rows.etc), commit: !!commit, sheet: S.get().settings.orgPerfSheet || '' });
+      const res = await S.call('api_orgPerfSync', { month: f.month, gen: pl.gen, etc: pl.etc, commit: !!commit, sheet: S.get().settings.orgPerfSheet || '' });
       if (org.key !== key) return;
       if (commit) { org.done = res; org.res = null; return orgSyncRun(false); }
-      org.res = res;
+      org.res = res; org.sent = pl.sent;
     } catch (err) { org.err = (err && err.message) || String(err); }
     org.busy = false; bindPerf();
   }
@@ -913,37 +907,39 @@ window.App = (() => {
   function orgSyncPage() {
     const e = U.esc, f = V.ui.perf, def = D.PERF_SETS[f.set], m = +f.month.slice(5);
     if (!def) return '';
-    const rows = orgPerfRows(f.month, f.set), r = org.key === orgKey() ? org.res : null, done = org.key === orgKey() ? org.done : null;
-    const stOf = (tab, i) => (r && r.st ? r.st[tab][i] : '');
+    const rows = orgPerfRows(f.month, f.set), cur = org.key === orgKey();
+    const r = cur && !org.stale ? org.res : null, done = cur ? org.done : null;
     const badge = st => { const [l, c] = ST_LABEL[st] || ['확인 전', '']; return `<span class="badge ${c}">${l}</span>`; };
-    const srcLink = x => `<span class="sub">${e(x.src.staff || '')}</span>`;
-    const genRows = rows.gen.map((x, i) => `<tr class="os-${stOf('gen', i) || 'none'}"><td class="num nowrap">${U.dateDot(x.date)}</td><td>${e(x.item)}</td><td><b>${e(x.name)}</b></td><td class="num">${e(x.round)}</td><td>${e(x.note)}</td><td>${srcLink(x)}</td><td>${badge(stOf('gen', i))}</td></tr>`).join('');
-    const etcRows = rows.etc.map((x, i) => `<tr class="os-${stOf('etc', i) || 'none'}"><td class="num nowrap">${U.dateDot(x.date)}</td><td>${e(x.item)}</td><td class="num">${e(x.people)}</td><td class="num">${e(x.newPeople)}</td><td class="num">${e(x.round)}</td><td>${e(x.note)}</td><td>${srcLink(x)}</td><td>${badge(stOf('etc', i))}</td></tr>`).join('');
-    const nn = rows.noName.map(l => `<tr><td class="num nowrap">${U.dateDot(l.d)}</td><td>${e(l.item)}</td><td>${e(l.name || l.content || '')}</td><td class="sub">${e(l.staff)}</td>
-      <td><input class="input sm" data-org-name="${l.src.kind}:${l.src.id}" list="ptPeopleSync" value="${e(guessName(l))}" placeholder="이름 (여러 명은 쉼표)" style="min-width:200px">${guessName(l) ? '<div class="sub">추천: 확인 후 저장</div>' : ''}</td></tr>`).join('');
-    const people = [...new Set([...S.get().perfs, ...S.get().activities].flatMap(x => S.pplOf(x)).filter(Boolean))];
+    const stOfName = (key, name) => { if (!r || !r.st) return ''; const i = org.sent.findIndex(x => x.key === key && x.name === name); return i < 0 ? '' : r.st.gen[i]; };
+    const missing = rows.need.filter(n => !namesOf(n).length).length;
+    const needRows = rows.need.map(n => {
+      const names = namesOf(n), sts = names.map(x => stOfName(n.key, x));
+      const cls = !names.length ? 'os-noname' : sts.includes('add-nouser') ? 'os-add-nouser' : sts.length && sts.every(x => x === 'dup') ? 'os-dup' : '';
+      return `<tr class="${cls}"><td class="num nowrap">${U.dateDot(n.date)}</td><td>${e(n.item)}</td><td>${e(n.place)}</td><td class="sub">${e(n.staff)}</td>
+        <td><input class="input sm" data-org-name="${e(n.key)}" value="${e(names.join(', '))}" placeholder="이름 직접 입력 (여러 명은 쉼표)" autocomplete="off" style="min-width:210px"></td>
+        <td>${names.length ? names.map((x, i) => `<div>${e(x)} ${badge(sts[i])}</div>`).join('') : '<span class="badge warn">이름 필요</span>'}</td></tr>`;
+    }).join('');
+    const etcSt = i => (r && r.st ? r.st.etc[i] : '');
+    const etcRows = rows.etc.map((x, i) => `<tr class="os-${etcSt(i) || 'none'}"><td class="num nowrap">${U.dateDot(x.date)}</td><td>${e(x.item)}</td><td class="num">${e(x.people)}</td><td>${e(x.note)}</td><td class="sub">${e(x.staff)}</td><td>${badge(etcSt(i))}</td></tr>`).join('');
     const add = r ? r.add.gen + r.add.etc : 0;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
     else if (org.busy) state = '<p class="sub">복지관 실적 시트를 읽고 비교하는 중이에요… (10~30초)</p>';
     else if (org.err) state = `<p class="form-notice">복지관 시트에 연결하지 못했어요: ${e(org.err)}<br><span class="sub">처음 쓸 때는 다른 스프레드시트에 쓰는 권한이 새로 필요해요. Code.gs를 새로 붙여 넣고 새 버전으로 배포한 뒤, 권한 창에서 허용해 주세요. 복지관 실적 시트에 편집 권한도 있어야 해요.</span></p>`;
+    else if (cur && org.stale) state = '<p class="form-notice">이름을 고쳤어요. <b>🔄 복지관 시트와 비교</b>를 눌러 다시 확인한 뒤 보내 주세요.</p>';
     else if (r) state = `<div class="os-sum"><span>보낼 곳 <b>${e(r.title)}</b> <a href="${e(r.url)}" target="_blank" rel="noopener">열기 ↗</a></span><span>실적(일반) 새로 <b class="num">${r.add.gen}</b> · 건너뜀 ${r.dup.gen}</span><span>실적(기타) 새로 <b class="num">${r.add.etc}</b> · 건너뜀 ${r.dup.etc}</span></div>`;
     return `<section class="panel panel-pad os">
       <h2 class="section-title">📤 ${m}월 실적 연동 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
-      <p class="sub" style="margin:0 0 8px">보내기 전에 줄마다 어디에 어떻게 들어갈지 확인하는 곳이에요. 이름이 빠진 실적은 아래에서 바로 넣고, 이용자입력에 없는 사람은 등록한 뒤 보내세요. 여러 번 보내도 같은 줄은 두 번 들어가지 않아요.</p>
+      <p class="sub" style="margin:0 0 8px">① 실적(일반) 줄마다 <b>이름을 직접 적고</b> → ② <b>복지관 시트와 비교</b> → ③ 이용자입력에 없는 사람은 등록 → ④ <b>보내기</b>. 여기 적은 이름은 우리 사이트에 저장하지 않고 복지관 시트로 보낼 때만 써요. 여러 번 보내도 같은 줄은 두 번 들어가지 않아요.</p>
       ${done ? `<div class="st-sum good">✅ 보냈어요: 실적(일반) <b>${done.add.gen}줄</b> · 실적(기타) <b>${done.add.etc}줄</b> <a href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트 열기 ↗</a></div>` : ''}
       ${state}
-      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 다시 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${r ? `${add}줄 보내기` : '먼저 비교해 주세요'}</button>` : ''}</div>
-      ${rows.noName.length ? `<h3 class="os-h">✏️ 이름을 넣어야 보낼 수 있는 실적 <span class="sub">${rows.noName.length}줄 · 실적(일반)은 이름마다 한 줄이에요</span></h3>
-        <datalist id="ptPeopleSync">${people.map(n => `<option value="${e(n)}">`).join('')}</datalist>
-        <div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>날짜</th><th>세부사업</th><th>사업체·내용</th><th>담당</th><th>참여자 이름</th></tr></thead><tbody>${nn}</tbody></table></div>
-        <div class="inline" style="margin-top:6px"><button class="btn btn-primary btn-sm" type="button" data-act="org-name-save">이름 저장</button><span class="sub">저장하면 실적 입력 표에도 같이 들어가요.</span></div>` : ''}
+      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${r ? `${add}줄 보내기` : '먼저 비교해 주세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${r && Object.keys(r.badItems || {}).length ? `<p class="form-notice">⚠ 복지관 시트 <b>실적분류설정</b>에 없는 세부사업이라 못 보내요: ${Object.entries(r.badItems).map(([k, n]) => `${e(k)}(${n}줄)`).join(', ')}</p>` : ''}
-      <h3 class="os-h">실적(일반) <span class="sub">${rows.gen.length}줄 · 이름(C) · 사업날짜(J) · 세부사업명(M) · 회차(N) · 비고(O)</span></h3>
-      ${rows.gen.length ? `<div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>사업날짜</th><th>세부사업명</th><th>이름</th><th>회차</th><th>비고</th><th>담당</th><th>결과</th></tr></thead><tbody>${genRows}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
-      <h3 class="os-h">실적(기타) <span class="sub">${rows.etc.length}줄 · 사업날짜(B) · 세부사업명(E) · 참여인원(F) · 신규(G) · 회차(H) · 비고(I)</span></h3>
-      ${rows.etc.length ? `<div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>사업날짜</th><th>세부사업명</th><th>참여인원</th><th>신규</th><th>회차</th><th>비고</th><th>담당</th><th>결과</th></tr></thead><tbody>${etcRows}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
+      <h3 class="os-h">실적(일반) <span class="sub">${rows.need.length}건 · 이름(C) · 사업날짜(J) · 세부사업명(M) · 이름마다 한 줄씩 들어가요</span></h3>
+      ${rows.need.length ? `<div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>사업날짜</th><th>세부사업명</th><th>사업체·내용 <span class="sub">(참고)</span></th><th>담당</th><th>이름 ✏️</th><th>결과</th></tr></thead><tbody>${needRows}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
+      <h3 class="os-h">실적(기타) <span class="sub">${rows.etc.length}줄 · 사업날짜(B) · 세부사업명(E) · 참여인원(F) · 비고(I)</span></h3>
+      ${rows.etc.length ? `<div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>사업날짜</th><th>세부사업명</th><th>참여인원</th><th>비고</th><th>담당</th><th>결과</th></tr></thead><tbody>${etcRows}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
     </section>`;
   }
   /** 이용자입력에 없는 이름: 미리보기에서 바로 적어 복지관 시트 '이용자입력'에 등록 */
@@ -1852,18 +1848,6 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
-    'org-name-save': () => {
-      let n = 0;
-      document.querySelectorAll('[data-org-name]').forEach(el => {
-        const names = el.value.split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean).join(', ');
-        if (!names) return;
-        const [kind, id] = el.dataset.orgName.split(':');
-        S.upsert(kind, { id, ppl: names }); n++;
-      });
-      if (!n) return toast('이름을 한 칸 이상 적어 주세요.', 'error');
-      toast(`${n}줄에 이름을 넣었어요.${S.REMOTE ? ' 복지관 시트와 다시 비교할게요.' : ''}`);
-      if (S.REMOTE) orgSyncRun(false); else bindPerf();
-    },
     'org-user-add': async () => {
       const users = [...document.querySelectorAll('#perfResults [data-ou-row]')].filter(tr => tr.querySelector('[data-ou="on"]').checked).map(tr => {
         const u = { name: tr.dataset.ouRow }; tr.querySelectorAll('[data-ou]').forEach(el => { if (el.dataset.ou !== 'on') u[el.dataset.ou] = el.value.trim(); }); return u;
@@ -2375,6 +2359,12 @@ window.App = (() => {
   };
 
   function bindGlobal() {
+    // 실적 연동 탭: 이름 칸은 화면에만 기억한다 (다시 그리지 않고, 비교를 다시 하도록 표시)
+    document.addEventListener('input', ev => {
+      const el = ev.target.closest && ev.target.closest('[data-org-name]'); if (!el) return;
+      org.names[el.dataset.orgName] = el.value;
+      if (org.res && !org.stale) { org.stale = true; const b = document.querySelector('[data-act="org-sync-commit"]'); if (b) { b.disabled = true; b.textContent = '이름을 고쳤어요 · 다시 비교해 주세요'; } }
+    });
     // 연락이력 화면에서 캡처 이미지를 Ctrl+V 하면 그 캡처로 칸을 채운다
     document.addEventListener('paste', ev => {
       if (route() !== 'contacts' || drawerOpen()) return;

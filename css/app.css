@@ -2000,3 +2000,5 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .os-tbl tr.os-dup td, .os-tbl tr.os-skip td { opacity: .55; }
 .os-tbl tr.os-bad td { background: #FDECEC; }
 .os-tbl tr.os-add-nouser td { background: #FFF8E1; }
+.os-tbl tr.os-noname td { background: #FFF8E1; }
+.os-tbl td > div + div { margin-top: 2px; }

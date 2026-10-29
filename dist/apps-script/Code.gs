@@ -807,8 +807,8 @@ function archiveRoot_() {
 }
 /* ---------- 복지관 사업실적 시트로 보내기 ----------
  * 사이트 실적 화면에 넣은 한 달 실적을 복지관 '사업실적' 스프레드시트의 노란 칸에만 적는다.
- *  - 사람마다 세는 항목(직업상담·취업알선 등) → 실적(일반): 이름(C)·사업날짜(J)·세부사업명(M)·회차(N)·비고(O)
- *  - 건수만 세는 항목(사업체개발·고용자원개발·사업체관리 등) → 실적(기타): 사업날짜(B)·세부사업명(E)·참여인원(F)·신규(G)·회차(H)·비고(I)
+ *  - 사람마다 세는 항목(직업상담·취업알선 등) → 실적(일반): 이름(C)·사업날짜(J)·세부사업명(M)
+ *  - 건수만 세는 항목(사업체개발·고용자원개발·사업체관리 등) → 실적(기타): 사업날짜(B)·세부사업명(E)·참여인원(F)·비고(I)
  * 이미 같은 줄(일반: 이름·날짜·세부사업, 기타: 날짜·세부사업·비고)이 그 달에 있으면 건너뛰어서 여러 번 보내도 두 번 들어가지 않는다. */
 var ORG_PERF_DEFAULT = '1kp0eFtA_clfOTDsyCAbdFujQe-S-TN4SbGVizMj2wKQ';
 function orgPerfId_(v) {
@@ -879,8 +879,6 @@ function api_orgPerfSync(p) {
       put(gen, r0, 10, addG.map(function (r) { return dt(r.date); }));
       gen.getRange(r0, 10, addG.length, 1).setNumberFormat('yyyy-mm-dd');
       put(gen, r0, 13, addG.map(function (r) { return r.item; }));
-      put(gen, r0, 14, addG.map(function (r) { return r.round === '' || r.round == null ? '' : r.round; }));
-      put(gen, r0, 15, addG.map(function (r) { return r.note || ''; }));
     }
     if (addE.length) {
       var e0 = eLast + 2;
@@ -889,8 +887,6 @@ function api_orgPerfSync(p) {
       etc.getRange(e0, 2, addE.length, 1).setNumberFormat('yyyy-mm-dd');
       put(etc, e0, 5, addE.map(function (r) { return r.item; }));
       put(etc, e0, 6, addE.map(function (r) { return r.people === '' || r.people == null ? '' : r.people; }));
-      put(etc, e0, 7, addE.map(function (r) { return r.newPeople === '' || r.newPeople == null ? '' : r.newPeople; }));
-      put(etc, e0, 8, addE.map(function (r) { return r.round === '' || r.round == null ? '' : r.round; }));
       put(etc, e0, 9, addE.map(function (r) { return r.note || ''; }));
       // 대분류·중분류 칸: 위 줄처럼 실적분류설정에서 찾는 식을 넣는다 (이미 식이 있으면 그대로)
       var fC = etc.getRange(e0, 3, addE.length, 2).getFormulas();
