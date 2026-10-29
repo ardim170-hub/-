@@ -818,6 +818,99 @@ function archiveRoot_() {
   withLock_(function () { writeSettings_({ archiveFolderId: f.getId() }); });
   return f;
 }
+/* ---------- 복지관 사업실적 시트로 보내기 ----------
+ * 사이트 실적 화면에 넣은 한 달 실적을 복지관 '사업실적' 스프레드시트의 노란 칸에만 적는다.
+ *  - 사람마다 세는 항목(직업상담·취업알선 등) → 실적(일반): 이름(C)·사업날짜(J)·세부사업명(M)·회차(N)·비고(O)
+ *  - 건수만 세는 항목(사업체개발·고용자원개발·사업체관리 등) → 실적(기타): 사업날짜(B)·세부사업명(E)·참여인원(F)·신규(G)·회차(H)·비고(I)
+ * 이미 같은 줄(일반: 이름·날짜·세부사업, 기타: 날짜·세부사업·비고)이 그 달에 있으면 건너뛰어서 여러 번 보내도 두 번 들어가지 않는다. */
+var ORG_PERF_DEFAULT = '1kp0eFtA_clfOTDsyCAbdFujQe-S-TN4SbGVizMj2wKQ';
+function orgPerfId_(v) {
+  var s = String(v || readSettings_().orgPerfSheet || ORG_PERF_DEFAULT).trim();
+  var m = s.match(/\/d\/([\w-]{20,})/);
+  return m ? m[1] : s;
+}
+function api_orgPerfSync(p) {
+  var acc = requireMember_();
+  if (level_(acc, 'perf') < 2) throw new Error('실적 등록·수정 권한이 없습니다.');
+  var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet));
+  var gen = ss.getSheetByName('실적(일반)'), etc = ss.getSheetByName('실적(기타)'), cls = ss.getSheetByName('실적분류설정'), users = ss.getSheetByName('이용자입력');
+  if (!gen || !etc || !cls) throw new Error('보낼 시트에 실적(일반)·실적(기타)·실적분류설정 탭이 없어요. 주소를 확인하세요.');
+  var tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul', month = String(p.month || '');
+  var day = function (v) { return v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : String(v || '').trim().slice(0, 10); };
+  var norm = function (v) { return String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase(); };
+  var col = function (sh, c, n) { return n > 0 ? sh.getRange(2, c, n, 1).getValues().map(function (r) { return r[0]; }) : []; };
+  var items = {};
+  col(cls, 3, cls.getLastRow() - 1).forEach(function (v) { if (String(v).trim()) items[String(v).trim()] = 1; });
+  var known = {};
+  if (users) col(users, 3, users.getLastRow() - 1).forEach(function (v) { if (String(v).trim()) known[norm(v)] = 1; });
+
+  return withLock_(function () {
+    // 실적(일반): 체크박스 칸 때문에 getLastRow가 끝까지 가므로 이름·세부사업 칸으로 마지막 줄을 찾는다
+    var gn = gen.getLastRow() - 1, gC = col(gen, 3, gn), gJ = col(gen, 10, gn), gM = col(gen, 13, gn), gLast = 0, have = {};
+    for (var i = 0; i < gn; i++) {
+      if (String(gC[i]).trim() || String(gM[i]).trim()) gLast = i + 1;
+      var d = day(gJ[i]);
+      if (d.indexOf(month) === 0) { var k = norm(gC[i]) + '|' + d + '|' + norm(gM[i]); have[k] = (have[k] || 0) + 1; }
+    }
+    var en = etc.getLastRow() - 1, eB = col(etc, 2, en), eE = col(etc, 5, en), eI = col(etc, 9, en), eLast = 0, haveE = {};
+    for (var j = 0; j < en; j++) {
+      if (String(eE[j]).trim() || (eB[j] !== '' && eB[j] != null)) eLast = j + 1;
+      var d2 = day(eB[j]);
+      if (d2.indexOf(month) === 0) { var k2 = d2 + '|' + norm(eE[j]) + '|' + norm(eI[j]); haveE[k2] = (haveE[k2] || 0) + 1; }
+    }
+    var out = { title: ss.getName(), url: ss.getUrl(), add: { gen: 0, etc: 0 }, dup: { gen: 0, etc: 0 }, badItems: {}, unknown: {}, wrote: false };
+    var addG = [], addE = [];
+    (p.gen || []).forEach(function (r) {
+      if (String(r.date || '').indexOf(month) !== 0) return;
+      if (!items[r.item]) { out.badItems[r.item] = (out.badItems[r.item] || 0) + 1; return; }
+      var k = norm(r.name) + '|' + r.date + '|' + norm(r.item);
+      if (have[k]) { have[k]--; out.dup.gen++; return; }
+      if (!known[norm(r.name)]) out.unknown[r.name] = (out.unknown[r.name] || 0) + 1;
+      addG.push(r);
+    });
+    (p.etc || []).forEach(function (r) {
+      if (String(r.date || '').indexOf(month) !== 0) return;
+      if (!items[r.item]) { out.badItems[r.item] = (out.badItems[r.item] || 0) + 1; return; }
+      var k = r.date + '|' + norm(r.item) + '|' + norm(r.note);
+      if (haveE[k]) { haveE[k]--; out.dup.etc++; return; }
+      addE.push(r);
+    });
+    out.add.gen = addG.length; out.add.etc = addE.length;
+    if (!p.commit) return out;
+    var dt = function (s) { var a = String(s).split('-'); return new Date(+a[0], +a[1] - 1, +a[2]); };
+    var put = function (sh, row, c, vals) { if (vals.length) sh.getRange(row, c, vals.length, 1).setValues(vals.map(function (v) { return [v]; })); };
+    if (addG.length) {
+      var r0 = gLast + 2;
+      if (gen.getMaxRows() < r0 + addG.length) gen.insertRowsAfter(gen.getMaxRows(), r0 + addG.length - gen.getMaxRows());
+      put(gen, r0, 3, addG.map(function (r) { return r.name; }));
+      put(gen, r0, 10, addG.map(function (r) { return dt(r.date); }));
+      put(gen, r0, 13, addG.map(function (r) { return r.item; }));
+      put(gen, r0, 14, addG.map(function (r) { return r.round === '' || r.round == null ? '' : r.round; }));
+      put(gen, r0, 15, addG.map(function (r) { return r.note || ''; }));
+    }
+    if (addE.length) {
+      var e0 = eLast + 2;
+      if (etc.getMaxRows() < e0 + addE.length) etc.insertRowsAfter(etc.getMaxRows(), e0 + addE.length - etc.getMaxRows());
+      put(etc, e0, 2, addE.map(function (r) { return dt(r.date); }));
+      put(etc, e0, 5, addE.map(function (r) { return r.item; }));
+      put(etc, e0, 6, addE.map(function (r) { return r.people === '' || r.people == null ? '' : r.people; }));
+      put(etc, e0, 7, addE.map(function (r) { return r.newPeople === '' || r.newPeople == null ? '' : r.newPeople; }));
+      put(etc, e0, 8, addE.map(function (r) { return r.round === '' || r.round == null ? '' : r.round; }));
+      put(etc, e0, 9, addE.map(function (r) { return r.note || ''; }));
+      // 대분류·중분류 칸: 위 줄처럼 실적분류설정에서 찾는 식을 넣는다 (이미 식이 있으면 그대로)
+      var fC = etc.getRange(e0, 3, addE.length, 2).getFormulas();
+      var fs = addE.map(function (_, i) {
+        var r = e0 + i;
+        return [fC[i][0] || '=IF(E' + r + '="","",IFERROR(INDEX(\'실적분류설정\'!A:A,MATCH(E' + r + ',\'실적분류설정\'!C:C,0)),""))',
+          fC[i][1] || '=IF(E' + r + '="","",IFERROR(INDEX(\'실적분류설정\'!B:B,MATCH(E' + r + ',\'실적분류설정\'!C:C,0)),""))'];
+      });
+      etc.getRange(e0, 3, addE.length, 2).setFormulas(fs);
+    }
+    out.wrote = true;
+    return out;
+  });
+}
+
 function api_archiveWrite(p) {
   var acc = requireMember_();
   if (!p || !p.section || !p.files) throw new Error('보낼 내용이 없어요.');

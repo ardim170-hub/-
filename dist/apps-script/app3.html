@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.29 11:29";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.29 17:16";</script>
 <script>
 /* 직업훈련 반별 월간 일정표 (JOB이음터 · 일과놀이반): 월~금 × 오전·오후 칸에 훈련 구분과 내용을 적는다
    - 칸 하나 = 기록 한 줄 { date, slot: 오전|오후|종일, cat: 훈련 구분, content: 내용, color }
@@ -1250,7 +1250,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'tp-save': [['schedule', 2]], 'tp-color': [['schedule', 2]], 'tp-fmt': [['schedule', 2]], 'tp-fc': [['schedule', 2]], 'tp-align': [['schedule', 2]], 'tp-chkbox': [['schedule', 2]], 'tp-fmt-clear': [['schedule', 2]], 'tp-check': [['schedule', 2]], 'tp-dd-pick': [['schedule', 2]], 'tp-merge': [['schedule', 2]], 'tp-undo': [['schedule', 2]], 'tp-del': [['schedule', 3]], 'tp-clear': [['schedule', 3]], 'tp-import': [['schedule', 2]], 'tp-imp-commit': [['schedule', 2]], 'tp-copy-prev': [['schedule', 2]], 'tp-label': [['schedule', 2]], 'tp-notes-save': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['perf', 2]], 'org-sync-commit': [['perf', 2]], 'od-hwp': [['orders', 2]], 'od-hwp-commit': [['orders', 2]], 'od-import': [['orders', 2]], 'od-add': [['orders', 2]], 'od-dup': [['orders', 2]], 'od-del': [['orders', 3]], 'tv-road': [['orders', 2]], 'tv-save-set': [['orders', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -2122,6 +2122,51 @@ window.App = (() => {
         </section>`).join('') : `<p class="empty">겹치는 ${what}가 없어요. 깔끔해요 👍</p>`}</div>
       <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">닫기</button><button class="btn btn-primary" type="button" data-act="dedupe-commit" ${n ? '' : 'disabled'}>${n}건 합쳐서 정리</button></div>`;
   }
+  /* ---------- 복지관 사업실적 시트로 보내기 ---------- */
+  /** 한 달 실적(실적 화면에서 넣은 것)을 기관 시트 모양으로: 사람마다 세는 항목 → gen(실적(일반)), 건수만 → etc(실적(기타)) */
+  function orgPerfRows(month) {
+    const st = S.get(), gen = [], etc = [], noName = [];
+    Object.keys(D.PERF_SETS).forEach(set => DP.lines(set, month, st).forEach(l => {
+      const rec = l.kind === 'perf' ? S.find('perf', l.id) || {} : {};
+      const where = l.name || '';
+      if (S.NO_PEOPLE.has(l.item)) {
+        etc.push({ date: l.d, item: l.item, people: rec.people || '', newPeople: rec.newPeople || '', round: rec.round || '', note: where || l.content || '' });
+      } else if ((l.ppl || []).length) {
+        l.ppl.forEach(name => gen.push({ name, date: l.d, item: l.item, round: rec.round || '', note: where }));
+      } else noName.push(l);
+    }));
+    return { gen, etc, noName };
+  }
+  async function orgSyncRun(top, commit) {
+    const rows = orgPerfRows(top.month);
+    top.rows = rows; top.busy = true; top.err = ''; renderDrawer(true);
+    try {
+      top.res = await S.call('api_orgPerfSync', { month: top.month, gen: rows.gen, etc: rows.etc, commit: !!commit, sheet: S.get().settings.orgPerfSheet || '' });
+      if (commit) top.done = top.res;
+    } catch (err) { top.err = (err && err.message) || String(err); }
+    top.busy = false; renderDrawer(true);
+  }
+  function orgSyncHtml(top) {
+    const e = U.esc, r = top.res, rows = top.rows || { gen: [], etc: [], noName: [] }, m = +top.month.slice(5);
+    const list = (o, f) => Object.entries(o || {}).map(([k, n]) => `<li>${f(k)} <span class="sub">${n}줄</span></li>`).join('');
+    let body;
+    if (top.busy) body = `<p class="sub">${top.done === undefined && !r ? '복지관 실적 시트를 읽고 비교하는 중이에요… (10~30초)' : '처리하는 중이에요…'}</p><div class="skel" style="height:22px;width:70%"></div><div class="skel" style="height:120px"></div>`;
+    else if (top.err) body = `<p class="form-notice">보내지 못했어요: ${e(top.err)}</p><p class="sub">처음 쓸 때는 다른 스프레드시트에 쓰는 권한이 새로 필요해요. Code.gs를 새로 붙여 넣고 새 버전으로 배포한 뒤, 사이트를 열 때 나오는 권한 창에서 허용해 주세요. 복지관 실적 시트에 <b>편집 권한</b>이 있어야 해요.</p>`;
+    else if (top.done) body = `<div class="st-sum good">✅ 보냈어요: 실적(일반) <b>${top.done.add.gen}줄</b> · 실적(기타) <b>${top.done.add.etc}줄</b>${top.done.dup.gen + top.done.dup.etc ? `<br><small>이미 들어 있던 ${top.done.dup.gen + top.done.dup.etc}줄은 건너뛰었어요.</small>` : ''}</div><p><a class="btn" href="${e(top.done.url)}" target="_blank" rel="noopener">복지관 실적 시트 열기 ↗</a></p>`;
+    else if (r) body = `<p>보낼 곳: <b>${e(r.title)}</b> <a class="sub" href="${e(r.url)}" target="_blank" rel="noopener">열기 ↗</a></p>
+        <table class="tbl"><thead><tr><th>탭</th><th class="r">새로 넣을 줄</th><th class="r">이미 있어서 건너뜀</th></tr></thead><tbody>
+          <tr><th>실적(일반) <span class="sub">이름별 · 직업상담·취업알선 등</span></th><td class="r num"><b>${r.add.gen}</b></td><td class="r num">${r.dup.gen}</td></tr>
+          <tr><th>실적(기타) <span class="sub">건수만 · 사업체개발·사업체관리 등</span></th><td class="r num"><b>${r.add.etc}</b></td><td class="r num">${r.dup.etc}</td></tr></tbody></table>
+        ${Object.keys(r.unknown || {}).length ? `<p class="form-notice">⚠ 복지관 시트 <b>이용자입력</b>에 없는 이름이에요. 보내도 되지만 이용자번호·장애유형 칸이 비어요. 이름이 맞는지 확인하거나 이용자입력에 먼저 등록해 주세요.</p><ul class="sub">${list(r.unknown, e)}</ul>` : ''}
+        ${Object.keys(r.badItems || {}).length ? `<p class="form-notice">⚠ 복지관 시트 <b>실적분류설정</b>에 없는 세부사업이라 빼고 보내요.</p><ul class="sub">${list(r.badItems, e)}</ul>` : ''}`;
+    else body = '';
+    const nn = rows.noName.length ? `<details class="pd-grp" open><summary><b>참여자 이름이 없어 못 보내는 실적 ${rows.noName.length}줄</b></summary><p class="sub">실적(일반)은 이름마다 한 줄이라 이름이 있어야 해요. 실적 화면에서 참여자 이름을 넣고 다시 확인하세요.</p><ul class="sub">${rows.noName.slice(0, 30).map(l => `<li>${U.dateDot(l.d)} · ${e(l.item)} · ${e(l.name || l.content || '')} · ${e(l.staff)}</li>`).join('')}</ul></details>` : '';
+    const can = r && !top.done && !top.busy && !top.err && r.add.gen + r.add.etc > 0;
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">📤 ${m}월 실적을 복지관 실적 시트로</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">실적 화면에 넣은 ${m}월 실적(현장중심·고용지원)을 복지관 시트의 노란 칸에만 적어요. 여러 번 눌러도 같은 줄은 두 번 들어가지 않아요.</p></div>
+      <div class="dr-body">${body}${nn}</div>
+      <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">닫기</button>${top.done ? '' : `<button class="btn" type="button" data-act="org-sync-check" ${top.busy ? 'disabled' : ''}>다시 확인</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${can ? '' : 'disabled'}>${r ? `${r.add.gen + r.add.etc}줄 보내기` : '보내기'}</button>`}</div>`;
+  }
   function renderDrawer(keepScroll) {
     const top = stack[stack.length - 1];
     if (!top) return closeDrawer();
@@ -2141,6 +2186,11 @@ window.App = (() => {
     }
     if (top.type === 'dpitem') {
       inner.innerHTML = DP.itemHtml(top);
+      showDrawer();
+      return;
+    }
+    if (top.type === 'orgsync') {
+      inner.innerHTML = orgSyncHtml(top);
       showDrawer();
       return;
     }
@@ -3052,6 +3102,18 @@ window.App = (() => {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), '실적(기타)');
       XLSX.writeFile(wb, `실적_${f.set}_${f.month}.xlsx`);
+    },
+    'org-sync': () => {
+      if (!S.REMOTE) return toast('복지관 실적 시트로 보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요.');
+      const top = { type: 'orgsync', month: V.ui.perf.month };
+      push(top, false); orgSyncRun(top, false);
+    },
+    'org-sync-check': () => { const top = stack[stack.length - 1]; if (top && top.type === 'orgsync') orgSyncRun(top, false); },
+    'org-sync-commit': async () => {
+      const top = stack[stack.length - 1]; if (!top || top.type !== 'orgsync' || !top.res) return;
+      const n = top.res.add.gen + top.res.add.etc;
+      if (!(await confirmBox(`${n}줄을 복지관 실적 시트에 보낼까요?`, `${top.res.title}의 실적(일반) ${top.res.add.gen}줄 · 실적(기타) ${top.res.add.etc}줄을 맨 아래에 더해요. 다른 칸(식)은 건드리지 않아요.`, '보내기'))) return;
+      orgSyncRun(top, true);
     },
     'perf-who': el => { V.ui.perf.who = el.dataset.who; bindPerf(); },
     'gl-open': () => { V.ui.perf.glOpen = !V.ui.perf.glOpen; },

@@ -1037,7 +1037,7 @@ window.V = (() => {
           <div class="chips">${['', ...pros].map(n => `<button type="button" class="chip ${f.who === n ? 'on' : ''}" data-act="perf-who" data-who="${e(n)}">${n ? `<span class="dot" style="background:${staffColor(n)}"></span>${e(n)}` : '전체'}</button>`).join('')}</div>
           <div class="inline">
             <label class="check"><input type="checkbox" data-act="perf-no" ${f.withNo ? 'checked' : ''}>연번 포함해서 복사</label>
-            <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button>
+            <button class="btn btn-primary" type="button" data-act="perf-copy" ${sheetRows.length ? '' : 'disabled'}>${I.copy}구글 시트용 복사 (${sheetRows.length}줄)</button><button class="btn" type="button" data-act="perf-xlsx" ${sheetRows.length ? '' : 'disabled'}>엑셀로 받기</button><button class="btn btn-primary" type="button" data-act="org-sync" title="이 달 실적을 복지관 사업실적 시트(실적(일반)·실적(기타))에 바로 적어요">📤 복지관 실적 시트로 보내기</button>
           </div>
         </div>
         <div class="table-wrap"><table class="tbl pt-tbl">
