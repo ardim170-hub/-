@@ -862,7 +862,7 @@ function api_orgPerfSync(p) {
       addE.push(r);
     });
     out.add.gen = addG.length; out.add.etc = addE.length;
-    if (!p.commit) return out;
+    if (!p.commit) { if (users && Object.keys(out.unknown).length) out.userForm = orgUserForm_(users, tz); return out; }
     var dt = function (s) { var a = String(s).split('-'); return new Date(+a[0], +a[1] - 1, +a[2]); };
     var put = function (sh, row, c, vals) { if (vals.length) sh.getRange(row, c, vals.length, 1).setValues(vals.map(function (v) { return [v]; })); };
     if (addG.length) {
@@ -893,6 +893,51 @@ function api_orgPerfSync(p) {
       etc.getRange(e0, 3, addE.length, 2).setFormulas(fs);
     }
     out.wrote = true;
+    return out;
+  });
+}
+
+/** 이용자입력 탭: 칸마다 이미 쓰는 값(고를 수 있게) + 다음 이용자번호 */
+function orgUserForm_(users, tz) {
+  var n = users.getLastRow() - 1, rows = n > 0 ? users.getRange(2, 1, n, 12).getValues() : [];
+  var pick = function (c) { var cnt = {}; rows.forEach(function (r) { var v = String(r[c] || '').trim(); if (v) cnt[v] = (cnt[v] || 0) + 1; }); return Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; }).slice(0, 80); };
+  var y = Utilities.formatDate(new Date(), tz, 'yyyy'), max = 0;
+  rows.forEach(function (r) { var m = String(r[1] || '').match(/^(\d{4})-(\d+)$/); if (m && m[1] === y) max = Math.max(max, +m[2]); });
+  return { sex: pick(3), type: pick(6), grade: pick(7), city: pick(8), town: pick(9), income: pick(10), year: y, next: max + 1 };
+}
+/** 사이트에서 적은 이용자를 복지관 시트 '이용자입력' 맨 아래에 더한다. 같은 이름·같은 이용자번호가 이미 있으면 건너뛴다 */
+function api_orgUserAdd(p) {
+  var acc = requireMember_();
+  if (level_(acc, 'orgsync') < 2) throw new Error('복지관 실적 시트 보내기 권한이 없어요. 관리자에게 요청하세요.');
+  var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet)), sh = ss.getSheetByName('이용자입력');
+  if (!sh) throw new Error('보낼 시트에 이용자입력 탭이 없어요.');
+  var tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
+  return withLock_(function () {
+    var n = sh.getLastRow() - 1, rows = n > 0 ? sh.getRange(2, 1, n, 3).getValues() : [];
+    var last = 0, maxNo = 0, nos = {}, names = {};
+    rows.forEach(function (r, i) {
+      if (String(r[1]).trim() || String(r[2]).trim()) last = i + 1;
+      if (+r[0] > maxNo) maxNo = +r[0];
+      nos[String(r[1]).trim()] = 1; names[String(r[2]).replace(/\s+/g, '')] = 1;
+    });
+    var now = new Date(), out = { added: [], skipped: [] }, put = [];
+    (p.users || []).forEach(function (u) {
+      var name = String(u.name || '').trim(), no = String(u.no || '').trim();
+      if (!name) return;
+      if (names[name.replace(/\s+/g, '')]) { out.skipped.push(name + ' (이미 있는 이름)'); return; }
+      if (!/^\d{4}-\d{5}$/.test(no)) { out.skipped.push(name + ' (이용자번호 모양이 2026-00262 같지 않아요)'); return; }
+      if (nos[no]) { out.skipped.push(name + ' (이용자번호 ' + no + ' 이미 있음)'); return; }
+      var b = String(u.birth || '').split('-'), birth = b.length === 3 ? new Date(+b[0], +b[1] - 1, +b[2]) : '';
+      var age = birth ? now.getFullYear() - birth.getFullYear() - ((now.getMonth() < birth.getMonth() || (now.getMonth() === birth.getMonth() && now.getDate() < birth.getDate())) ? 1 : 0) : '';
+      put.push([++maxNo, no, name, u.sex || '', birth, age, u.type || '', u.grade || '', u.city || '', u.town || '', u.income || '', u.note || '']);
+      nos[no] = 1; names[name.replace(/\s+/g, '')] = 1; out.added.push(name);
+    });
+    if (put.length) {
+      var r0 = last + 2;
+      if (sh.getMaxRows() < r0 + put.length) sh.insertRowsAfter(sh.getMaxRows(), r0 + put.length - sh.getMaxRows());
+      sh.getRange(r0, 1, put.length, 12).setValues(put);
+      sh.getRange(r0, 5, put.length, 1).setNumberFormat('yyyy-mm-dd');
+    }
     return out;
   });
 }

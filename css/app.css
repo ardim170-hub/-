@@ -1985,3 +1985,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .ct-add-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 16px; }
 .ct-shot { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
 .ai-filled { background: #FFF9DB !important; border-color: #E9B949 !important; }
+/* 복지관 실적 시트 보내기: 이용자입력 등록 */
+.ou-box { margin: 10px 0; }
+.ou-tbl td, .ou-tbl th { padding: 4px 6px; vertical-align: middle; }
+.ou-tbl .input.sm, .ou-tbl .select.sm { min-width: 0; }
