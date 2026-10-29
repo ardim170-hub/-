@@ -26,8 +26,13 @@ var remoteFiles_ = null; // 이번 요청에서 쓸 파일들 (null = 안의 파
 function doGet(e) {
   remoteFiles_ = (e && e.parameter && e.parameter.local === '1') ? null : loadRemote_();
   // 화면 파일은 1MB 제한 때문에 index(뼈대) + style + app1~app3 으로 나눠 두고 여기서 합친다
-  var tpl = remoteFiles_ ? HtmlService.createTemplate(remoteFiles_.index) : HtmlService.createTemplateFromFile('index');
-  return tpl.evaluate()
+  var out = null;
+  if (remoteFiles_) {
+    try { out = HtmlService.createTemplate(remoteFiles_.index).evaluate(); }
+    catch (err) { console.warn('GitHub 화면 파일로 열지 못해 안의 파일로 엽니다: ' + err); remoteFiles_ = null; }
+  }
+  if (!out) out = HtmlService.createTemplateFromFile('index').evaluate();
+  return out
     .setTitle('화성시 아르딤복지관 직업지원팀')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     // 탭 아이콘: 복지관 로고 심볼 (GitHub 공개 저장소의 assets/favicon.png, 바뀌지 않게 커밋 주소로 고정)
@@ -76,6 +81,18 @@ function loadRemote_() {
   } catch (err) {
     return null;
   }
+}
+
+/** 편집기에서 실행: 자동 업데이트가 되는지 단계별로 실행 로그에 적는다 */
+function checkUpdate() {
+  clearUpdateCache();
+  var t0 = Date.now(), files = loadRemote_();
+  if (!files) { Logger.log('GitHub에서 화면 파일을 받지 못했어요. 사이트는 이 프로젝트 안의 파일로 열려요.'); return; }
+  UPDATE_FILES.forEach(function (f) { Logger.log(f + '.html: ' + files[f].length + '자'); });
+  Logger.log('받기 ' + (Date.now() - t0) + 'ms · 캐시 ' + (CacheService.getScriptCache().get('upd:meta') ? '저장됨' : '저장 안 됨(매번 새로 받음)'));
+  remoteFiles_ = files;
+  var html = HtmlService.createTemplate(files.index).evaluate().getContent();
+  Logger.log('화면 만들기 성공: ' + html.length + '자. 사이트를 새로고침해 보세요.');
 }
 
 /** 편집기에서 실행: 다음에 열 때 GitHub에서 바로 새로 받는다 */
