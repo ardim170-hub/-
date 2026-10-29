@@ -12,9 +12,22 @@ var SETTINGS_SHEET = '설정';
 var PHOTO_SHEET = '명함사진';
 var PHOTO_CHUNK = 45000; // 셀 하나에 5만 자까지 들어가므로 나눠 저장
 
-function doGet() {
+/* ---------- 화면 파일 자동 업데이트 ----------
+ * 화면 파일(index·style·app1~app3)은 GitHub 저장소의 live 갈래에서 가져온다.
+ * 새 버전을 올리면 10분 안에 모든 컴퓨터에 반영되고, 여기에 다시 붙여넣거나 새 버전 배포를 하지 않아도 된다.
+ * 가져오지 못하면(인터넷·GitHub 문제) 이 프로젝트 안에 있는 파일로 연다. 주소 끝에 ?local=1 을 붙이면 늘 안의 파일로 연다.
+ * 바로 반영하고 싶으면 편집기에서 clearUpdateCache 를 한 번 실행한다. */
+var UPDATE_BASE = 'https://raw.githubusercontent.com/ardim170-hub/-/live/dist/apps-script/';
+var UPDATE_FILES = ['index', 'style', 'app1', 'app2', 'app3'];
+var UPDATE_TTL = 600; // 초 (10분)
+var UPDATE_CHUNK = 25000; // 캐시 한 칸 100KB 제한 → 한글 3바이트 기준으로 나눠 담는다
+var remoteFiles_ = null; // 이번 요청에서 쓸 파일들 (null = 안의 파일)
+
+function doGet(e) {
+  remoteFiles_ = (e && e.parameter && e.parameter.local === '1') ? null : loadRemote_();
   // 화면 파일은 1MB 제한 때문에 index(뼈대) + style + app1~app3 으로 나눠 두고 여기서 합친다
-  return HtmlService.createTemplateFromFile('index').evaluate()
+  var tpl = remoteFiles_ ? HtmlService.createTemplate(remoteFiles_.index) : HtmlService.createTemplateFromFile('index');
+  return tpl.evaluate()
     .setTitle('화성시 아르딤복지관 직업지원팀')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     // 탭 아이콘: 복지관 로고 심볼 (GitHub 공개 저장소의 assets/favicon.png, 바뀌지 않게 커밋 주소로 고정)
@@ -23,7 +36,54 @@ function doGet() {
 
 /** index.html 안의 <?!= include('style'); ?> 자리에 그 파일 내용을 그대로 넣는다 */
 function include(name) {
+  if (remoteFiles_ && remoteFiles_[name]) return remoteFiles_[name];
   return HtmlService.createHtmlOutputFromFile(name).getContent();
+}
+
+/** GitHub의 최신 화면 파일 5개 (캐시 10분). 하나라도 못 받으면 섞이지 않게 전부 안의 파일로 */
+function loadRemote_() {
+  var cache = CacheService.getScriptCache();
+  try {
+    var meta = cache.get('upd:meta');
+    if (meta) {
+      var m = JSON.parse(meta), keys = [];
+      UPDATE_FILES.forEach(function (f) { for (var i = 0; i < m[f]; i++) keys.push('upd:' + f + ':' + i); });
+      var got = cache.getAll(keys), out = {}, ok = true;
+      UPDATE_FILES.forEach(function (f) {
+        var parts = [];
+        for (var i = 0; i < m[f]; i++) { var v = got['upd:' + f + ':' + i]; if (v == null) { ok = false; return; } parts.push(v); }
+        out[f] = parts.join('');
+      });
+      if (ok) return out;
+    }
+    var res = UrlFetchApp.fetchAll(UPDATE_FILES.map(function (f) { return { url: UPDATE_BASE + f + '.html?t=' + Math.floor(Date.now() / (UPDATE_TTL * 1000)), muteHttpExceptions: true }; }));
+    var files = {};
+    for (var k = 0; k < res.length; k++) {
+      if (res[k].getResponseCode() !== 200) return null;
+      var text = res[k].getContentText('UTF-8');
+      if (text.length < 200) return null;
+      files[UPDATE_FILES[k]] = text;
+    }
+    if (files.index.indexOf("include('app3')") < 0) return null; // 뼈대가 이상하면 쓰지 않는다
+    var put = {}, counts = {};
+    UPDATE_FILES.forEach(function (f) {
+      var t = files[f], n = Math.ceil(t.length / UPDATE_CHUNK);
+      counts[f] = n;
+      for (var i = 0; i < n; i++) put['upd:' + f + ':' + i] = t.slice(i * UPDATE_CHUNK, (i + 1) * UPDATE_CHUNK);
+    });
+    try { cache.putAll(put, UPDATE_TTL); cache.put('upd:meta', JSON.stringify(counts), UPDATE_TTL - 5); } catch (e) { /* 캐시가 가득 차도 이번엔 그대로 쓴다 */ }
+    return files;
+  } catch (err) {
+    return null;
+  }
+}
+
+/** 편집기에서 실행: 다음에 열 때 GitHub에서 바로 새로 받는다 */
+function clearUpdateCache() {
+  var cache = CacheService.getScriptCache(), keys = ['upd:meta'];
+  UPDATE_FILES.forEach(function (f) { for (var i = 0; i < 40; i++) keys.push('upd:' + f + ':' + i); });
+  cache.removeAll(keys);
+  Logger.log('업데이트 캐시를 비웠어요. 사이트를 새로고침하면 최신 화면 파일을 받아와요.');
 }
 
 function book_() {
