@@ -17,7 +17,7 @@ var PHOTO_CHUNK = 45000; // 셀 하나에 5만 자까지 들어가므로 나눠 
  * 새 버전을 올리면 10분 안에 모든 컴퓨터에 반영되고, 여기에 다시 붙여넣거나 새 버전 배포를 하지 않아도 된다.
  * 가져오지 못하면(인터넷·GitHub 문제) 이 프로젝트 안에 있는 파일로 연다. 주소 끝에 ?local=1 을 붙이면 늘 안의 파일로 연다.
  * 바로 반영하고 싶으면 편집기에서 clearUpdateCache 를 한 번 실행한다. */
-var UPDATE_ON = false; // true = GitHub live 갈래에서 화면 파일을 받아 옴. 지금은 이 프로젝트에 붙여 넣은 파일로만 연다
+var UPDATE_ON = true; // true = GitHub live 갈래에서 화면 파일을 받아 옴 (false = 이 프로젝트에 붙여 넣은 파일로만 연다)
 var UPDATE_BASE = 'https://raw.githubusercontent.com/ardim170-hub/-/live/dist/apps-script/';
 var UPDATE_FILES = ['index', 'style', 'app1', 'app2', 'app3'];
 var UPDATE_TTL = 600; // 초 (10분)
