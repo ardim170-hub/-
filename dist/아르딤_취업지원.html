@@ -2703,6 +2703,11 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .os-done > b { font-size: 16px; color: #1F7A52; }
 .os-done p { margin: 6px 0; }
 .os-done ul { margin: 0 0 8px; padding-left: 18px; }
+.os-why { padding: 10px 14px; margin: 8px 0; border: 1px solid #E5E7EB; background: #FAFAFB; }
+.os-why ul { margin: 4px 0 0; padding-left: 18px; }
+.os-dupbox { padding: 10px 14px; margin: 8px 0; border: 1px solid #F2B8B5; background: #FDF1F0; }
+.os-dupbox p { margin: 4px 0 6px; }
+.os-dupbox details { margin-bottom: 8px; }
 
 </style>
 </head>
@@ -2790,7 +2795,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.10.30 17:21";</script>
+<script>window.APP_VERSION = "2026.10.30 17:23";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -9601,7 +9606,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -10418,6 +10423,8 @@ window.App = (() => {
         return orgSyncRun(false);
       }
       org.res = res; org.sent = pl.sent;
+      // 복지관 시트에 이미 두 번 들어간 줄(중복)도 같이 찾아 둔다
+      try { org.dups = await S.call('api_orgPerfDedupe', { month: f.month, items: D.PERF_SETS[f.set].items, commit: false, sheet: S.get().settings.orgPerfSheet || '' }); } catch { org.dups = null; }
     } catch (err) { org.err = (err && err.message) || String(err); }
     org.busy = false; bindPerf();
   }
@@ -10457,6 +10464,16 @@ window.App = (() => {
     else if (org.err) state = `<p class="form-notice">복지관 시트에 연결하지 못했어요: ${e(org.err)}<br><span class="sub">처음 쓸 때는 다른 스프레드시트에 쓰는 권한이 새로 필요해요. Code.gs를 새로 붙여 넣고 새 버전으로 배포한 뒤, 권한 창에서 허용해 주세요. 복지관 실적 시트에 편집 권한도 있어야 해요.</span></p>`;
     else if (cur && org.stale) state = '<p class="form-notice">이름을 고쳤어요. <b>🔄 복지관 시트와 비교</b>를 눌러 다시 확인한 뒤 보내 주세요.</p>';
     else if (r) state = `<div class="os-sum"><span>보낼 곳 <b>${e(r.title)}</b> <a href="${e(r.url)}" target="_blank" rel="noopener">열기 ↗</a></span><span>실적(일반) 새로 <b class="num">${r.add.gen}</b> · 건너뜀 ${r.dup.gen}</span><span>실적(기타) 새로 <b class="num">${r.add.etc}</b> · 건너뜀 ${r.dup.etc}</span></div>`;
+    // 안 보내지는 줄과 그 이유
+    const why = [];
+    if (missing) why.push(`<li><b>이름이 빈 줄 ${missing}개</b> — 실적(일반)은 이름이 있어야 보내요. 아래 표의 노란 이름 칸을 채워 주세요.</li>`);
+    if (r && r.dup.gen + r.dup.etc) why.push(`<li><b>이미 들어가 있는 줄 ${r.dup.gen + r.dup.etc}개</b> — 복지관 시트에 같은 줄(실적(일반): 이름·날짜·세부사업 / 실적(기타): 날짜·세부사업·비고)이 있어서 건너뛰어요. 두 번 들어가지 않게 하려는 거예요.</li>`);
+    if (r && Object.keys(r.badItems || {}).length) why.push(`<li><b>분류가 없는 세부사업</b> — 복지관 시트 실적분류설정에 없는 이름이라 못 보내요.</li>`);
+    const dups = cur && org.dups ? [...org.dups.gen.map(x => `${U.dateDot(x.date)} · ${e(x.item)} · ${e(x.name)} <span class="sub">(${x.row}행)</span>`), ...org.dups.etc.map(x => `${U.dateDot(x.date)} · ${e(x.item)} · ${e(x.note || '비고 없음')} <span class="sub">(${x.row}행)</span>`)] : [];
+    const dupBox = dups.length ? `<div class="os-dupbox"><b>⚠ 복지관 시트에 같은 줄이 두 번 이상 들어가 있어요 (${dups.length}줄)</b>
+      <p class="sub">이 달·이 사업의 같은 줄 중 <b>맨 위 한 줄만 남기고</b> 아래 줄을 지워요. 다른 사업(장애인일자리 등) 줄은 건드리지 않아요.</p>
+      <details><summary>지울 줄 보기</summary><ul class="sub">${dups.slice(0, 100).map(x => `<li>${x}</li>`).join('')}</ul></details>
+      <button class="btn btn-sm btn-danger" type="button" data-act="org-dedupe" ${org.busy ? 'disabled' : ''}>중복 ${dups.length}줄 지우기</button></div>` : '';
     return `<section class="panel panel-pad os">
       <h2 class="section-title">📤 ${m}월 실적 보내기 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
       <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸에 직접 적고 → ② <b>복지관 시트와 비교</b> → ③ 이용자입력에 없는 사람은 등록 → ④ <b>보내기</b>. 여기 적은 이름은 우리 사이트에 저장하지 않고 복지관 시트로 보낼 때만 써요. 여러 번 보내도 같은 줄은 두 번 들어가지 않아요.</p>
@@ -10465,6 +10482,8 @@ window.App = (() => {
         <ul class="sub"><li>이용자번호·장애유형·대분류 같은 칸은 복지관 시트의 식이 알아서 채워요.</li><li>아래 표의 결과가 모두 <b>"이미 있음"</b>으로 바뀌었으면 다 들어간 거예요. 다시 눌러도 두 번 들어가지 않아요.</li><li>잘못 들어간 줄은 복지관 시트에서 그 줄을 지우면 돼요.</li></ul>
         <a class="btn btn-sm" href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트에서 확인하기 ↗</a></div>` : ''}
       ${state}
+      ${!org.busy && why.length ? `<div class="os-why"><b>안 보내지는 줄이 있는 이유</b><ul>${why.join('')}</ul></div>` : ''}
+      ${!org.busy ? dupBox : ''}
       <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${org.busy === 'send' ? '보내는 중…' : r ? (add ? `${add}줄 보내기` : '보낼 새 줄이 없어요') : '먼저 비교해 주세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${r && Object.keys(r.badItems || {}).length ? `<p class="form-notice">⚠ 복지관 시트 <b>실적분류설정</b>에 없는 세부사업이라 못 보내요: ${Object.entries(r.badItems).map(([k, n]) => `${e(k)}(${n}줄)`).join(', ')}</p>` : ''}
@@ -11380,6 +11399,14 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'org-dedupe': async () => {
+      const d = org.dups; if (!d) return; const n = d.gen.length + d.etc.length;
+      if (!(await confirmBox(`복지관 시트의 중복 ${n}줄을 지울까요?`, `같은 줄 중 맨 위 한 줄만 남기고 아래 ${n}줄을 지워요. 이 달·이 사업 줄만 지우고, 지운 줄은 시트의 '버전 기록'에서 되살릴 수 있어요.`, '중복 지우기'))) return;
+      org.busy = 'check'; bindPerf();
+      try { const r = await S.call('api_orgPerfDedupe', { month: V.ui.perf.month, items: D.PERF_SETS[V.ui.perf.set].items, commit: true, sheet: S.get().settings.orgPerfSheet || '' }); toast(`✅ 중복 ${r.removed}줄을 지웠어요.`); }
+      catch (err) { toast('중복을 지우지 못했어요: ' + ((err && err.message) || err), 'error'); }
+      orgSyncRun(false);
+    },
     'org-name-add': el => {
       const k = el.dataset.key, n = orgPerfRows(V.ui.perf.month, V.ui.perf.set).need.find(x => x.key === k); if (!n) return;
       const list = org.names[k] || nameSlots(n); list.push(''); org.names[k] = list;

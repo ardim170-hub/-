@@ -911,6 +911,48 @@ function api_orgPerfSync(p) {
   });
 }
 
+/** 복지관 시트에 이미 두 번 이상 들어간 줄 찾기·지우기 (그 달·우리 세부사업만).
+ *  실적(일반) = 이름·날짜·세부사업이 같은 줄, 실적(기타) = 날짜·세부사업·비고가 같은 줄. 맨 위 한 줄만 남긴다 */
+function api_orgPerfDedupe(p) {
+  var acc = requireMember_();
+  if (level_(acc, 'orgsync') < 2) throw new Error('복지관 실적 시트 보내기 권한이 없어요. 관리자에게 요청하세요.');
+  var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet));
+  var gen = ss.getSheetByName('실적(일반)'), etc = ss.getSheetByName('실적(기타)');
+  var tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul', month = String(p.month || ''), items = {};
+  (p.items || []).forEach(function (i) { items[i] = 1; });
+  var day = function (v) { return v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : String(v || '').trim().slice(0, 10); };
+  var norm = function (v) { return String(v == null ? '' : v).replace(/\s+/g, '').toLowerCase(); };
+  function scan(sh, cols, keyOf) {
+    var n = sh.getLastRow() - 1; if (n < 1) return [];
+    var data = {}; cols.forEach(function (c) { data[c] = sh.getRange(2, c, n, 1).getValues(); });
+    var seen = {}, dups = [];
+    for (var i = 0; i < n; i++) {
+      var row = {}; cols.forEach(function (c) { row[c] = data[c][i][0]; });
+      var k = keyOf(row); if (!k) continue;
+      if (seen[k]) dups.push({ r: i + 2, k: k, row: row }); else seen[k] = 1;
+    }
+    return dups;
+  }
+  var gd = scan(gen, [3, 10, 13], function (r) { var d = day(r[10]), it = String(r[13]).trim(); return d.indexOf(month) === 0 && items[it] && String(r[3]).trim() ? norm(r[3]) + '|' + d + '|' + it : ''; });
+  var ed = scan(etc, [2, 5, 9], function (r) { var d = day(r[2]), it = String(r[5]).trim(); return d.indexOf(month) === 0 && items[it] ? d + '|' + it + '|' + norm(r[9]) : ''; });
+  var out = { gen: gd.map(function (x) { return { row: x.r, name: String(x.row[3]), date: day(x.row[10]), item: String(x.row[13]) }; }), etc: ed.map(function (x) { return { row: x.r, date: day(x.row[2]), item: String(x.row[5]), note: String(x.row[9]) }; }), removed: 0 };
+  if (!p.commit || (!gd.length && !ed.length)) return out;
+  return orgLock_(true, function () {
+    // 아래 줄부터 지운다 (위 줄 번호가 바뀌지 않게). 시트 전체에 식을 퍼뜨리는 줄(ARRAYFORMULA)은 지우지 않고 노란 칸만 비운다
+    function drop(sh, rows, yellow) {
+      rows.sort(function (a, b) { return b - a; }).forEach(function (r) {
+        var f = String(sh.getRange(r, 1).getFormula() || '') + String(sh.getRange(r, 2).getFormula() || '');
+        if (/ARRAYFORMULA/i.test(f)) yellow.forEach(function (c) { sh.getRange(r, c).clearContent(); });
+        else sh.deleteRow(r);
+        out.removed++;
+      });
+    }
+    drop(gen, gd.map(function (x) { return x.r; }), [3, 10, 13, 14, 15]);
+    drop(etc, ed.map(function (x) { return x.r; }), [2, 5, 6, 7, 8, 9]);
+    return out;
+  });
+}
+
 /** 이용자입력 탭: 칸마다 이미 쓰는 값(고를 수 있게) + 다음 이용자번호 */
 function orgUserForm_(users, tz) {
   var n = users.getLastRow() - 1, rows = n > 0 ? users.getRange(2, 1, n, 12).getValues() : [];
