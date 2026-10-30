@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 17:01";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 17:08";</script>
 <script>
 /* 홍보·방문처: 행정복지센터·직업재활시설·장애인단체·특수학급 고등학교·특수학교·임대아파트 등
  * 엑셀(기관 목록)을 한 번에 넣고, 분류별로 몇 곳 중 몇 곳을 다녀왔는지 한눈에 보고, 방문을 바로 기록한다.
@@ -1429,7 +1429,10 @@ window.App = (() => {
       if (S.NO_PEOPLE.has(l.item)) etc.push({ date: l.d, item: l.item, people: rec.people || '', note: l.name || l.content || '', staff: l.staff });
       else need.push({ key, date: l.d, item: l.item, place: l.name || l.content || '', staff: l.staff, ppl: l.ppl || [] });
     });
-    return { need, etc };
+    // 세부사업명 순서(실적표 순서)대로 묶고, 같은 세부사업 안에서는 날짜순 → 복지관 시트에도 이 순서로 들어간다
+    const order = D.PERF_SETS[set] ? D.PERF_SETS[set].items : [];
+    const by = (x, y) => (order.indexOf(x.item) - order.indexOf(y.item)) || x.date.localeCompare(y.date);
+    return { need: need.sort(by), etc: etc.sort(by) };
   }
   /* 이름은 이 탭에서 직접 적는다. 적은 이름은 이 화면에만 두고 복지관 시트로 보낼 때만 쓴다 (우리 사이트 시트에는 저장하지 않음) */
   const org = { key: '', res: null, busy: false, err: '', done: null, names: {}, sent: [], stale: false };
