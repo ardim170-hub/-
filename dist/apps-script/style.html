@@ -2021,6 +2021,15 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .sh-tbl tr.os-noname .sh-in { background: #FFE9A8; }
 .sh-tbl tr.os-dup td:not(.sh-side) { opacity: .5; }
 .sh-tbl tr.os-bad td:not(.sh-side) { background: #FDECEC; }
+.os-busy { display: flex; gap: 12px; align-items: center; padding: 12px 14px; margin: 8px 0; border: 1px solid #BFD6F5; background: #EEF5FE; }
+.os-busy.send { border-color: #F2C76E; background: #FFF8E6; }
+.os-spin { width: 22px; height: 22px; flex: none; border: 3px solid #C9D6E8; border-top-color: #2A78D6; border-radius: 50%; animation: os-spin .8s linear infinite; }
+.os-busy.send .os-spin { border-top-color: #E8A317; }
+@keyframes os-spin { to { transform: rotate(360deg); } }
+.os-done { padding: 12px 16px; margin: 8px 0; border: 1px solid #A7D8BC; background: #EAF7EF; }
+.os-done > b { font-size: 16px; color: #1F7A52; }
+.os-done p { margin: 6px 0; }
+.os-done ul { margin: 0 0 8px; padding-left: 18px; }
 
-:root { --css-ver: "2026.10.30 17:08"; }
+:root { --css-ver: "2026.10.30 17:21"; }
 </style>

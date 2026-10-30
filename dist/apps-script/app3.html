@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 17:08";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 17:21";</script>
 <script>
 /* 홍보·방문처: 행정복지센터·직업재활시설·장애인단체·특수학급 고등학교·특수학교·임대아파트 등
  * 엑셀(기관 목록)을 한 번에 넣고, 분류별로 몇 곳 중 몇 곳을 다녀왔는지 한눈에 보고, 방문을 바로 기록한다.
@@ -1447,12 +1447,17 @@ window.App = (() => {
   }
   async function orgSyncRun(commit) {
     const f = V.ui.perf, key = orgKey(), pl = orgPayload(orgPerfRows(f.month, f.set));
-    Object.assign(org, { key, busy: true, err: '', stale: false, done: commit ? null : org.done && org.key === key ? org.done : null });
+    Object.assign(org, { key, busy: commit ? 'send' : 'check', err: '', stale: false, done: commit ? null : org.done && org.key === key ? org.done : null });
     bindPerf();
+    if (commit) { document.querySelector('.os')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); toast(`복지관 실적 시트에 ${pl.gen.length + pl.etc.length}줄을 보내는 중이에요. 창을 닫지 말고 잠시 기다려 주세요.`); }
     try {
       const res = await S.call('api_orgPerfSync', { month: f.month, gen: pl.gen, etc: pl.etc, commit: !!commit, sheet: S.get().settings.orgPerfSheet || '' });
       if (org.key !== key) return;
-      if (commit) { org.done = res; org.res = null; return orgSyncRun(false); }
+      if (commit) {
+        org.done = { ...res, at: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) }; org.res = null;
+        toast(`✅ 보내기 완료! 실적(일반) ${res.add.gen}줄 · 실적(기타) ${res.add.etc}줄을 복지관 시트에 넣었어요.`, '', { action: { label: '시트 열기', run: () => window.open(res.url, '_blank') } });
+        return orgSyncRun(false);
+      }
       org.res = res; org.sent = pl.sent;
     } catch (err) { org.err = (err && err.message) || String(err); }
     org.busy = false; bindPerf();
@@ -1488,16 +1493,20 @@ window.App = (() => {
     const add = r ? r.add.gen + r.add.etc : 0;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
-    else if (org.busy) state = '<p class="sub">복지관 실적 시트를 읽고 비교하는 중이에요… (10~30초)</p>';
+    else if (org.busy === 'send') state = '<div class="os-busy send"><span class="os-spin"></span><div><b>📤 복지관 실적 시트에 보내는 중이에요…</b><br><span class="sub">노란 칸에 한 줄씩 적고 있어요. 10~40초 걸려요. 창을 닫거나 다른 화면으로 가지 마세요.</span></div></div>';
+    else if (org.busy) state = '<div class="os-busy"><span class="os-spin"></span><div><b>🔄 복지관 실적 시트와 비교하는 중이에요…</b><br><span class="sub">이미 들어간 줄이 있는지, 이용자입력에 있는 이름인지 확인하고 있어요. 10~30초 걸려요.</span></div></div>';
     else if (org.err) state = `<p class="form-notice">복지관 시트에 연결하지 못했어요: ${e(org.err)}<br><span class="sub">처음 쓸 때는 다른 스프레드시트에 쓰는 권한이 새로 필요해요. Code.gs를 새로 붙여 넣고 새 버전으로 배포한 뒤, 권한 창에서 허용해 주세요. 복지관 실적 시트에 편집 권한도 있어야 해요.</span></p>`;
     else if (cur && org.stale) state = '<p class="form-notice">이름을 고쳤어요. <b>🔄 복지관 시트와 비교</b>를 눌러 다시 확인한 뒤 보내 주세요.</p>';
     else if (r) state = `<div class="os-sum"><span>보낼 곳 <b>${e(r.title)}</b> <a href="${e(r.url)}" target="_blank" rel="noopener">열기 ↗</a></span><span>실적(일반) 새로 <b class="num">${r.add.gen}</b> · 건너뜀 ${r.dup.gen}</span><span>실적(기타) 새로 <b class="num">${r.add.etc}</b> · 건너뜀 ${r.dup.etc}</span></div>`;
     return `<section class="panel panel-pad os">
       <h2 class="section-title">📤 ${m}월 실적 보내기 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
       <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸에 직접 적고 → ② <b>복지관 시트와 비교</b> → ③ 이용자입력에 없는 사람은 등록 → ④ <b>보내기</b>. 여기 적은 이름은 우리 사이트에 저장하지 않고 복지관 시트로 보낼 때만 써요. 여러 번 보내도 같은 줄은 두 번 들어가지 않아요.</p>
-      ${done ? `<div class="st-sum good">✅ 보냈어요: 실적(일반) <b>${done.add.gen}줄</b> · 실적(기타) <b>${done.add.etc}줄</b> <a href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트 열기 ↗</a></div>` : ''}
+      ${done ? `<div class="os-done"><b>✅ 보내기 완료 (${e(done.at || '')})</b>
+        <p>복지관 실적 시트에 <b>실적(일반) ${done.add.gen}줄</b> · <b>실적(기타) ${done.add.etc}줄</b>을 맨 아래에 넣었어요.${done.dup.gen + done.dup.etc ? ` 이미 들어가 있던 ${done.dup.gen + done.dup.etc}줄은 건너뛰었어요.` : ''}</p>
+        <ul class="sub"><li>이용자번호·장애유형·대분류 같은 칸은 복지관 시트의 식이 알아서 채워요.</li><li>아래 표의 결과가 모두 <b>"이미 있음"</b>으로 바뀌었으면 다 들어간 거예요. 다시 눌러도 두 번 들어가지 않아요.</li><li>잘못 들어간 줄은 복지관 시트에서 그 줄을 지우면 돼요.</li></ul>
+        <a class="btn btn-sm" href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트에서 확인하기 ↗</a></div>` : ''}
       ${state}
-      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${r ? `${add}줄 보내기` : '먼저 비교해 주세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
+      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${org.busy === 'send' ? '보내는 중…' : r ? (add ? `${add}줄 보내기` : '보낼 새 줄이 없어요') : '먼저 비교해 주세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${r && Object.keys(r.badItems || {}).length ? `<p class="form-notice">⚠ 복지관 시트 <b>실적분류설정</b>에 없는 세부사업이라 못 보내요: ${Object.entries(r.badItems).map(([k, n]) => `${e(k)}(${n}줄)`).join(', ')}</p>` : ''}
       <h3 class="os-h">실적(일반) <span class="sub">복지관 시트와 같은 모양 · 노란 칸 중 <b>이름</b>만 적으면 돼요 · 한 줄 = 한 사람</span></h3>
