@@ -884,7 +884,10 @@ window.App = (() => {
     return { need: need.sort(by), etc: etc.sort(by) };
   }
   /* 이름은 이 탭에서 직접 적는다. 적은 이름은 이 화면에만 두고 복지관 시트로 보낼 때만 쓴다 (우리 사이트 시트에는 저장하지 않음) */
-  const org = { key: '', res: null, busy: false, err: '', done: null, names: {}, sent: [], stale: false };
+  const org = { key: '', res: null, busy: false, err: '', done: null, names: {}, sent: [], stale: false, pick: new Set() };
+  // 체크박스: 실적(일반) = '기록키|이름', 실적(기타) = 'e|날짜|세부사업|비고|순번'. 체크한 줄만 보낸다
+  const genPick = (key, name) => `${key}|${name}`;
+  const etcPicks = list => { const c = {}; return list.map(x => { const k = `e|${x.date}|${x.item}|${x.note}`; c[k] = (c[k] || 0) + 1; return `${k}|${c[k]}`; }); };
   const orgKey = () => `${V.ui.perf.month}|${V.ui.perf.set}`;
   const splitNames = v => String(v || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
   const namesOf = n => (org.names[n.key] != null ? org.names[n.key].flatMap(splitNames) : n.ppl);
@@ -897,7 +900,12 @@ window.App = (() => {
   /** commit = 보내기, item = 그 세부사업만 보내기 (비우면 전부) */
   async function orgSyncRun(commit, item) {
     const f = V.ui.perf, key = orgKey(), pl = orgPayload(orgPerfRows(f.month, f.set)), items = D.PERF_SETS[f.set].items;
-    const gen = commit && item ? pl.gen.filter(x => x.item === item) : pl.gen, etc = commit && item ? pl.etc.filter(x => x.item === item) : pl.etc;
+    // 보낼 때는 체크한 줄만 (item을 주면 그 세부사업의 체크한 줄만)
+    const ek = etcPicks(pl.etc);
+    const sentKeys = [];
+    const gen = commit ? pl.gen.filter((x, i) => { const k = genPick(pl.sent[i].key, x.name), ok = org.pick.has(k) && (!item || x.item === item); if (ok) sentKeys.push(k); return ok; }) : pl.gen;
+    const etc = commit ? pl.etc.filter((x, i) => { const ok = org.pick.has(ek[i]) && (!item || x.item === item); if (ok) sentKeys.push(ek[i]); return ok; }) : pl.etc;
+    if (commit && !gen.length && !etc.length) return toast('보낼 줄을 체크해 주세요.', 'error');
     Object.assign(org, { key, busy: commit ? 'send' : 'check', busyItem: item || '', err: '', stale: false, done: commit ? null : org.done && org.key === key ? org.done : null });
     bindPerf();
     if (commit) { document.querySelector('.os')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); toast(`${item ? `[${item}] ` : ''}복지관 실적 시트에 ${gen.length + etc.length}줄을 보내는 중이에요. 창을 닫지 말고 잠시 기다려 주세요.`); }
@@ -907,6 +915,7 @@ window.App = (() => {
       if (commit) {
         org.done = { ...res, item: item || '', at: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) }; org.res = null;
         toast(`✅ 보내기 완료! ${item ? `[${item}] ` : ''}실적(일반) ${res.add.gen}줄 · 실적(기타) ${res.add.etc}줄을 복지관 시트에 넣었어요.`, '', { action: { label: '시트 열기', run: () => window.open(res.url, '_blank') } });
+        sentKeys.forEach(k => org.pick.delete(k));
         return orgSyncRun(false);
       }
       org.res = res; org.sent = pl.sent; org.etcRows = pl.etc;
@@ -930,15 +939,19 @@ window.App = (() => {
     const genHead = ['연번', '이용자번호', '이름 ✏️', '구분', '장애유형', '장애정도', '지역', '성별', '나이', '사업날짜', '대분류', '중분류', '세부사업명', '회차', '비고', '소급추가', '차감(취소)'];
     const etcHead = ['연번', '사업날짜', '대분류', '중분류', '세부사업명', '참여인원', '참여인원(신규)', '회차', '비고', '소급추가', '차감(취소)'];
     const H = cols => cols.map(c => `<th>${c}</th>`).join('');
+    const ekAll = etcPicks(rows.etc);
+    const ekOf = x => ekAll[rows.etc.indexOf(x)];
+    const canPick = st => !!r && /^add/.test(st || '');
+    const box = (k, st) => `<td class="sh-side sh-pick"><input type="checkbox" data-act="org-pick" data-k="${e(k)}" ${org.pick.has(k) && canPick(st) ? 'checked' : ''} ${canPick(st) && !org.busy ? '' : 'disabled'} aria-label="보낼 줄 고르기" title="${!r ? '먼저 비교해 주세요' : canPick(st) ? '체크한 줄만 보내요' : '보낼 수 없는 줄'}"></td>`;
     const genRowsOf = list => { let no = 0; return list.map(n => { const slots = nameSlots(n); return slots.map((nm, k) => {
       const name = String(nm || '').trim(), st = name ? stOfName(n.key, name) : '';
       const cls = !name ? 'os-noname' : st === 'add-nouser' ? 'os-add-nouser' : st === 'dup' ? 'os-dup' : st === 'bad' ? 'os-bad' : '';
-      return `<tr class="${cls}"><td class="sh-n">${name ? ++no : ''}</td><td class="sh-auto">${st === 'add-nouser' ? '<span class="sh-warn">미등록</span>' : '자동'}</td>
+      return `<tr class="${cls}">${name ? box(genPick(n.key, name), st) : '<td class="sh-side sh-pick"></td>'}<td class="sh-n">${name ? ++no : ''}</td><td class="sh-auto">${st === 'add-nouser' ? '<span class="sh-warn">미등록</span>' : '자동'}</td>
         <td class="sh-y sh-in"><input data-org-name="${e(n.key)}" data-idx="${k}" value="${e(name)}" placeholder="이름 입력" autocomplete="off" aria-label="${U.dateDot(n.date)} ${e(n.item)} 이름"></td>
         ${auto.repeat(6)}<td class="sh-y num">${n.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(n.item)}</td>${blankY}${blankY}${chk}${chk}
         <td class="sh-side">${k === slots.length - 1 ? `<button type="button" class="btn btn-sm" data-act="org-name-add" data-key="${e(n.key)}" title="같은 실적에 한 사람 더 (한 줄 더)">+ 사람</button>` : ''}</td>
         <td class="sh-side">${name ? badge(st) : '<span class="badge warn">이름 필요</span>'}</td><td class="sh-side sub">${e(n.place)} · ${e(n.staff)}</td></tr>`; }).join(''); }).join(''); };
-    const etcRowsOf = list => list.map((x, i) => { const st = etcSt(x); return `<tr class="os-${st || 'none'}"><td class="sh-n">${i + 1}</td><td class="sh-y num">${x.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(x.item)}</td><td class="sh-y num">${e(x.people)}</td>${blankY}${blankY}<td class="sh-y">${e(x.note)}</td>${chk}${chk}<td class="sh-side">${badge(st)}</td><td class="sh-side sub">${e(x.staff)}</td></tr>`; }).join('');
+    const etcRowsOf = list => list.map((x, i) => { const st = etcSt(x); return `<tr class="os-${st || 'none'}">${box(ekOf(x), st)}<td class="sh-n">${i + 1}</td><td class="sh-y num">${x.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(x.item)}</td><td class="sh-y num">${e(x.people)}</td>${blankY}${blankY}<td class="sh-y">${e(x.note)}</td>${chk}${chk}<td class="sh-side">${badge(st)}</td><td class="sh-side sub">${e(x.staff)}</td></tr>`; }).join('');
     // 세부사업마다 한 덩어리
     const blocks = def.items.map(item => {
       const isEtc = S.NO_PEOPLE.has(item), need = rows.need.filter(n => n.item === item), etc = rows.etc.filter(x => x.item === item);
@@ -946,17 +959,21 @@ window.App = (() => {
       if (!need.length && !etc.length && !inSheet) return '';
       const nNew = !r ? null : isEtc ? etc.filter(x => etcSt(x) === 'add').length : org.sent.filter((x, i) => x.item === item && /^add/.test(r.st.gen[i])).length;
       const nNoName = need.filter(n => !namesOf(n).length).length;
+      const myKeys = isEtc ? etc.map(ekOf) : need.flatMap(n => namesOf(n).map(nm => genPick(n.key, nm)));
+      const nPick = myKeys.filter(k => org.pick.has(k)).length;
+      const allK = isEtc ? etc.filter(x => canPick(etcSt(x))).map(ekOf) : need.flatMap(n => namesOf(n).filter(nm => canPick(stOfName(n.key, nm))).map(nm => genPick(n.key, nm)));
       const busyHere = org.busy && (org.busyItem === item || !org.busyItem);
       return `<section class="os-item">
         <div class="os-bar"><div class="os-bar-t"><b>${e(item)}</b> <span class="badge">${isEtc ? '실적(기타)' : '실적(일반)'}</span>
             <span class="sub">${isEtc ? `${etc.length}줄` : `${need.length}건`}${nNoName ? ` · 이름 없음 ${nNoName}` : ''}${inSheet != null ? ` · 시트에 이미 ${inSheet}줄` : ''}</span></div>
-          ${S.REMOTE ? `<div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="org-item-send" data-item="${e(item)}" ${r && nNew && !org.busy ? '' : 'disabled'}>${busyHere && org.busy === 'send' ? '보내는 중…' : !r ? '먼저 비교' : nNew ? `${nNew}줄 보내기` : '보낼 새 줄 없음'}</button>
+          ${S.REMOTE ? `<div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="org-item-send" data-item="${e(item)}" ${r && nPick && !org.busy ? '' : 'disabled'}>${busyHere && org.busy === 'send' ? '보내는 중…' : !r ? '먼저 비교' : !nNew ? '보낼 새 줄 없음' : nPick ? `체크한 ${nPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>
             <button class="btn btn-sm btn-danger-ghost" type="button" data-act="org-item-undo" data-item="${e(item)}" ${inSheet && !org.busy ? '' : 'disabled'} title="복지관 시트에 들어간 이 달 '${e(item)}' 줄을 모두 지워요">보낸 것 취소${inSheet ? ` (${inSheet}줄)` : ''}</button></div>` : ''}</div>
-        ${isEtc ? (etc.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr>${H(etcHead)}<th class="sh-side">결과</th><th class="sh-side">담당</th></tr></thead><tbody>${etcRowsOf(etc)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')
-          : (need.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr>${H(genHead)}<th class="sh-side"></th><th class="sh-side">결과</th><th class="sh-side">참고 (사업체·담당)</th></tr></thead><tbody>${genRowsOf(need)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')}
+        ${isEtc ? (etc.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr><th class="sh-side sh-pick"><input type="checkbox" data-act="org-pick-all" data-item="${e(item)}" ${allK.length && allK.every(k => org.pick.has(k)) ? 'checked' : ''} ${allK.length && !org.busy ? '' : 'disabled'} title="이 항목 새 줄 모두 고르기" aria-label="모두 고르기"></th>${H(etcHead)}<th class="sh-side">결과</th><th class="sh-side">담당</th></tr></thead><tbody>${etcRowsOf(etc)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')
+          : (need.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr><th class="sh-side sh-pick"><input type="checkbox" data-act="org-pick-all" data-item="${e(item)}" ${allK.length && allK.every(k => org.pick.has(k)) ? 'checked' : ''} ${allK.length && !org.busy ? '' : 'disabled'} title="이 항목 새 줄 모두 고르기" aria-label="모두 고르기"></th>${H(genHead)}<th class="sh-side"></th><th class="sh-side">결과</th><th class="sh-side">참고 (사업체·담당)</th></tr></thead><tbody>${genRowsOf(need)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')}
       </section>`;
     }).join('');
     const add = r ? r.add.gen + r.add.etc : 0;
+    const totalPick = [...org.pick].filter(k => ekAll.includes(k) || rows.need.some(n => namesOf(n).some(nm => genPick(n.key, nm) === k))).length;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
     else if (org.busy === 'send') state = `<div class="os-busy send"><span class="os-spin"></span><div><b>📤 ${org.busyItem ? `[${e(org.busyItem)}] ` : ''}복지관 실적 시트에 보내는 중이에요…</b><br><span class="sub">노란 칸에 한 줄씩 적고 있어요. 10~40초 걸려요. 창을 닫거나 다른 화면으로 가지 마세요.</span></div></div>`;
@@ -976,7 +993,7 @@ window.App = (() => {
       <button class="btn btn-sm btn-danger" type="button" data-act="org-dedupe" ${org.busy ? 'disabled' : ''}>중복 ${dups.length}줄 지우기</button></div>` : '';
     return `<section class="panel panel-pad os">
       <h2 class="section-title">📤 ${m}월 실적 보내기 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
-      <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸을 적고 → ② <b>🔄 복지관 시트와 비교</b> → ③ 항목마다 <b>보내기</b> (전부 한 번에 보내도 돼요). 고쳐서 다시 보내려면 그 항목의 <b>보낸 것 취소</b> 후 다시 보내세요. 여기 적은 이름은 우리 사이트에 저장하지 않아요.</p>
+      <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸을 적고 → ② <b>🔄 복지관 시트와 비교</b> → ③ 보낼 줄을 <b>체크</b>하고 <b>보내기</b> (체크한 줄만 넘어가요). 고쳐서 다시 보내려면 그 항목의 <b>보낸 것 취소</b> 후 다시 보내세요. 여기 적은 이름은 우리 사이트에 저장하지 않아요.</p>
       ${done ? `<div class="os-done"><b>✅ 보내기 완료${done.item ? ` · ${e(done.item)}` : ''} (${e(done.at || '')})</b>
         <p>복지관 실적 시트에 <b>실적(일반) ${done.add.gen}줄</b> · <b>실적(기타) ${done.add.etc}줄</b>을 맨 아래에 넣었어요.${done.dup.gen + done.dup.etc ? ` 이미 들어가 있던 ${done.dup.gen + done.dup.etc}줄은 건너뛰었어요.` : ''}</p>
         <ul class="sub"><li>이용자번호·장애유형·대분류 같은 칸은 복지관 시트의 식이 알아서 채워요.</li><li>아래 표의 결과가 <b>"이미 있음"</b>으로 바뀌었으면 들어간 거예요. 다시 눌러도 두 번 들어가지 않아요.</li><li>잘못 보냈으면 그 항목의 <b>보낸 것 취소</b>를 누르세요.</li></ul>
@@ -984,7 +1001,7 @@ window.App = (() => {
       ${state}
       ${!org.busy && why.length ? `<div class="os-why"><b>안 보내지는 줄이 있는 이유</b><ul>${why.join('')}</ul></div>` : ''}
       ${!org.busy ? dupBox : ''}
-      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : r ? (add ? `전체 ${add}줄 한 번에 보내기` : '보낼 새 줄이 없어요') : '먼저 비교해 주세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
+      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${blocks || '<p class="sub">이 달 보낼 실적이 없어요.</p>'}
     </section>`;
@@ -1895,9 +1912,18 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'org-pick': el => { const k = el.dataset.k; if (el.checked) org.pick.add(k); else org.pick.delete(k); bindPerf(); },
+    'org-pick-all': el => {
+      const item = el.dataset.item, f = V.ui.perf, rows = orgPerfRows(f.month, f.set), r = org.res; if (!r) return;
+      const ek = etcPicks(rows.etc), stE = x => { const i = (org.etcRows || []).findIndex(y => y.date === x.date && y.item === x.item && y.note === x.note); return i < 0 ? '' : r.st.etc[i]; };
+      const stG = (key, nm) => { const i = org.sent.findIndex(x => x.key === key && x.name === nm); return i < 0 ? '' : r.st.gen[i]; };
+      const keys = [...rows.etc.map((x, i) => (x.item === item && /^add/.test(stE(x)) ? ek[i] : null)), ...rows.need.filter(n => n.item === item).flatMap(n => namesOf(n).filter(nm => /^add/.test(stG(n.key, nm))).map(nm => genPick(n.key, nm)))].filter(Boolean);
+      keys.forEach(k => (el.checked ? org.pick.add(k) : org.pick.delete(k))); bindPerf();
+    },
+    'org-pick-every': () => { const f = V.ui.perf; D.PERF_SETS[f.set].items.forEach(item => A['org-pick-all']({ dataset: { item }, checked: true })); },
     'org-item-send': async el => {
       const item = el.dataset.item, r = org.res; if (!r) return;
-      if (!(await confirmBox(`[${item}]을(를) 복지관 시트에 보낼까요?`, `이 항목의 새 줄만 맨 아래에 더해요. 이미 들어간 줄은 건너뛰어요.`, '보내기'))) return;
+      if (!(await confirmBox(`[${item}] 체크한 줄을 복지관 시트에 보낼까요?`, `이 항목에서 체크한 줄만 맨 아래에 더해요. 이미 들어간 줄은 건너뛰어요.`, '보내기'))) return;
       orgSyncRun(true, item);
     },
     'org-item-undo': async el => {
@@ -1940,8 +1966,7 @@ window.App = (() => {
     },
     'org-sync-commit': async () => {
       const r = org.key === orgKey() && org.res; if (!r) return;
-      const n = r.add.gen + r.add.etc;
-      if (!(await confirmBox(`${n}줄을 복지관 실적 시트에 보낼까요?`, `${r.title}의 실적(일반) ${r.add.gen}줄 · 실적(기타) ${r.add.etc}줄을 맨 아래에 더해요. 다른 칸(식)은 건드리지 않아요.${Object.keys(r.unknown || {}).length ? ` 이용자입력에 없는 ${Object.keys(r.unknown).length}명은 이용자번호 칸이 비어요.` : ''}`, '보내기'))) return;
+      if (!(await confirmBox(`체크한 ${org.pick.size}줄을 복지관 실적 시트에 보낼까요?`, `${r.title} 맨 아래에 체크한 줄만 더해요. 이미 들어간 줄은 건너뛰고, 다른 칸(식)은 건드리지 않아요.`, '보내기'))) return;
       orgSyncRun(true);
     },
     'perf-who': el => { V.ui.perf.who = el.dataset.who; bindPerf(); },

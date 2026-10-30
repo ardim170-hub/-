@@ -2040,3 +2040,5 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .os-bar-t > b { font-size: 15px; }
 .os-item .sh-wrap { margin: 0; }
 .os-item > p.sub { margin: 0; padding: 8px 12px; border: 1px solid #DDE2E9; }
+.sh-tbl .sh-pick { width: 34px; text-align: center; background: #fff; }
+.sh-tbl .sh-pick input { width: 17px; height: 17px; cursor: pointer; }
