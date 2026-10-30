@@ -2034,3 +2034,9 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .os-dupbox { padding: 10px 14px; margin: 8px 0; border: 1px solid #F2B8B5; background: #FDF1F0; }
 .os-dupbox p { margin: 4px 0 6px; }
 .os-dupbox details { margin-bottom: 8px; }
+.os-item { margin: 18px 0 0; }
+.os-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 8px 12px; background: #F4F6F9; border: 1px solid #DDE2E9; border-bottom: 0; }
+.os-bar-t { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.os-bar-t > b { font-size: 15px; }
+.os-item .sh-wrap { margin: 0; }
+.os-item > p.sub { margin: 0; padding: 8px 12px; border: 1px solid #DDE2E9; }

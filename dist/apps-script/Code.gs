@@ -841,21 +841,23 @@ function api_orgPerfSync(p) {
 
   // 우리 시트 저장에 쓰는 잠금(withLock_)은 쓰지 않는다: 복지관 시트를 읽는 동안 다른 저장이 막혀 '잠금 시간초과'가 났다
   return orgLock_(p.commit, function () {
+    // mine: 이 달 복지관 시트에 이미 있는 우리 세부사업 줄 수 (항목별 '시트에 있음' 표시·취소용)
+    var mine = {}; (p.items || []).forEach(function (it) { mine[it] = 0; });
     // 실적(일반): 체크박스 칸 때문에 getLastRow가 끝까지 가므로 이름·세부사업 칸으로 마지막 줄을 찾는다
     var gn = gen.getLastRow() - 1, gC = col(gen, 3, gn), gJ = col(gen, 10, gn), gM = col(gen, 13, gn), gLast = 0, have = {};
     for (var i = 0; i < gn; i++) {
       if (String(gC[i]).trim() || String(gM[i]).trim()) gLast = i + 1;
       var d = day(gJ[i]);
-      if (d.indexOf(month) === 0) { var k = norm(gC[i]) + '|' + d + '|' + norm(gM[i]); have[k] = (have[k] || 0) + 1; }
+      if (d.indexOf(month) === 0) { var k = norm(gC[i]) + '|' + d + '|' + norm(gM[i]); have[k] = (have[k] || 0) + 1; var it = String(gM[i]).trim(); if (mine[it] != null) mine[it]++; }
     }
     var en = etc.getLastRow() - 1, eB = col(etc, 2, en), eE = col(etc, 5, en), eI = col(etc, 9, en), eLast = 0, haveE = {};
     for (var j = 0; j < en; j++) {
       if (String(eE[j]).trim() || (eB[j] !== '' && eB[j] != null)) eLast = j + 1;
       var d2 = day(eB[j]);
-      if (d2.indexOf(month) === 0) { var k2 = d2 + '|' + norm(eE[j]) + '|' + norm(eI[j]); haveE[k2] = (haveE[k2] || 0) + 1; }
+      if (d2.indexOf(month) === 0) { var k2 = d2 + '|' + norm(eE[j]) + '|' + norm(eI[j]); haveE[k2] = (haveE[k2] || 0) + 1; var it2 = String(eE[j]).trim(); if (mine[it2] != null) mine[it2]++; }
     }
     // st: 보낸 줄마다 결과 (add = 새로 넣음, dup = 이미 있음, bad = 실적분류설정에 없는 세부사업, skip = 다른 달)
-    var out = { title: ss.getName(), url: ss.getUrl(), add: { gen: 0, etc: 0 }, dup: { gen: 0, etc: 0 }, badItems: {}, unknown: {}, st: { gen: [], etc: [] }, wrote: false };
+    var out = { title: ss.getName(), url: ss.getUrl(), add: { gen: 0, etc: 0 }, dup: { gen: 0, etc: 0 }, badItems: {}, unknown: {}, st: { gen: [], etc: [] }, mine: mine, wrote: false };
     var addG = [], addE = [];
     (p.gen || []).forEach(function (r) {
       var st = out.st.gen;
@@ -950,6 +952,46 @@ function api_orgPerfDedupe(p) {
     drop(gen, gd.map(function (x) { return x.r; }), [3, 10, 13, 14, 15]);
     drop(etc, ed.map(function (x) { return x.r; }), [2, 5, 6, 7, 8, 9]);
     return out;
+  });
+}
+
+/** 보낸 줄 취소: 이 달·고른 세부사업의 줄을 복지관 시트에서 지운다 (실적(일반)·실적(기타) 둘 다 찾아서) */
+function api_orgPerfUndo(p) {
+  var acc = requireMember_();
+  if (level_(acc, 'orgsync') < 3) throw new Error('복지관 시트에서 지우는 권한(삭제까지)이 없어요. 관리자에게 요청하세요.');
+  var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet));
+  var gen = ss.getSheetByName('실적(일반)'), etc = ss.getSheetByName('실적(기타)');
+  var tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul', month = String(p.month || ''), items = {};
+  (p.items || []).forEach(function (i) { items[i] = 1; });
+  var day = function (v) { return v instanceof Date ? Utilities.formatDate(v, tz, 'yyyy-MM-dd') : String(v || '').trim().slice(0, 10); };
+  function rowsOf(sh, dateCol, itemCol) {
+    var n = sh.getLastRow() - 1; if (n < 1) return [];
+    var D = sh.getRange(2, dateCol, n, 1).getValues(), I = sh.getRange(2, itemCol, n, 1).getValues(), out = [];
+    for (var i = 0; i < n; i++) if (items[String(I[i][0]).trim()] && day(D[i][0]).indexOf(month) === 0) out.push(i + 2);
+    return out;
+  }
+  return orgLock_(!!p.commit, function () {
+    var g = rowsOf(gen, 10, 13), e = rowsOf(etc, 2, 5), removed = 0;
+    // 아래 줄부터, 붙어 있는 줄은 한 번에 지운다. 식을 퍼뜨리는 줄(ARRAYFORMULA)은 지우지 않고 노란 칸만 비운다
+    function drop(sh, rows, yellow) {
+      rows.sort(function (a, b) { return b - a; });
+      var i = 0;
+      while (i < rows.length) {
+        var end = rows[i], start = end;
+        while (i + 1 < rows.length && rows[i + 1] === start - 1) { i++; start = rows[i]; }
+        for (var r = start; r <= end; r++) {
+          if (/ARRAYFORMULA/i.test(String(sh.getRange(r, 1).getFormula()) + String(sh.getRange(r, 2).getFormula()))) {
+            yellow.forEach(function (c) { sh.getRange(r, c).clearContent(); });
+            if (r < end) sh.deleteRows(r + 1, end - r);
+            end = r - 1; break;
+          }
+        }
+        if (end >= start) sh.deleteRows(start, end - start + 1);
+        i++;
+      }
+    }
+    if (p.commit) { drop(gen, g.slice(), [3, 10, 13, 14, 15]); drop(etc, e.slice(), [2, 5, 6, 7, 8, 9]); removed = g.length + e.length; }
+    return { gen: g.length, etc: e.length, removed: removed };
   });
 }
 
