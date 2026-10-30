@@ -17,6 +17,7 @@ window.V = (() => {
     copy: '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
     edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>',
     perf: '<svg viewBox="0 0 24 24"><path d="M5 20V11M11 20V5M17 20v-7M3 20h18"/></svg>',
+    send: '<svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7z"/><path d="M11 13l9-9"/></svg>',
     log: '<svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 10h8M8 14h8M8 18h5"/></svg>',
     trip: '<svg viewBox="0 0 24 24"><path d="M4 16l1.5-5h13L20 16v3H4z"/><path d="M6.5 11 8 6h8l1.5 5"/><circle cx="7.5" cy="16.5" r="1"/><circle cx="16.5" cy="16.5" r="1"/></svg>',
     camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
@@ -954,13 +955,13 @@ window.V = (() => {
     if (!pros.includes(f.who)) f.who = '';
     return `
       <div class="page-head">
-        <div><h1 class="page-title">실적</h1><div class="page-desc">실적을 입력하고, 실적 연동 탭에서 복지관 사업실적 시트로 보냅니다.${scopeNote()}</div></div>
+        <div><h1 class="page-title">실적</h1><div class="page-desc">실적을 입력하고, 실적 보내기 탭에서 복지관 사업실적 시트로 보냅니다.${scopeNote()}</div></div>
       </div>
       <div class="toolbar perf-bar">
         <div class="month-nav"><button class="icon-btn" type="button" data-act="perf-month" data-d="-1" aria-label="이전 달">${I.back}</button><b class="num">${monthLabel(f.month)}</b><button class="icon-btn" type="button" data-act="perf-month" data-d="1" aria-label="다음 달" style="transform:scaleX(-1)">${I.back}</button></div>
         <span class="sub">${e(def.mid)} · 한 달 기준</span>
       </div>
-      <div class="seg perf-tabs" role="tablist" aria-label="실적 화면"><button type="button" role="tab" class="${f.tab === 'sync' ? '' : 'on'}" aria-selected="${f.tab !== 'sync'}" data-act="perf-tab" data-tab="input">✏️ 실적 입력</button>${S.level('orgsync') >= 2 ? `<button type="button" role="tab" class="${f.tab === 'sync' ? 'on' : ''}" aria-selected="${f.tab === 'sync'}" data-act="perf-tab" data-tab="sync">📤 실적 연동 <small>복지관 시트로 보내기</small></button>` : ''}</div>
+      <nav class="hub-tabs perf-tabs" role="tablist" aria-label="실적 화면"><button type="button" role="tab" class="hub-tab hub-perf ${f.tab === 'sync' ? '' : 'on'}" aria-selected="${f.tab !== 'sync'}" data-act="perf-tab" data-tab="input">${I.perf}<span>실적</span><b class="num">${S.perfRows(f.month).filter(r => r.p.set === f.set).length + S.view().perfs.filter(p => p.set === f.set && (p.date || '').startsWith(f.month)).length}</b></button>${S.level('orgsync') >= 2 ? `<button type="button" role="tab" class="hub-tab hub-send ${f.tab === 'sync' ? 'on' : ''}" aria-selected="${f.tab === 'sync'}" data-act="perf-tab" data-tab="sync">${I.send}<span>실적 보내기</span><i class="sub hub-long">복지관 시트</i></button>` : ''}</nav>
       ${f.tab === 'sync' && S.level('orgsync') >= 2 ? '<div id="perfResults"></div>' : `
       ${R.secStaffBar()}
       ${perfWrongBox(f, pros)}

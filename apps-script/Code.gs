@@ -816,6 +816,14 @@ function orgPerfId_(v) {
   var m = s.match(/\/d\/([\w-]{20,})/);
   return m ? m[1] : s;
 }
+/** 복지관 시트에 쓰는 동안만 잠근다 (두 사람이 동시에 보내 줄이 겹치지 않게). 읽기만 할 때는 잠그지 않는다 */
+function orgLock_(write, fn) {
+  if (!write) return fn();
+  var c = CacheService.getScriptCache();
+  if (c.get('orgsync:busy')) throw new Error('다른 선생님이 지금 복지관 시트로 보내는 중이에요. 1분 뒤 다시 눌러 주세요.');
+  c.put('orgsync:busy', '1', 120);
+  try { return fn(); } finally { c.remove('orgsync:busy'); }
+}
 function api_orgPerfSync(p) {
   var acc = requireMember_();
   if (level_(acc, 'orgsync') < 2) throw new Error('복지관 실적 시트 보내기 권한이 없어요. 관리자에게 요청하세요.');
@@ -831,7 +839,8 @@ function api_orgPerfSync(p) {
   var known = {};
   if (users) col(users, 3, users.getLastRow() - 1).forEach(function (v) { if (String(v).trim()) known[norm(v)] = 1; });
 
-  return withLock_(function () {
+  // 우리 시트 저장에 쓰는 잠금(withLock_)은 쓰지 않는다: 복지관 시트를 읽는 동안 다른 저장이 막혀 '잠금 시간초과'가 났다
+  return orgLock_(p.commit, function () {
     // 실적(일반): 체크박스 칸 때문에 getLastRow가 끝까지 가므로 이름·세부사업 칸으로 마지막 줄을 찾는다
     var gn = gen.getLastRow() - 1, gC = col(gen, 3, gn), gJ = col(gen, 10, gn), gM = col(gen, 13, gn), gLast = 0, have = {};
     for (var i = 0; i < gn; i++) {
@@ -917,7 +926,7 @@ function api_orgUserAdd(p) {
   var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet)), sh = ss.getSheetByName('이용자입력');
   if (!sh) throw new Error('보낼 시트에 이용자입력 탭이 없어요.');
   var tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul';
-  return withLock_(function () {
+  return orgLock_(true, function () {
     var n = sh.getLastRow() - 1, rows = n > 0 ? sh.getRange(2, 1, n, 3).getValues() : [];
     var last = 0, maxNo = 0, nos = {}, names = {};
     rows.forEach(function (r, i) {

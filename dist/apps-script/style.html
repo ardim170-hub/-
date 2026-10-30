@@ -1991,9 +1991,10 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .ou-tbl td, .ou-tbl th { padding: 4px 6px; vertical-align: middle; }
 .ou-tbl .input.sm, .ou-tbl .select.sm { min-width: 0; }
 /* 실적 화면 탭: 실적 입력 | 실적 연동 */
-.perf-tabs { margin: 0 0 12px; }
-.perf-tabs button { padding: 8px 16px; font-weight: 700; }
-.perf-tabs small { font-weight: 400; opacity: .75; margin-left: 4px; }
+.perf-tabs { margin: 0 0 14px; }
+.perf-tabs .hub-tab { cursor: pointer; font-family: inherit; }
+.hub-tab.hub-perf { --tc: #E8A317; --ts: #FDF5E2; --ti: #9A6400; }
+.hub-tab.hub-send { --tc: #2A78D6; --ts: #E8F1FC; --ti: #1C5CAB; }
 .os .os-h { margin: 18px 0 6px; font-size: 15px; }
 .os .os-acts { margin: 8px 0; }
 .os-sum { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--line); margin: 6px 0; }
@@ -2003,6 +2004,23 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .os-tbl tr.os-add-nouser td { background: #FFF8E1; }
 .os-tbl tr.os-noname td { background: #FFF8E1; }
 .os-tbl td > div + div { margin-top: 2px; }
+/* 실적 보내기: 복지관 시트와 같은 모양의 미리보기 */
+.sh-wrap { border: 1px solid #C9CED6; }
+.sh-tbl { border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+.sh-tbl th { background: #EFEFEF; border: 1px solid #C9CED6; padding: 5px 8px; font-weight: 700; color: #333; }
+.sh-tbl td { border: 1px solid #D6DAE0; padding: 4px 8px; height: 30px; }
+.sh-tbl .sh-y { background: #FFFFCC; }
+.sh-tbl .sh-auto { color: #9AA3B2; font-size: 11.5px; }
+.sh-tbl .sh-n { color: #6B7280; text-align: right; }
+.sh-tbl .sh-c { text-align: center; color: #6B7280; }
+.sh-tbl .sh-warn { color: #B45309; font-weight: 700; }
+.sh-tbl .sh-in { padding: 0; min-width: 120px; }
+.sh-tbl .sh-in input { width: 100%; height: 30px; border: 0; background: transparent; padding: 0 8px; font: inherit; font-weight: 700; outline: none; }
+.sh-tbl .sh-in input:focus { box-shadow: inset 0 0 0 2px #2A78D6; background: #fff; }
+.sh-tbl th.sh-side, .sh-tbl td.sh-side { background: #fff; border-color: #EEF0F3; }
+.sh-tbl tr.os-noname .sh-in { background: #FFE9A8; }
+.sh-tbl tr.os-dup td:not(.sh-side) { opacity: .5; }
+.sh-tbl tr.os-bad td:not(.sh-side) { background: #FDECEC; }
 
-:root { --css-ver: "2026.10.30 16:47"; }
+:root { --css-ver: "2026.10.30 17:01"; }
 </style>

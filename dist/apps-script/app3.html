@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 16:47";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 17:01";</script>
 <script>
 /* 홍보·방문처: 행정복지센터·직업재활시설·장애인단체·특수학급 고등학교·특수학교·임대아파트 등
  * 엑셀(기관 목록)을 한 번에 넣고, 분류별로 몇 곳 중 몇 곳을 다녀왔는지 한눈에 보고, 방문을 바로 기록한다.
@@ -1435,7 +1435,8 @@ window.App = (() => {
   const org = { key: '', res: null, busy: false, err: '', done: null, names: {}, sent: [], stale: false };
   const orgKey = () => `${V.ui.perf.month}|${V.ui.perf.set}`;
   const splitNames = v => String(v || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
-  const namesOf = n => (org.names[n.key] != null ? splitNames(org.names[n.key]) : n.ppl);
+  const namesOf = n => (org.names[n.key] != null ? org.names[n.key].flatMap(splitNames) : n.ppl);
+  const nameSlots = n => (org.names[n.key] != null ? org.names[n.key] : n.ppl.length ? n.ppl.slice() : ['']);
   function orgPayload(rows) {
     const gen = [], sent = [];
     rows.need.forEach(n => namesOf(n).forEach(name => { gen.push({ name, date: n.date, item: n.item }); sent.push({ key: n.key, name }); }));
@@ -1463,15 +1464,24 @@ window.App = (() => {
     const badge = st => { const [l, c] = ST_LABEL[st] || ['확인 전', '']; return `<span class="badge ${c}">${l}</span>`; };
     const stOfName = (key, name) => { if (!r || !r.st) return ''; const i = org.sent.findIndex(x => x.key === key && x.name === name); return i < 0 ? '' : r.st.gen[i]; };
     const missing = rows.need.filter(n => !namesOf(n).length).length;
-    const needRows = rows.need.map(n => {
-      const names = namesOf(n), sts = names.map(x => stOfName(n.key, x));
-      const cls = !names.length ? 'os-noname' : sts.includes('add-nouser') ? 'os-add-nouser' : sts.length && sts.every(x => x === 'dup') ? 'os-dup' : '';
-      return `<tr class="${cls}"><td class="num nowrap">${U.dateDot(n.date)}</td><td>${e(n.item)}</td><td>${e(n.place)}</td><td class="sub">${e(n.staff)}</td>
-        <td><input class="input sm" data-org-name="${e(n.key)}" value="${e(names.join(', '))}" placeholder="이름 직접 입력 (여러 명은 쉼표)" autocomplete="off" style="min-width:210px"></td>
-        <td>${names.length ? names.map((x, i) => `<div>${e(x)} ${badge(sts[i])}</div>`).join('') : '<span class="badge warn">이름 필요</span>'}</td></tr>`;
+    /* 복지관 시트와 같은 모양: 열 이름·순서 그대로, 노란 칸 = 입력하는 칸, 회색 글씨 = 시트의 식이 채우는 칸. 우리는 이름(C)만 적는다 */
+    const auto = '<td class="sh-auto">자동</td>', blankY = '<td class="sh-y"></td>', chk = '<td class="sh-y sh-c">☐</td>';
+    let no = 0;
+    const genGrid = rows.need.map(n => {
+      const slots = nameSlots(n);
+      return slots.map((nm, k) => {
+        const name = String(nm || '').trim(), st = name ? stOfName(n.key, name) : '';
+        const cls = !name ? 'os-noname' : st === 'add-nouser' ? 'os-add-nouser' : st === 'dup' ? 'os-dup' : st === 'bad' ? 'os-bad' : '';
+        return `<tr class="${cls}"><td class="sh-n">${name ? ++no : ''}</td><td class="sh-auto">${st === 'add' ? '자동' : st === 'add-nouser' ? '<span class="sh-warn">미등록</span>' : '자동'}</td>
+          <td class="sh-y sh-in"><input data-org-name="${e(n.key)}" data-idx="${k}" value="${e(name)}" placeholder="이름 입력" autocomplete="off" aria-label="${U.dateDot(n.date)} ${e(n.item)} 이름"></td>
+          ${auto.repeat(6)}<td class="sh-y num">${n.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(n.item)}</td>${blankY}${blankY}${chk}${chk}
+          <td class="sh-side">${k === slots.length - 1 ? `<button type="button" class="btn btn-sm" data-act="org-name-add" data-key="${e(n.key)}" title="같은 실적에 한 사람 더 (한 줄 더)">+ 사람</button>` : ''}</td>
+          <td class="sh-side">${name ? badge(st) : '<span class="badge warn">이름 필요</span>'}</td><td class="sh-side sub">${e(n.place)} · ${e(n.staff)}</td></tr>`;
+      }).join('');
     }).join('');
     const etcSt = i => (r && r.st ? r.st.etc[i] : '');
-    const etcRows = rows.etc.map((x, i) => `<tr class="os-${etcSt(i) || 'none'}"><td class="num nowrap">${U.dateDot(x.date)}</td><td>${e(x.item)}</td><td class="num">${e(x.people)}</td><td>${e(x.note)}</td><td class="sub">${e(x.staff)}</td><td>${badge(etcSt(i))}</td></tr>`).join('');
+    const etcGrid = rows.etc.map((x, i) => `<tr class="os-${etcSt(i) || 'none'}"><td class="sh-n">${i + 1}</td><td class="sh-y num">${x.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(x.item)}</td><td class="sh-y num">${e(x.people)}</td>${blankY}${blankY}<td class="sh-y">${e(x.note)}</td>${chk}${chk}<td class="sh-side">${badge(etcSt(i))}</td><td class="sh-side sub">${e(x.staff)}</td></tr>`).join('');
+    const H = cols => cols.map(c => `<th>${c}</th>`).join('');
     const add = r ? r.add.gen + r.add.etc : 0;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
@@ -1480,17 +1490,17 @@ window.App = (() => {
     else if (cur && org.stale) state = '<p class="form-notice">이름을 고쳤어요. <b>🔄 복지관 시트와 비교</b>를 눌러 다시 확인한 뒤 보내 주세요.</p>';
     else if (r) state = `<div class="os-sum"><span>보낼 곳 <b>${e(r.title)}</b> <a href="${e(r.url)}" target="_blank" rel="noopener">열기 ↗</a></span><span>실적(일반) 새로 <b class="num">${r.add.gen}</b> · 건너뜀 ${r.dup.gen}</span><span>실적(기타) 새로 <b class="num">${r.add.etc}</b> · 건너뜀 ${r.dup.etc}</span></div>`;
     return `<section class="panel panel-pad os">
-      <h2 class="section-title">📤 ${m}월 실적 연동 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
-      <p class="sub" style="margin:0 0 8px">① 실적(일반) 줄마다 <b>이름을 직접 적고</b> → ② <b>복지관 시트와 비교</b> → ③ 이용자입력에 없는 사람은 등록 → ④ <b>보내기</b>. 여기 적은 이름은 우리 사이트에 저장하지 않고 복지관 시트로 보낼 때만 써요. 여러 번 보내도 같은 줄은 두 번 들어가지 않아요.</p>
+      <h2 class="section-title">📤 ${m}월 실적 보내기 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
+      <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸에 직접 적고 → ② <b>복지관 시트와 비교</b> → ③ 이용자입력에 없는 사람은 등록 → ④ <b>보내기</b>. 여기 적은 이름은 우리 사이트에 저장하지 않고 복지관 시트로 보낼 때만 써요. 여러 번 보내도 같은 줄은 두 번 들어가지 않아요.</p>
       ${done ? `<div class="st-sum good">✅ 보냈어요: 실적(일반) <b>${done.add.gen}줄</b> · 실적(기타) <b>${done.add.etc}줄</b> <a href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트 열기 ↗</a></div>` : ''}
       ${state}
       <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && add && !org.busy ? '' : 'disabled'}>${r ? `${add}줄 보내기` : '먼저 비교해 주세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${r && Object.keys(r.badItems || {}).length ? `<p class="form-notice">⚠ 복지관 시트 <b>실적분류설정</b>에 없는 세부사업이라 못 보내요: ${Object.entries(r.badItems).map(([k, n]) => `${e(k)}(${n}줄)`).join(', ')}</p>` : ''}
-      <h3 class="os-h">실적(일반) <span class="sub">${rows.need.length}건 · 이름(C) · 사업날짜(J) · 세부사업명(M) · 이름마다 한 줄씩 들어가요</span></h3>
-      ${rows.need.length ? `<div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>사업날짜</th><th>세부사업명</th><th>사업체·내용 <span class="sub">(참고)</span></th><th>담당</th><th>이름 ✏️</th><th>결과</th></tr></thead><tbody>${needRows}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
-      <h3 class="os-h">실적(기타) <span class="sub">${rows.etc.length}줄 · 사업날짜(B) · 세부사업명(E) · 참여인원(F) · 비고(I)</span></h3>
-      ${rows.etc.length ? `<div class="table-wrap"><table class="tbl os-tbl"><thead><tr><th>사업날짜</th><th>세부사업명</th><th>참여인원</th><th>비고</th><th>담당</th><th>결과</th></tr></thead><tbody>${etcRows}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
+      <h3 class="os-h">실적(일반) <span class="sub">복지관 시트와 같은 모양 · 노란 칸 중 <b>이름</b>만 적으면 돼요 · 한 줄 = 한 사람</span></h3>
+      ${rows.need.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr>${H(['연번', '이용자번호', '이름 ✏️', '구분', '장애유형', '장애정도', '지역', '성별', '나이', '사업날짜', '대분류', '중분류', '세부사업명', '회차', '비고', '소급추가', '차감(취소)'])}<th class="sh-side"></th><th class="sh-side">결과</th><th class="sh-side">참고 (사업체·담당)</th></tr></thead><tbody>${genGrid}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
+      <h3 class="os-h">실적(기타) <span class="sub">복지관 시트와 같은 모양 · 사업날짜·세부사업명·참여인원·비고가 들어가요</span></h3>
+      ${rows.etc.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr>${H(['연번', '사업날짜', '대분류', '중분류', '세부사업명', '참여인원', '참여인원(신규)', '회차', '비고', '소급추가', '차감(취소)'])}<th class="sh-side">결과</th><th class="sh-side">담당</th></tr></thead><tbody>${etcGrid}</tbody></table></div>` : '<p class="sub">보낼 줄이 없어요.</p>'}
     </section>`;
   }
   /** 이용자입력에 없는 이름: 미리보기에서 바로 적어 복지관 시트 '이용자입력'에 등록 */
@@ -2399,6 +2409,12 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'org-name-add': el => {
+      const k = el.dataset.key, n = orgPerfRows(V.ui.perf.month, V.ui.perf.set).need.find(x => x.key === k); if (!n) return;
+      const list = org.names[k] || nameSlots(n); list.push(''); org.names[k] = list;
+      if (org.res) org.stale = true;
+      bindPerf(); document.querySelector(`[data-org-name="${k}"][data-idx="${list.length - 1}"]`)?.focus();
+    },
     'org-user-add': async () => {
       const users = [...document.querySelectorAll('#perfResults [data-ou-row]')].filter(tr => tr.querySelector('[data-ou="on"]').checked).map(tr => {
         const u = { name: tr.dataset.ouRow }; tr.querySelectorAll('[data-ou]').forEach(el => { if (el.dataset.ou !== 'on') u[el.dataset.ou] = el.value.trim(); }); return u;
@@ -2913,8 +2929,16 @@ window.App = (() => {
     // 실적 연동 탭: 이름 칸은 화면에만 기억한다 (다시 그리지 않고, 비교를 다시 하도록 표시)
     document.addEventListener('input', ev => {
       const el = ev.target.closest && ev.target.closest('[data-org-name]'); if (!el) return;
-      org.names[el.dataset.orgName] = el.value;
+      const n = orgPerfRows(V.ui.perf.month, V.ui.perf.set).need.find(x => x.key === el.dataset.orgName);
+      if (!org.names[el.dataset.orgName]) org.names[el.dataset.orgName] = n ? nameSlots(n) : [''];
+      org.names[el.dataset.orgName][+el.dataset.idx || 0] = el.value;
       if (org.res && !org.stale) { org.stale = true; const b = document.querySelector('[data-act="org-sync-commit"]'); if (b) { b.disabled = true; b.textContent = '이름을 고쳤어요 · 다시 비교해 주세요'; } }
+    });
+    // 이름 칸에서 나가면 빈 줄 정리하고 다시 그린다 (커서는 다음 이름 칸으로)
+    document.addEventListener('change', ev => {
+      const el = ev.target.closest && ev.target.closest('[data-org-name]'); if (!el) return;
+      const list = org.names[el.dataset.orgName]; if (list && list.length > 1) org.names[el.dataset.orgName] = list.filter((x, i) => String(x).trim() || i === list.length - 1);
+      setTimeout(() => { const a = document.activeElement, k = a && a.dataset && a.dataset.orgName, ix = a && a.dataset && a.dataset.idx; bindPerf(); if (k) document.querySelector(`[data-org-name="${k}"][data-idx="${ix}"]`)?.focus(); }, 0);
     });
     // 연락이력 화면에서 캡처 이미지를 Ctrl+V 하면 그 캡처로 칸을 채운다
     document.addEventListener('paste', ev => {
