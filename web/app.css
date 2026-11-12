@@ -1,11 +1,21 @@
 /* 앱(Firebase) 버전에만 쓰는 모양: 로그인 화면·다시 로그인 띠·설치 버튼 */
-.app-gate { position: fixed; inset: 0; z-index: 9999; background: var(--bg, #fff); display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
-.app-gate-box { max-width: 360px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.app-gate-box img { border-radius: 18px; }
-.app-gate-box h1 { font-size: 22px; margin: 0; }
-.app-gate-box p { margin: 0; line-height: 1.6; }
-.app-gate-btn { min-height: 48px; padding: 0 24px; font-size: 16px; width: 100%; }
-.app-gate-err { color: var(--danger, #c0392b); }
+.app-gate { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px); background: linear-gradient(180deg, #FFF8E8 0%, #FFFFFF 55%); overflow-y: auto; }
+.app-gate-box { width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.app-gate-logo { border-radius: 22px; box-shadow: 0 8px 24px rgba(154, 100, 0, .18); background: #fff; }
+.app-gate-box h1 { font-size: 26px; margin: 6px 0 0; letter-spacing: -.02em; color: #1F2733; }
+.app-gate-sub { margin: -6px 0 10px; color: #6B7280; font-size: 14.5px; }
+.app-gate-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 18px; border: 1px solid #DADCE0; border-radius: 14px; background: #fff; color: #1F1F1F; font: inherit; font-size: 16.5px; font-weight: 700; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.app-gate-google:active { background: #F8F9FA; }
+.app-gate-google span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-gate-keep { display: flex; align-items: center; gap: 8px; align-self: flex-start; font-size: 15px; font-weight: 600; color: #374151; cursor: pointer; padding: 4px 2px; }
+.app-gate-keep input { width: 22px; height: 22px; accent-color: #B86E00; }
+.app-gate-link { background: none; border: 0; color: #9A6400; font: inherit; font-size: 14px; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 6px; }
+.app-gate-note { margin: 8px 0 0; font-size: 12.5px; line-height: 1.6; color: #6B7280; }
+.app-gate-err { margin: 0; padding: 10px 12px; border-radius: 10px; background: #FDF3F2; color: #B42318; font-size: 14px; line-height: 1.5; }
+.app-gate-wait { display: flex; align-items: center; gap: 10px; color: #6B7280; margin: 4px 0 0; }
+.app-spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #F1D9A6; border-top-color: #B86E00; animation: appspin .8s linear infinite; }
+@keyframes appspin { to { transform: rotate(360deg); } }
+.app-acc { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line, #E5E7EB); font-size: 12.5px; color: var(--text-2, #6B7280); word-break: break-all; }
 .app-relogin { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 9998; background: #fff7e0; border: 1px solid #f0c36d; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .app-install { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); z-index: 900; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
 @media (display-mode: standalone) { .app-install { display: none; } }

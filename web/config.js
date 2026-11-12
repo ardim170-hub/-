@@ -5,5 +5,6 @@
 window.APP_CONFIG = {
   clientId: '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com',
   scriptId: '1KN8xh1taVVE1NUeTforXo1T7XavuuN4c8p-lgvZ6lCFWjaGsGfVh6-PR',
+  domain: 'ardim.or.kr', // 로그인 화면에서 복지관 계정만 고르게
   deployId: 'AKfycbxtlw5kV_OSMBuZUn5ucpdrggA3ZAby81J-ir-4biPCqF2scl6xNmJGuu-ubNy8yWRe',
 };

@@ -12,13 +12,23 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <style>
 /* 앱(Firebase) 버전에만 쓰는 모양: 로그인 화면·다시 로그인 띠·설치 버튼 */
-.app-gate { position: fixed; inset: 0; z-index: 9999; background: var(--bg, #fff); display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
-.app-gate-box { max-width: 360px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.app-gate-box img { border-radius: 18px; }
-.app-gate-box h1 { font-size: 22px; margin: 0; }
-.app-gate-box p { margin: 0; line-height: 1.6; }
-.app-gate-btn { min-height: 48px; padding: 0 24px; font-size: 16px; width: 100%; }
-.app-gate-err { color: var(--danger, #c0392b); }
+.app-gate { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top, 0px) + 24px) 20px calc(env(safe-area-inset-bottom, 0px) + 24px); background: linear-gradient(180deg, #FFF8E8 0%, #FFFFFF 55%); overflow-y: auto; }
+.app-gate-box { width: 100%; max-width: 360px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.app-gate-logo { border-radius: 22px; box-shadow: 0 8px 24px rgba(154, 100, 0, .18); background: #fff; }
+.app-gate-box h1 { font-size: 26px; margin: 6px 0 0; letter-spacing: -.02em; color: #1F2733; }
+.app-gate-sub { margin: -6px 0 10px; color: #6B7280; font-size: 14.5px; }
+.app-gate-google { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 18px; border: 1px solid #DADCE0; border-radius: 14px; background: #fff; color: #1F1F1F; font: inherit; font-size: 16.5px; font-weight: 700; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.app-gate-google:active { background: #F8F9FA; }
+.app-gate-google span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-gate-keep { display: flex; align-items: center; gap: 8px; align-self: flex-start; font-size: 15px; font-weight: 600; color: #374151; cursor: pointer; padding: 4px 2px; }
+.app-gate-keep input { width: 22px; height: 22px; accent-color: #B86E00; }
+.app-gate-link { background: none; border: 0; color: #9A6400; font: inherit; font-size: 14px; font-weight: 700; text-decoration: underline; cursor: pointer; padding: 6px; }
+.app-gate-note { margin: 8px 0 0; font-size: 12.5px; line-height: 1.6; color: #6B7280; }
+.app-gate-err { margin: 0; padding: 10px 12px; border-radius: 10px; background: #FDF3F2; color: #B42318; font-size: 14px; line-height: 1.5; }
+.app-gate-wait { display: flex; align-items: center; gap: 10px; color: #6B7280; margin: 4px 0 0; }
+.app-spin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #F1D9A6; border-top-color: #B86E00; animation: appspin .8s linear infinite; }
+@keyframes appspin { to { transform: rotate(360deg); } }
+.app-acc { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line, #E5E7EB); font-size: 12.5px; color: var(--text-2, #6B7280); word-break: break-all; }
 .app-relogin { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 9998; background: #fff7e0; border: 1px solid #f0c36d; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .app-install { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); z-index: 900; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
 @media (display-mode: standalone) { .app-install { display: none; } }
@@ -32,6 +42,7 @@
 window.APP_CONFIG = {
   clientId: '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com',
   scriptId: '1KN8xh1taVVE1NUeTforXo1T7XavuuN4c8p-lgvZ6lCFWjaGsGfVh6-PR',
+  domain: 'ardim.or.kr', // 로그인 화면에서 복지관 계정만 고르게
   deployId: 'AKfycbxtlw5kV_OSMBuZUn5ucpdrggA3ZAby81J-ir-4biPCqF2scl6xNmJGuu-ubNy8yWRe',
 };
 
@@ -66,7 +77,12 @@ window.APP_CONFIG = {
     del: function (k) { try { sessionStorage.removeItem(k); } catch (e) {} },
   };
   var configured = !!(C.clientId && (C.scriptId || C.deployId));
+  var KEEP_KEY = 'ardim.app.keep';
   window.APP_MODE = 'app';
+  /** 로그인 상태 유지: 켜 두면 출입증을 이 기기에 두고(앱을 닫아도 유지), 1시간마다 자동으로 새로 받는다.
+   *  끄면 앱(창)을 닫을 때 로그아웃된다. 처음엔 켜짐 */
+  function keep() { return ls.get(KEEP_KEY) !== '0'; }
+  var box = function () { return keep() ? ls : ss; };
 
   /* ---------- 1) 구글 로그인에서 돌아왔으면 출입증을 꺼내 저장 ---------- */
   var h = location.hash || '';
@@ -76,23 +92,28 @@ window.APP_CONFIG = {
     var okState = q.state && q.state === ss.get(STATE_KEY);
     ss.del(STATE_KEY);
     if (q.access_token && okState) {
-      ls.set(TOKEN_KEY, JSON.stringify({ t: q.access_token, exp: Date.now() + (Number(q.expires_in) || 3600) * 1000 - 60000 }));
+      ls.del(TOKEN_KEY); ss.del(TOKEN_KEY);
+      box().set(TOKEN_KEY, JSON.stringify({ t: q.access_token, exp: Date.now() + (Number(q.expires_in) || 3600) * 1000 - 60000 }));
     } else if (q.error) {
-      window.__loginError = q.error === 'access_denied' ? '구글 로그인에서 허용을 누르지 않았어요.' : '구글 로그인 오류: ' + q.error;
+      window.__loginError = q.error === 'access_denied' ? '로그인 화면에서 "허용"을 누르지 않아 로그인하지 못했어요. 다시 눌러 모두 허용해 주세요.'
+        : q.error === 'interaction_required' || q.error === 'login_required' ? '' : '구글 로그인 오류: ' + q.error;
+      if (q.error === 'interaction_required' || q.error === 'login_required') ls.set('ardim.app.needClick', '1');
     }
-    var ret = ss.get(RET_KEY) || '#/dashboard';
+    var ret = ss.get(RET_KEY) || '#/';
     ss.del(RET_KEY);
-    history.replaceState(null, '', location.pathname + location.search + ret);
+    history.replaceState(null, '', location.pathname + location.search + (ret === '#/' ? '' : ret));
   }
 
-  function token() {
-    try { var o = JSON.parse(ls.get(TOKEN_KEY) || 'null'); return o && o.exp > Date.now() ? o.t : ''; } catch (e) { return ''; }
+  function tokenInfo() {
+    try { return JSON.parse(ls.get(TOKEN_KEY) || ss.get(TOKEN_KEY) || 'null'); } catch (e) { return null; }
   }
-  /** 구글 로그인 화면으로 갔다가 이 주소로 돌아온다 (지금 보던 화면은 기억해 둔다) */
-  function login(choose) {
+  function token() { var o = tokenInfo(); return o && o.exp > Date.now() ? o.t : ''; }
+  /** 구글 확인 화면으로 갔다가 이 주소로 돌아온다 (지금 보던 화면은 기억해 둔다).
+   *  이미 허용했고 구글에 로그인돼 있으면 사람이 누를 것 없이 바로 돌아온다 */
+  function login(choose, silent) {
     var st = Math.random().toString(36).slice(2) + Date.now().toString(36);
     ss.set(STATE_KEY, st);
-    ss.set(RET_KEY, /access_token=/.test(location.hash) ? '#/dashboard' : (location.hash || '#/dashboard'));
+    ss.set(RET_KEY, location.hash || '#/');
     var p = {
       client_id: C.clientId,
       redirect_uri: location.origin + location.pathname.replace(/index\.html$/, ''),
@@ -101,67 +122,90 @@ window.APP_CONFIG = {
       include_granted_scopes: 'true',
       state: st,
     };
+    if (C.domain) p.hd = C.domain; // 복지관 계정만 고를 수 있게
     var hint = ls.get(HINT_KEY);
     if (choose) p.prompt = 'select_account';
     else if (hint) p.login_hint = hint;
+    if (silent) splash('로그인 확인 중…');
     location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + Object.keys(p).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
   }
   function logout() {
     var t = token();
-    ls.del(TOKEN_KEY); ls.del(HINT_KEY);
+    ls.del(TOKEN_KEY); ss.del(TOKEN_KEY); ls.del(HINT_KEY); ls.del(RUN_KEY);
     if (t) { try { fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(t), { method: 'POST' }); } catch (e) {} }
-    setTimeout(function () { location.reload(); }, 300);
+    setTimeout(function () { location.replace(location.pathname); }, 300);
   }
-  window.AppAuth = { login: login, logout: logout, token: token, email: function () { return ls.get(HINT_KEY) || ''; } };
+  window.AppAuth = { login: login, logout: logout, token: token, keep: keep, email: function () { return ls.get(HINT_KEY) || ''; } };
 
-  /* ---------- 2) 로그인 화면 ---------- */
+  /* ---------- 2) 로그인 화면 (앱 첫 화면) ---------- */
   var gateShown = false;
-  function gate(html) {
+  function gate(html, cls) {
     gateShown = true;
     var show = function () {
       var d = document.getElementById('appGate');
-      if (!d) { d = document.createElement('div'); d.id = 'appGate'; d.className = 'app-gate'; document.body.appendChild(d); }
+      if (!d) { d = document.createElement('div'); d.id = 'appGate'; document.body.appendChild(d); }
+      d.className = 'app-gate' + (cls ? ' ' + cls : '');
       d.innerHTML = '<div class="app-gate-box">' + html + '</div>';
     };
     if (document.body) show(); else document.addEventListener('DOMContentLoaded', show);
   }
+  var esc = function (s) { return String(s || '').replace(/[<>&"]/g, function (c) { return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' }[c]; }); };
+  function splash(msg) {
+    gate('<img class="app-gate-logo" src="icons/icon-192.png" alt="" width="88" height="88"><h1>아르딤 직업지원팀</h1><p class="app-gate-wait"><span class="app-spin" aria-hidden="true"></span>' + esc(msg) + '</p>', 'splash');
+  }
+  var G_ICON = '<svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.3 5.7c4.3-3.9 7-9.7 7-17.1z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-2.9-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.8-5.8l-7.3-5.7c-2 1.4-4.7 2.3-8.5 2.3-6.2 0-11.5-4.1-13.4-9.8l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>';
   function loginGate() {
     var hint = ls.get(HINT_KEY);
-    gate('<img src="icons/icon-192.png" alt="" width="72" height="72"><h1>아르딤 직업지원팀</h1>' +
-      (window.__loginError ? '<p class="app-gate-err">' + window.__loginError + '</p>' : '') +
-      '<p>복지관 구글 계정으로 로그인하면 지금 사이트와 같은 데이터(구글 시트)를 그대로 써요.</p>' +
-      '<button type="button" class="btn btn-primary app-gate-btn" id="appLoginBtn">구글 계정으로 로그인</button>' +
-      (hint ? '<p class="sub">' + hint.replace(/[<>&"]/g, '') + ' · <a href="#" id="appOtherAcc">다른 계정</a></p>' : ''));
+    gate('<img class="app-gate-logo" src="icons/icon-192.png" alt="" width="88" height="88">' +
+      '<h1>아르딤 직업지원팀</h1><p class="app-gate-sub">화성시 아르딤복지관 직업지원팀 업무 앱</p>' +
+      (window.__loginError ? '<p class="app-gate-err">' + esc(window.__loginError) + '</p>' : '') +
+      '<button type="button" class="app-gate-google" id="appLoginBtn">' + G_ICON + '<span>' + (hint ? esc(hint) + '(으)로 계속' : 'Google 계정으로 로그인') + '</span></button>' +
+      '<label class="app-gate-keep"><input type="checkbox" id="appKeep" ' + (keep() ? 'checked' : '') + '> 로그인 상태 유지</label>' +
+      (hint ? '<button type="button" class="app-gate-link" id="appOtherAcc">다른 계정으로 로그인</button>' : '') +
+      '<p class="app-gate-note">복지관 구글 계정' + (C.domain ? '(@' + esc(C.domain) + ')' : '') + '으로 로그인해요.<br>비밀번호는 구글 화면에서만 넣고, 이 앱에는 저장되지 않아요.<br>로그인 상태 유지를 켜 두면 다음부터는 바로 열려요.</p>');
     document.addEventListener('click', function (e) {
-      if (e.target && e.target.id === 'appLoginBtn') login(false);
-      if (e.target && e.target.id === 'appOtherAcc') { e.preventDefault(); login(true); }
+      var id = e.target && e.target.closest && (e.target.closest('#appLoginBtn') ? 'go' : e.target.closest('#appOtherAcc') ? 'other' : '');
+      if (!id) return;
+      var k = document.getElementById('appKeep');
+      ls.set(KEEP_KEY, k && !k.checked ? '0' : '1');
+      ls.del('ardim.app.needClick');
+      login(id === 'other');
     });
   }
 
-  var waiters = [];
   var expiredShown = false;
   function needLogin() {
-    // 쓰는 도중 출입증(1시간)이 끝나면: 고치던 내용은 그대로 두고, 위에 '다시 로그인' 띠를 띄운다
+    // 쓰는 도중 출입증이 끝났는데 입력 중이면: 고치던 내용은 그대로 두고, 위에 '다시 확인' 띠를 띄운다
     if (expiredShown || gateShown) return;
     expiredShown = true;
     var bar = document.createElement('div');
     bar.className = 'app-relogin';
-    bar.innerHTML = '로그인 시간이 끝났어요. 입력한 기록은 이 휴대폰에 보관돼 있고, 다시 로그인하면 이어서 저장돼요. <button type="button" class="btn btn-sm btn-primary">다시 로그인</button>';
-    bar.querySelector('button').onclick = function () { login(false); };
+    bar.innerHTML = '<span>로그인을 다시 확인해야 해요. 입력한 기록은 이 기기에 보관돼 있고, 확인하면 이어서 저장돼요.</span> <button type="button" class="btn btn-sm btn-primary">확인하기</button>';
+    bar.querySelector('button').onclick = function () { login(false, true); };
     document.body.appendChild(bar);
+  }
+  /** 지금 무언가 입력 중인가 (그때는 화면을 옮기지 않는다) */
+  function busy() {
+    var a = document.activeElement;
+    return !!(document.querySelector('#drawer.open, .modal.open, .modal-back') || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'fmQ'));
+  }
+  /** 로그인 유지: 출입증이 곧 끝나면 입력 중이 아닐 때 조용히 새로 받는다 (구글이 1시간짜리만 주기 때문) */
+  function refreshCheck() {
+    if (!configured || gateShown || document.visibilityState !== 'visible') return;
+    var o = tokenInfo(), left = o ? o.exp - Date.now() : -1;
+    if (left > 5 * 60000) return;
+    if (!keep() || !ls.get(HINT_KEY)) { if (left <= 0) needLogin(); return; }
+    if (!busy()) login(false, true); else if (left <= 0) needLogin();
   }
 
   if (!configured) {
     gate('<h1>앱 설정이 아직 안 됐어요</h1><p>web/config.js 에 구글 클라우드 OAuth 클라이언트 ID와 Apps Script 스크립트 ID를 넣어야 해요.</p><p class="sub">설치 안내: docs/앱_설치_안내.md</p>');
   } else if (!token()) {
-    // 전에 로그인했던 휴대폰이면 버튼 없이 바로 구글로 (이미 허용했으면 화면이 잠깐 깜빡이고 돌아와요)
-    if (ls.get(HINT_KEY) && !window.__loginError) login(false); else loginGate();
+    // 로그인 유지를 켜 둔 기기면 버튼 없이 바로 확인 (이미 허용했으면 잠깐 로고가 보였다가 열려요)
+    if (keep() && ls.get(HINT_KEY) && !window.__loginError && !ls.get('ardim.app.needClick')) login(false, true); else loginGate();
   }
-  // 앱을 한참 뒤에 다시 열었을 때: 열려 있는 입력 창이 없으면 바로 다시 로그인
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState !== 'visible' || !configured || token()) return;
-    if (document.querySelector('#drawer.open, .modal.open, form:focus-within')) needLogin(); else login(false);
-  });
+  document.addEventListener('visibilitychange', refreshCheck);
+  setInterval(refreshCheck, 30000);
 
   /* ---------- 3) google.script.run 대신 Apps Script API로 서버 함수 부르기 ---------- */
   var ids = [ls.get(RUN_KEY), C.deployId, C.scriptId].filter(function (x, i, a) { return x && a.indexOf(x) === i; });
@@ -183,13 +227,13 @@ window.APP_CONFIG = {
       var id = ids[k];
       return post(id, fn, args, t).then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (j) {
-          if (res.status === 401) { ls.del(TOKEN_KEY); needLogin(); throw new Error('로그인 시간이 끝났어요. 다시 로그인해 주세요.'); }
+          if (res.status === 401) { ls.del(TOKEN_KEY); ss.del(TOKEN_KEY); needLogin(); throw new Error('로그인 시간이 끝났어요. 다시 로그인해 주세요.'); }
           if (res.status === 404 && k < ids.length - 1) { k++; return tryNext(); }
           if (j && j.error) {
             var d = (j.error.details || [])[0] || {};
             var msg = d.errorMessage || j.error.message || ('오류 ' + res.status);
             if (/has not been used|is disabled|SERVICE_DISABLED/i.test(msg)) msg = '구글 클라우드에서 Apps Script API가 꺼져 있어요. 설치 안내의 2단계를 확인해 주세요. (' + msg + ')';
-            else if (/insufficient authentication scopes|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(msg)) { ls.del(TOKEN_KEY); msg = '로그인할 때 허용하지 않은 항목이 있어요. 다시 로그인해서 모두 허용해 주세요.'; needLogin(); }
+            else if (/insufficient authentication scopes|ACCESS_TOKEN_SCOPE_INSUFFICIENT/i.test(msg)) { ls.del(TOKEN_KEY); ss.del(TOKEN_KEY); msg = '로그인할 때 허용하지 않은 항목이 있어요. 다시 로그인해서 모두 허용해 주세요.'; needLogin(); }
             else if (res.status === 404) msg = '서버 함수를 찾지 못했어요. Apps Script에서 "API 실행 파일"로 배포했는지, 스크립트 ID가 맞는지 확인해 주세요. (' + fn + ')';
             else if (res.status === 403 && !d.errorMessage) msg = '이 계정으로는 서버를 실행할 수 없어요: ' + msg;
             var err = new Error(msg); err.name = d.errorType || 'ScriptError';
@@ -2348,6 +2392,63 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .or-etc-td { min-width: 180px; }
 .or-etc { width: 100%; min-height: 34px; resize: vertical; font-size: 13px; line-height: 1.45; padding: 6px 8px; field-sizing: content; }
 
+/* ---------- 현장 모드 (휴대폰 첫 화면) ---------- */
+.fm { max-width: 640px; margin: 0 auto; padding-bottom: 96px; }
+.fm-search { position: relative; margin-bottom: 14px; }
+.fm-search svg { position: absolute; left: 14px; top: 50%; width: 20px; height: 20px; transform: translateY(-50%); fill: none; stroke: var(--text-2); stroke-width: 2; }
+.fm-search .input { width: 100%; min-height: 52px; padding-left: 44px; font-size: 17px; border-radius: 14px; }
+.fm-sec { margin: 0 0 18px; }
+.fm-sec h2 { font-size: 15px; margin: 4px 2px 8px; display: flex; gap: 6px; align-items: baseline; }
+.fm-row { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 13px 14px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; font: inherit; color: inherit; cursor: pointer; min-height: 56px; }
+.fm-row:active { background: #FDF5E2; }
+.fm-row-t { font-size: 16px; }
+.fm-row-s { font-size: 13px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fm-row.fm-new { border-style: dashed; }
+.fm-tag { display: inline-block; padding: 1px 7px; border-radius: 999px; background: #FDF5E2; color: #9A6400; font-size: 12px; font-weight: 700; vertical-align: 1px; }
+.fm-tag.net { background: #EEF1FB; color: #3B4F9A; }
+.fm-none { padding: 6px 2px; }
+.fm-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 16px; background: linear-gradient(to top, var(--bg, #F6F7F9) 70%, transparent); }
+.fm-big { min-height: 56px !important; font-size: 17px; font-weight: 800; border-radius: 14px; }
+.fm-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.fm-name { font-size: 24px; margin: 2px 0 4px; line-height: 1.3; }
+.fm-meta { margin: 0 0 12px; line-height: 1.5; }
+.fm-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+.fm-act { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 66px !important; font-size: 16px; font-weight: 800; border-radius: 14px; text-decoration: none; }
+.fm-act small { font-size: 11.5px; font-weight: 500; opacity: .8; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fm-act.off { opacity: .45; pointer-events: none; }
+.fm-phones { display: grid; gap: 6px; margin-bottom: 12px; }
+.fm-phones a { display: block; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-decoration: none; color: inherit; font-weight: 700; }
+.fm-log { padding: 12px 14px; margin-bottom: 8px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid #E8A317; border-radius: 10px; }
+.fm-log-h { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 14px; }
+.fm-log p { margin: 6px 0 0; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+.fm-add { display: grid; gap: 10px; padding: 14px; margin-bottom: 16px; background: #FFFBF1; border: 1px solid #E8A317; border-radius: 14px; }
+.fm-add label { display: flex; flex-direction: column; gap: 4px; font-size: 13.5px; font-weight: 600; }
+.fm-add .input, .fm-add .select, .fm-add .textarea { font-size: 16px; }
+.fm-add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fm-types { display: flex; flex-wrap: wrap; gap: 6px; }
+.fm-types .chip { min-height: 42px; padding: 0 16px; font-size: 15px; }
+.fm-add-btns { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+.fm-add-btns .btn { min-height: 50px; font-size: 16px; }
+@media (max-width: 720px) {
+  .fm-dock { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+  .fm { padding-bottom: 150px; }
+}
+@media (max-width: 720px) {
+  /* 현장 모드에서는 자체 찾기 칸이 있으니 위쪽 검색 줄을 숨기고, 알림은 큰 버튼 위로 */
+  body:has(.fm) .search-trigger { display: none; }
+  body:has(.fm-dock) .toast-stack { bottom: calc(140px + env(safe-area-inset-bottom, 0px)); }
+}
+@media (max-width: 720px) {
+  /* 휴대폰 위쪽 막대: 화면 밖으로 밀려나지 않게 줄이고 감싼다 */
+  .topbar-actions { flex-wrap: wrap; gap: 6px; min-width: 0; }
+  .topbar-actions > * { min-width: 0; }
+  .topbar-actions .sync { font-size: 12px; white-space: nowrap; }
+  .topbar-actions .btn { padding: 0 12px; font-size: 14px; }
+  .scope-select { max-width: 130px; }
+  /* 현장 모드에서는 큰 버튼이 따로 있으니 보기 범위·새로 등록은 숨긴다 */
+  body:has(.fm) #scopeSel, body:has(.fm) [data-act="toggle-quick"] { display: none; }
+}
+
 </style>
 </head>
 <body>
@@ -2434,7 +2535,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.12 17:48";</script>
+<script>window.APP_VERSION = "2026.11.13 08:45";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -8921,6 +9022,135 @@ window.CL = (() => {
 
 </script>
 <script>
+/* 현장 모드: 밖에서 휴대폰으로 쓰는 첫 화면.
+ * ① 사업체·기관 찾기 → 그곳의 연락이력(최신순)·명함·전화·길찾기
+ * ② 내가 최근 연락한 곳, 다시 연락할 곳
+ * ③ 큰 버튼: + 연락 기록 / 📷 명함 찍기
+ * 데이터는 기존 연락이력(활동기록)·사업체·기관·명함을 그대로 쓴다 */
+window.FM = (() => {
+  const e = U.esc;
+  const ui = { q: '', sel: null, adding: false, type: '전화', creating: null };
+  const TYPES = ['전화', '방문', '문자', '이메일', '미팅'];
+  const find = (kind, id) => S.find(kind, id);
+  const telOf = p => String(p || '').replace(/[^0-9+]/g, '');
+  const ago = d => { if (!U.isDate(d)) return ''; const n = U.diffDays(d, U.today()); return n <= 0 ? '오늘' : n === 1 ? '어제' : n < 30 ? `${n}일 전` : U.dateDot(d); };
+
+  /** 찾기: 사업체(미등록 포함)와 기관을 이름·주소·전화·담당자로 */
+  function search(q) {
+    if (!q.trim()) return [];
+    const v = S.view();
+    const biz = v.businesses.concat(S.get().businesses.filter(b => S.isPending(b) && !v.businesses.includes(b)))
+      .filter(b => U.match(q, b.name, b.address, b.phone, b.area)).map(x => ({ kind: 'biz', x }));
+    const net = v.networks.filter(n => U.match(q, n.name, n.address, n.phone, n.area)).map(x => ({ kind: 'net', x }));
+    const cards = v.cards.filter(c => U.match(q, c.name, c.org, c.mobile)).map(c => { const t = c.linkId && find(c.linkType, c.linkId); return t ? { kind: c.linkType, x: t, via: c.name } : null; }).filter(Boolean);
+    const seen = new Set();
+    return [...biz, ...net, ...cards].filter(r => { const k = r.kind + r.x.id; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 30);
+  }
+  /** 내가 최근 연락한 곳 (곳마다 한 번, 최근 순) */
+  function recent(n = 10) {
+    const me = S.me(), seen = new Set(), out = [];
+    [...S.get().activities].filter(a => a.staff === me && (a.targetType === 'biz' || a.targetType === 'net')).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)).some(a => {
+      const k = a.targetType + a.targetId; if (seen.has(k)) return false; seen.add(k);
+      const x = find(a.targetType, a.targetId); if (x) out.push({ kind: a.targetType, x, a });
+      return out.length >= n;
+    });
+    return out;
+  }
+  /** 다시 연락할 곳: 진행 중인데 마지막 연락이 21일 넘은 내 담당 사업체 */
+  function again(n = 8) {
+    const me = S.me();
+    return S.priorities().filter(p => p.kind === 'gap' && (!p.staff || p.staff === me)).slice(0, n).map(p => ({ kind: 'biz', x: find('biz', p.id), why: p.why })).filter(r => r.x);
+  }
+
+  const rowHtml = r => {
+    const la = r.a || S.lastAct(r.kind, r.x.id);
+    return `<button type="button" class="fm-row" data-act="fm-open" data-kind="${r.kind}" data-id="${r.x.id}">
+      <span class="fm-row-t"><b>${e(r.x.name)}</b>${r.kind === 'net' ? ' <span class="fm-tag net">기관</span>' : S.isPending(r.x) ? ' <span class="fm-tag">미등록</span>' : r.x.stage ? ` <span class="fm-tag">${e(r.x.stage)}</span>` : ''}</span>
+      <span class="fm-row-s">${r.why ? e(r.why) : la ? `${ago(la.date)} · ${e(la.type || '')} ${e((la.content || '').slice(0, 40))}` : '아직 연락 기록 없음'}${r.via ? ` · 명함 ${e(r.via)}` : ''}</span></button>`;
+  };
+
+  function page() {
+    if (ui.creating != null) return newHtml(ui.creating);
+    if (ui.sel) { const x = find(ui.sel.kind, ui.sel.id); if (x) return placeHtml(ui.sel.kind, x); ui.sel = null; }
+    const q = ui.q.trim(), found = search(q), rec = recent(), ag = again();
+    return `<div class="fm">
+      <div class="fm-search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg>
+        <input class="input" id="fmQ" type="search" value="${e(ui.q)}" placeholder="사업체·기관·명함 이름 (두세 글자)" autocomplete="off" enterkeyhint="search"></div>
+      <div id="fmList">${q ? listHtml(found, q) : `
+        ${ag.length ? `<section class="fm-sec"><h2>⏰ 다시 연락할 곳 <span class="sub">마지막 연락 3주 넘음</span></h2>${ag.map(rowHtml).join('')}</section>` : ''}
+        <section class="fm-sec"><h2>🕘 내가 최근 연락한 곳</h2>${rec.map(rowHtml).join('') || '<p class="sub fm-none">아직 없어요. 아래 "+ 연락 기록"으로 시작해 보세요.</p>'}</section>`}</div>
+      <div class="fm-dock"><button type="button" class="btn btn-primary fm-big" data-act="fm-new">＋ 연락 기록</button><button type="button" class="btn fm-big" data-act="card-photo">📷 명함 찍기</button></div>
+    </div>`;
+  }
+  function listHtml(found, q) {
+    return `<section class="fm-sec"><h2>찾은 곳 <span class="sub">${found.length}곳</span></h2>${found.map(rowHtml).join('')}
+      <button type="button" class="fm-row fm-new" data-act="fm-new" data-name="${e(q)}"><b>＋ '${e(q)}' 새로 연락 기록</b><span class="fm-row-s">목록에 없는 곳이면 미등록으로 남아요. 나중에 사업체로 등록할 수 있어요</span></button></section>`;
+  }
+
+  /** 한 곳: 전화·길찾기, 명함, 연락이력, 기록 추가 */
+  function placeHtml(kind, x) {
+    const acts = S.actsOf(kind, x.id), cards = S.cardsOf ? S.cardsOf(kind, x.id) : [];
+    const pos = M.hasPos(x);
+    const navUrl = pos ? `https:\/\/map.kakao.com/link/to/${encodeURIComponent(x.name)},${x.lat},${x.lng}` : x.address ? `https:\/\/map.kakao.com/link/search/${encodeURIComponent(x.address)}` : '';
+    const phones = [x.phone && { label: '대표', name: '', tel: x.phone }, ...cards.filter(c => c.mobile || c.phone).map(c => ({ label: c.title || '담당', name: c.name, tel: c.mobile || c.phone }))].filter(Boolean);
+    return `<div class="fm fm-place">
+      <div class="fm-top"><button type="button" class="btn btn-ghost btn-sm" data-act="fm-back">‹ 목록</button><button type="button" class="btn btn-ghost btn-sm" data-act="open" data-kind="${kind}" data-id="${x.id}">자세히</button></div>
+      <h1 class="fm-name">${e(x.name)}</h1>
+      <p class="sub fm-meta">${[kind === 'net' ? x.category : (S.isPending(x) ? '미등록' : x.stage), x.industry, x.staff && '담당 ' + x.staff].filter(Boolean).map(e).join(' · ')}${x.address ? `<br>${e(x.address)}` : ''}</p>
+      <div class="fm-acts">
+        ${phones[0] ? `<a class="btn fm-act" href="tel:${e(telOf(phones[0].tel))}">📞 전화<small>${e(phones[0].name || phones[0].label)}</small></a>` : '<span class="btn fm-act off">📞 전화<small>번호 없음</small></span>'}
+        ${navUrl ? `<a class="btn fm-act" href="${e(navUrl)}" target="_blank" rel="noopener">🗺️ 길찾기<small>카카오맵</small></a>` : '<span class="btn fm-act off">🗺️ 길찾기<small>주소 없음</small></span>'}
+        <button type="button" class="btn btn-primary fm-act" data-act="fm-add">✏️ 기록<small>오늘 연락</small></button>
+      </div>
+      ${phones.length > 1 ? `<div class="fm-phones">${phones.slice(1).map(p => `<a href="tel:${e(telOf(p.tel))}">📞 ${e(p.name || p.label)} <span class="sub">${e(p.label !== '대표' ? p.label : '')} ${e(p.tel)}</span></a>`).join('')}</div>` : ''}
+      ${ui.adding ? addHtml(kind, x) : ''}
+      <section class="fm-sec"><h2>연락이력 <span class="sub">${acts.length}건 · 최신순</span></h2>
+        ${acts.length ? acts.slice(0, 40).map(a => `<article class="fm-log">
+          <div class="fm-log-h"><b class="num">${U.dateDot(a.date)}</b> <span class="fm-tag">${e(a.type || '')}</span> <span class="sub">${ago(a.date)}${a.staff ? ' · ' + e(a.staff) : ''}</span></div>
+          <p>${e(a.content || '')}</p>
+          ${[a.contactName && '담당자 ' + a.contactName, a.result, a.jobType && '직종 ' + a.jobType].filter(Boolean).length ? `<p class="sub">${[a.contactName && '담당자 ' + a.contactName, a.result, a.jobType && '직종 ' + a.jobType].filter(Boolean).map(e).join(' · ')}</p>` : ''}
+        </article>`).join('') : '<p class="sub fm-none">아직 연락 기록이 없어요. 위 "✏️ 기록"으로 첫 기록을 남겨 보세요.</p>'}
+      </section>
+    </div>`;
+  }
+  function addHtml(kind, x, name) {
+    return `<form class="fm-add" data-form="fm-add" data-kind="${kind || ''}" data-id="${x ? x.id : ''}" autocomplete="off">
+      ${x ? '' : `<label>어디에 연락했나요?<input class="input" name="name" list="fmBizList" value="${e(name || '')}" placeholder="사업체 이름" required></label>
+        <datalist id="fmBizList">${S.get().businesses.map(b => `<option value="${e(b.name)}">`).join('')}</datalist>`}
+      <div class="fm-types" role="radiogroup" aria-label="방식">${TYPES.map(t => `<button type="button" class="chip ${ui.type === t ? 'on' : ''}" data-act="fm-type" data-t="${t}" role="radio" aria-checked="${ui.type === t}">${t}</button>`).join('')}</div>
+      <label>무슨 이야기를 했나요? <span class="sub">키보드의 🎤로 말해도 돼요</span><textarea class="textarea" name="content" rows="3" placeholder="예: 인사담당 김 과장 면담. 12월 채용 계획 있음, 이력서 보내기로"></textarea></label>
+      <div class="fm-add-row"><label>담당자<input class="input" name="contactName" placeholder="예: 김재윤 부장"></label>
+        <label>결과<select class="select" name="result"><option value="">선택</option>${D.CONTACT_RESULTS.map(r => `<option>${e(r)}</option>`).join('')}</select></label></div>
+      <div class="fm-add-row"><label>날짜<input class="input" type="date" name="date" value="${U.today()}"></label><label>상태<select class="select" name="status">${D.CONTACT_STATUS.map(s => `<option>${e(s)}</option>`).join('')}</select></label></div>
+      <div class="fm-add-btns"><button type="button" class="btn" data-act="fm-add-cancel">취소</button><button type="submit" class="btn btn-primary">저장</button></div>
+    </form>`;
+  }
+  /** 새 연락 기록 (곳을 아직 안 고른 경우) */
+  function newHtml(name) {
+    return `<div class="fm fm-place"><div class="fm-top"><button type="button" class="btn btn-ghost btn-sm" data-act="fm-back">‹ 목록</button></div>
+      <h1 class="fm-name">새 연락 기록</h1>${addHtml('', null, name)}</div>`;
+  }
+  /** 저장: 사업체는 연락이력 화면과 같은 방법(R.addContact)으로, 기관은 활동기록으로 */
+  function save(form) {
+    const fd = Object.fromEntries(new FormData(form).entries());
+    const type = ui.type || '전화';
+    const content = (fd.content || '').trim() || fd.result || `${type} 연락`;
+    const date = U.isDate(fd.date) ? fd.date : U.today();
+    const kind = form.dataset.kind, id = form.dataset.id;
+    if (kind === 'net' && id) {
+      S.upsert('act', { targetType: 'net', targetId: id, date, type, content, staff: S.me(), contactName: fd.contactName || '', result: fd.result || '', status: fd.status || '연락완료' });
+      return { kind: 'net', x: find('net', id) };
+    }
+    const name = id ? (find('biz', id) || {}).name : String(fd.name || '').trim();
+    if (!name) return null;
+    const b = R.addContact({ date, type, staff: S.me(), name, phone: '', contactName: fd.contactName || '', jobType: '', content, result: fd.result || '', status: fd.status || '연락완료', address: '', jobUrl: '' });
+    return { kind: 'biz', x: b };
+  }
+  return { ui, page, newHtml, save, TYPES };
+})();
+
+</script>
+<script>
 /* 대시보드 위 '실적 대시보드': 구역(현장중심·고용공단)의 실적 분류표로
  * 연간/월간 KPI · 세부사업별 목표 대비 달성률 표 · 월별 실적 막대를 보여 주고, 세부사업을 누르면 담당자별·기록 목록이 열린다 */
 window.DP = (() => {
@@ -9270,6 +9500,7 @@ window.App = (() => {
   const view = $('#view');
   const NAV = [
     ['dashboard', '대시보드', 'dash'],
+    ['field', '현장 모드', 'phone'],
     ['biz', '사업체·네트워크', 'biz', () => S.get().businesses.length + S.get().networks.length],
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
@@ -9282,13 +9513,13 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'field', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'field', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
   const SEC_HINT = {
-    dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
+    dashboard: () => '오늘 할 일·달력', field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
     contacts: () => '사업체 연락·방문', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
@@ -9304,6 +9535,8 @@ window.App = (() => {
     secKey = hit.k; lsSetSec(hit.k);
     return hit;
   }
+  /** 휴대폰 아래 막대 4칸: 현장 모드가 있는 구역은 '현장'을 맨 앞에 (대시보드는 더보기로) */
+  const mobileItems = sec => (sec.items.includes('field') ? ['field', ...sec.items.filter(k => k !== 'field' && k !== 'dashboard'), 'dashboard'] : sec.items).filter(k => canSee(k)).slice(0, 4);
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   const route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
   // 사업체·기관·명함은 한 메뉴(사업체·네트워크)의 탭: 주소는 #/biz · #/network · #/cards 그대로
@@ -9358,7 +9591,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'cl-end': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'fm-new': [['contacts', 2]], 'fm-add': [['contacts', 2]], 'cl-end': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -9372,7 +9605,7 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const FORM_GATES = { 'fm-add': [['contacts', 2]], 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
   const CHG_GATES = { 'or-etc': [['network', 2]], 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
@@ -9407,12 +9640,12 @@ window.App = (() => {
     $('#secTitle').innerHTML = `<b>${U.esc(sec.label)}</b><span>${U.esc(sec.desc)}</span>`;
     const byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
     $('#sideNav').innerHTML = sec.items.filter(k => canSee(k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
-    const mItems = sec.items.filter(k => canSee(k)).slice(0, 4);
+    const mItems = mobileItems(sec);
     const moreActive = !mItems.includes(n);
-    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
+    const SHORT = { field: '현장', dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
     $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
-    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
+    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>${appAccount()}`;
     $('#demoBanner').hidden = !S.get().isDemo;
     $('#meQuick').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다. 활동 기록의 기록자로 남아요.`); render(); };
     renderScope();
@@ -9511,6 +9744,7 @@ window.App = (() => {
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
+      field: [FM.page, bindField],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
 
       map: [V.mapPage, bindMap],
@@ -9571,6 +9805,10 @@ window.App = (() => {
     bar.className = 'scope-banner';
     bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
     view.prepend(bar);
+  }
+  function bindField() {
+    const q = $('#fmQ');
+    if (q) q.addEventListener('input', U.debounce(() => { FM.ui.q = q.value; const pos = q.selectionStart; render(); const q2 = $('#fmQ'); if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch {} } }, 200));
   }
   function bindClients() {
     const q = $('#clQ');
@@ -9943,7 +10181,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { field: '현장 모드', clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -10699,6 +10937,8 @@ window.App = (() => {
     }
   }
 
+  /** 앱(Firebase) 버전: 로그인한 계정 · 로그아웃 */
+  const appAccount = () => (window.AppAuth ? `<div class="app-acc"><span>${U.esc(AppAuth.email() || S.accessInfo().me || '')}${AppAuth.keep() ? ' · 로그인 유지 중' : ''}</span><button type="button" class="btn btn-sm" data-act="app-logout">로그아웃</button></div>` : '');
   /* ---------- More sheet (mobile) ---------- */
   function closeMore() { document.querySelector('.more-sheet')?.remove(); }
   function toggleMore() {
@@ -10706,7 +10946,8 @@ window.App = (() => {
     const el = document.createElement('div');
     el.className = 'more-sheet';
     const sec = curSec(), byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
-    el.innerHTML = sec.items.slice(4).map(k => `<a href="#/${k}">${byKey[k][1]}</a>`).join('') + '<div class="more-secs">' + SECS.filter(x => x.k !== 'data' || S.isAdmin()).map(x => `<button type="button" class="${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}">${x.label}</button>`).join('') + '</div>';
+    const shown = mobileItems(sec);
+    el.innerHTML = sec.items.filter(k => canSee(k) && !shown.includes(k)).map(k => `<a href="#/${hrefOf(k)}">${byKey[k][1]}</a>`).join('') + '<div class="more-secs">' + SECS.filter(x => x.k !== 'data' || S.isAdmin()).map(x => `<button type="button" class="${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}">${x.label}</button>`).join('') + '</div>' + appAccount();
     document.body.appendChild(el);
   }
 
@@ -11207,6 +11448,13 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'app-logout': async () => { if (!(await confirmBox('로그아웃할까요?', '이 기기에서 로그인 정보를 지워요. 다시 쓰려면 구글 계정으로 로그인해야 해요. 아직 못 보낸 기록이 있으면 먼저 저장·새로고침을 눌러 주세요.', '로그아웃'))) return; AppAuth.logout(); },
+    'fm-open': el => { Object.assign(FM.ui, { sel: { kind: el.dataset.kind, id: el.dataset.id }, adding: false, creating: null }); render(); window.scrollTo(0, 0); },
+    'fm-back': () => { Object.assign(FM.ui, { sel: null, adding: false, creating: null }); render(); window.scrollTo(0, 0); },
+    'fm-new': el => { Object.assign(FM.ui, { sel: null, adding: false, creating: el.dataset.name || '' }); render(); window.scrollTo(0, 0); setTimeout(() => $('[data-form="fm-add"] [name="' + (el.dataset.name ? 'content' : 'name') + '"]')?.focus(), 50); },
+    'fm-add': () => { FM.ui.adding = true; render(); setTimeout(() => { const t = $('[data-form="fm-add"] textarea'); if (t) { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); t.focus({ preventScroll: true }); } }, 50); },
+    'fm-add-cancel': () => { clearDraft('fm-add'); Object.assign(FM.ui, { adding: false, creating: null }); render(); },
+    'fm-type': el => { FM.ui.type = el.dataset.t; document.querySelectorAll('[data-act="fm-type"]').forEach(b => { const on = b.dataset.t === FM.ui.type; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); },
     'cl-view': el => { CL.ui.view = el.dataset.v; render(); },
     'cl-open': el => push({ type: 'client', id: el.dataset.id }, false),
     'cl-add': el => {
@@ -12017,6 +12265,16 @@ window.App = (() => {
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
       }
+      if (form.dataset.form === 'fm-add') {
+        if (!form.dataset.id && !String(form.elements.name?.value || '').trim()) { form.elements.name?.focus(); return toast('어디에 연락했는지 사업체 이름을 적어 주세요.', 'error'); }
+        const r = FM.save(form);
+        if (!r || !r.x) return toast('저장하지 못했어요. 사업체 이름을 확인해 주세요.', 'error');
+        clearDraft('fm-add');
+        Object.assign(FM.ui, { sel: { kind: r.kind, id: r.x.id }, adding: false, creating: null, q: '' });
+        render(); window.scrollTo(0, 0);
+        toast(`${r.x.name}에 ${FM.ui.type} 기록을 남겼어요.${S.isPending(r.x) ? ' (미등록 사업체예요. 연락이력 화면에서 사업체로 등록할 수 있어요)' : ''}`);
+        return;
+      }
       if (form.dataset.form === 'cl-biz') {
         const c = S.find('cl', form.dataset.id), st = form.dataset.stage; if (!c) return;
         const fd = Object.fromEntries(new FormData(form).entries()), name = String(fd.biz || '').trim();
@@ -12120,6 +12378,8 @@ window.App = (() => {
       }
       bindGlobal();
       verCheck();
+      // 휴대폰으로 열면 첫 화면은 현장 모드 (현장중심·고용공단 구역)
+      if (window.matchMedia && matchMedia('(max-width: 720px)').matches && (!location.hash || location.hash === '#/dashboard' || location.hash === '#/') && ['field', 'emp'].includes(secKey)) history.replaceState(null, '', location.pathname + location.search + '#/field');
       // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
       { const sp = curSec().prog; if (sp && S.getScope() !== 'p:' + sp) S.setScope('p:' + sp); } // 예전에 한 사람만 보게 저장돼 있어도 구역 전체로
       render();

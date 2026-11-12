@@ -4,6 +4,7 @@ window.App = (() => {
   const view = $('#view');
   const NAV = [
     ['dashboard', '대시보드', 'dash'],
+    ['field', '현장 모드', 'phone'],
     ['biz', '사업체·네트워크', 'biz', () => S.get().businesses.length + S.get().networks.length],
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
@@ -16,13 +17,13 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'field', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'field', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
   const SEC_HINT = {
-    dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
+    dashboard: () => '오늘 할 일·달력', field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
     contacts: () => '사업체 연락·방문', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
@@ -38,6 +39,8 @@ window.App = (() => {
     secKey = hit.k; lsSetSec(hit.k);
     return hit;
   }
+  /** 휴대폰 아래 막대 4칸: 현장 모드가 있는 구역은 '현장'을 맨 앞에 (대시보드는 더보기로) */
+  const mobileItems = sec => (sec.items.includes('field') ? ['field', ...sec.items.filter(k => k !== 'field' && k !== 'dashboard'), 'dashboard'] : sec.items).filter(k => canSee(k)).slice(0, 4);
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   const route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
   // 사업체·기관·명함은 한 메뉴(사업체·네트워크)의 탭: 주소는 #/biz · #/network · #/cards 그대로
@@ -92,7 +95,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'cl-end': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'fm-new': [['contacts', 2]], 'fm-add': [['contacts', 2]], 'cl-end': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -106,7 +109,7 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const FORM_GATES = { 'fm-add': [['contacts', 2]], 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
   const CHG_GATES = { 'or-etc': [['network', 2]], 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
@@ -141,12 +144,12 @@ window.App = (() => {
     $('#secTitle').innerHTML = `<b>${U.esc(sec.label)}</b><span>${U.esc(sec.desc)}</span>`;
     const byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
     $('#sideNav').innerHTML = sec.items.filter(k => canSee(k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
-    const mItems = sec.items.filter(k => canSee(k)).slice(0, 4);
+    const mItems = mobileItems(sec);
     const moreActive = !mItems.includes(n);
-    const SHORT = { dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
+    const SHORT = { field: '현장', dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
     $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
-    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>`;
+    $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>${appAccount()}`;
     $('#demoBanner').hidden = !S.get().isDemo;
     $('#meQuick').onchange = ev => { S.setMe(ev.target.value); toast(`이 PC 사용자를 ${ev.target.value}(으)로 정했습니다. 활동 기록의 기록자로 남아요.`); render(); };
     renderScope();
@@ -245,6 +248,7 @@ window.App = (() => {
     closeMore();
     const pages = {
       dashboard: [V.dashboard],
+      field: [FM.page, bindField],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
 
       map: [V.mapPage, bindMap],
@@ -305,6 +309,10 @@ window.App = (() => {
     bar.className = 'scope-banner';
     bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
     view.prepend(bar);
+  }
+  function bindField() {
+    const q = $('#fmQ');
+    if (q) q.addEventListener('input', U.debounce(() => { FM.ui.q = q.value; const pos = q.selectionStart; render(); const q2 = $('#fmQ'); if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch {} } }, 200));
   }
   function bindClients() {
     const q = $('#clQ');
@@ -677,7 +685,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { field: '현장 모드', clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -1433,6 +1441,8 @@ window.App = (() => {
     }
   }
 
+  /** 앱(Firebase) 버전: 로그인한 계정 · 로그아웃 */
+  const appAccount = () => (window.AppAuth ? `<div class="app-acc"><span>${U.esc(AppAuth.email() || S.accessInfo().me || '')}${AppAuth.keep() ? ' · 로그인 유지 중' : ''}</span><button type="button" class="btn btn-sm" data-act="app-logout">로그아웃</button></div>` : '');
   /* ---------- More sheet (mobile) ---------- */
   function closeMore() { document.querySelector('.more-sheet')?.remove(); }
   function toggleMore() {
@@ -1440,7 +1450,8 @@ window.App = (() => {
     const el = document.createElement('div');
     el.className = 'more-sheet';
     const sec = curSec(), byKey = Object.fromEntries(NAV.map(x => [x[0], x]));
-    el.innerHTML = sec.items.slice(4).map(k => `<a href="#/${k}">${byKey[k][1]}</a>`).join('') + '<div class="more-secs">' + SECS.filter(x => x.k !== 'data' || S.isAdmin()).map(x => `<button type="button" class="${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}">${x.label}</button>`).join('') + '</div>';
+    const shown = mobileItems(sec);
+    el.innerHTML = sec.items.filter(k => canSee(k) && !shown.includes(k)).map(k => `<a href="#/${hrefOf(k)}">${byKey[k][1]}</a>`).join('') + '<div class="more-secs">' + SECS.filter(x => x.k !== 'data' || S.isAdmin()).map(x => `<button type="button" class="${x.k === sec.k ? 'on' : ''}" data-act="sec" data-sec="${x.k}">${x.label}</button>`).join('') + '</div>' + appAccount();
     document.body.appendChild(el);
   }
 
@@ -1941,6 +1952,13 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'app-logout': async () => { if (!(await confirmBox('로그아웃할까요?', '이 기기에서 로그인 정보를 지워요. 다시 쓰려면 구글 계정으로 로그인해야 해요. 아직 못 보낸 기록이 있으면 먼저 저장·새로고침을 눌러 주세요.', '로그아웃'))) return; AppAuth.logout(); },
+    'fm-open': el => { Object.assign(FM.ui, { sel: { kind: el.dataset.kind, id: el.dataset.id }, adding: false, creating: null }); render(); window.scrollTo(0, 0); },
+    'fm-back': () => { Object.assign(FM.ui, { sel: null, adding: false, creating: null }); render(); window.scrollTo(0, 0); },
+    'fm-new': el => { Object.assign(FM.ui, { sel: null, adding: false, creating: el.dataset.name || '' }); render(); window.scrollTo(0, 0); setTimeout(() => $('[data-form="fm-add"] [name="' + (el.dataset.name ? 'content' : 'name') + '"]')?.focus(), 50); },
+    'fm-add': () => { FM.ui.adding = true; render(); setTimeout(() => { const t = $('[data-form="fm-add"] textarea'); if (t) { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); t.focus({ preventScroll: true }); } }, 50); },
+    'fm-add-cancel': () => { clearDraft('fm-add'); Object.assign(FM.ui, { adding: false, creating: null }); render(); },
+    'fm-type': el => { FM.ui.type = el.dataset.t; document.querySelectorAll('[data-act="fm-type"]').forEach(b => { const on = b.dataset.t === FM.ui.type; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }); },
     'cl-view': el => { CL.ui.view = el.dataset.v; render(); },
     'cl-open': el => push({ type: 'client', id: el.dataset.id }, false),
     'cl-add': el => {
@@ -2751,6 +2769,16 @@ window.App = (() => {
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
       }
+      if (form.dataset.form === 'fm-add') {
+        if (!form.dataset.id && !String(form.elements.name?.value || '').trim()) { form.elements.name?.focus(); return toast('어디에 연락했는지 사업체 이름을 적어 주세요.', 'error'); }
+        const r = FM.save(form);
+        if (!r || !r.x) return toast('저장하지 못했어요. 사업체 이름을 확인해 주세요.', 'error');
+        clearDraft('fm-add');
+        Object.assign(FM.ui, { sel: { kind: r.kind, id: r.x.id }, adding: false, creating: null, q: '' });
+        render(); window.scrollTo(0, 0);
+        toast(`${r.x.name}에 ${FM.ui.type} 기록을 남겼어요.${S.isPending(r.x) ? ' (미등록 사업체예요. 연락이력 화면에서 사업체로 등록할 수 있어요)' : ''}`);
+        return;
+      }
       if (form.dataset.form === 'cl-biz') {
         const c = S.find('cl', form.dataset.id), st = form.dataset.stage; if (!c) return;
         const fd = Object.fromEntries(new FormData(form).entries()), name = String(fd.biz || '').trim();
@@ -2854,6 +2882,8 @@ window.App = (() => {
       }
       bindGlobal();
       verCheck();
+      // 휴대폰으로 열면 첫 화면은 현장 모드 (현장중심·고용공단 구역)
+      if (window.matchMedia && matchMedia('(max-width: 720px)').matches && (!location.hash || location.hash === '#/dashboard' || location.hash === '#/') && ['field', 'emp'].includes(secKey)) history.replaceState(null, '', location.pathname + location.search + '#/field');
       // 열 때도 지금 구역의 기록만 보이게 (예전에 '전체 팀'으로 저장돼 있으면 구역으로 맞춘다)
       { const sp = curSec().prog; if (sp && S.getScope() !== 'p:' + sp) S.setScope('p:' + sp); } // 예전에 한 사람만 보게 저장돼 있어도 구역 전체로
       render();
