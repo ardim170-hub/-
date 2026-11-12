@@ -30,7 +30,7 @@
  * scriptId : Apps Script 편집기 > 프로젝트 설정(톱니바퀴) > 스크립트 ID
  * deployId : Apps Script > 배포 > 배포 관리 > 'API 실행 파일' 배포의 배포 ID (없으면 비워 둬도 돼요) */
 window.APP_CONFIG = {
-  clientId: '',
+  clientId: '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com',
   scriptId: '',
   deployId: '',
 };
@@ -95,7 +95,7 @@ window.APP_CONFIG = {
     ss.set(RET_KEY, /access_token=/.test(location.hash) ? '#/dashboard' : (location.hash || '#/dashboard'));
     var p = {
       client_id: C.clientId,
-      redirect_uri: location.origin + location.pathname,
+      redirect_uri: location.origin + location.pathname.replace(/index\.html$/, ''),
       response_type: 'token',
       scope: SCOPES.join(' '),
       include_granted_scopes: 'true',
@@ -2434,7 +2434,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.12 11:06";</script>
+<script>window.APP_VERSION = "2026.11.12 11:43";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>

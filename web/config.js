@@ -3,7 +3,7 @@
  * scriptId : Apps Script 편집기 > 프로젝트 설정(톱니바퀴) > 스크립트 ID
  * deployId : Apps Script > 배포 > 배포 관리 > 'API 실행 파일' 배포의 배포 ID (없으면 비워 둬도 돼요) */
 window.APP_CONFIG = {
-  clientId: '',
+  clientId: '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com',
   scriptId: '',
   deployId: '',
 };

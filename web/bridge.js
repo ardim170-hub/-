@@ -56,7 +56,7 @@
     ss.set(RET_KEY, /access_token=/.test(location.hash) ? '#/dashboard' : (location.hash || '#/dashboard'));
     var p = {
       client_id: C.clientId,
-      redirect_uri: location.origin + location.pathname,
+      redirect_uri: location.origin + location.pathname.replace(/index\.html$/, ''),
       response_type: 'token',
       scope: SCOPES.join(' '),
       include_granted_scopes: 'true',
