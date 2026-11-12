@@ -92,7 +92,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'cl-end': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -106,8 +106,8 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
-  const CHG_GATES = { 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
+  const FORM_GATES = { 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const CHG_GATES = { 'or-etc': [['network', 2]], 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
   function allowed(gates) {
@@ -1948,7 +1948,7 @@ window.App = (() => {
       if (S.get().clients.some(c => c.no && c.no === u.no)) return toast(`${u.name}은(는) 이미 등록돼 있어요.`, 'error');
       CL.ui.info[u.no] = u;
       const c = CL.addFrom(u); CL.ui.found = null; CL.ui.find = '';
-      toast(`${u.name}을(를) 이용자로 등록했어요. 1단계(초기면접)부터 시작해요.`); push({ type: 'client', id: c.id }, false);
+      toast(`${u.name}을(를) 이용자로 등록했어요. 1단계(초기면접)부터 시작해요. 아직 면접 전이면 '대기자'를 누르세요.`); push({ type: 'client', id: c.id }, false);
     },
     'cl-add-manual': () => {
       const name = (prompt('이용자 이름을 적어 주세요. (이용자입력에 없는 사람이라 이용자번호·기본 정보는 비어 있어요)', CL.ui.find || '') || '').trim();
@@ -1956,7 +1956,22 @@ window.App = (() => {
       const c = CL.addFrom({ name }); CL.ui.found = null; CL.ui.find = '';
       toast(`${name}을(를) 이용자로 등록했어요.`); push({ type: 'client', id: c.id }, false);
     },
-    'cl-stage': el => { const c = S.find('cl', el.dataset.id); if (!c) return; CL.setStage(c, el.dataset.stage); toast(`${c.name}: 지금 단계를 '${el.dataset.stage}'(으)로 바꿨어요.`); },
+    'cl-stage': el => {
+      const c = S.find('cl', el.dataset.id), st = el.dataset.stage; if (!c) return;
+      // 현장훈련·취업알선·취업은 사업체를 먼저 고른다 (아래에 고르는 칸이 열림)
+      if (CL.BIZ.includes(st)) { CL.ui.pick = { id: c.id, stage: st }; renderDrawer(true); setTimeout(() => $('[data-form="cl-biz"] input[name="biz"]')?.focus(), 0); return; }
+      CL.ui.pick = null;
+      CL.setStage(c, st); toast(`${c.name}: 지금 단계를 '${st}'(으)로 바꿨어요.`);
+    },
+    'cl-pick-cancel': () => { CL.ui.pick = null; renderDrawer(true); },
+    'cl-end': async el => {
+      const c = S.find('cl', el.dataset.id); if (!c) return;
+      const what = c.biz ? `${c.biz} ${CL.stageOf(c)}` : CL.stageOf(c);
+      const note = prompt(`${c.name}: ${what}을(를) 끝내고 대기자로 돌릴까요?\n사유를 적어 주세요 (예: 퇴사, 계약 만료, 훈련 중단). 지난 기록에 남아요.`, CL.stageOf(c) === '취업' ? '퇴사' : '중단');
+      if (note === null) return;
+      CL.ui.pick = null;
+      CL.endNow(c, note.trim()); toast(`${c.name}: 대기자로 옮겼어요. ${what} 기록은 '지난 기록'에 남아 있어요.`);
+    },
     'cl-save': el => {
       const f = $('#clForm'); if (!f) return;
       const fd = Object.fromEntries(new FormData(f).entries());
@@ -2631,6 +2646,7 @@ window.App = (() => {
         S.upsert('act', { id, jobUrl: R.jobLink(el.value) });
       } else if (el.dataset.chg === 'act-field') S.upsert('act', { id, [field]: el.value });
       else if (el.dataset.chg === 'jp-field') S.upsert('jp', { id, [field]: el.value.trim() });
+      else if (el.dataset.chg === 'or-etc') S.upsert('net', { id, etc: el.value.trim() });
     });
     document.addEventListener('submit', async ev => {
       const form = ev.target;
@@ -2733,6 +2749,16 @@ window.App = (() => {
         hiddenHere(who);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
+        return;
+      }
+      if (form.dataset.form === 'cl-biz') {
+        const c = S.find('cl', form.dataset.id), st = form.dataset.stage; if (!c) return;
+        const fd = Object.fromEntries(new FormData(form).entries()), name = String(fd.biz || '').trim();
+        if (!name) return toast('사업체 이름을 적어 주세요.', 'error');
+        const b = S.get().businesses.find(x => x.name === name && !S.isPending(x)) || S.get().businesses.find(x => x.name === name);
+        CL.ui.pick = null;
+        CL.setStage(c, st, { name: b ? b.name : name, id: b ? b.id : '' }, U.isDate(fd.d) ? fd.d : '');
+        toast(`${c.name} - ${name} (${st})로 연결했어요.${b ? '' : ' 사업체 목록에 없는 이름이라 이름만 적어 두었어요.'}`);
         return;
       }
       if (form.dataset.form === 'cl-find') {

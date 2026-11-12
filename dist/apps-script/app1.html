@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.11.12 09:23";</script>
+<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.11.12 11:06";</script>
 <script>
 /* 공통 유틸: 날짜, 문자열, 포맷 */
 window.U = (() => {
@@ -208,7 +208,9 @@ window.D = (() => {
   /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
   const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['clients', '이용자'], ['perf', '실적'], ['orgsync', '복지관 실적 시트 보내기'], ['attend', '출석부']];
   /** 이용자 과정도 (현장중심): 단계 순서대로 */
-  const CLIENT_STAGES = ['초기면접', '직업상담', '사례회의', '직업재활계획서', '현장훈련 대기', '취업 대기'];
+  const CLIENT_STAGES = ['대기자', '초기면접', '직업상담', '사례회의', '직업재활계획서', '현장훈련', '취업알선', '취업'];
+  /** 사업체와 연결하는 단계 (예: 문○○ - ○○병원 (취업)) */
+  const CLIENT_BIZ_STAGES = ['현장훈련', '취업알선', '취업'];
   /** 직업욕구 칸 */
   const CLIENT_NEEDS = [['job', '희망 직종'], ['area', '희망 근무지역'], ['hours', '근무 시간'], ['pay', '희망 급여'], ['move', '이동 수단'], ['cert', '자격·경력']];
   const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
@@ -497,7 +499,7 @@ window.D = (() => {
     };
   }
 
-  return { CLIENT_STAGES, CLIENT_NEEDS, BUILTIN_PROGRAMS, progLabel, progFull, setCustomPrograms, setCustomItems, customItems, isBuiltinItem, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { CLIENT_STAGES, CLIENT_BIZ_STAGES, CLIENT_NEEDS, BUILTIN_PROGRAMS, progLabel, progFull, setCustomPrograms, setCustomItems, customItems, isBuiltinItem, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();
 
 </script>
@@ -515,7 +517,7 @@ window.S = (() => {
   /* ---------- 시트/엑셀 열 정의 (공유 모드의 구글 시트와 엑셀 내보내기가 같은 양식을 쓴다) ---------- */
   const SHEETS = {
     businesses: ['사업체', [['id', '사업체ID'], ['name', '사업체명'], ['industry', '업종'], ['stage', '진행 단계'], ['bizNo', '사업자등록번호'], ['ceo', '대표자'], ['phone', '대표 전화'], ['homepage', '홈페이지'], ['employees', '상시근로자 수'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['jobs', '가능 직무'], ['workConditions', '근무 조건'], ['accessibility', '편의시설·고려사항'], ['placements', '채용 연계 인원'], ['source', '발굴 경로'], ['discoveredAt', '발굴일'], ['staff', '담당 직원'], ['memo', '메모'], ['research', '기초 조사'], ['researchAt', '조사일'], ['aiSummary', '요약'], ['survey', '사업체정보지(JSON)'], ['jobAnalyses', '직무분석지(JSON)'], ['welfare', '복리후생(기타)'], ['progress', '실적 진행도'], ['support', '진행 사업(지원고용·현장훈련)'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['pending', '미등록(연락만 Y)']]],
-    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['phone', '대표 전화'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['info', '세부 정보']]],
+    networks: ['네트워크', [['id', '기관ID'], ['name', '기관명'], ['category', '분류'], ['status', '관계 상태'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['approx', '대략 위치(Y)'], ['relation', '협력 내용'], ['phone', '대표 전화'], ['promo', '홍보 방식'], ['since', '협력 시작일'], ['staff', '담당 직원'], ['memo', '메모'], ['programs', '사업 구분(지도)'], ['createdAt', '등록일'], ['updatedAt', '수정일'], ['info', '세부 정보'], ['etc', '기타(홍보·방문)']]],
     cards: ['명함', [['id', '명함ID'], ['name', '이름'], ['org', '소속'], ['dept', '부서'], ['title', '직함'], ['mobile', '휴대전화'], ['phone', '사무실 전화'], ['email', '이메일'], ['address', '주소'], ['area', '읍면동'], ['lat', '위도'], ['lng', '경도'], ['linkType', '연결 구분(biz/net)'], ['linkId', '연결ID'], ['tags', '태그'], ['metAt', '받은 날'], ['metWhere', '받은 곳'], ['memo', '메모'], ['photo', '사진(Y)'], ['createdAt', '등록일'], ['updatedAt', '수정일']]],
     activities: ['활동기록', [['id', '활동ID'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['date', '날짜'], ['type', '유형'], ['content', '내용'], ['staff', '담당 직원'], ['perf', '실적 세부사업(비우면 자동)'], ['people', '참여인원'], ['contactName', '담당자'], ['jobType', '직종'], ['result', '연락결과'], ['status', '상태'], ['training', '현장훈련 유/무'], ['procedure', '절차'], ['jobUrl', '구인공고 주소'], ['ppl', '참여자'], ['outcome', '진행 결과(완료/진행중/실패)'], ['fromPerf', '실적 화면 입력(Y)']]],
     events: ['일정', [['id', '일정ID'], ['date', '날짜'], ['time', '시간'], ['type', '유형'], ['title', '제목'], ['targetType', '대상 구분(biz/net)'], ['targetId', '대상ID'], ['done', '완료(Y/N)'], ['memo', '메모'], ['staff', '담당 직원'], ['src', '출처']]],
@@ -527,11 +529,11 @@ window.S = (() => {
   SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록'], ['src', '불러온 자료']]];
   SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['fmt', '서식(글씨·체크)'], ['cls', '반'], ['src', '불러온 자료']]];
   // 이용자 관리(현장중심): 복지관 시트 '이용자입력'의 이용자번호·이름 + 우리가 적는 과정 단계·직업욕구. 생년월일·장애정보는 저장하지 않고 그때그때 불러온다
-  SHEETS.clients = ['이용자관리', [['id', '이용자관리ID'], ['no', '이용자번호'], ['name', '이름'], ['stage', '현재 단계'], ['stages', '단계별 날짜'], ['job', '희망 직종'], ['area', '희망 근무지역'], ['hours', '근무 시간'], ['pay', '희망 급여'], ['move', '이동 수단'], ['cert', '자격·경력'], ['memo', '메모'], ['staff', '담당'], ['createdAt', '등록일'], ['updatedAt', '고친 날']]];
+  SHEETS.clients = ['이용자관리', [['id', '이용자관리ID'], ['no', '이용자번호'], ['name', '이름'], ['stage', '현재 단계'], ['stages', '단계별 날짜'], ['biz', '연결 사업체'], ['bizId', '연결 사업체ID'], ['log', '지난 기록'], ['job', '희망 직종'], ['area', '희망 근무지역'], ['hours', '근무 시간'], ['pay', '희망 급여'], ['move', '이동 수단'], ['cert', '자격·경력'], ['memo', '메모'], ['staff', '담당'], ['createdAt', '등록일'], ['updatedAt', '고친 날']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
-  const JSON_KEYS = new Set(['survey', 'jobAnalyses', 'fmt', 'info', 'stages']);
+  const JSON_KEYS = new Set(['survey', 'jobAnalyses', 'fmt', 'info', 'stages', 'log']);
   const COLS = Object.keys(SHEETS);
 
   function toRow(col, x) {

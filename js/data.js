@@ -88,7 +88,9 @@ window.D = (() => {
   /** 사용자별 메뉴 권한: 숨김 < 보기만 < 등록·수정 < 삭제까지 */
   const PERM_MENUS = [['biz', '사업체 개발'], ['map', '지도'], ['cards', '명함 관리'], ['network', '네트워크'], ['schedule', '일정'], ['contacts', '연락이력'], ['clients', '이용자'], ['perf', '실적'], ['orgsync', '복지관 실적 시트 보내기'], ['attend', '출석부']];
   /** 이용자 과정도 (현장중심): 단계 순서대로 */
-  const CLIENT_STAGES = ['초기면접', '직업상담', '사례회의', '직업재활계획서', '현장훈련 대기', '취업 대기'];
+  const CLIENT_STAGES = ['대기자', '초기면접', '직업상담', '사례회의', '직업재활계획서', '현장훈련', '취업알선', '취업'];
+  /** 사업체와 연결하는 단계 (예: 문○○ - ○○병원 (취업)) */
+  const CLIENT_BIZ_STAGES = ['현장훈련', '취업알선', '취업'];
   /** 직업욕구 칸 */
   const CLIENT_NEEDS = [['job', '희망 직종'], ['area', '희망 근무지역'], ['hours', '근무 시간'], ['pay', '희망 급여'], ['move', '이동 수단'], ['cert', '자격·경력']];
   const PERM_LEVELS = [['none', '숨김'], ['view', '보기만'], ['edit', '등록·수정'], ['full', '삭제까지']];
@@ -377,5 +379,5 @@ window.D = (() => {
     };
   }
 
-  return { CLIENT_STAGES, CLIENT_NEEDS, BUILTIN_PROGRAMS, progLabel, progFull, setCustomPrograms, setCustomItems, customItems, isBuiltinItem, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
+  return { CLIENT_STAGES, CLIENT_BIZ_STAGES, CLIENT_NEEDS, BUILTIN_PROGRAMS, progLabel, progFull, setCustomPrograms, setCustomItems, customItems, isBuiltinItem, PERM_MENUS, PERM_LEVELS, PERM_RANK, SUPPORT_TYPES, SUPPORT_LABEL, MAP_COLORS, CONTACT_RESULTS, CONTACT_STATUS, PROCEDURES, TRIP_METHODS, TRIP_REPORTS, PERF_SETS, DEFAULT_PERF_BY_PROGRAM, suggestPerf, BOUNDS, areaAt, GUS, GU, guOf, detectArea, guessCategory, DEFAULT_LINKS, AREAS, AREA_BY_NAME, CITY_CENTER, CITY_DASHBOARD_URL, STAGES, STAGE, ACTIVE_STAGES, PROGRAMS, PROGRAM, INDUSTRIES, INDUSTRY_LIST, SOURCES, NET_CATEGORIES, NET_STATUS, ACT_TYPES, EVENT_TYPES, MANDATORY, mandatoryCount, demo, empty };
 })();

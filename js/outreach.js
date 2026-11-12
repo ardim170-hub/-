@@ -176,19 +176,20 @@ window.OR = (() => {
   }
   function listHtml(nets = S.view().networks.filter(isTarget)) {
     const yr = U.today().slice(0, 4);
-    let list = nets.filter(n => (!ui.cat || n.category === ui.cat) && U.match(ui.q, n.name, n.address, n.area, n.category));
+    let list = nets.filter(n => (!ui.cat || n.category === ui.cat) && U.match(ui.q, n.name, n.address, n.area, n.category, n.etc));
     if (ui.todo) list = list.filter(n => !visitsOf(n).some(a => a.date.startsWith(yr)));
     const cats = [...new Set([...CAT_ORDER, ...list.map(n => n.category)])].filter(c => list.some(n => n.category === c));
     if (!list.length) return '<div class="panel"><div class="empty">조건에 맞는 곳이 없어요.</div></div>';
     return cats.map(c => {
       const rows = list.filter(n => n.category === c).sort((a, b) => (a.area || '').localeCompare(b.area || '', 'ko') || a.name.localeCompare(b.name, 'ko'));
       return `<section class="panel or-sec"><div class="panel-pad or-sec-h"><h2 class="section-title">${e(c)} <span class="sub num">${rows.length}곳</span></h2></div>
-        <div class="table-wrap"><table class="tbl or-tbl"><thead><tr><th>이름</th><th>읍면동</th><th>주소</th><th>연락처</th><th>세부 정보</th><th>최근 방문</th><th></th></tr></thead><tbody>
+        <div class="table-wrap"><table class="tbl or-tbl"><thead><tr><th>이름</th><th>읍면동</th><th>주소</th><th>연락처</th><th>세부 정보</th><th>기타</th><th>최근 방문</th><th></th></tr></thead><tbody>
         ${rows.map(n => { const v = visitsOf(n)[0]; const thisYear = v && v.date.startsWith(yr); return `<tr class="${thisYear ? 'or-done' : ''}">
           <td><b class="link" data-act="open" data-kind="net" data-id="${n.id}">${e(n.name)}</b>${n.memo ? `<div class="meta">${e(n.memo.split('\n')[0])}</div>` : ''}</td>
           <td class="nowrap">${e(n.area || '')}</td><td class="clip" title="${e(n.address || '')}">${e(n.address || '')}</td>
           <td class="nowrap num">${n.phone ? `<a href="tel:${e(n.phone.replace(/[^0-9+]/g, ''))}">${e(n.phone)}</a>` : '<span class="sub">-</span>'}</td>
           <td>${Object.entries(n.info || {}).map(([k, val]) => `<span class="or-chip">${e(k)} <b>${e(val)}</b></span>`).join('')}</td>
+          <td class="or-etc-td"><textarea class="input or-etc" rows="1" data-chg="or-etc" data-id="${n.id}" data-field="etc" placeholder="자유롭게 적기 (담당자, 다음 방문 계획 등)" aria-label="${e(n.name)} 기타">${e(n.etc || '')}</textarea></td>
           <td class="nowrap">${v ? `<b class="num">${U.dateDot(v.date)}</b><div class="meta">${e(v.type)}${v.staff ? ' · ' + e(v.staff) : ''}</div>` : '<span class="sub">아직 없음</span>'}</td>
           <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button></td></tr>`; }).join('')}
         </tbody></table></div></section>`;
