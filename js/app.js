@@ -609,6 +609,7 @@ window.App = (() => {
     if (d.phone) out.phone = d.phone;
     if (d.cat && d.kind !== 'net') out.industry = d.cat;
     if (d.kind === 'net' && d.pname) out.category = D.guessCategory(d.pname);
+    if (d.kind === 'net' && d.ncat) out.category = d.ncat; // 홍보·방문처에서 추가: 그 분류로
     const prog = d.programs || (route() === 'map' ? V.ui.map.prog : '');
     if (prog) out.programs = [prog];
     return out;

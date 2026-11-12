@@ -152,7 +152,7 @@ window.OR = (() => {
   }
 
   /* ---------- 화면 ---------- */
-  const CAT_ORDER = ['행정복지센터', '직업재활시설', '장애인단체', '정신건강복지센터', '특수학급 고등학교', '특수학교', '임대아파트'];
+  const CAT_ORDER = ['행정복지센터', '공공기관', '직업재활시설', '장애인단체', '정신건강복지센터', '특수학급 고등학교', '특수학교', '임대아파트', '기타 홍보처'];
   /** 홍보·방문처로 보는 기관: 엑셀로 넣은 분류 + 세부 정보가 있는 기관 */
   const isTarget = n => CAT_ORDER.includes(n.category) || (n.info && Object.keys(n.info).length);
   const visitsOf = n => S.actsOf('net', n.id).filter(a => VISIT_TYPES.includes(a.type));
@@ -168,11 +168,11 @@ window.OR = (() => {
     }).join('');
     return `
       <div class="page-head"><div><h1 class="page-title">홍보·방문처</h1><div class="page-desc">행정복지센터·직업재활시설·장애인단체·특수학교·임대아파트 등 홍보하러 갈 곳을 분류별로 모아 보고, 다녀온 날을 바로 기록해요.</div></div>
-        <div class="inline"><button class="btn btn-primary" type="button" data-act="or-file">기관 목록 엑셀 넣기</button><input type="file" id="orFile" accept=".xlsx,.xls" hidden><a class="btn" href="#/map">지도에서 보기</a></div></div>
+        <div class="inline"><button class="btn btn-primary" type="button" data-act="new-net" data-kind="net" data-ncat="${e(ui.cat || '공공기관')}">＋ 홍보처 추가</button><button class="btn" type="button" data-act="or-file">기관 목록 엑셀 넣기</button><input type="file" id="orFile" accept=".xlsx,.xls" hidden><a class="btn" href="#/map">지도에서 보기</a></div></div>
       ${nets.length ? `<div class="or-cards"><button type="button" class="or-card ${!ui.cat ? 'on' : ''}" data-act="or-cat" data-cat=""><span class="or-card-t">전체</span><b class="num">${nets.length}<small>곳</small></b><span class="or-bar"><i style="width:${nets.length ? Math.round(nets.filter(visitedThisYear).length / nets.length * 100) : 0}%"></i></span><span class="or-card-s">올해 방문 <b class="num">${nets.filter(visitedThisYear).length}</b>곳</span></button>${cards}</div>
       <div class="toolbar"><input class="input" id="orQ" placeholder="이름·주소·읍면동으로 찾기" value="${e(ui.q)}" style="max-width:320px"><label class="check"><input type="checkbox" data-act="or-todo" ${ui.todo ? 'checked' : ''}>올해 아직 안 간 곳만</label></div>
       <div id="orList">${listHtml(nets)}</div>`
-      : `<div class="panel"><div class="empty"><strong>아직 홍보·방문처가 없어요</strong>기관 목록 엑셀(행정복지센터·특수학급·특수학교·임대아파트 등)을 넣으면 분류별로 정리돼요.<div><button class="btn btn-primary" type="button" data-act="or-file">기관 목록 엑셀 넣기</button></div></div></div>`}`;
+      : `<div class="panel"><div class="empty"><strong>아직 홍보·방문처가 없어요</strong>기관 목록 엑셀(행정복지센터·특수학급·특수학교·임대아파트 등)을 넣으면 분류별로 정리돼요.<div class="inline" style="justify-content:center"><button class="btn btn-primary" type="button" data-act="new-net" data-kind="net" data-ncat="공공기관">＋ 홍보처 하나씩 추가</button><button class="btn" type="button" data-act="or-file">기관 목록 엑셀 넣기</button></div></div></div>`}`;
   }
   function listHtml(nets = S.view().networks.filter(isTarget)) {
     const yr = U.today().slice(0, 4);
@@ -182,7 +182,7 @@ window.OR = (() => {
     if (!list.length) return '<div class="panel"><div class="empty">조건에 맞는 곳이 없어요.</div></div>';
     return cats.map(c => {
       const rows = list.filter(n => n.category === c).sort((a, b) => (a.area || '').localeCompare(b.area || '', 'ko') || a.name.localeCompare(b.name, 'ko'));
-      return `<section class="panel or-sec"><div class="panel-pad or-sec-h"><h2 class="section-title">${e(c)} <span class="sub num">${rows.length}곳</span></h2></div>
+      return `<section class="panel or-sec"><div class="panel-pad or-sec-h"><h2 class="section-title">${e(c)} <span class="sub num">${rows.length}곳</span></h2><button class="btn btn-sm" type="button" data-act="new-net" data-kind="net" data-ncat="${e(c)}">＋ ${e(c)} 추가</button></div>
         <div class="table-wrap"><table class="tbl or-tbl"><thead><tr><th>이름</th><th>읍면동</th><th>주소</th><th>연락처</th><th>세부 정보</th><th>기타</th><th>최근 방문</th><th></th></tr></thead><tbody>
         ${rows.map(n => { const v = visitsOf(n)[0]; const thisYear = v && v.date.startsWith(yr); return `<tr class="${thisYear ? 'or-done' : ''}">
           <td><b class="link" data-act="open" data-kind="net" data-id="${n.id}">${e(n.name)}</b>${n.memo ? `<div class="meta">${e(n.memo.split('\n')[0])}</div>` : ''}</td>
@@ -191,7 +191,7 @@ window.OR = (() => {
           <td>${Object.entries(n.info || {}).map(([k, val]) => `<span class="or-chip">${e(k)} <b>${e(val)}</b></span>`).join('')}</td>
           <td class="or-etc-td"><textarea class="input or-etc" rows="1" data-chg="or-etc" data-id="${n.id}" data-field="etc" placeholder="자유롭게 적기 (담당자, 다음 방문 계획 등)" aria-label="${e(n.name)} 기타">${e(n.etc || '')}</textarea></td>
           <td class="nowrap">${v ? `<b class="num">${U.dateDot(v.date)}</b><div class="meta">${e(v.type)}${v.staff ? ' · ' + e(v.staff) : ''}</div>` : '<span class="sub">아직 없음</span>'}</td>
-          <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button></td></tr>`; }).join('')}
+          <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button> <button class="btn btn-sm btn-ghost or-del" type="button" data-act="delete" data-kind="net" data-id="${n.id}" title="${e(n.name)} 삭제" aria-label="${e(n.name)} 삭제">🗑</button></td></tr>`; }).join('')}
         </tbody></table></div></section>`;
     }).join('');
   }

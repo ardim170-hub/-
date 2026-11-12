@@ -2827,6 +2827,51 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   body:has(.fm) #scopeSel, body:has(.fm) [data-act="toggle-quick"] { display: none; }
 }
 
+/* ================= 휴대폰 화면 정리 (유튜브 앱처럼: 위 한 줄 + 구역 칩, 아이콘 버튼) ================= */
+@media (max-width: 720px) {
+  body { -webkit-text-size-adjust: 100%; }
+  .site-head { position: sticky; top: 0; z-index: 900; box-shadow: none; border-bottom: 1px solid #EFEFEF; padding-top: env(safe-area-inset-top, 0px); }
+  .site-head-in { padding: 0 12px; gap: 0; }
+  .site-logo { height: 52px; min-width: 0; padding-right: 150px; }
+  .site-logo .logo-img { height: 30px; width: auto; }
+  .site-logo .logo-tag { display: none; }
+  /* 구역: 가로로 미는 칩 */
+  .sec-nav { height: auto; gap: 8px; padding: 2px 0 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sec-nav::-webkit-scrollbar { display: none; }
+  .sec-btn { flex: none; height: 36px; padding: 0 16px; border-radius: 10px; background: #F2F2F2; color: #0F0F0F; font-size: 15px; font-weight: 700; }
+  .sec-btn::after { display: none; }
+  .sec-btn.on { background: #0F0F0F; color: #fff; }
+  /* 위쪽 버튼들은 로고 줄 오른쪽에 아이콘으로 */
+  .topbar { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); right: 8px; left: auto; z-index: 950; width: auto; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none; backdrop-filter: none; flex-wrap: nowrap; gap: 4px; display: flex; align-items: center; }
+  .topbar-actions { width: auto; flex-wrap: nowrap; gap: 4px; justify-content: flex-end; }
+  .search-trigger { order: 0; flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; border: 0; background: transparent; border-radius: 50%; }
+  .search-trigger span, .search-trigger kbd { display: none; }
+  .search-trigger svg { width: 22px; height: 22px; stroke-width: 2; }
+  .topbar .presence, .topbar #scopeSel, .topbar .sync:not(.err) { display: none !important; }
+  .topbar .sync.err { font-size: 0; gap: 0; }
+  .topbar .sync.err::before { width: 10px; height: 10px; }
+  .topbar .btn-sync, .topbar [data-act="toggle-quick"] { width: 40px; height: 40px; min-height: 40px !important; padding: 0 !important; border-radius: 50%; font-size: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+  .topbar .btn-sync { border: 0; background: transparent; }
+  .topbar .btn-sync::before { content: "⟳"; font-size: 24px; line-height: 1; color: #0F0F0F; }
+  .topbar [data-act="toggle-quick"]::before { content: "+"; font-size: 28px; font-weight: 400; line-height: 1; }
+  body:has(.fm) [data-act="toggle-quick"] { display: inline-flex !important; }
+  /* 본문 */
+  .crumb { display: none; }
+  .page-head { margin-bottom: 12px; }
+  .page-title { font-size: 22px; }
+  .page-desc { font-size: 13.5px; line-height: 1.5; }
+  .demo-banner, #demoBanner { font-size: 13px; padding: 8px 12px; }
+  .panel { border-radius: 14px; }
+  /* 아래 막대: 고른 칸은 아이콘 뒤에 둥근 배경 */
+  .bottom-nav { border-top: 1px solid #EFEFEF; }
+  .bottom-nav a, .bottom-nav button { font-size: 11px; gap: 3px; color: #606060; }
+  .bottom-nav .active { color: #0F0F0F; }
+  .bottom-nav .active svg { background: #FDF0D5; border-radius: 999px; padding: 3px 14px; width: 52px; height: 28px; box-sizing: border-box; stroke: #9A6400; }
+}
+
+.or-sec-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.or-del { color: var(--danger); padding: 0 8px; }
+
 </style>
 </head>
 <body>
@@ -2913,7 +2958,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.13 08:45";</script>
+<script>window.APP_VERSION = "2026.11.13 08:54";</script>
 <script>
 /* @preserve
  * Leaflet 1.9.4, a JS library for interactive maps. https://leafletjs.com
@@ -3257,7 +3302,7 @@ window.D = (() => {
   const INDUSTRY_LIST = Object.keys(INDUSTRIES);
 
   const SOURCES = ['고용24', '알바몬', '알바천국', '사람인', '잡코리아', '장애인고용공단(워크투게더)', '현장 발굴', '구인 공고', '네트워크 소개', '고용센터 의뢰', '기존 사업체 추천', '박람회·행사', '명함'];
-  const NET_CATEGORIES = ['공공기관', '행정복지센터', '정신건강복지센터', '복지기관', '교육기관', '특수학교·학급', '기업·경제단체', '언론·홍보', '후원·자원봉사', '의료기관'];
+  const NET_CATEGORIES = ['공공기관', '행정복지센터', '기타 홍보처', '정신건강복지센터', '복지기관', '교육기관', '특수학교·학급', '기업·경제단체', '언론·홍보', '후원·자원봉사', '의료기관'];
   const NET_STATUS = ['활발', '보통', '휴면'];
   const ACT_TYPES = ['발굴', '전화', '방문', '이메일', '미팅', '행사', '채용연계', '홍보', '기타'];
   const EVENT_TYPES = ['방문', '전화', '미팅', '면접 동행', '행사', '홍보', '기타'];
@@ -9246,7 +9291,7 @@ window.OR = (() => {
   }
 
   /* ---------- 화면 ---------- */
-  const CAT_ORDER = ['행정복지센터', '직업재활시설', '장애인단체', '정신건강복지센터', '특수학급 고등학교', '특수학교', '임대아파트'];
+  const CAT_ORDER = ['행정복지센터', '공공기관', '직업재활시설', '장애인단체', '정신건강복지센터', '특수학급 고등학교', '특수학교', '임대아파트', '기타 홍보처'];
   /** 홍보·방문처로 보는 기관: 엑셀로 넣은 분류 + 세부 정보가 있는 기관 */
   const isTarget = n => CAT_ORDER.includes(n.category) || (n.info && Object.keys(n.info).length);
   const visitsOf = n => S.actsOf('net', n.id).filter(a => VISIT_TYPES.includes(a.type));
@@ -9262,11 +9307,11 @@ window.OR = (() => {
     }).join('');
     return `
       <div class="page-head"><div><h1 class="page-title">홍보·방문처</h1><div class="page-desc">행정복지센터·직업재활시설·장애인단체·특수학교·임대아파트 등 홍보하러 갈 곳을 분류별로 모아 보고, 다녀온 날을 바로 기록해요.</div></div>
-        <div class="inline"><button class="btn btn-primary" type="button" data-act="or-file">기관 목록 엑셀 넣기</button><input type="file" id="orFile" accept=".xlsx,.xls" hidden><a class="btn" href="#/map">지도에서 보기</a></div></div>
+        <div class="inline"><button class="btn btn-primary" type="button" data-act="new-net" data-kind="net" data-ncat="${e(ui.cat || '공공기관')}">＋ 홍보처 추가</button><button class="btn" type="button" data-act="or-file">기관 목록 엑셀 넣기</button><input type="file" id="orFile" accept=".xlsx,.xls" hidden><a class="btn" href="#/map">지도에서 보기</a></div></div>
       ${nets.length ? `<div class="or-cards"><button type="button" class="or-card ${!ui.cat ? 'on' : ''}" data-act="or-cat" data-cat=""><span class="or-card-t">전체</span><b class="num">${nets.length}<small>곳</small></b><span class="or-bar"><i style="width:${nets.length ? Math.round(nets.filter(visitedThisYear).length / nets.length * 100) : 0}%"></i></span><span class="or-card-s">올해 방문 <b class="num">${nets.filter(visitedThisYear).length}</b>곳</span></button>${cards}</div>
       <div class="toolbar"><input class="input" id="orQ" placeholder="이름·주소·읍면동으로 찾기" value="${e(ui.q)}" style="max-width:320px"><label class="check"><input type="checkbox" data-act="or-todo" ${ui.todo ? 'checked' : ''}>올해 아직 안 간 곳만</label></div>
       <div id="orList">${listHtml(nets)}</div>`
-      : `<div class="panel"><div class="empty"><strong>아직 홍보·방문처가 없어요</strong>기관 목록 엑셀(행정복지센터·특수학급·특수학교·임대아파트 등)을 넣으면 분류별로 정리돼요.<div><button class="btn btn-primary" type="button" data-act="or-file">기관 목록 엑셀 넣기</button></div></div></div>`}`;
+      : `<div class="panel"><div class="empty"><strong>아직 홍보·방문처가 없어요</strong>기관 목록 엑셀(행정복지센터·특수학급·특수학교·임대아파트 등)을 넣으면 분류별로 정리돼요.<div class="inline" style="justify-content:center"><button class="btn btn-primary" type="button" data-act="new-net" data-kind="net" data-ncat="공공기관">＋ 홍보처 하나씩 추가</button><button class="btn" type="button" data-act="or-file">기관 목록 엑셀 넣기</button></div></div></div>`}`;
   }
   function listHtml(nets = S.view().networks.filter(isTarget)) {
     const yr = U.today().slice(0, 4);
@@ -9276,7 +9321,7 @@ window.OR = (() => {
     if (!list.length) return '<div class="panel"><div class="empty">조건에 맞는 곳이 없어요.</div></div>';
     return cats.map(c => {
       const rows = list.filter(n => n.category === c).sort((a, b) => (a.area || '').localeCompare(b.area || '', 'ko') || a.name.localeCompare(b.name, 'ko'));
-      return `<section class="panel or-sec"><div class="panel-pad or-sec-h"><h2 class="section-title">${e(c)} <span class="sub num">${rows.length}곳</span></h2></div>
+      return `<section class="panel or-sec"><div class="panel-pad or-sec-h"><h2 class="section-title">${e(c)} <span class="sub num">${rows.length}곳</span></h2><button class="btn btn-sm" type="button" data-act="new-net" data-kind="net" data-ncat="${e(c)}">＋ ${e(c)} 추가</button></div>
         <div class="table-wrap"><table class="tbl or-tbl"><thead><tr><th>이름</th><th>읍면동</th><th>주소</th><th>연락처</th><th>세부 정보</th><th>기타</th><th>최근 방문</th><th></th></tr></thead><tbody>
         ${rows.map(n => { const v = visitsOf(n)[0]; const thisYear = v && v.date.startsWith(yr); return `<tr class="${thisYear ? 'or-done' : ''}">
           <td><b class="link" data-act="open" data-kind="net" data-id="${n.id}">${e(n.name)}</b>${n.memo ? `<div class="meta">${e(n.memo.split('\n')[0])}</div>` : ''}</td>
@@ -9285,7 +9330,7 @@ window.OR = (() => {
           <td>${Object.entries(n.info || {}).map(([k, val]) => `<span class="or-chip">${e(k)} <b>${e(val)}</b></span>`).join('')}</td>
           <td class="or-etc-td"><textarea class="input or-etc" rows="1" data-chg="or-etc" data-id="${n.id}" data-field="etc" placeholder="자유롭게 적기 (담당자, 다음 방문 계획 등)" aria-label="${e(n.name)} 기타">${e(n.etc || '')}</textarea></td>
           <td class="nowrap">${v ? `<b class="num">${U.dateDot(v.date)}</b><div class="meta">${e(v.type)}${v.staff ? ' · ' + e(v.staff) : ''}</div>` : '<span class="sub">아직 없음</span>'}</td>
-          <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button></td></tr>`; }).join('')}
+          <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button> <button class="btn btn-sm btn-ghost or-del" type="button" data-act="delete" data-kind="net" data-id="${n.id}" title="${e(n.name)} 삭제" aria-label="${e(n.name)} 삭제">🗑</button></td></tr>`; }).join('')}
         </tbody></table></div></section>`;
     }).join('');
   }
@@ -10514,6 +10559,7 @@ window.App = (() => {
     if (d.phone) out.phone = d.phone;
     if (d.cat && d.kind !== 'net') out.industry = d.cat;
     if (d.kind === 'net' && d.pname) out.category = D.guessCategory(d.pname);
+    if (d.kind === 'net' && d.ncat) out.category = d.ncat; // 홍보·방문처에서 추가: 그 분류로
     const prog = d.programs || (route() === 'map' ? V.ui.map.prog : '');
     if (prog) out.programs = [prog];
     return out;

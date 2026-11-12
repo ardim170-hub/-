@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.13 08:45";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.13 08:54";</script>
 <script>
 /* 이용자 관리 (현장중심): 복지관 시트 '이용자입력'에서 이용자를 골라 등록하고,
  * 과정도(대기자 → 초기면접 → 직업상담 → 사례회의 → 직업재활계획서 → 현장훈련 → 취업알선 → 취업)에서 지금 어디까지 왔는지 관리한다.
@@ -1215,6 +1215,7 @@ window.App = (() => {
     if (d.phone) out.phone = d.phone;
     if (d.cat && d.kind !== 'net') out.industry = d.cat;
     if (d.kind === 'net' && d.pname) out.category = D.guessCategory(d.pname);
+    if (d.kind === 'net' && d.ncat) out.category = d.ncat; // 홍보·방문처에서 추가: 그 분류로
     const prog = d.programs || (route() === 'map' ? V.ui.map.prog : '');
     if (prog) out.programs = [prog];
     return out;

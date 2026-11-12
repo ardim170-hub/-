@@ -2154,5 +2154,50 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   body:has(.fm) #scopeSel, body:has(.fm) [data-act="toggle-quick"] { display: none; }
 }
 
-:root { --css-ver: "2026.11.13 08:45"; }
+/* ================= 휴대폰 화면 정리 (유튜브 앱처럼: 위 한 줄 + 구역 칩, 아이콘 버튼) ================= */
+@media (max-width: 720px) {
+  body { -webkit-text-size-adjust: 100%; }
+  .site-head { position: sticky; top: 0; z-index: 900; box-shadow: none; border-bottom: 1px solid #EFEFEF; padding-top: env(safe-area-inset-top, 0px); }
+  .site-head-in { padding: 0 12px; gap: 0; }
+  .site-logo { height: 52px; min-width: 0; padding-right: 150px; }
+  .site-logo .logo-img { height: 30px; width: auto; }
+  .site-logo .logo-tag { display: none; }
+  /* 구역: 가로로 미는 칩 */
+  .sec-nav { height: auto; gap: 8px; padding: 2px 0 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .sec-nav::-webkit-scrollbar { display: none; }
+  .sec-btn { flex: none; height: 36px; padding: 0 16px; border-radius: 10px; background: #F2F2F2; color: #0F0F0F; font-size: 15px; font-weight: 700; }
+  .sec-btn::after { display: none; }
+  .sec-btn.on { background: #0F0F0F; color: #fff; }
+  /* 위쪽 버튼들은 로고 줄 오른쪽에 아이콘으로 */
+  .topbar { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); right: 8px; left: auto; z-index: 950; width: auto; padding: 0; background: transparent !important; border: 0 !important; box-shadow: none; backdrop-filter: none; flex-wrap: nowrap; gap: 4px; display: flex; align-items: center; }
+  .topbar-actions { width: auto; flex-wrap: nowrap; gap: 4px; justify-content: flex-end; }
+  .search-trigger { order: 0; flex: none; width: 40px; height: 40px; padding: 0; justify-content: center; border: 0; background: transparent; border-radius: 50%; }
+  .search-trigger span, .search-trigger kbd { display: none; }
+  .search-trigger svg { width: 22px; height: 22px; stroke-width: 2; }
+  .topbar .presence, .topbar #scopeSel, .topbar .sync:not(.err) { display: none !important; }
+  .topbar .sync.err { font-size: 0; gap: 0; }
+  .topbar .sync.err::before { width: 10px; height: 10px; }
+  .topbar .btn-sync, .topbar [data-act="toggle-quick"] { width: 40px; height: 40px; min-height: 40px !important; padding: 0 !important; border-radius: 50%; font-size: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+  .topbar .btn-sync { border: 0; background: transparent; }
+  .topbar .btn-sync::before { content: "⟳"; font-size: 24px; line-height: 1; color: #0F0F0F; }
+  .topbar [data-act="toggle-quick"]::before { content: "+"; font-size: 28px; font-weight: 400; line-height: 1; }
+  body:has(.fm) [data-act="toggle-quick"] { display: inline-flex !important; }
+  /* 본문 */
+  .crumb { display: none; }
+  .page-head { margin-bottom: 12px; }
+  .page-title { font-size: 22px; }
+  .page-desc { font-size: 13.5px; line-height: 1.5; }
+  .demo-banner, #demoBanner { font-size: 13px; padding: 8px 12px; }
+  .panel { border-radius: 14px; }
+  /* 아래 막대: 고른 칸은 아이콘 뒤에 둥근 배경 */
+  .bottom-nav { border-top: 1px solid #EFEFEF; }
+  .bottom-nav a, .bottom-nav button { font-size: 11px; gap: 3px; color: #606060; }
+  .bottom-nav .active { color: #0F0F0F; }
+  .bottom-nav .active svg { background: #FDF0D5; border-radius: 999px; padding: 3px 14px; width: 52px; height: 28px; box-sizing: border-box; stroke: #9A6400; }
+}
+
+.or-sec-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.or-del { color: var(--danger); padding: 0 8px; }
+
+:root { --css-ver: "2026.11.13 08:54"; }
 </style>
