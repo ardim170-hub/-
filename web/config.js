@@ -4,6 +4,6 @@
  * deployId : Apps Script > 배포 > 배포 관리 > 'API 실행 파일' 배포의 배포 ID (없으면 비워 둬도 돼요) */
 window.APP_CONFIG = {
   clientId: '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com',
-  scriptId: '',
+  scriptId: '1KN8xh1taVVE1NUeTforXo1T7XavuuN4c8p-lgvZ6lCFWjaGsGfVh6-PR',
   deployId: '',
 };
