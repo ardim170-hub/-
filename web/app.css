@@ -1,0 +1,11 @@
+/* 앱(Firebase) 버전에만 쓰는 모양: 로그인 화면·다시 로그인 띠·설치 버튼 */
+.app-gate { position: fixed; inset: 0; z-index: 9999; background: var(--bg, #fff); display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+.app-gate-box { max-width: 360px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.app-gate-box img { border-radius: 18px; }
+.app-gate-box h1 { font-size: 22px; margin: 0; }
+.app-gate-box p { margin: 0; line-height: 1.6; }
+.app-gate-btn { min-height: 48px; padding: 0 24px; font-size: 16px; width: 100%; }
+.app-gate-err { color: var(--danger, #c0392b); }
+.app-relogin { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 9998; background: #fff7e0; border: 1px solid #f0c36d; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.app-install { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); z-index: 900; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+@media (display-mode: standalone) { .app-install { display: none; } }

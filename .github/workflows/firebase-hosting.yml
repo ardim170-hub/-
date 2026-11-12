@@ -1,0 +1,30 @@
+# live 갈래에 올리면 휴대폰 앱(dist/web)을 Firebase 호스팅에 자동으로 올린다.
+# 필요한 것 (저장소 Settings > Secrets and variables > Actions):
+#   Secrets  FIREBASE_SERVICE_ACCOUNT : Firebase 서비스 계정 키(JSON) 전체
+#   Variables FIREBASE_PROJECT_ID     : Firebase 프로젝트 ID (예: ardim-jobs)
+# 둘 중 하나라도 없으면 아무것도 하지 않고 끝난다.
+name: 앱(Firebase) 배포
+on:
+  push:
+    branches: [live]
+    paths: ['dist/web/**', 'firebase.json', '.github/workflows/firebase-hosting.yml']
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - id: chk
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          PID: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -n "$SA" ] && [ -n "$PID" ]; then echo "go=1" >> "$GITHUB_OUTPUT"; else echo "Firebase 설정이 없어 배포를 건너뜁니다."; fi
+      - if: steps.chk.outputs.go == '1'
+        uses: actions/checkout@v4
+      - if: steps.chk.outputs.go == '1'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: ${{ vars.FIREBASE_PROJECT_ID }}
+          channelId: live

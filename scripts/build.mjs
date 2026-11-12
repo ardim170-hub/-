@@ -85,3 +85,29 @@ copyFileSync(join(root, 'apps-script', 'appsscript.json'), join(root, 'dist', 'a
 const kb = p => (readFileSync(p).length / 1024).toFixed(0) + ' KB';
 console.log(`로컬 버전: ${single} (${kb(single)})`);
 console.log('공유 버전: dist/apps-script/ (index·style·app1~app3.html, Code.gs, appsscript.json)');
+
+/* 3) dist/web/ : 휴대폰 앱(Firebase 호스팅) 버전. 화면은 공유 버전과 같고(라이브러리는 CDN),
+ *    web/bridge.js 가 구글 로그인 → Apps Script API로 같은 서버 함수(Code.gs)를 부른다. 데이터는 같은 구글 시트 */
+const WEB = join(root, 'dist', 'web');
+mkdirSync(join(WEB, 'icons'), { recursive: true });
+const webHead = [
+  '<link rel="manifest" href="manifest.webmanifest">',
+  '<meta name="theme-color" content="#ffffff">',
+  '<meta name="mobile-web-app-capable" content="yes">',
+  '<meta name="apple-mobile-web-app-capable" content="yes">',
+  '<meta name="apple-mobile-web-app-title" content="직업지원팀">',
+  '<meta name="apple-mobile-web-app-status-bar-style" content="default">',
+  '<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">',
+  `<style>\n${read('web/app.css')}\n</style>`,
+  `<script>\n${read('web/config.js')}\n</script>`,
+  `<script>\n${read('web/bridge.js')}\n</script>`,
+].join('\n');
+const webHtml = build(true)
+  .replace(/<link rel="icon"[^>]*>/, '<link rel="icon" type="image/png" href="icons/icon-192.png">')
+  .replace(/(<meta name="viewport"[^>]*>)/, m => `${m}\n${webHead}`);
+if (!webHtml.includes('bridge.js') && !webHtml.includes('APP_CONFIG')) throw new Error('앱 버전에 통로(bridge)가 안 들어갔습니다');
+writeFileSync(join(WEB, 'index.html'), webHtml);
+writeFileSync(join(WEB, 'sw.js'), read('web/sw.js').replace("'ardim-app-v1'", JSON.stringify('ardim-app-' + stamp.replace(/\D/g, ''))));
+copyFileSync(join(root, 'web', 'manifest.webmanifest'), join(WEB, 'manifest.webmanifest'));
+for (const n of ['icon-192', 'icon-512', 'maskable-512', 'apple-touch-icon']) copyFileSync(join(root, 'web', 'icons', `${n}.png`), join(WEB, 'icons', `${n}.png`));
+console.log(`앱 버전: dist/web/ (${kb(join(WEB, 'index.html'))}) → Firebase 호스팅`);
