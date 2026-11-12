@@ -213,7 +213,7 @@ function access_() {
 /* ---------- 메뉴별 권한 ----------
  * 설정 시트 'perms' = { 이메일: { biz: 'none'|'view'|'edit'|'full', ... } }. 정하지 않은 메뉴는 'full'(전부 허용). 관리자는 늘 'full'. */
 var PERM_RANK = { none: 0, view: 1, edit: 2, full: 3 };
-var SHEET_MENU = { '사업체': ['biz'], '네트워크': ['network'], '명함': ['cards'], '일정': ['schedule'], '실적입력': ['perf'], '출장특근': ['orders'], '활동기록': ['biz', 'network', 'contacts'], '일자리참여자': ['attend'], '출석부': ['attend'], '훈련일정': ['schedule'] };
+var SHEET_MENU = { '사업체': ['biz'], '네트워크': ['network'], '명함': ['cards'], '일정': ['schedule'], '실적입력': ['perf'], '출장특근': ['orders'], '활동기록': ['biz', 'network', 'contacts'], '일자리참여자': ['attend'], '출석부': ['attend'], '훈련일정': ['schedule'], '이용자관리': ['clients'] };
 function level_(acc, menu) {
   if (acc.admin) return 3;
   var v = acc.perms && acc.perms[menu];
@@ -840,6 +840,10 @@ function api_orgPerfSync(p) {
   if (users) col(users, 3, users.getLastRow() - 1).forEach(function (v) { if (String(v).trim()) known[norm(v)] = 1; });
 
   // 우리 시트 저장에 쓰는 잠금(withLock_)은 쓰지 않는다: 복지관 시트를 읽는 동안 다른 저장이 막혀 '잠금 시간초과'가 났다
+  if (p.commit && !acc.admin) {
+    var today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd'), lw = lastWorkday_(String(p.month || ''));
+    if (today !== lw) throw new Error(p.month + ' 실적은 ' + lw + ' (그 달 마지막 평일) 하루만 보낼 수 있어요.');
+  }
   return orgLock_(p.commit, function () {
     // mine: 이 달 복지관 시트에 이미 있는 우리 세부사업 줄 수 (항목별 '시트에 있음' 표시·취소용)
     var mine = {}; (p.items || []).forEach(function (it) { mine[it] = 0; });
@@ -993,6 +997,39 @@ function api_orgPerfUndo(p) {
     if (p.commit) { drop(gen, g.slice(), [3, 10, 13, 14, 15]); drop(etc, e.slice(), [2, 5, 6, 7, 8, 9]); removed = g.length + e.length; }
     return { gen: g.length, etc: e.length, removed: removed };
   });
+}
+
+/** 그 달 마지막 평일 (마지막 날이 토·일이면 그 전 금요일). 실적 보내기는 이날 하루만 연다 */
+function lastWorkday_(month) {
+  var a = month.split('-'), d = new Date(+a[0], +a[1], 0);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1);
+  return Utilities.formatDate(d, 'Asia/Seoul', 'yyyy-MM-dd');
+}
+
+/* ---------- 이용자 관리: 복지관 시트 '이용자입력'에서 이용자 찾기·기본 정보 불러오기 (우리 시트에는 저장하지 않음) ---------- */
+function orgUsersRead_(p) {
+  var acc = requireMember_();
+  if (level_(acc, 'clients') < 1) throw new Error('이용자 메뉴 권한이 없어요. 관리자에게 요청하세요.');
+  var ss = SpreadsheetApp.openById(orgPerfId_(p.sheet)), sh = ss.getSheetByName('이용자입력');
+  if (!sh) throw new Error('복지관 시트에 이용자입력 탭이 없어요.');
+  var tz = ss.getSpreadsheetTimeZone() || 'Asia/Seoul', n = sh.getLastRow() - 1;
+  var rows = n > 0 ? sh.getRange(2, 1, n, 12).getValues() : [];
+  return rows.filter(function (r) { return String(r[2]).trim(); }).map(function (r) {
+    return { no: String(r[1]).trim(), name: String(r[2]).trim(), sex: String(r[3]).trim(), birth: r[4] instanceof Date ? Utilities.formatDate(r[4], tz, 'yyyy-MM-dd') : String(r[4] || '').trim(),
+      age: String(r[5]).trim(), type: String(r[6]).trim(), grade: String(r[7]).trim(), city: String(r[8]).trim(), town: String(r[9]).trim(), income: String(r[10]).trim() };
+  });
+}
+/** 이름(일부)이나 이용자번호로 찾기: 최대 20명 */
+function api_orgUserSearch(p) {
+  var q = String(p.q || '').replace(/\s+/g, '');
+  if (!q) return [];
+  return orgUsersRead_(p).filter(function (u) { return u.name.replace(/\s+/g, '').indexOf(q) >= 0 || u.no === q; }).slice(0, 20);
+}
+/** 이용자번호 목록 → 기본 정보 (이용자 화면에 보여 줄 것만) */
+function api_orgUserInfo(p) {
+  var want = {}; (p.nos || []).forEach(function (x) { if (x) want[String(x)] = 1; });
+  var out = {}; orgUsersRead_(p).forEach(function (u) { if (want[u.no]) out[u.no] = u; });
+  return out;
 }
 
 /** 이용자입력 탭: 칸마다 이미 쓰는 값(고를 수 있게) + 다음 이용자번호 */

@@ -8,6 +8,7 @@ window.App = (() => {
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력', 'log'],
+    ['clients', '이용자', 'user', () => (S.view().clients || []).length || ''],
     ['perf', '실적', 'perf'],
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
@@ -15,7 +16,7 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·실적·홍보' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
@@ -23,7 +24,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
+    contacts: () => '사업체 연락·방문', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -91,7 +92,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -253,6 +254,7 @@ window.App = (() => {
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       outreach: [OR.page, bindOutreach],
+      clients: [CL.page, bindClients],
       attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
@@ -303,6 +305,11 @@ window.App = (() => {
     bar.className = 'scope-banner';
     bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
     view.prepend(bar);
+  }
+  function bindClients() {
+    const q = $('#clQ');
+    if (q) q.addEventListener('input', U.debounce(() => { CL.ui.q = q.value; const pos = q.selectionStart; render(); const q2 = $('#clQ'); if (q2) { q2.focus(); q2.setSelectionRange(pos, pos); } }, 200));
+    CL.loadInfo((S.view().clients || []).map(c => c.no), () => { if (route() === 'clients' && !drawerOpen()) render(); });
   }
   function bindOutreach() {
     OR.bind();
@@ -670,7 +677,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -889,6 +896,10 @@ window.App = (() => {
   const genPick = (key, name) => `${key}|${name}`;
   const etcPicks = list => { const c = {}; return list.map(x => { const k = `e|${x.date}|${x.item}|${x.note}`; c[k] = (c[k] || 0) + 1; return `${k}|${c[k]}`; }); };
   const orgKey = () => `${V.ui.perf.month}|${V.ui.perf.set}`;
+  /** 실적 보내기는 그 달 마지막 평일 하루만 (마지막 날이 토·일이면 그 전 금요일). 관리자는 언제든 */
+  const lastWorkday = ym => { const [y, m] = ym.split('-').map(Number), d = new Date(y, m, 0); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1); return `${y}-${U.pad(m)}-${U.pad(d.getDate())}`; };
+  const sendOpen = ym => U.today() === lastWorkday(ym);
+  const sendDayLabel = ym => { const d = U.parse(lastWorkday(ym)); return `${d.getMonth() + 1}월 ${d.getDate()}일(${'일월화수목금토'[d.getDay()]})`; };
   const splitNames = v => String(v || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
   const namesOf = n => (org.names[n.key] != null ? org.names[n.key].flatMap(splitNames) : n.ppl);
   const nameSlots = n => (org.names[n.key] != null ? org.names[n.key] : n.ppl.length ? n.ppl.slice() : ['']);
@@ -906,6 +917,10 @@ window.App = (() => {
     const gen = commit ? pl.gen.filter((x, i) => { const k = genPick(pl.sent[i].key, x.name), ok = org.pick.has(k) && (!item || x.item === item); if (ok) sentKeys.push(k); return ok; }) : pl.gen;
     const etc = commit ? pl.etc.filter((x, i) => { const ok = org.pick.has(ek[i]) && (!item || x.item === item); if (ok) sentKeys.push(ek[i]); return ok; }) : pl.etc;
     if (commit && !gen.length && !etc.length) return toast('보낼 줄을 체크해 주세요.', 'error');
+    if (commit && !sendOpen(f.month)) {
+      if (!S.isAdmin()) return toast(`${+f.month.slice(5)}월 실적은 ${sendDayLabel(f.month)} 하루만 보낼 수 있어요.`, 'error');
+      if (!(await confirmBox('보내는 날이 아니에요', `${+f.month.slice(5)}월 실적을 보내는 날은 ${sendDayLabel(f.month)}이에요. 관리자 권한으로 지금 보낼까요? (소급 추가 등)`, '관리자로 보내기'))) return;
+    }
     Object.assign(org, { key, busy: commit ? 'send' : 'check', busyItem: item || '', err: '', stale: false, done: commit ? null : org.done && org.key === key ? org.done : null });
     bindPerf();
     if (commit) { document.querySelector('.os')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); toast(`${item ? `[${item}] ` : ''}복지관 실적 시트에 ${gen.length + etc.length}줄을 보내는 중이에요. 창을 닫지 말고 잠시 기다려 주세요.`); }
@@ -947,7 +962,7 @@ window.App = (() => {
       const name = String(nm || '').trim(), st = name ? stOfName(n.key, name) : '';
       const cls = !name ? 'os-noname' : st === 'add-nouser' ? 'os-add-nouser' : st === 'dup' ? 'os-dup' : st === 'bad' ? 'os-bad' : '';
       return `<tr class="${cls}">${name ? box(genPick(n.key, name), st) : '<td class="sh-side sh-pick"></td>'}<td class="sh-n">${name ? ++no : ''}</td><td class="sh-auto">${st === 'add-nouser' ? '<span class="sh-warn">미등록</span>' : '자동'}</td>
-        <td class="sh-y sh-in"><input data-org-name="${e(n.key)}" data-idx="${k}" value="${e(name)}" placeholder="이름 입력" autocomplete="off" aria-label="${U.dateDot(n.date)} ${e(n.item)} 이름"></td>
+        <td class="sh-y sh-in"><input data-org-name="${e(n.key)}" data-idx="${k}" value="${e(name)}" placeholder="이름 입력" list="clNames" autocomplete="off" aria-label="${U.dateDot(n.date)} ${e(n.item)} 이름"></td>
         ${auto.repeat(6)}<td class="sh-y num">${n.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(n.item)}</td>${blankY}${blankY}${chk}${chk}
         <td class="sh-side">${k === slots.length - 1 ? `<button type="button" class="btn btn-sm" data-act="org-name-add" data-key="${e(n.key)}" title="같은 실적에 한 사람 더 (한 줄 더)">+ 사람</button>` : ''}</td>
         <td class="sh-side">${name ? badge(st) : '<span class="badge warn">이름 필요</span>'}</td><td class="sh-side sub">${e(n.place)} · ${e(n.staff)}</td></tr>`; }).join(''); }).join(''); };
@@ -966,13 +981,16 @@ window.App = (() => {
       return `<section class="os-item">
         <div class="os-bar"><div class="os-bar-t"><b>${e(item)}</b> <span class="badge">${isEtc ? '실적(기타)' : '실적(일반)'}</span>
             <span class="sub">${isEtc ? `${etc.length}줄` : `${need.length}건`}${nNoName ? ` · 이름 없음 ${nNoName}` : ''}${inSheet != null ? ` · 시트에 이미 ${inSheet}줄` : ''}</span></div>
-          ${S.REMOTE ? `<div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="org-item-send" data-item="${e(item)}" ${r && nPick && !org.busy ? '' : 'disabled'}>${busyHere && org.busy === 'send' ? '보내는 중…' : !r ? '먼저 비교' : !nNew ? '보낼 새 줄 없음' : nPick ? `체크한 ${nPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>
+          ${S.REMOTE ? `<div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="org-item-send" data-item="${e(item)}" ${r && nPick && !org.busy && (sendOpen(f.month) || S.isAdmin()) ? '' : 'disabled'}>${busyHere && org.busy === 'send' ? '보내는 중…' : !r ? '먼저 비교' : !nNew ? '보낼 새 줄 없음' : nPick ? `체크한 ${nPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>
             <button class="btn btn-sm btn-danger-ghost" type="button" data-act="org-item-undo" data-item="${e(item)}" ${inSheet && !org.busy ? '' : 'disabled'} title="복지관 시트에 들어간 이 달 '${e(item)}' 줄을 모두 지워요">보낸 것 취소${inSheet ? ` (${inSheet}줄)` : ''}</button></div>` : ''}</div>
         ${isEtc ? (etc.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr><th class="sh-side sh-pick"><input type="checkbox" data-act="org-pick-all" data-item="${e(item)}" ${allK.length && allK.every(k => org.pick.has(k)) ? 'checked' : ''} ${allK.length && !org.busy ? '' : 'disabled'} title="이 항목 새 줄 모두 고르기" aria-label="모두 고르기"></th>${H(etcHead)}<th class="sh-side">결과</th><th class="sh-side">담당</th></tr></thead><tbody>${etcRowsOf(etc)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')
           : (need.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr><th class="sh-side sh-pick"><input type="checkbox" data-act="org-pick-all" data-item="${e(item)}" ${allK.length && allK.every(k => org.pick.has(k)) ? 'checked' : ''} ${allK.length && !org.busy ? '' : 'disabled'} title="이 항목 새 줄 모두 고르기" aria-label="모두 고르기"></th>${H(genHead)}<th class="sh-side"></th><th class="sh-side">결과</th><th class="sh-side">참고 (사업체·담당)</th></tr></thead><tbody>${genRowsOf(need)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')}
       </section>`;
     }).join('');
     const add = r ? r.add.gen + r.add.etc : 0;
+    const open = sendOpen(f.month), admin = S.isAdmin(), canSend = open || admin;
+    const dayBox = open ? `<div class="os-day open">📅 오늘은 <b>${m}월 실적을 보내는 날</b>이에요 (${sendDayLabel(f.month)}).</div>`
+      : `<div class="os-day">📅 ${m}월 실적은 <b>${sendDayLabel(f.month)}</b> 하루만 보낼 수 있어요 (그 달 마지막 평일). 지금은 미리보기·이름 넣기·비교만 돼요.${admin ? ' <span class="sub">관리자는 확인을 한 번 더 누르면 지금도 보낼 수 있어요.</span>' : ''}</div>`;
     const totalPick = [...org.pick].filter(k => ekAll.includes(k) || rows.need.some(n => namesOf(n).some(nm => genPick(n.key, nm) === k))).length;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
@@ -998,10 +1016,12 @@ window.App = (() => {
         <p>복지관 실적 시트에 <b>실적(일반) ${done.add.gen}줄</b> · <b>실적(기타) ${done.add.etc}줄</b>을 맨 아래에 넣었어요.${done.dup.gen + done.dup.etc ? ` 이미 들어가 있던 ${done.dup.gen + done.dup.etc}줄은 건너뛰었어요.` : ''}</p>
         <ul class="sub"><li>이용자번호·장애유형·대분류 같은 칸은 복지관 시트의 식이 알아서 채워요.</li><li>아래 표의 결과가 <b>"이미 있음"</b>으로 바뀌었으면 들어간 거예요. 다시 눌러도 두 번 들어가지 않아요.</li><li>잘못 보냈으면 그 항목의 <b>보낸 것 취소</b>를 누르세요.</li></ul>
         <a class="btn btn-sm" href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트에서 확인하기 ↗</a></div>` : ''}
+      ${dayBox}
       ${state}
+      <datalist id="clNames">${(S.get().clients || []).map(c => `<option value="${e(c.name)}">`).join('')}</datalist>
       ${!org.busy && why.length ? `<div class="os-why"><b>안 보내지는 줄이 있는 이유</b><ul>${why.join('')}</ul></div>` : ''}
       ${!org.busy ? dupBox : ''}
-      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
+      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy && canSend ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${blocks || '<p class="sub">이 달 보낼 실적이 없어요.</p>'}
     </section>`;
@@ -1038,6 +1058,15 @@ window.App = (() => {
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
       showDrawer();
+      return;
+    }
+    if (top.type === 'client') {
+      const c = S.find('cl', top.id);
+      if (!c) { stack.pop(); return renderDrawer(); }
+      inner.innerHTML = CL.detailHtml(c);
+      showDrawer();
+      if (c.no) CL.loadInfo([c.no], () => { if (stack[stack.length - 1] === top) renderDrawer(true); });
+      if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
       return;
     }
     if (top.type === 'dpsum') {
@@ -1912,6 +1941,32 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'cl-view': el => { CL.ui.view = el.dataset.v; render(); },
+    'cl-open': el => push({ type: 'client', id: el.dataset.id }, false),
+    'cl-add': el => {
+      const u = (CL.ui.found || [])[+el.dataset.i]; if (!u) return;
+      if (S.get().clients.some(c => c.no && c.no === u.no)) return toast(`${u.name}은(는) 이미 등록돼 있어요.`, 'error');
+      CL.ui.info[u.no] = u;
+      const c = CL.addFrom(u); CL.ui.found = null; CL.ui.find = '';
+      toast(`${u.name}을(를) 이용자로 등록했어요. 1단계(초기면접)부터 시작해요.`); push({ type: 'client', id: c.id }, false);
+    },
+    'cl-add-manual': () => {
+      const name = (prompt('이용자 이름을 적어 주세요. (이용자입력에 없는 사람이라 이용자번호·기본 정보는 비어 있어요)', CL.ui.find || '') || '').trim();
+      if (!name) return;
+      const c = CL.addFrom({ name }); CL.ui.found = null; CL.ui.find = '';
+      toast(`${name}을(를) 이용자로 등록했어요.`); push({ type: 'client', id: c.id }, false);
+    },
+    'cl-stage': el => { const c = S.find('cl', el.dataset.id); if (!c) return; CL.setStage(c, el.dataset.stage); toast(`${c.name}: 지금 단계를 '${el.dataset.stage}'(으)로 바꿨어요.`); },
+    'cl-save': el => {
+      const f = $('#clForm'); if (!f) return;
+      const fd = Object.fromEntries(new FormData(f).entries());
+      S.upsert('cl', { id: el.dataset.id, ...fd }); toast('저장했어요.');
+    },
+    'cl-del': async el => {
+      const c = S.find('cl', el.dataset.id); if (!c) return;
+      if (!(await confirmBox(`${c.name}을(를) 이용자 목록에서 뺄까요?`, '우리 사이트의 과정 단계·직업욕구·메모만 지워져요. 복지관 시트의 이용자 정보와 실적은 그대로예요.', '빼기'))) return;
+      const undo = S.remove('cl', c.id); closeDrawer(); toast(`${c.name}을(를) 뺐어요.`, '', undo ? { undo } : {});
+    },
     'org-pick': el => { const k = el.dataset.k; if (el.checked) org.pick.add(k); else org.pick.delete(k); bindPerf(); },
     'org-pick-all': el => {
       const item = el.dataset.item, f = V.ui.perf, rows = orgPerfRows(f.month, f.set), r = org.res; if (!r) return;
@@ -2531,6 +2586,8 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
+      const cd = ev.target.closest('[data-cl-date]');
+      if (cd) { if (!allowed([['clients', 2]])) return; const c = S.find('cl', cd.dataset.id); if (c) S.upsert('cl', { id: c.id, stages: { ...(c.stages || {}), [cd.dataset.clDate]: cd.value } }); return; }
       const el = ev.target.closest('[data-chg]');
       if (!el) return;
       const { id, field } = el.dataset;
@@ -2678,6 +2735,16 @@ window.App = (() => {
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
       }
+      if (form.dataset.form === 'cl-find') {
+        const q = ($('#clFind')?.value || '').trim(); CL.ui.find = q;
+        if (!q) return;
+        if (!S.REMOTE) { CL.ui.found = []; return render(); }
+        CL.ui.finding = true; render();
+        try { CL.ui.found = await S.call('api_orgUserSearch', { q, sheet: S.get().settings.orgPerfSheet || '' }); }
+        catch (err) { CL.ui.found = null; toast('복지관 이용자 명단을 읽지 못했어요: ' + ((err && err.message) || err), 'error'); }
+        CL.ui.finding = false; render(); setTimeout(() => $('#clFind')?.focus(), 0);
+        return;
+      }
       if (form.dataset.form === 'place-q') { placeSearch(($('#placeQ')?.value || '').trim()); return; }
       if (form.dataset.form === 'quick-log') {
         const fd = Object.fromEntries(new FormData(form).entries());
@@ -2711,7 +2778,7 @@ window.App = (() => {
       if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
       else if (route() === 'map' && V.ui.map.mode !== 'city' && bigMap && $('#mapList')) softMap();
       else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
-      if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
+      if (drawerOpen() && ['detail', 'client'].includes(stack[stack.length - 1]?.type)) renderDrawer(true);
     });
   }
 

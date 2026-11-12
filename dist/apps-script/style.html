@@ -2043,6 +2043,40 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .os-item > p.sub { margin: 0; padding: 8px 12px; border: 1px solid #DDE2E9; }
 .sh-tbl .sh-pick { width: 34px; text-align: center; background: #fff; }
 .sh-tbl .sh-pick input { width: 17px; height: 17px; cursor: pointer; }
+/* 실적 보내기: 보내는 날 안내 */
+.os-day { padding: 8px 12px; margin: 8px 0; border: 1px dashed #C9D3E0; background: #F7F9FC; }
+.os-day.open { border: 1px solid #A7D8BC; background: #EAF7EF; }
+/* 이용자 관리 */
+.cl-add .cl-found { margin-top: 10px; border: 1px solid var(--line); }
+.cl-found-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.cl-found-row:last-child { border-bottom: 0; }
+.cl-found-row .btn { margin-left: auto; }
+.cl-board { display: grid; grid-template-columns: repeat(6, minmax(170px, 1fr)); gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+.cl-col { background: #F4F6F9; border: 1px solid #E1E6EE; padding: 8px; min-height: 140px; }
+.cl-col h3 { margin: 0 0 8px; font-size: 13.5px; display: flex; justify-content: space-between; }
+.cl-col h3 .n { background: #fff; border-radius: 999px; padding: 0 8px; font-size: 12.5px; }
+.cl-none { margin: 4px 2px; }
+.cl-card { display: flex; flex-direction: column; gap: 3px; width: 100%; text-align: left; padding: 9px 10px; margin-bottom: 8px; background: #fff; border: 1px solid #DDE3EC; border-radius: 8px; cursor: pointer; font: inherit; }
+.cl-card:hover { border-color: #E8A317; }
+.cl-card-i, .cl-card-j { font-size: 12px; color: var(--text-2); }
+.cl-dots { display: flex; gap: 3px; margin-top: 2px; }
+.cl-dots i { width: 14px; height: 5px; border-radius: 3px; background: #DDE3EC; }
+.cl-dots i.on { background: #E8A317; }
+.cl-stage { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #FDF5E2; color: #9A6400; font-size: 12.5px; font-weight: 700; }
+.cl-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.cl-steps li { display: flex; align-items: center; gap: 8px; }
+.cl-steps li button { flex: 1; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #DDE3EC; background: #fff; border-radius: 8px; cursor: pointer; font: inherit; text-align: left; }
+.cl-steps li button b { width: 22px; height: 22px; border-radius: 50%; background: #E6EBF2; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; }
+.cl-steps li.done button { background: #F6FBF8; border-color: #BFE3CE; }
+.cl-steps li.done button b { background: #1F7A52; color: #fff; }
+.cl-steps li.cur button { background: #FDF5E2; border-color: #E8A317; font-weight: 800; }
+.cl-steps li.cur button b { background: #E8A317; color: #fff; }
+.cl-steps li .input { width: 150px; }
+.cl-needs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.cl-needs label, .cl-memo { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.cl-memo { margin-top: 8px; }
+.cl-tbl tr.click { cursor: pointer; }
+@media (max-width: 720px) { .cl-needs { grid-template-columns: 1fr; } }
 
-:root { --css-ver: "2026.10.30 17:45"; }
+:root { --css-ver: "2026.11.12 09:23"; }
 </style>

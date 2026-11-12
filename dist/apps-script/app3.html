@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.10.30 17:45";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.12 09:23";</script>
 <script>
 /* 홍보·방문처: 행정복지센터·직업재활시설·장애인단체·특수학급 고등학교·특수학교·임대아파트 등
  * 엑셀(기관 목록)을 한 번에 넣고, 분류별로 몇 곳 중 몇 곳을 다녀왔는지 한눈에 보고, 방문을 바로 기록한다.
@@ -202,6 +202,102 @@ window.OR = (() => {
   }
 
   return { ui, parse, plan, previewHtml, commit, page, listHtml, bind, isTarget, CAT_ORDER };
+})();
+
+</script>
+<script>
+/* 이용자 관리 (현장중심): 복지관 시트 '이용자입력'에서 이용자를 골라 등록하고,
+ * 과정도(초기면접 → 직업상담 → 사례회의 → 직업재활계획서 → 현장훈련 대기 → 취업 대기)에서 지금 어디까지 왔는지 관리한다.
+ * 우리 시트에는 이용자번호·이름·단계·직업욕구·메모만 두고, 성별·나이·장애정보는 복지관 시트에서 그때그때 불러온다 */
+window.CL = (() => {
+  const e = U.esc;
+  const ui = { q: '', view: 'board', find: '', found: null, finding: false, info: {}, infoAsked: new Set() };
+  const STAGES = D.CLIENT_STAGES;
+  const list = () => (S.view().clients || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const stageIdx = c => Math.max(0, STAGES.indexOf(c.stage));
+  const stageDate = (c, st) => ((c.stages || {})[st] || '');
+  /** 복지관 시트에서 기본 정보(성별·나이·장애유형 등) 불러오기: 화면에 보이는 사람만, 한 번씩 */
+  function loadInfo(nos, done) {
+    const want = nos.filter(n => n && !ui.infoAsked.has(n));
+    if (!want.length || !S.REMOTE) return;
+    want.forEach(n => ui.infoAsked.add(n));
+    S.call('api_orgUserInfo', { nos: want, sheet: S.get().settings.orgPerfSheet || '' }).then(r => { Object.assign(ui.info, r || {}); done && done(); }).catch(() => {});
+  }
+  const infoLine = c => {
+    const i = ui.info[c.no];
+    if (!c.no) return '<span class="sub">이용자입력에 없음</span>';
+    if (!i) return S.REMOTE ? '<span class="sub">기본 정보 불러오는 중…</span>' : '';
+    return [i.sex, i.age && `${i.age}세`, i.type, i.grade && i.grade.replace('장애의 정도가 ', '').replace(' 장애인', ''), i.town].filter(Boolean).map(e).join(' · ');
+  };
+  /** 이 사람 이름으로 넣은 실적 (실적 화면에서 참여자로 적은 것) */
+  const perfsOf = c => [...S.get().perfs.filter(p => S.pplOf(p).includes(c.name)).map(p => ({ d: p.date, item: p.item, staff: p.staff })),
+    ...S.get().activities.filter(a => a.fromPerf === 'Y' && S.pplOf(a).includes(c.name)).map(a => ({ d: a.date, item: a.perf, staff: a.staff }))].sort((a, b) => b.d.localeCompare(a.d));
+
+  function page() {
+    const all = list(), q = ui.q.trim();
+    const rows = all.filter(c => !q || U.match(q, c.name, c.no, c.job, c.memo));
+    const counts = STAGES.map(st => rows.filter(c => c.stage === st).length);
+    const board = `<div class="cl-board">${STAGES.map((st, k) => `<section class="cl-col"><h3>${k + 1}. ${e(st)} <span class="n">${counts[k]}</span></h3>
+        ${rows.filter(c => c.stage === st).map(card).join('') || '<p class="sub cl-none">없음</p>'}</section>`).join('')}</div>`;
+    const table = `<div class="table-wrap"><table class="tbl cl-tbl"><thead><tr><th>이름</th><th>이용자번호</th><th>기본 정보</th><th>현재 단계</th><th>희망 직종</th><th>담당</th></tr></thead><tbody>
+      ${rows.map(c => `<tr data-act="cl-open" data-id="${c.id}" class="click"><td><b>${e(c.name)}</b></td><td class="num">${e(c.no || '-')}</td><td>${infoLine(c)}</td><td>${stageBadge(c)}</td><td>${e(c.job || '')}</td><td>${e(c.staff || '')}</td></tr>`).join('') || '<tr><td colspan="6" class="sub">아직 등록한 이용자가 없어요.</td></tr>'}</tbody></table></div>`;
+    return `<div class="page-head"><div><h1 class="page-title">이용자</h1><div class="page-desc">복지관 이용자 명단에서 이용자를 골라 등록하고, 과정도에서 지금 어디까지 진행됐는지 관리해요. 성별·나이·장애정보는 복지관 시트에서 그때그때 불러와요.</div></div></div>
+      <section class="panel panel-pad cl-add">
+        <h2 class="section-title">+ 이용자 추가 <span class="sub">복지관 시트 '이용자입력'에서 찾아요</span></h2>
+        <form class="inline" data-form="cl-find" autocomplete="off"><input class="input" id="clFind" value="${e(ui.find)}" placeholder="이름 또는 이용자번호 (예: 홍길동, 2026-00012)" style="max-width:320px"><button class="btn btn-primary" type="submit" ${ui.finding ? 'disabled' : ''}>${ui.finding ? '찾는 중…' : '찾기'}</button></form>
+        ${foundHtml()}
+      </section>
+      <div class="toolbar"><input class="input" id="clQ" value="${e(ui.q)}" placeholder="등록한 이용자 찾기 (이름·번호·희망 직종)" style="max-width:320px">
+        <div class="seg"><button type="button" class="${ui.view === 'board' ? 'on' : ''}" data-act="cl-view" data-v="board">과정도 보기</button><button type="button" class="${ui.view === 'table' ? 'on' : ''}" data-act="cl-view" data-v="table">목록 보기</button></div>
+        <span class="sub">${rows.length}명</span></div>
+      ${ui.view === 'table' ? table : board}`;
+  }
+  const stageBadge = c => `<span class="cl-stage s${stageIdx(c)}">${stageIdx(c) + 1}. ${e(c.stage || STAGES[0])}</span>`;
+  const card = c => `<button type="button" class="cl-card" data-act="cl-open" data-id="${c.id}"><b>${e(c.name)}</b> <span class="sub num">${e(c.no || '')}</span>
+      <span class="cl-card-i">${infoLine(c)}</span>${c.job ? `<span class="cl-card-j">희망: ${e(c.job)}</span>` : ''}
+      <span class="cl-dots">${STAGES.map((st, k) => `<i class="${k <= stageIdx(c) ? 'on' : ''}" title="${e(st)} ${e(stageDate(c, st))}"></i>`).join('')}</span><span class="sub">${e(stageDate(c, c.stage))}${c.staff ? ' · ' + e(c.staff) : ''}</span></button>`;
+  function foundHtml() {
+    if (!ui.found) return S.REMOTE ? '<div class="inline" style="margin-top:6px"><button class="btn btn-sm btn-ghost" type="button" data-act="cl-add-manual">이용자입력에 없는 사람으로 추가</button></div>' : '<p class="sub">팀 공유 사이트(구글 시트 연결)에서 복지관 이용자 명단을 찾을 수 있어요. 여기서는 이름만 적어 추가할 수 있어요.</p><div class="inline"><button class="btn btn-sm" type="button" data-act="cl-add-manual">이름만으로 추가</button></div>';
+    const have = new Set(S.get().clients.map(c => c.no).filter(Boolean));
+    return `<div class="cl-found">${ui.found.length ? ui.found.map((u, i) => `<div class="cl-found-row"><b>${e(u.name)}</b> <span class="num sub">${e(u.no)}</span>
+        <span class="sub">${[u.sex, u.age && u.age + '세', u.type, u.grade, u.town].filter(Boolean).map(e).join(' · ')}</span>
+        ${have.has(u.no) ? '<span class="badge">이미 등록됨</span>' : `<button class="btn btn-sm btn-primary" type="button" data-act="cl-add" data-i="${i}">추가</button>`}</div>`).join('')
+      : `<p class="sub">'${e(ui.find)}'을(를) 이용자입력에서 찾지 못했어요. 이름을 확인하거나, 복지관 시트에 먼저 등록해 주세요.</p>`}
+      <div class="inline" style="margin-top:6px"><button class="btn btn-sm" type="button" data-act="cl-add-manual">이용자입력에 없는 사람으로 추가</button></div></div>`;
+  }
+
+  /** 상세 (오른쪽 창) */
+  function detailHtml(c) {
+    const i = ui.info[c.no] || {}, k = stageIdx(c), ps = perfsOf(c);
+    const staff = S.staffHere().map(s => s.name);
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${e(c.name)} <span class="sub num">${e(c.no || '')}</span></h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+      <p class="sub" style="margin:0">${c.no ? (ui.info[c.no] ? [i.sex, i.birth && `${i.birth} (${i.age}세)`, i.type, i.grade, [i.city, i.town].filter(Boolean).join(' '), i.income].filter(Boolean).map(e).join(' · ') : '기본 정보 불러오는 중…') : '이용자입력에 없는 사람이에요.'}</p></div>
+      <div class="dr-body">
+        <h3 class="dp-dr-h">과정도 <span class="sub">단계를 누르면 지금 단계가 바뀌고 그날 날짜가 남아요</span></h3>
+        <ol class="cl-steps">${STAGES.map((st, j) => `<li class="${j < k ? 'done' : j === k ? 'cur' : ''}"><button type="button" data-act="cl-stage" data-id="${c.id}" data-stage="${e(st)}"><b>${j + 1}</b><span>${e(st)}</span></button>
+          <input class="input sm" type="date" data-cl-date="${e(st)}" data-id="${c.id}" value="${e(stageDate(c, st))}" aria-label="${e(st)} 날짜"></li>`).join('')}</ol>
+        <form id="clForm" data-id="${c.id}" autocomplete="off">
+          <h3 class="dp-dr-h">직업욕구</h3>
+          <div class="cl-needs">${D.CLIENT_NEEDS.map(([key, l]) => `<label>${l}<input class="input" name="${key}" value="${e(c[key] || '')}"></label>`).join('')}</div>
+          <label class="cl-memo">메모<textarea class="textarea" name="memo" rows="3">${e(c.memo || '')}</textarea></label>
+          <label>담당<select class="select" name="staff"><option value="">-</option>${[...new Set([...staff, c.staff].filter(Boolean))].map(n => `<option ${n === c.staff ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
+          <div class="inline" style="margin-top:10px"><button class="btn btn-primary" type="button" data-act="cl-save" data-id="${c.id}">저장</button><button class="btn btn-danger-ghost" type="button" data-act="cl-del" data-id="${c.id}">이용자 목록에서 빼기</button></div>
+        </form>
+        <h3 class="dp-dr-h">이 사람 실적 <span class="sub">실적 화면에서 참여자로 넣은 것 ${ps.length}건</span></h3>
+        ${ps.length ? `<table class="tbl"><tbody>${ps.slice(0, 50).map(p => `<tr><td class="num nowrap">${U.dateDot(p.d)}</td><td>${e(p.item)}</td><td class="sub">${e(p.staff || '')}</td></tr>`).join('')}</tbody></table>` : '<p class="sub">아직 없어요. 실적을 넣을 때 참여자 칸에 이 이름을 적으면 여기 모여요.</p>'}
+      </div>`;
+  }
+
+  /** 단계 바꾸기: 고른 단계가 지금 단계가 되고, 날짜가 비어 있으면 오늘로 */
+  function setStage(c, st) {
+    const stages = { ...(c.stages || {}) };
+    if (!stages[st]) stages[st] = U.today();
+    return S.upsert('cl', { id: c.id, stage: st, stages });
+  }
+  function addFrom(u) {
+    return S.upsert('cl', { no: u.no || '', name: u.name, stage: STAGES[0], stages: { [STAGES[0]]: U.today() }, staff: S.me(), job: '', area: '', hours: '', pay: '', move: '', cert: '', memo: '' });
+  }
+  return { ui, page, detailHtml, loadInfo, setStage, addFrom, list, STAGES };
 })();
 
 </script>
@@ -559,6 +655,7 @@ window.App = (() => {
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력', 'log'],
+    ['clients', '이용자', 'user', () => (S.view().clients || []).length || ''],
     ['perf', '실적', 'perf'],
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
@@ -566,7 +663,7 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·실적·홍보' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
@@ -574,7 +671,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => '오늘 할 일·달력', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '사업체 연락·방문', outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
+    contacts: () => '사업체 연락·방문', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -642,7 +739,7 @@ window.App = (() => {
     'map-addmode': [['biz', 2]],
     'new-event': [['schedule', 2]], 'ev-import': [['schedule', 2]], 'edit-event': [['schedule', 2]], 'ev-toggle': [['schedule', 2]], 'ev-del': [['schedule', 3]],
     'ct-paste': [['contacts', 2]], 'ct-oc': [['contacts', 2]], 'ct-reg-form': [['contacts', 2]], 'ct-reg': [['contacts', 2]], 'ct-reg-all': [['contacts', 2]], 'ct-unreg': [['contacts', 2]], 'ct-file': [['contacts', 2]], 'ct-paste-commit': [['contacts', 2]], 'ct-url': [['contacts', 2]],
-    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
+    'perf-del': [['perf', 3]], 'org-sync': [['orgsync', 2]], 'org-sync-commit': [['orgsync', 2]], 'org-user-add': [['orgsync', 2]], 'org-dedupe': [['orgsync', 3]], 'cl-add': [['clients', 2]], 'cl-add-manual': [['clients', 2]], 'cl-stage': [['clients', 2]], 'cl-save': [['clients', 2]], 'cl-del': [['clients', 3]], 'org-item-send': [['orgsync', 2]], 'org-item-undo': [['orgsync', 3]], 'gl-save': [['perf', 2]], 'goal-save': [['perf', 2]], 'dp-mgr-save': [['perf', 2]], 'dp-mgr-add': [['perf', 2]], 'dp-mgr-del': [['perf', 3]], 'perf-fix-move': [['perf', 2]], 'perf-fix-del': [['perf', 3]], 'pt-add': [['perf', 2]], 'at-fill': [['attend', 2]], 'at-meta': [['attend', 2]], 'at-padd': [['attend', 2]], 'at-paste-commit': [['attend', 2]], 'at-pdel': [['attend', 3]], 'at-apply': [['attend', 2]], 'at-fill-one': [['attend', 2]], 'at-undo': [['attend', 2]], 'at-src-del': [['attend', 3]], 'at-month-clear': [['attend', 3]], 'at-import': [['attend', 2]], 'at-imp-commit': [['attend', 2]], 'at-pastetbl-read': [['attend', 2]],
   };
   function gateOf(act, el) {
     const d = el.dataset || {};
@@ -804,6 +901,7 @@ window.App = (() => {
       perf: [V.perfPage, bindPerf],
       contacts: [R.contactsPage, () => { $('#ctResults').innerHTML = R.contactsResults(); }],
       outreach: [OR.page, bindOutreach],
+      clients: [CL.page, bindClients],
       attend: [AT.page, bindAttend],
       data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
     };
@@ -854,6 +952,11 @@ window.App = (() => {
     bar.className = 'scope-banner';
     bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
     view.prepend(bar);
+  }
+  function bindClients() {
+    const q = $('#clQ');
+    if (q) q.addEventListener('input', U.debounce(() => { CL.ui.q = q.value; const pos = q.selectionStart; render(); const q2 = $('#clQ'); if (q2) { q2.focus(); q2.setSelectionRange(pos, pos); } }, 200));
+    CL.loadInfo((S.view().clients || []).map(c => c.no), () => { if (route() === 'clients' && !drawerOpen()) render(); });
   }
   function bindOutreach() {
     OR.bind();
@@ -1221,7 +1324,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });
@@ -1440,6 +1543,10 @@ window.App = (() => {
   const genPick = (key, name) => `${key}|${name}`;
   const etcPicks = list => { const c = {}; return list.map(x => { const k = `e|${x.date}|${x.item}|${x.note}`; c[k] = (c[k] || 0) + 1; return `${k}|${c[k]}`; }); };
   const orgKey = () => `${V.ui.perf.month}|${V.ui.perf.set}`;
+  /** 실적 보내기는 그 달 마지막 평일 하루만 (마지막 날이 토·일이면 그 전 금요일). 관리자는 언제든 */
+  const lastWorkday = ym => { const [y, m] = ym.split('-').map(Number), d = new Date(y, m, 0); while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() - 1); return `${y}-${U.pad(m)}-${U.pad(d.getDate())}`; };
+  const sendOpen = ym => U.today() === lastWorkday(ym);
+  const sendDayLabel = ym => { const d = U.parse(lastWorkday(ym)); return `${d.getMonth() + 1}월 ${d.getDate()}일(${'일월화수목금토'[d.getDay()]})`; };
   const splitNames = v => String(v || '').split(/[,，、/·;\n]+/).map(x => x.trim()).filter(Boolean);
   const namesOf = n => (org.names[n.key] != null ? org.names[n.key].flatMap(splitNames) : n.ppl);
   const nameSlots = n => (org.names[n.key] != null ? org.names[n.key] : n.ppl.length ? n.ppl.slice() : ['']);
@@ -1457,6 +1564,10 @@ window.App = (() => {
     const gen = commit ? pl.gen.filter((x, i) => { const k = genPick(pl.sent[i].key, x.name), ok = org.pick.has(k) && (!item || x.item === item); if (ok) sentKeys.push(k); return ok; }) : pl.gen;
     const etc = commit ? pl.etc.filter((x, i) => { const ok = org.pick.has(ek[i]) && (!item || x.item === item); if (ok) sentKeys.push(ek[i]); return ok; }) : pl.etc;
     if (commit && !gen.length && !etc.length) return toast('보낼 줄을 체크해 주세요.', 'error');
+    if (commit && !sendOpen(f.month)) {
+      if (!S.isAdmin()) return toast(`${+f.month.slice(5)}월 실적은 ${sendDayLabel(f.month)} 하루만 보낼 수 있어요.`, 'error');
+      if (!(await confirmBox('보내는 날이 아니에요', `${+f.month.slice(5)}월 실적을 보내는 날은 ${sendDayLabel(f.month)}이에요. 관리자 권한으로 지금 보낼까요? (소급 추가 등)`, '관리자로 보내기'))) return;
+    }
     Object.assign(org, { key, busy: commit ? 'send' : 'check', busyItem: item || '', err: '', stale: false, done: commit ? null : org.done && org.key === key ? org.done : null });
     bindPerf();
     if (commit) { document.querySelector('.os')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); toast(`${item ? `[${item}] ` : ''}복지관 실적 시트에 ${gen.length + etc.length}줄을 보내는 중이에요. 창을 닫지 말고 잠시 기다려 주세요.`); }
@@ -1498,7 +1609,7 @@ window.App = (() => {
       const name = String(nm || '').trim(), st = name ? stOfName(n.key, name) : '';
       const cls = !name ? 'os-noname' : st === 'add-nouser' ? 'os-add-nouser' : st === 'dup' ? 'os-dup' : st === 'bad' ? 'os-bad' : '';
       return `<tr class="${cls}">${name ? box(genPick(n.key, name), st) : '<td class="sh-side sh-pick"></td>'}<td class="sh-n">${name ? ++no : ''}</td><td class="sh-auto">${st === 'add-nouser' ? '<span class="sh-warn">미등록</span>' : '자동'}</td>
-        <td class="sh-y sh-in"><input data-org-name="${e(n.key)}" data-idx="${k}" value="${e(name)}" placeholder="이름 입력" autocomplete="off" aria-label="${U.dateDot(n.date)} ${e(n.item)} 이름"></td>
+        <td class="sh-y sh-in"><input data-org-name="${e(n.key)}" data-idx="${k}" value="${e(name)}" placeholder="이름 입력" list="clNames" autocomplete="off" aria-label="${U.dateDot(n.date)} ${e(n.item)} 이름"></td>
         ${auto.repeat(6)}<td class="sh-y num">${n.date}</td><td class="sh-auto">${e(def.big)}</td><td class="sh-auto">${e(def.mid)}</td><td class="sh-y">${e(n.item)}</td>${blankY}${blankY}${chk}${chk}
         <td class="sh-side">${k === slots.length - 1 ? `<button type="button" class="btn btn-sm" data-act="org-name-add" data-key="${e(n.key)}" title="같은 실적에 한 사람 더 (한 줄 더)">+ 사람</button>` : ''}</td>
         <td class="sh-side">${name ? badge(st) : '<span class="badge warn">이름 필요</span>'}</td><td class="sh-side sub">${e(n.place)} · ${e(n.staff)}</td></tr>`; }).join(''); }).join(''); };
@@ -1517,13 +1628,16 @@ window.App = (() => {
       return `<section class="os-item">
         <div class="os-bar"><div class="os-bar-t"><b>${e(item)}</b> <span class="badge">${isEtc ? '실적(기타)' : '실적(일반)'}</span>
             <span class="sub">${isEtc ? `${etc.length}줄` : `${need.length}건`}${nNoName ? ` · 이름 없음 ${nNoName}` : ''}${inSheet != null ? ` · 시트에 이미 ${inSheet}줄` : ''}</span></div>
-          ${S.REMOTE ? `<div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="org-item-send" data-item="${e(item)}" ${r && nPick && !org.busy ? '' : 'disabled'}>${busyHere && org.busy === 'send' ? '보내는 중…' : !r ? '먼저 비교' : !nNew ? '보낼 새 줄 없음' : nPick ? `체크한 ${nPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>
+          ${S.REMOTE ? `<div class="inline"><button class="btn btn-sm btn-primary" type="button" data-act="org-item-send" data-item="${e(item)}" ${r && nPick && !org.busy && (sendOpen(f.month) || S.isAdmin()) ? '' : 'disabled'}>${busyHere && org.busy === 'send' ? '보내는 중…' : !r ? '먼저 비교' : !nNew ? '보낼 새 줄 없음' : nPick ? `체크한 ${nPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>
             <button class="btn btn-sm btn-danger-ghost" type="button" data-act="org-item-undo" data-item="${e(item)}" ${inSheet && !org.busy ? '' : 'disabled'} title="복지관 시트에 들어간 이 달 '${e(item)}' 줄을 모두 지워요">보낸 것 취소${inSheet ? ` (${inSheet}줄)` : ''}</button></div>` : ''}</div>
         ${isEtc ? (etc.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr><th class="sh-side sh-pick"><input type="checkbox" data-act="org-pick-all" data-item="${e(item)}" ${allK.length && allK.every(k => org.pick.has(k)) ? 'checked' : ''} ${allK.length && !org.busy ? '' : 'disabled'} title="이 항목 새 줄 모두 고르기" aria-label="모두 고르기"></th>${H(etcHead)}<th class="sh-side">결과</th><th class="sh-side">담당</th></tr></thead><tbody>${etcRowsOf(etc)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')
           : (need.length ? `<div class="table-wrap sh-wrap"><table class="sh-tbl"><thead><tr><th class="sh-side sh-pick"><input type="checkbox" data-act="org-pick-all" data-item="${e(item)}" ${allK.length && allK.every(k => org.pick.has(k)) ? 'checked' : ''} ${allK.length && !org.busy ? '' : 'disabled'} title="이 항목 새 줄 모두 고르기" aria-label="모두 고르기"></th>${H(genHead)}<th class="sh-side"></th><th class="sh-side">결과</th><th class="sh-side">참고 (사업체·담당)</th></tr></thead><tbody>${genRowsOf(need)}</tbody></table></div>` : '<p class="sub">이 달 사이트에 넣은 실적이 없어요.</p>')}
       </section>`;
     }).join('');
     const add = r ? r.add.gen + r.add.etc : 0;
+    const open = sendOpen(f.month), admin = S.isAdmin(), canSend = open || admin;
+    const dayBox = open ? `<div class="os-day open">📅 오늘은 <b>${m}월 실적을 보내는 날</b>이에요 (${sendDayLabel(f.month)}).</div>`
+      : `<div class="os-day">📅 ${m}월 실적은 <b>${sendDayLabel(f.month)}</b> 하루만 보낼 수 있어요 (그 달 마지막 평일). 지금은 미리보기·이름 넣기·비교만 돼요.${admin ? ' <span class="sub">관리자는 확인을 한 번 더 누르면 지금도 보낼 수 있어요.</span>' : ''}</div>`;
     const totalPick = [...org.pick].filter(k => ekAll.includes(k) || rows.need.some(n => namesOf(n).some(nm => genPick(n.key, nm) === k))).length;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
@@ -1549,10 +1663,12 @@ window.App = (() => {
         <p>복지관 실적 시트에 <b>실적(일반) ${done.add.gen}줄</b> · <b>실적(기타) ${done.add.etc}줄</b>을 맨 아래에 넣었어요.${done.dup.gen + done.dup.etc ? ` 이미 들어가 있던 ${done.dup.gen + done.dup.etc}줄은 건너뛰었어요.` : ''}</p>
         <ul class="sub"><li>이용자번호·장애유형·대분류 같은 칸은 복지관 시트의 식이 알아서 채워요.</li><li>아래 표의 결과가 <b>"이미 있음"</b>으로 바뀌었으면 들어간 거예요. 다시 눌러도 두 번 들어가지 않아요.</li><li>잘못 보냈으면 그 항목의 <b>보낸 것 취소</b>를 누르세요.</li></ul>
         <a class="btn btn-sm" href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트에서 확인하기 ↗</a></div>` : ''}
+      ${dayBox}
       ${state}
+      <datalist id="clNames">${(S.get().clients || []).map(c => `<option value="${e(c.name)}">`).join('')}</datalist>
       ${!org.busy && why.length ? `<div class="os-why"><b>안 보내지는 줄이 있는 이유</b><ul>${why.join('')}</ul></div>` : ''}
       ${!org.busy ? dupBox : ''}
-      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
+      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy && canSend ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${blocks || '<p class="sub">이 달 보낼 실적이 없어요.</p>'}
     </section>`;
@@ -1589,6 +1705,15 @@ window.App = (() => {
     if (top.type === 'kead') {
       inner.innerHTML = IMP.keadHtml(top.state);
       showDrawer();
+      return;
+    }
+    if (top.type === 'client') {
+      const c = S.find('cl', top.id);
+      if (!c) { stack.pop(); return renderDrawer(); }
+      inner.innerHTML = CL.detailHtml(c);
+      showDrawer();
+      if (c.no) CL.loadInfo([c.no], () => { if (stack[stack.length - 1] === top) renderDrawer(true); });
+      if (oldScroll) inner.querySelector('.dr-body').scrollTop = oldScroll;
       return;
     }
     if (top.type === 'dpsum') {
@@ -2463,6 +2588,32 @@ window.App = (() => {
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
+    'cl-view': el => { CL.ui.view = el.dataset.v; render(); },
+    'cl-open': el => push({ type: 'client', id: el.dataset.id }, false),
+    'cl-add': el => {
+      const u = (CL.ui.found || [])[+el.dataset.i]; if (!u) return;
+      if (S.get().clients.some(c => c.no && c.no === u.no)) return toast(`${u.name}은(는) 이미 등록돼 있어요.`, 'error');
+      CL.ui.info[u.no] = u;
+      const c = CL.addFrom(u); CL.ui.found = null; CL.ui.find = '';
+      toast(`${u.name}을(를) 이용자로 등록했어요. 1단계(초기면접)부터 시작해요.`); push({ type: 'client', id: c.id }, false);
+    },
+    'cl-add-manual': () => {
+      const name = (prompt('이용자 이름을 적어 주세요. (이용자입력에 없는 사람이라 이용자번호·기본 정보는 비어 있어요)', CL.ui.find || '') || '').trim();
+      if (!name) return;
+      const c = CL.addFrom({ name }); CL.ui.found = null; CL.ui.find = '';
+      toast(`${name}을(를) 이용자로 등록했어요.`); push({ type: 'client', id: c.id }, false);
+    },
+    'cl-stage': el => { const c = S.find('cl', el.dataset.id); if (!c) return; CL.setStage(c, el.dataset.stage); toast(`${c.name}: 지금 단계를 '${el.dataset.stage}'(으)로 바꿨어요.`); },
+    'cl-save': el => {
+      const f = $('#clForm'); if (!f) return;
+      const fd = Object.fromEntries(new FormData(f).entries());
+      S.upsert('cl', { id: el.dataset.id, ...fd }); toast('저장했어요.');
+    },
+    'cl-del': async el => {
+      const c = S.find('cl', el.dataset.id); if (!c) return;
+      if (!(await confirmBox(`${c.name}을(를) 이용자 목록에서 뺄까요?`, '우리 사이트의 과정 단계·직업욕구·메모만 지워져요. 복지관 시트의 이용자 정보와 실적은 그대로예요.', '빼기'))) return;
+      const undo = S.remove('cl', c.id); closeDrawer(); toast(`${c.name}을(를) 뺐어요.`, '', undo ? { undo } : {});
+    },
     'org-pick': el => { const k = el.dataset.k; if (el.checked) org.pick.add(k); else org.pick.delete(k); bindPerf(); },
     'org-pick-all': el => {
       const item = el.dataset.item, f = V.ui.perf, rows = orgPerfRows(f.month, f.set), r = org.res; if (!r) return;
@@ -3082,6 +3233,8 @@ window.App = (() => {
     });
     $('#scrim').onclick = closeDrawer;
     document.addEventListener('change', ev => {
+      const cd = ev.target.closest('[data-cl-date]');
+      if (cd) { if (!allowed([['clients', 2]])) return; const c = S.find('cl', cd.dataset.id); if (c) S.upsert('cl', { id: c.id, stages: { ...(c.stages || {}), [cd.dataset.clDate]: cd.value } }); return; }
       const el = ev.target.closest('[data-chg]');
       if (!el) return;
       const { id, field } = el.dataset;
@@ -3229,6 +3382,16 @@ window.App = (() => {
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
         return;
       }
+      if (form.dataset.form === 'cl-find') {
+        const q = ($('#clFind')?.value || '').trim(); CL.ui.find = q;
+        if (!q) return;
+        if (!S.REMOTE) { CL.ui.found = []; return render(); }
+        CL.ui.finding = true; render();
+        try { CL.ui.found = await S.call('api_orgUserSearch', { q, sheet: S.get().settings.orgPerfSheet || '' }); }
+        catch (err) { CL.ui.found = null; toast('복지관 이용자 명단을 읽지 못했어요: ' + ((err && err.message) || err), 'error'); }
+        CL.ui.finding = false; render(); setTimeout(() => $('#clFind')?.focus(), 0);
+        return;
+      }
       if (form.dataset.form === 'place-q') { placeSearch(($('#placeQ')?.value || '').trim()); return; }
       if (form.dataset.form === 'quick-log') {
         const fd = Object.fromEntries(new FormData(form).entries());
@@ -3262,7 +3425,7 @@ window.App = (() => {
       if (route() === 'attend' && $('#atResults')) { bindAttend(); renderNav(); }
       else if (route() === 'map' && V.ui.map.mode !== 'city' && bigMap && $('#mapList')) softMap();
       else if (route() !== 'map' || !drawerOpen()) render(); else { refreshMap(false); renderNav(); }
-      if (drawerOpen() && stack[stack.length - 1]?.type === 'detail') renderDrawer(true);
+      if (drawerOpen() && ['detail', 'client'].includes(stack[stack.length - 1]?.type)) renderDrawer(true);
     });
   }
 

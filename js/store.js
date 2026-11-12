@@ -22,10 +22,12 @@ window.S = (() => {
   SHEETS.jobPeople = ['일자리참여자', [['id', '참여자ID'], ['no', '번호'], ['name', '성명'], ['type', '구분'], ['sub', '유형'], ['birth', '생년월일'], ['start', '참여시작일'], ['end', '참여종료일'], ['pattern', '요일별 시간(월~금)'], ['place', '근무처'], ['staff', '담당 직원'], ['memo', '메모'], ['src', '불러온 자료'], ['createdAt', '등록일'], ['updatedAt', '수정일']]];
   SHEETS.attends = ['출석부', [['id', '기록ID'], ['pid', '참여자ID'], ['month', '월'], ['days', '날짜별 기록'], ['src', '불러온 자료']]];
   SHEETS.trainPlans = ['훈련일정', [['id', '칸ID'], ['date', '날짜'], ['slot', '시간대(오전/오후/종일/라벨/안내)'], ['cat', '훈련 구분'], ['content', '내용'], ['color', '칸 색'], ['fmt', '서식(글씨·체크)'], ['cls', '반'], ['src', '불러온 자료']]];
+  // 이용자 관리(현장중심): 복지관 시트 '이용자입력'의 이용자번호·이름 + 우리가 적는 과정 단계·직업욕구. 생년월일·장애정보는 저장하지 않고 그때그때 불러온다
+  SHEETS.clients = ['이용자관리', [['id', '이용자관리ID'], ['no', '이용자번호'], ['name', '이름'], ['stage', '현재 단계'], ['stages', '단계별 날짜'], ['job', '희망 직종'], ['area', '희망 근무지역'], ['hours', '근무 시간'], ['pay', '희망 급여'], ['move', '이동 수단'], ['cert', '자격·경력'], ['memo', '메모'], ['staff', '담당'], ['createdAt', '등록일'], ['updatedAt', '고친 날']]];
   const STAFF_SHEET = ['직원', [['name', '이름'], ['program', '소속 사업']]];
   const DATE_KEYS = new Set(['discoveredAt', 'since', 'metAt', 'date', 'createdAt', 'updatedAt', 'researchAt']);
   const NUM_KEYS = new Set(['employees', 'placements', 'lat', 'lng', 'people', 'newPeople']);
-  const JSON_KEYS = new Set(['survey', 'jobAnalyses', 'fmt', 'info']);
+  const JSON_KEYS = new Set(['survey', 'jobAnalyses', 'fmt', 'info', 'stages']);
   const COLS = Object.keys(SHEETS);
 
   function toRow(col, x) {
@@ -376,8 +378,8 @@ window.S = (() => {
   }
 
   /* ---------- CRUD ---------- */
-  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips', jp: 'jobPeople', att: 'attends', tp: 'trainPlans' };
-  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T', jp: 'J', att: 'W', tp: 'R' };
+  const COL = { biz: 'businesses', net: 'networks', card: 'cards', act: 'activities', ev: 'events', perf: 'perfs', trip: 'trips', jp: 'jobPeople', att: 'attends', tp: 'trainPlans', cl: 'clients' };
+  const PREFIX = { biz: 'B', net: 'N', card: 'C', act: 'A', ev: 'E', perf: 'P', trip: 'T', jp: 'J', att: 'W', tp: 'R', cl: 'L' };
   const find = (kind, id) => state[COL[kind]].find(x => x.id === id);
   const photoCache = new Map();
 
@@ -671,6 +673,7 @@ window.S = (() => {
       events: state.events.filter(x => (x.staff ? inSc(x.staff) : inT(x))),
       perfs: state.perfs.filter(p => inSc(p.staff)),
       trips: state.trips.filter(t => inSc(t.staff)),
+      clients: state.clients.filter(c => inSc(c.staff)),
     };
   }
 
