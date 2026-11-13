@@ -19,3 +19,5 @@
 .app-relogin { position: fixed; left: 12px; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 8px); z-index: 9998; background: #fff7e0; border: 1px solid #f0c36d; border-radius: 12px; padding: 10px 12px; font-size: 14px; line-height: 1.5; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .app-install { position: fixed; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); z-index: 900; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
 @media (display-mode: standalone) { .app-install { display: none; } }
+
+.app-upd { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 64px); z-index: 1200; border: 0; border-radius: 999px; padding: 10px 18px; background: #0F0F0F; color: #fff; font: inherit; font-size: 14px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,.2); cursor: pointer; }

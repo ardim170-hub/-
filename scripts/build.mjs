@@ -42,7 +42,8 @@ const src = read('index.html').replace('<script src="vendor/leaflet.js"></script
 const CDN = {
   'vendor/leaflet.css': '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">',
   'vendor/leaflet.js': '<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>',
-  'vendor/xlsx.full.min.js': '<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>',
+  // 엑셀 라이브러리는 커서(약 900KB) 처음 화면을 막지 않게 defer: 엑셀 넣기·내보내기 때만 쓴다
+  'vendor/xlsx.full.min.js': '<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>',
 };
 
 function build(useCdn) {
@@ -107,7 +108,7 @@ const webHtml = build(true)
   .replace(/(<meta name="viewport"[^>]*>)/, m => `${m}\n${webHead}`);
 if (!webHtml.includes('bridge.js') && !webHtml.includes('APP_CONFIG')) throw new Error('앱 버전에 통로(bridge)가 안 들어갔습니다');
 writeFileSync(join(WEB, 'index.html'), webHtml);
-writeFileSync(join(WEB, 'sw.js'), read('web/sw.js').replace("'ardim-app-v1'", JSON.stringify('ardim-app-' + stamp.replace(/\D/g, ''))));
+writeFileSync(join(WEB, 'sw.js'), read('web/sw.js')); // 저장소 이름은 그대로 (새 화면은 sw.js가 뒤에서 받아 바꾼다)
 copyFileSync(join(root, 'web', 'manifest.webmanifest'), join(WEB, 'manifest.webmanifest'));
 for (const n of ['icon-192', 'icon-512', 'maskable-512', 'apple-touch-icon']) copyFileSync(join(root, 'web', 'icons', `${n}.png`), join(WEB, 'icons', `${n}.png`));
 console.log(`앱 버전: dist/web/ (${kb(join(WEB, 'index.html'))}) → Firebase 호스팅`);

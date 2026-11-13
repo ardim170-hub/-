@@ -267,11 +267,12 @@ window.S = (() => {
   let lastSig = '';
   let aiServer = false;
   let writeSeq = 0, refreshT = null; // 이 컴퓨터에서 바꿀 때마다 1씩 는다
-  async function refresh() {
-    if (!REMOTE || pending) return;
+  async function refresh(first) {
+    if (!REMOTE || (pending && !first)) return;
     const seq = writeSeq;
     try {
       const res = await call('api_load', schema());
+      cacheWrite(res);
       // 불러오는 사이에 이 컴퓨터에서 입력·저장이 있었으면, 받은 내용은 그 전 것이라 버리고 잠시 뒤 다시 받는다
       if (pending || seq !== writeSeq || outbox.length) { clearTimeout(refreshT); refreshT = setTimeout(refresh, 4000); return; }
       const before = JSON.stringify(access);
@@ -302,12 +303,36 @@ window.S = (() => {
   }
 
   /* ---------- 초기화 ---------- */
+  /* ---------- 빠른 시작: 지난번에 받은 데이터를 이 기기에 두었다가 먼저 보여 주고, 최신 내용은 뒤에서 받아 바꾼다 ---------- */
+  const CACHE_KEY = 'remoteCache';
+  async function cacheRead() {
+    try { const db = await openDb(); return await new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(CACHE_KEY); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); } catch { return null; }
+  }
+  let cacheT = null;
+  function cacheWrite(res) {
+    clearTimeout(cacheT);
+    cacheT = setTimeout(async () => { try { const db = await openDb(); db.transaction('kv', 'readwrite').objectStore('kv').put({ at: Date.now(), res }, CACHE_KEY); } catch {} }, 1500);
+  }
+  async function clearCache() {
+    try { const db = await openDb(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').delete(CACHE_KEY); t.oncomplete = res; t.onerror = res; }); } catch {}
+  }
+
   async function init() {
     if (REMOTE) {
-      const res = await call('api_load', schema());
-      state = applyOutbox(fromServer(res));
-      lastSig = JSON.stringify(state);
-      setSync('saved');
+      const cached = await cacheRead();
+      if (cached && cached.res && cached.res.sheets) {
+        // 저장해 둔 것으로 바로 화면을 연다 (위쪽에 '불러오는 중'). 받은 최신 내용이 다르면 화면을 바꾼다
+        state = applyOutbox(fromServer(cached.res));
+        lastSig = JSON.stringify(state);
+        setSync('loading');
+        setTimeout(() => refresh(true), 0);
+      } else {
+        const res = await call('api_load', schema());
+        state = applyOutbox(fromServer(res));
+        lastSig = JSON.stringify(state);
+        cacheWrite(res);
+        setSync('saved');
+      }
       if (outbox.length) setTimeout(flush, 500); // 지난번에 못 보낸 기록부터 보낸다
       setInterval(refresh, 30000);
       window.addEventListener('online', flush);
@@ -937,6 +962,7 @@ window.S = (() => {
     REMOTE, isAdmin, level, can, accessInfo, supportOf, bizTone, isHome, dupIndex, dupesOf, merge, matchPlaces, linkCard, init, get, commit, subscribe, replace, mergeIn, splitPerfPlaces, saveSettings, reload, whenSaved, presence, find, upsert, upsertMany, putMany, removeMany, remove, photo, refine,
     get aiServer() { return aiServer; }, call: (fn, ...a) => call(fn, ...a),
     staff, staffHere, inScope, programOf, programsOf, perfSetOf, perfOf, isPerfEntry, isPending, perfRows, pplOf, perfCount, NO_PEOPLE, perfLeft, bizFirst, perfDate, perfTable, getScope, setScope, scopeLabel, me, setMe, view,
+    clearCache,
     actsOf, eventsOf, cardsOf, lastAct, nextEvent, targetOf, linkOf, stats, staffStats, monthly, priorities, recentActs, search,
     exportXlsx, parseXlsx, exportJson, templateXlsx, refresh, SHEETS,
     sync, outboxSize, flush, onSync: fn => { syncListeners.add(fn); return () => syncListeners.delete(fn); },

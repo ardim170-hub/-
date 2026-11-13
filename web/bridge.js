@@ -83,7 +83,8 @@
     var t = token();
     ls.del(TOKEN_KEY); ss.del(TOKEN_KEY); ls.del(HINT_KEY); ls.del(RUN_KEY);
     if (t) { try { fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(t), { method: 'POST' }); } catch (e) {} }
-    setTimeout(function () { location.replace(location.pathname); }, 300);
+    // 이 기기에 저장해 둔 데이터(빠른 시작용)도 지운다
+    Promise.resolve(window.S && S.clearCache ? S.clearCache() : null).then(function () { location.replace(location.pathname); });
   }
   window.AppAuth = { login: login, logout: logout, token: token, keep: keep, email: function () { return ls.get(HINT_KEY) || ''; } };
 
@@ -222,7 +223,16 @@
 
   /* ---------- 4) 휴대폰에 화면 저장 (앱 설치·빠른 실행) ---------- */
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
-    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').then(function (r) { r.update(); }).catch(function () {}); });
+    // 새 버전을 받아 두었으면 알려 준다 (누르면 바로 적용, 안 눌러도 다음에 열 때 적용)
+    navigator.serviceWorker.addEventListener('message', function (e) {
+      if (!e.data || e.data.type !== 'app-updated' || document.getElementById('appUpd')) return;
+      var b = document.createElement('button');
+      b.id = 'appUpd'; b.type = 'button'; b.className = 'app-upd';
+      b.textContent = '✨ 새 버전이 있어요 · 눌러서 적용';
+      b.onclick = function () { location.reload(); };
+      document.body.appendChild(b);
+    });
   }
   // 설치 버튼: 안드로이드 크롬은 설치 가능할 때 알려 준다 → 화면 위쪽 '앱 설치' 버튼으로 보여 준다
   window.addEventListener('beforeinstallprompt', function (e) {
