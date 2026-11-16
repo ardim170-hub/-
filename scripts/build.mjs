@@ -110,5 +110,6 @@ if (!webHtml.includes('bridge.js') && !webHtml.includes('APP_CONFIG')) throw new
 writeFileSync(join(WEB, 'index.html'), webHtml);
 writeFileSync(join(WEB, 'sw.js'), read('web/sw.js')); // 저장소 이름은 그대로 (새 화면은 sw.js가 뒤에서 받아 바꾼다)
 copyFileSync(join(root, 'web', 'manifest.webmanifest'), join(WEB, 'manifest.webmanifest'));
+writeFileSync(join(WEB, 'version.json'), JSON.stringify({ v: stamp })); // 앱이 새 버전이 있는지 확인하는 데 쓴다
 for (const n of ['icon-192', 'icon-512', 'maskable-512', 'apple-touch-icon']) copyFileSync(join(root, 'web', 'icons', `${n}.png`), join(WEB, 'icons', `${n}.png`));
 console.log(`앱 버전: dist/web/ (${kb(join(WEB, 'index.html'))}) → Firebase 호스팅`);

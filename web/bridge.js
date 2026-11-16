@@ -222,17 +222,32 @@
   window.google.script = { run: runner(null, null) };
 
   /* ---------- 4) 휴대폰에 화면 저장 (앱 설치·빠른 실행) ---------- */
-  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').then(function (r) { r.update(); }).catch(function () {}); });
     // 새 버전을 받아 두었으면 알려 준다 (누르면 바로 적용, 안 눌러도 다음에 열 때 적용)
-    navigator.serviceWorker.addEventListener('message', function (e) {
-      if (!e.data || e.data.type !== 'app-updated' || document.getElementById('appUpd')) return;
+    var showUpd = function () {
+      if (document.getElementById('appUpd') || !document.body) return;
       var b = document.createElement('button');
       b.id = 'appUpd'; b.type = 'button'; b.className = 'app-upd';
       b.textContent = '✨ 새 버전이 있어요 · 눌러서 적용';
-      b.onclick = function () { location.reload(); };
+      b.onclick = function () {
+        b.textContent = '새 버전 받는 중…';
+        var go = function () { location.reload(); };
+        // 저장해 둔 화면을 지우고 새로 받는다 (데이터는 그대로)
+        (window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : Promise.resolve()).then(go, go);
+      };
       document.body.appendChild(b);
-    });
+    };
+    navigator.serviceWorker.addEventListener('message', function (e) { if (e.data && e.data.type === 'app-updated') showUpd(); });
+    // 이중 확인: 올라가 있는 버전 번호(version.json)와 지금 화면의 버전이 다르면 알린다
+    var verCheck = function () {
+      if (!window.APP_VERSION) return;
+      fetch('version.json?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (j && j.v && j.v !== window.APP_VERSION) showUpd();
+      }).catch(function () {});
+    };
+    window.addEventListener('load', function () { setTimeout(verCheck, 3000); });
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') setTimeout(verCheck, 1500); });
   }
   // 설치 버튼: 안드로이드 크롬은 설치 가능할 때 알려 준다 → 화면 위쪽 '앱 설치' 버튼으로 보여 준다
   window.addEventListener('beforeinstallprompt', function (e) {
