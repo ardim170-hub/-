@@ -2505,6 +2505,15 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 
 .or-sec-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .or-del { color: var(--danger); padding: 0 8px; }
+/* 대시보드 정리: 핵심 숫자 4칸, 나머지 현황은 접어 두기 */
+.kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dash-more { margin-top: 14px; }
+.dash-more > summary { cursor: pointer; list-style: none; display: flex; gap: 8px; align-items: baseline; }
+.dash-more > summary::-webkit-details-marker { display: none; }
+.dash-more > summary::before { content: "▸"; color: var(--text-2); }
+.dash-more[open] > summary::before { content: "▾"; }
+.dash-more .dash-grid { padding: 0 14px 14px; }
 
 </style>
 </head>
@@ -2592,7 +2601,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.16 11:53";</script>
+<script>window.APP_VERSION = "2026.11.16 12:17";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -4644,7 +4653,6 @@ window.V = (() => {
   function dashboard() {
     const st = S.stats();
     const pr = S.priorities().slice(0, 10);
-    const feed = S.recentActs(9);
     const org = S.get().settings.orgName;
     const kpi = (label, value, unit, foot, href, tone = '') => `<a class="kpi ${tone ? 'tone-' + tone : ''}" href="${href}"><div class="kpi-label">${label}</div><div class="kpi-value">${U.num(value)}<small>${unit}</small></div><div class="kpi-foot">${foot}</div></a>`;
     return `
@@ -4652,26 +4660,23 @@ window.V = (() => {
       ${window.DP ? DP.panel() : ''}
       ${quickLinks()}
       <section class="panel kpis" aria-label="주요 현황">
-        ${kpi('발굴 사업체', st.total, '곳', `이번 달 신규 ${st.newThisMonth}곳`, '#/biz', 'biz')}
-        ${kpi('진행 중', st.active, '곳', '접촉 · 방문상담 · 채용협의', '#/biz', 'biz')}
+        ${kpi('진행 중 사업체', st.active, '곳', `발굴 ${st.total}곳 중 · 접촉·방문상담·채용협의`, '#/biz', 'biz')}
         ${kpi('채용 연계', st.placedPeople, '명', `채용연계 사업체 ${st.placedBiz}곳`, '#/biz', 'placed')}
         ${kpi('네트워크 기관', st.netTotal, '곳', `활발히 협력 중 ${st.netActive}곳`, '#/network', 'net')}
         ${kpi('등록 명함', st.cardTotal, '장', `이번 달 받은 명함 ${st.cardsThisMonth}장`, '#/cards', 'card')}
       </section>
-      <div class="dash-grid dash-top">
-          <section class="panel panel-pad">
-            <div class="section-head"><h2 class="section-title">오늘 확인할 일</h2><a href="#/schedule" class="sub">일정 전체 보기</a></div>
-            ${pr.length ? `<ul class="prio">${pr.map(p => `
-              <li data-act="${p.target ? 'open' : 'go'}" data-kind="${p.target?.kind || ''}" data-id="${p.target?.id || ''}" data-href="#/schedule">
-                <span class="dday">${p.kind === 'gap' ? '<span class="badge warn">연락 필요</span>' : ddayBadge(p.date)}</span>
-                <span style="min-width:0"><span class="who">${e(p.name)}</span> <span class="why">· ${e(p.why)}</span>${p.staff && S.getScope() === 'all' ? ` <span class="why">· ${e(p.staff)}</span>` : ''}</span>
-                <span class="when">${p.kind === 'gap' ? '' : e(U.dateKo(p.date))}</span>
-              </li>`).join('')}</ul>` : emptyState('오늘 확인할 일이 없습니다', '다가오는 일정이나 연락이 필요한 사업체가 생기면 여기에 표시됩니다.')}
-          </section>
-          <section class="panel dash-cal" id="dashCal">${dashCal()}</section>
-      </div>
-      <div class="dash-grid">
-        <div class="stack">
+      <section class="panel panel-pad">
+        <div class="section-head"><h2 class="section-title">오늘 확인할 일</h2><a href="#/schedule" class="sub">달력·일정 전체는 '일정' 탭에서 ›</a></div>
+        ${pr.length ? `<ul class="prio">${pr.map(p => `
+          <li data-act="${p.target ? 'open' : 'go'}" data-kind="${p.target?.kind || ''}" data-id="${p.target?.id || ''}" data-href="#/schedule">
+            <span class="dday">${p.kind === 'gap' ? '<span class="badge warn">연락 필요</span>' : ddayBadge(p.date)}</span>
+            <span style="min-width:0"><span class="who">${e(p.name)}</span> <span class="why">· ${e(p.why)}</span>${p.staff && S.getScope() === 'all' ? ` <span class="why">· ${e(p.staff)}</span>` : ''}</span>
+            <span class="when">${p.kind === 'gap' ? '' : e(U.dateKo(p.date))}</span>
+          </li>`).join('')}</ul>` : emptyState('오늘 확인할 일이 없습니다', '다가오는 일정이나 연락이 필요한 사업체가 생기면 여기에 표시됩니다.')}
+      </section>
+      <details class="panel dash-more">
+        <summary class="panel-pad"><b>담당자별 현황 · 월별 발굴·채용연계</b> <span class="sub">눌러서 펼치기</span></summary>
+        <div class="dash-grid">
           ${staffPanel()}
           <section class="panel panel-pad">
             <div class="section-head"><h2 class="section-title">월별 발굴 · 채용연계</h2>
@@ -4679,25 +4684,7 @@ window.V = (() => {
             <div class="chart">${chart(S.monthly())}</div>
           </section>
         </div>
-        <div class="stack">
-          <section class="panel panel-pad">
-            <div class="section-head"><h2 class="section-title">단계별 사업체</h2><span class="sub num">전체 ${st.total}곳</span></div>
-            <div class="pipeline">${D.STAGES.map(s => {
-              const n = st.byStage[s.key] || 0;
-              const w = st.total ? Math.max(n ? 3 : 0, n / Math.max(...Object.values(st.byStage), 1) * 100) : 0;
-              return `<div class="pipe-row" data-act="biz-stage" data-stage="${s.key}" title="${e(s.desc)}"><span>${s.key}</span><span class="pipe-bar"><span style="width:${w}%;--c:${s.color}"></span></span><span class="n">${n}</span></div>`;
-            }).join('')}</div>
-            ${st.mandatoryBiz ? `<p class="sub" style="margin:12px 0 0">장애인 의무고용 대상(상시 50인 이상) 사업체 <b class="num">${st.mandatoryBiz}</b>곳</p>` : ''}
-          </section>
-          <section class="panel panel-pad">
-            <div class="section-head"><h2 class="section-title">최근 활동</h2></div>
-            ${feed.length ? `<ul class="feed">${feed.map(a => {
-              const t = S.targetOf(a);
-              return `<li class="sc-li" style="--sc:${staffColor(a.staff)}" title="${e(a.staff || '')}"><span class="d">${U.md(a.date)}</span><span class="t">${t ? `<b data-act="open" data-kind="${a.targetType}" data-id="${t.id}">${e(t.name)}</b> · ` : ''}<span>${e(a.type)}</span> <span class="c">${e(a.content)}</span>${a.staff ? ` <span class="sub nowrap">${staffDot(a.staff)}${e(a.staff)}</span>` : ''}</span></li>`;
-            }).join('')}</ul>` : emptyState('아직 활동 기록이 없습니다', '사업체나 기관 상세 화면에서 전화·방문 기록을 남겨 보세요.')}
-          </section>
-        </div>
-      </div>`;
+      </details>`;
   }
 
   /** 대시보드 달력: 날짜를 누르면 그날 일정을 바로 아래에 보여준다 */

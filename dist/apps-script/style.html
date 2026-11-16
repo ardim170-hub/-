@@ -2198,6 +2198,15 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 
 .or-sec-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .or-del { color: var(--danger); padding: 0 8px; }
+/* 대시보드 정리: 핵심 숫자 4칸, 나머지 현황은 접어 두기 */
+.kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.dash-more { margin-top: 14px; }
+.dash-more > summary { cursor: pointer; list-style: none; display: flex; gap: 8px; align-items: baseline; }
+.dash-more > summary::-webkit-details-marker { display: none; }
+.dash-more > summary::before { content: "▸"; color: var(--text-2); }
+.dash-more[open] > summary::before { content: "▾"; }
+.dash-more .dash-grid { padding: 0 14px 14px; }
 
-:root { --css-ver: "2026.11.16 11:53"; }
+:root { --css-ver: "2026.11.16 12:17"; }
 </style>
