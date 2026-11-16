@@ -62,7 +62,8 @@ window.R = (() => {
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
       </div>
       ${secStaffBar()}
-      <section class="panel panel-pad perf-input">
+      <a class="btn btn-primary mobile-only mob-cta" href="#/field">✏️ 현장 모드에서 바로 기록하기</a>
+      <section class="panel panel-pad perf-input desk-only">
         <div class="ct-add-head"><h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 곳은 <b>미등록</b>으로 연락이력에만 남아요. 아래 목록에서 <b>사업체 등록</b>을 눌러야 사업체 개발·지도에 올라가요</span></h2>
           <span class="ct-shot"><button class="btn btn-sm" type="button" data-act="ct-shot">📷 캡처로 채우기</button><span class="sub">구인공고·문자 캡처를 고르거나, 이 화면에서 <b>Ctrl+V</b>로 붙여넣으면 칸을 채워 줘요</span></span></div>
         <form class="perf-form" data-form="ct-add" autocomplete="off">

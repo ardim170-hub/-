@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.11.16 15:33";</script>
+<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.11.16 16:18";</script>
 <script>
 /* 공통 유틸: 날짜, 문자열, 포맷 */
 window.U = (() => {
@@ -2142,7 +2142,7 @@ window.V = (() => {
   }
 
   /* ================= 사업체·네트워크 (사업체 · 기관 · 명함 한 메뉴) ================= */
-  const HUB = [['biz', '사업체', 'biz'], ['network', '기관<i class="hub-long">·네트워크</i>', 'net'], ['outreach', '홍보<i class="hub-long">·방문처</i>', 'send'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
+  const HUB = [['map', '지도', 'map'], ['biz', '사업체', 'biz'], ['network', '기관<i class="hub-long">·네트워크</i>', 'net'], ['outreach', '홍보<i class="hub-long">·방문처</i>', 'send'], ['cards', '명함', 'card']];
   /** 검색어가 같은 탭마다 몇 개 걸리는지 (탭 옆 숫자) */
   function hubCounts(q = ui.hub.q) {
     const v = S.view();
@@ -2646,7 +2646,16 @@ window.V = (() => {
         <div class="inline"><button class="btn" type="button" data-act="ev-import">📂 엑셀·한글로 일정 불러오기</button><button class="btn btn-primary" type="button" data-act="new-event">+ 일정 등록</button></div>
       </div>
       ${calBar()}
-      
+      <section class="panel panel-pad st-board" aria-label="일정 칠판">
+        <div class="st-head"><h2 class="section-title">✏️ 일정 칠판 <span class="sub">한 줄로 쓰면 날짜·시간·종류·사업체를 알아서 나눠 넣어요</span></h2></div>
+        <form class="st-row" data-form="st-add" autocomplete="off">
+          <input class="input" id="stText" name="text" placeholder="예: 11/20~22 오후2시~4시 다온식품 면접 동행 · 내일 10시 매송면 행정복지센터 홍보" aria-label="일정 한 줄로 쓰기">
+          <label class="check st-skip"><input type="checkbox" id="stSkip" checked>기간이면 주말 빼기</label>
+          <button class="btn btn-primary" type="submit">등록</button>
+        </form>
+        <div id="stPrev" class="st-prev" aria-live="polite"></div>
+        <p class="sub st-tip">💡 오른쪽 달력에서 날짜를 <b>마우스로 끌면</b>(누른 채 옆 날짜로) 그 기간이 앞에 채워져요. 시간은 "10시", "오후 2시 반", "14:00~16:00"처럼, 날짜는 "11/20", "11월 20일", "내일", "다음주 수"처럼 써요.</p>
+      </section>
       <div class="chips sched-who" role="tablist" aria-label="직원별 일정">
         <button type="button" class="chip ${f.who === '' ? 'on' : ''}" data-act="sched-who" data-who="">모든 직원 <span class="n">${n('')}</span></button>
         ${S.staffHere().map(s => `<button type="button" class="chip ${f.who === s.name ? 'on' : ''}" data-act="sched-who" data-who="${e(s.name)}" style="--c:${staffColor(s.name)}"><span class="dot"></span>${e(s.name)} <span class="n">${n(s.name)}</span></button>`).join('')}

@@ -5,7 +5,7 @@ window.App = (() => {
   const NAV = [
     ['dashboard', '대시보드·일정', 'dash'],
     ['field', '현장 모드', 'phone'],
-    ['biz', '사업체·네트워크·지도', 'biz', () => S.get().businesses.length + S.get().networks.length],
+    ['biz', '지도·사업체·네트워크', 'biz', () => S.get().businesses.length + S.get().networks.length],
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력·현장', 'phone'],
@@ -18,9 +18,9 @@ window.App = (() => {
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
     { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'clients', 'biz', 'contacts', 'perf'],
-      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['biz', 'network', 'outreach', 'map', 'cards'], contacts: ['field', 'contacts'] }, desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['map', 'biz', 'network', 'outreach', 'cards'], contacts: ['field', 'contacts'] }, desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'contacts', 'perf'],
-      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['biz', 'network', 'map', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['map', 'biz', 'network', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
@@ -117,7 +117,7 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'fm-add': [['contacts', 2]], 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const FORM_GATES = { 'st-add': [['schedule', 2]], 'fm-add': [['contacts', 2]], 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
   const CHG_GATES = { 'or-etc': [['network', 2]], 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
@@ -749,9 +749,43 @@ window.App = (() => {
     window.addEventListener('afterprint', done);
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
+  /* ---------- 일정 칠판: 한 줄 입력 미리보기 + 달력 끌어서 기간 고르기 ---------- */
+  const stParse = () => ST.parse($('#stText')?.value || '', { skipWeekend: !!$('#stSkip')?.checked });
+  function stPreview() {
+    const box = $('#stPrev'); const t = $('#stText'); if (!box || !t) return;
+    if (!t.value.trim()) { box.innerHTML = ''; return; }
+    const p = stParse();
+    const days = p.dates.length;
+    const dl = days > 1 ? `${U.dateKo(p.dates[0])} ~ ${U.dateKo(p.dates[days - 1])} · <b>${days}건</b>` : U.dateKo(p.dates[0]) || '날짜 없음';
+    box.innerHTML = `<span class="st-chip">📅 ${dl}</span><span class="st-chip">⏰ ${U.esc(p.time || '시간 없음')}</span><span class="st-chip">🏷 ${U.esc(p.type)}</span>`
+      + `<span class="st-chip">${p.target ? `🏢 ${U.esc(p.target.name)}` : '연결 없음'}</span><span class="st-chip">👤 ${U.esc(p.staff || S.me() || '')}</span>`
+      + `<span class="st-chip st-title">📝 ${U.esc(p.title || (p.target ? p.type + ' - ' + p.target.name : p.type))}</span>`;
+  }
+  let calDrag = null, calDragJust = false;
   function bindSched() {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
+    const t = $('#stText');
+    if (t && !t.dataset.bound) { t.dataset.bound = '1'; t.addEventListener('input', stPreview); $('#stSkip')?.addEventListener('change', stPreview); }
+    stPreview();
+    const box = $('#calBox'); if (!box || box.dataset.drag) return;
+    box.dataset.drag = '1';
+    const mark = () => { const [a, b] = [calDrag.a, calDrag.b].sort(); box.querySelectorAll('.cal-day').forEach(c => c.classList.toggle('rng', c.dataset.date >= a && c.dataset.date <= b)); };
+    box.addEventListener('pointerdown', ev => { if (ev.pointerType !== 'mouse' || ev.button !== 0) return; const c = ev.target.closest('.cal-day'); if (!c) return; calDrag = { a: c.dataset.date, b: c.dataset.date, moved: false }; });
+    box.addEventListener('pointermove', ev => { if (!calDrag) return; const c = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('#calBox .cal-day'); if (c && c.dataset.date !== calDrag.b) { calDrag.b = c.dataset.date; calDrag.moved = true; mark(); } });
+    const end = () => {
+      if (!calDrag) return; const d = calDrag; calDrag = null;
+      if (!d.moved) return;
+      calDragJust = true; setTimeout(() => { calDragJust = false; }, 300);
+      const [a, b] = [d.a, d.b].sort(); const md = s => `${+s.slice(5, 7)}/${+s.slice(8, 10)}`;
+      const inp = $('#stText'); if (!inp) return;
+      inp.value = `${md(a)}~${md(b)} ` + inp.value.replace(/^\s*\d{1,2}[/.]\d{1,2}(\s*[~-]\s*\d{1,2}([/.]\d{1,2})?)?\s*/, '');
+      inp.dispatchEvent(new Event('input', { bubbles: true })); // 쓰던 내용 보관(초안)도 함께 바꾼다
+      inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); stPreview();
+      toast(`${U.dateKo(a)} ~ ${U.dateKo(b)} 기간을 골랐어요. 칠판에 시간·내용을 이어서 쓰고 등록하세요.`);
+    };
+    box.addEventListener('pointerup', end);
+    box.addEventListener('pointerleave', () => { if (calDrag && calDrag.moved) end(); else calDrag = null; });
   }
   /** 한 사람의 메뉴 권한 저장. 전부 기본값이면 지운다 */
   async function savePerms(email, p) {
@@ -1952,7 +1986,7 @@ window.App = (() => {
       if (bigMap && markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     },
     'map-focus': el => focusPlace(el.dataset.kind, el.dataset.id),
-    'cal-pick': el => { V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
+    'cal-pick': el => { if (calDragJust) return; V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
     'cal-move': el => { const [y, m] = V.ui.sched.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.sched.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
     'perf-month': el => { const [y, m] = V.ui.perf.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.perf.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'perf-set': el => { V.ui.perf.set = el.dataset.set; render(); },
@@ -2787,6 +2821,18 @@ window.App = (() => {
         hiddenHere(who);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
+        return;
+      }
+      if (form.dataset.form === 'st-add') {
+        const p = stParse();
+        if (!$('#stText').value.trim()) return toast('일정을 한 줄로 적어 주세요. 예: 내일 10시 다온식품 방문', 'error');
+        if (!p.dates.length) return toast('날짜를 알 수 없어요. "11/20"이나 "내일"처럼 적어 주세요.', 'error');
+        const evs = ST.toEvents(p);
+        S.upsertMany('ev', evs);
+        V.ui.sched.month = p.dates[0].slice(0, 7); V.ui.sched.sel = p.dates[0];
+        $('#stText').value = ''; clearDraft('st-add');
+        bindSched();
+        toast(`일정 ${evs.length}건을 넣었어요: ${U.dateKo(p.dates[0])}${evs.length > 1 ? ' 부터' : ''}${p.time ? ' ' + p.time : ''} ${evs[0].title}`);
         return;
       }
       if (form.dataset.form === 'fm-add') {

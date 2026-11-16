@@ -1,136 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.16 15:33";</script>
-<script>
-/* 이용자 관리 (현장중심): 복지관 시트 '이용자입력'에서 이용자를 골라 등록하고,
- * 과정도(대기자 → 초기면접 → 직업상담 → 사례회의 → 직업재활계획서 → 훈련대기 → 현장훈련 → 취업대기 → 취업알선 → 취업)에서 지금 어디까지 왔는지 관리한다.
- * 현장훈련·취업알선·취업은 사업체와 연결하고(예: 문○○ - ○○병원 (취업)), 퇴사·중단하면 대기자로 돌아가며 지난 기록(log)은 남긴다.
- * 우리 시트에는 이용자번호·이름·단계·직업욕구·메모만 두고, 성별·나이·장애정보는 복지관 시트에서 그때그때 불러온다 */
-window.CL = (() => {
-  const e = U.esc;
-  const ui = { q: '', view: 'board', find: '', found: null, finding: false, info: {}, infoAsked: new Set(), pick: null };
-  const STAGES = D.CLIENT_STAGES, BIZ = D.CLIENT_BIZ_STAGES;
-  // 예전 단계 이름 → 새 이름
-  const OLD = { '현장훈련 대기': '훈련대기', '취업 대기': '취업대기' };
-  const stageOf = c => { const st = OLD[c.stage] || c.stage; return STAGES.includes(st) ? st : STAGES[0]; };
-  const list = () => (S.view().clients || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  const stageIdx = c => STAGES.indexOf(stageOf(c));
-  const stageDate = (c, st) => { const m = c.stages || {}; return m[st] || m[Object.keys(OLD).find(k => OLD[k] === st)] || ''; };
-  const logOf = c => (Array.isArray(c.log) ? c.log : []);
-  /** 전에 취업·훈련했다가 그만두고 돌아온 적이 있나 */
-  const ends = c => logOf(c).filter(x => x.ev === 'end');
-  const bizLine = c => (c.biz && BIZ.includes(stageOf(c)) ? `${c.biz} (${stageOf(c)})` : '');
-  /** 복지관 시트에서 기본 정보(성별·나이·장애유형 등) 불러오기: 화면에 보이는 사람만, 한 번씩 */
-  function loadInfo(nos, done) {
-    const want = nos.filter(n => n && !ui.infoAsked.has(n));
-    if (!want.length || !S.REMOTE) return;
-    want.forEach(n => ui.infoAsked.add(n));
-    S.call('api_orgUserInfo', { nos: want, sheet: S.get().settings.orgPerfSheet || '' }).then(r => { Object.assign(ui.info, r || {}); done && done(); }).catch(() => {});
-  }
-  const infoLine = c => {
-    const i = ui.info[c.no];
-    if (!c.no) return '<span class="sub">이용자입력에 없음</span>';
-    if (!i) return S.REMOTE ? '<span class="sub">기본 정보 불러오는 중…</span>' : '';
-    return [i.sex, i.age && `${i.age}세`, i.type, i.grade && i.grade.replace('장애의 정도가 ', '').replace(' 장애인', ''), i.town].filter(Boolean).map(e).join(' · ');
-  };
-  /** 이 사람 이름으로 넣은 실적 (실적 화면에서 참여자로 적은 것) */
-  const perfsOf = c => [...S.get().perfs.filter(p => S.pplOf(p).includes(c.name)).map(p => ({ d: p.date, item: p.item, staff: p.staff })),
-    ...S.get().activities.filter(a => a.fromPerf === 'Y' && S.pplOf(a).includes(c.name)).map(a => ({ d: a.date, item: a.perf, staff: a.staff }))].sort((a, b) => b.d.localeCompare(a.d));
-
-  function page() {
-    const all = list(), q = ui.q.trim();
-    const rows = all.filter(c => !q || U.match(q, c.name, c.no, c.job, c.memo));
-    const counts = STAGES.map(st => rows.filter(c => stageOf(c) === st).length);
-    const board = `<div class="cl-board">${STAGES.map((st, k) => `<section class="cl-col${st === '대기자' ? ' wait' : BIZ.includes(st) ? ' biz' : ''}"><h3>${st === '대기자' ? '' : k + '. '}${e(st)} <span class="n">${counts[k]}</span></h3>
-        ${rows.filter(c => stageOf(c) === st).map(card).join('') || '<p class="sub cl-none">없음</p>'}</section>`).join('')}</div>`;
-    const table = `<div class="table-wrap"><table class="tbl cl-tbl"><thead><tr><th>이름</th><th>이용자번호</th><th>기본 정보</th><th>현재 단계</th><th>연결 사업체</th><th>희망 직종</th><th>담당</th></tr></thead><tbody>
-      ${rows.map(c => `<tr data-act="cl-open" data-id="${c.id}" class="click"><td><b>${e(c.name)}</b>${ends(c).length ? ' <span class="cl-re">재등록</span>' : ''}</td><td class="num">${e(c.no || '-')}</td><td>${infoLine(c)}</td><td>${stageBadge(c)}</td><td>${e(bizLine(c))}</td><td>${e(c.job || '')}</td><td>${e(c.staff || '')}</td></tr>`).join('') || '<tr><td colspan="7" class="sub">아직 등록한 이용자가 없어요.</td></tr>'}</tbody></table></div>`;
-    return `<div class="page-head"><div><h1 class="page-title">이용자</h1><div class="page-desc">복지관 이용자 명단에서 이용자를 골라 등록하고, 과정도에서 지금 어디까지 진행됐는지 관리해요. 현장훈련·취업알선·취업은 사업체와 연결하고, 퇴사하면 대기자로 돌아가도 지난 기록이 남아요. 성별·나이·장애정보는 복지관 시트에서 그때그때 불러와요.</div></div></div>
-      <section class="panel panel-pad cl-add">
-        <h2 class="section-title">+ 이용자 추가 <span class="sub">복지관 시트 '이용자입력'에서 찾아요</span></h2>
-        <form class="inline" data-form="cl-find" autocomplete="off"><input class="input" id="clFind" value="${e(ui.find)}" placeholder="이름 또는 이용자번호 (예: 홍길동, 2026-00012)" style="max-width:320px"><button class="btn btn-primary" type="submit" ${ui.finding ? 'disabled' : ''}>${ui.finding ? '찾는 중…' : '찾기'}</button></form>
-        ${foundHtml()}
-      </section>
-      <div class="toolbar"><input class="input" id="clQ" value="${e(ui.q)}" placeholder="등록한 이용자 찾기 (이름·번호·희망 직종)" style="max-width:320px">
-        <div class="seg"><button type="button" class="${ui.view === 'board' ? 'on' : ''}" data-act="cl-view" data-v="board">과정도 보기</button><button type="button" class="${ui.view === 'table' ? 'on' : ''}" data-act="cl-view" data-v="table">목록 보기</button></div>
-        <span class="sub">${rows.length}명</span></div>
-      ${ui.view === 'table' ? table : board}`;
-  }
-  const stageBadge = c => `<span class="cl-stage s${stageIdx(c)}">${stageIdx(c) ? stageIdx(c) + '. ' : ''}${e(stageOf(c))}</span>`;
-  const card = c => { const re = ends(c), last = re[re.length - 1];
-    return `<button type="button" class="cl-card" data-act="cl-open" data-id="${c.id}"><b>${e(c.name)}${re.length ? ' <span class="cl-re">재등록</span>' : ''}</b> <span class="sub num">${e(c.no || '')}</span>
-      <span class="cl-card-i">${infoLine(c)}</span>${bizLine(c) ? `<span class="cl-card-b">🏢 ${e(bizLine(c))}</span>` : ''}${c.job ? `<span class="cl-card-j">희망: ${e(c.job)}</span>` : ''}
-      ${last && stageOf(c) === '대기자' ? `<span class="cl-card-j">이전: ${e(last.biz || '')} ${e(last.stage)} → ${U.dateDot(last.d)} ${e(last.note || '종료')}</span>` : ''}
-      <span class="cl-dots">${STAGES.slice(1).map((st, k) => `<i class="${k + 1 <= stageIdx(c) ? 'on' : ''}" title="${e(st)} ${e(stageDate(c, st))}"></i>`).join('')}</span><span class="sub">${stageDate(c, stageOf(c)) ? U.dateDot(stageDate(c, stageOf(c))) : ''}${c.staff ? ' · ' + e(c.staff) : ''}</span></button>`; };
-  function foundHtml() {
-    if (!ui.found) return S.REMOTE ? '<div class="inline" style="margin-top:6px"><button class="btn btn-sm btn-ghost" type="button" data-act="cl-add-manual">이용자입력에 없는 사람으로 추가</button></div>' : '<p class="sub">팀 공유 사이트(구글 시트 연결)에서 복지관 이용자 명단을 찾을 수 있어요. 여기서는 이름만 적어 추가할 수 있어요.</p><div class="inline"><button class="btn btn-sm" type="button" data-act="cl-add-manual">이름만으로 추가</button></div>';
-    const have = new Set(S.get().clients.map(c => c.no).filter(Boolean));
-    return `<div class="cl-found">${ui.found.length ? ui.found.map((u, i) => `<div class="cl-found-row"><b>${e(u.name)}</b> <span class="num sub">${e(u.no)}</span>
-        <span class="sub">${[u.sex, u.age && u.age + '세', u.type, u.grade, u.town].filter(Boolean).map(e).join(' · ')}</span>
-        ${have.has(u.no) ? '<span class="badge">이미 등록됨</span>' : `<button class="btn btn-sm btn-primary" type="button" data-act="cl-add" data-i="${i}">추가</button>`}</div>`).join('')
-      : `<p class="sub">'${e(ui.find)}'을(를) 이용자입력에서 찾지 못했어요. 이름을 확인하거나, 복지관 시트에 먼저 등록해 주세요.</p>`}
-      <div class="inline" style="margin-top:6px"><button class="btn btn-sm" type="button" data-act="cl-add-manual">이용자입력에 없는 사람으로 추가</button></div></div>`;
-  }
-
-  /** 상세 (오른쪽 창) */
-  function detailHtml(c) {
-    const i = ui.info[c.no] || {}, k = stageIdx(c), ps = perfsOf(c), cur = stageOf(c), log = logOf(c);
-    const staff = S.staffHere().map(s => s.name);
-    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${e(c.name)} <span class="sub num">${e(c.no || '')}</span></h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
-      <p class="sub" style="margin:0">${c.no ? (ui.info[c.no] ? [i.sex, i.birth && `${i.birth} (${i.age}세)`, i.type, i.grade, [i.city, i.town].filter(Boolean).join(' '), i.income].filter(Boolean).map(e).join(' · ') : '기본 정보 불러오는 중…') : '이용자입력에 없는 사람이에요.'}</p></div>
-      <div class="dr-body">
-        <h3 class="dp-dr-h">과정도 <span class="sub">단계를 누르면 지금 단계가 바뀌고 그날 날짜가 남아요. 현장훈련·취업알선·취업은 사업체를 골라 연결해요</span></h3>
-        ${bizLine(c) ? `<div class="cl-now">🏢 <b>${e(c.biz)}</b> (${e(cur)}) ${stageDate(c, cur) ? `<span class="sub">${U.dateDot(stageDate(c, cur))}부터</span>` : ''}
-          <button class="btn btn-sm" type="button" data-act="cl-end" data-id="${c.id}">퇴사·중단 → 대기자로</button></div>` : ''}
-        <ol class="cl-steps">${STAGES.map((st, j) => `<li class="${st === '대기자' ? (cur === st ? 'cur wait' : 'wait') : j < k ? 'done' : j === k ? 'cur' : ''}"><button type="button" data-act="cl-stage" data-id="${c.id}" data-stage="${e(st)}"><b>${st === '대기자' ? '⏸' : j}</b><span>${e(st)}${BIZ.includes(st) && cur === st && c.biz ? ` · ${e(c.biz)}` : ''}</span></button>
-          <input class="input sm" type="date" data-cl-date="${e(st)}" data-id="${c.id}" value="${e(stageDate(c, st))}" aria-label="${e(st)} 날짜"></li>
-          ${ui.pick && ui.pick.id === c.id && ui.pick.stage === st ? pickHtml(c, st) : ''}`).join('')}</ol>
-        ${cur !== '대기자' && !bizLine(c) ? `<div class="inline" style="margin-top:8px"><button class="btn btn-sm btn-ghost" type="button" data-act="cl-end" data-id="${c.id}">중단 → 대기자로</button></div>` : ''}
-        <h3 class="dp-dr-h">지난 기록 <span class="sub">단계가 바뀔 때마다 남아요${ends(c).length ? ` · 퇴사·중단 ${ends(c).length}번` : ''}</span></h3>
-        ${log.length ? `<ul class="cl-log">${log.slice().reverse().map(x => `<li class="${x.ev === 'end' ? 'end' : ''}"><span class="num">${U.dateDot(x.d)}</span> ${x.ev === 'end' ? `<b>퇴사·중단</b> ${e(x.biz ? x.biz + ' ' : '')}${e(x.stage)}${x.note ? ' · ' + e(x.note) : ''} → 대기자` : `${e(x.stage)}${x.biz ? ' · 🏢 ' + e(x.biz) : ''}`}${x.by ? ` <span class="sub">${e(x.by)}</span>` : ''}</li>`).join('')}</ul>` : '<p class="sub">아직 없어요.</p>'}
-        <form id="clForm" data-id="${c.id}" autocomplete="off">
-          <h3 class="dp-dr-h">직업욕구</h3>
-          <div class="cl-needs">${D.CLIENT_NEEDS.map(([key, l]) => `<label>${l}<input class="input" name="${key}" value="${e(c[key] || '')}"></label>`).join('')}</div>
-          <label class="cl-memo">메모<textarea class="textarea" name="memo" rows="3">${e(c.memo || '')}</textarea></label>
-          <label>담당<select class="select" name="staff"><option value="">-</option>${[...new Set([...staff, c.staff].filter(Boolean))].map(n => `<option ${n === c.staff ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></label>
-          <div class="inline" style="margin-top:10px"><button class="btn btn-primary" type="button" data-act="cl-save" data-id="${c.id}">저장</button><button class="btn btn-danger-ghost" type="button" data-act="cl-del" data-id="${c.id}">이용자 목록에서 빼기</button></div>
-        </form>
-        <h3 class="dp-dr-h">이 사람 실적 <span class="sub">실적 화면에서 참여자로 넣은 것 ${ps.length}건</span></h3>
-        ${ps.length ? `<table class="tbl"><tbody>${ps.slice(0, 50).map(p => `<tr><td class="num nowrap">${U.dateDot(p.d)}</td><td>${e(p.item)}</td><td class="sub">${e(p.staff || '')}</td></tr>`).join('')}</tbody></table>` : '<p class="sub">아직 없어요. 실적을 넣을 때 참여자 칸에 이 이름을 적으면 여기 모여요.</p>'}
-      </div>`;
-  }
-
-  /** 사업체 고르기 (현장훈련·취업알선·취업): 이름을 쓰면 등록된 사업체에서 찾고, 없으면 쓴 이름 그대로 */
-  function pickHtml(c, st) {
-    const names = [...new Set(S.get().businesses.filter(b => !S.isPending(b)).map(b => b.name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ko'));
-    const def = BIZ.includes(stageOf(c)) ? c.biz || '' : (logOf(c).filter(x => x.biz).pop() || {}).biz || '';
-    return `<li class="cl-pick"><form data-form="cl-biz" data-id="${c.id}" data-stage="${e(st)}" autocomplete="off">
-      <label>${e(st)}할 사업체<input class="input" name="biz" list="clBizList" value="${e(st === '취업' || st === '현장훈련' ? def : '')}" placeholder="사업체 이름 (예: 빈센트병원)" required></label>
-      <datalist id="clBizList">${names.map(n => `<option value="${e(n)}">`).join('')}</datalist>
-      <label>날짜<input class="input" type="date" name="d" value="${U.today()}"></label>
-      <div class="inline"><button class="btn btn-sm btn-primary" type="submit">연결</button><button class="btn btn-sm" type="button" data-act="cl-pick-cancel">취소</button></div></form></li>`;
-  }
-  const logAdd = (c, x) => [...logOf(c), { by: S.me(), ...x }].slice(-200);
-  /** 단계 바꾸기: 고른 단계가 지금 단계가 되고, 날짜가 비어 있으면 오늘로. 사업체 단계면 사업체도 함께 */
-  function setStage(c, st, biz, d) {
-    const stages = { ...(c.stages || {}) };
-    const day = d || stages[st] || U.today();
-    stages[st] = day;
-    const patch = { id: c.id, stage: st, stages, log: logAdd(c, { d: day, stage: st, biz: BIZ.includes(st) ? (biz && biz.name) || '' : '' }) };
-    if (BIZ.includes(st)) { patch.biz = (biz && biz.name) || ''; patch.bizId = (biz && biz.id) || ''; }
-    else if (st !== '대기자') { patch.biz = ''; patch.bizId = ''; }
-    return S.upsert('cl', patch);
-  }
-  /** 퇴사·중단: 지금 단계·사업체를 지난 기록에 남기고 대기자로. 이번 과정의 단계 날짜는 비운다 */
-  function endNow(c, note, d) {
-    const day = d || U.today();
-    return S.upsert('cl', { id: c.id, stage: '대기자', stages: { '대기자': day }, biz: '', bizId: '', log: logAdd(c, { d: day, ev: 'end', stage: stageOf(c), biz: c.biz || '', note: note || '' }) });
-  }
-  function addFrom(u) {
-    return S.upsert('cl', { no: u.no || '', name: u.name, stage: '초기면접', stages: { '초기면접': U.today() }, log: [{ d: U.today(), stage: '초기면접', by: S.me() }], biz: '', bizId: '', staff: S.me(), job: '', area: '', hours: '', pay: '', move: '', cert: '', memo: '' });
-  }
-  return { ui, page, detailHtml, loadInfo, setStage, endNow, addFrom, list, stageOf, STAGES, BIZ };
-})();
-
-</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.16 16:18";</script>
 <script>
 /* 현장 모드: 밖에서 휴대폰으로 쓰는 첫 화면.
  * ① 사업체·기관 찾기 → 그곳의 연락이력(최신순)·명함·전화·길찾기
@@ -257,6 +125,120 @@ window.FM = (() => {
     return { kind: 'biz', x: b };
   }
   return { ui, page, newHtml, save, TYPES };
+})();
+
+</script>
+<script>
+/* 일정 칠판: 한 줄로 쓰면 날짜·시간·종류·대상을 알아서 나눠 일정으로 만든다.
+ * 예) "11/20~22 오후2시~4시 다온식품 면접 동행"  → 11/20, 11/21, 11/22 세 건 · 14:00~16:00 · 면접 동행 · 다온식품 연결
+ *     "내일 10시 매송면 행정복지센터 홍보"       → 내일 하루 · 10:00 · 홍보
+ *     "다음주 수 15:30 김정배 라온요양원 방문"    → 다음 주 수요일 · 담당 김정배
+ * 달력에서 날짜를 끌어(드래그) 고르면 그 기간이 앞에 채워진다 */
+window.ST = (() => {
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const WD = { 일: 0, 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6 };
+  const TYPE_WORDS = [['면접', '면접 동행'], ['동행', '면접 동행'], ['방문', '방문'], ['전화', '전화'], ['통화', '전화'], ['미팅', '미팅'], ['회의', '미팅'], ['상담', '미팅'], ['행사', '행사'], ['교육', '행사'], ['박람회', '행사'], ['설명회', '행사'], ['홍보', '홍보']];
+
+  /** 날짜 하나 읽기. 돌려주는 것: { date: 'YYYY-MM-DD', len } (못 읽으면 null) */
+  function dateAt(s, base) {
+    const T = new Date(base + 'T00:00:00');
+    let m;
+    if ((m = s.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})일?/))) return { date: `${m[1]}-${pad(m[2])}-${pad(m[3])}`, len: m[0].length };
+    if ((m = s.match(/^(\d{1,2})월\s*(\d{1,2})일?/)) || (m = s.match(/^(\d{1,2})[/.](\d{1,2})(?![\d:])/))) return { date: guessYear(+m[1], +m[2], T), len: m[0].length };
+    if ((m = s.match(/^(오늘|내일|모레)/))) { const d = new Date(T); d.setDate(d.getDate() + { 오늘: 0, 내일: 1, 모레: 2 }[m[1]]); return { date: ymd(d), len: m[0].length }; }
+    if ((m = s.match(/^(이번\s*주|다음\s*주|담주|다다음\s*주)?\s*([일월화수목금토])요?일?(?![가-힣])/)) && (m[1] || /요일/.test(m[0]))) {
+      const add = !m[1] ? 0 : /다다음/.test(m[1]) ? 14 : /다음|담주/.test(m[1]) ? 7 : 0;
+      const d = new Date(T); const mon = new Date(T); mon.setDate(T.getDate() - ((T.getDay() + 6) % 7)); // 이번 주 월요일
+      d.setTime(mon.getTime()); d.setDate(mon.getDate() + ((WD[m[2]] + 6) % 7) + add);
+      if (!m[1] && d < T) d.setDate(d.getDate() + 7); // '수요일'만 쓰면 다가오는 수요일
+      return { date: ymd(d), len: m[0].length };
+    }
+    return null;
+  }
+  /** 연도 없이 쓴 날짜: 지금보다 두 달 넘게 지난 날이면 내년으로 */
+  function guessYear(mo, d, T) {
+    let y = T.getFullYear();
+    const cand = new Date(y, mo - 1, d);
+    if ((T - cand) / 86400000 > 60) y++;
+    return `${y}-${pad(mo)}-${pad(d)}`;
+  }
+  /** 시간 하나 읽기 → [시, 분] */
+  function timeAt(s) {
+    let m = s.match(/^(오전|오후|아침|저녁|낮)?\s*(\d{1,2})\s*(?::\s*(\d{2})|시\s*(?:(\d{1,2})\s*분|(반))?)/);
+    if (!m) return null;
+    if (!m[3] && !/시/.test(m[0])) return null; // '14' 처럼 숫자만은 시간으로 보지 않는다
+    let h = +m[2]; const mi = m[3] ? +m[3] : m[4] ? +m[4] : m[5] ? 30 : 0;
+    if ((m[1] === '오후' || m[1] === '저녁') && h < 12) h += 12;
+    else if (!m[1] && h >= 1 && h <= 7) h += 12; // 1~7시는 오후(근무시간)
+    if (h > 23 || mi > 59) return null;
+    return { hm: `${pad(h)}:${pad(mi)}`, len: m[0].length };
+  }
+  const RANGE = /^\s*(?:~|-|–|부터|에서)\s*/;
+  const UNTIL = /^\s*까지/;
+
+  function parse(text, opt = {}) {
+    const base = opt.today || U.today();
+    let s = String(text || '').replace(/\s+/g, ' ').trim();
+    const out = { from: '', to: '', time: '', type: '', title: '', staff: '', target: null, dates: [] };
+    const cut = []; // 날짜·시간으로 쓴 부분은 제목에서 뺀다
+    // 앞에서부터 훑으며 날짜·시간 찾기
+    for (let i = 0; i < s.length; i++) {
+      if (i && /[0-9가-힣]/.test(s[i - 1]) && /[0-9]/.test(s[i])) continue; // 숫자 중간에서는 시작하지 않는다
+      const rest = s.slice(i);
+      if (!out.from) {
+        const a = dateAt(rest, base);
+        if (a) {
+          let len = a.len; out.from = a.date;
+          const r = rest.slice(len).match(RANGE);
+          if (r) {
+            const after = rest.slice(len + r[0].length);
+            const b = dateAt(after, base) || (() => { const m = after.match(/^(\d{1,2})일?(?![\d:시/.])/); return m ? { date: a.date.slice(0, 8) + pad(m[1]), len: m[0].length } : null; })();
+            if (b) { out.to = b.date; len += r[0].length + b.len; const u = rest.slice(len).match(UNTIL); if (u) len += u[0].length; }
+          }
+          cut.push([i, i + len]); i += len - 1; continue;
+        }
+      }
+      if (!out.time) {
+        const t = timeAt(rest);
+        if (t) {
+          let len = t.len; let tt = t.hm;
+          const r = rest.slice(len).match(RANGE);
+          if (r) { const t2 = timeAt(rest.slice(len + r[0].length)) || (() => { const m = rest.slice(len + r[0].length).match(/^(\d{1,2})(?:시|:(\d{2}))?/); if (!m) return null; let h = +m[1]; if (h <= 7) h += 12; if (h < +t.hm.slice(0, 2)) h += 12; return h <= 23 ? { hm: `${pad(h)}:${pad(m[2] || 0)}`, len: m[0].length } : null; })(); if (t2) { tt += '~' + t2.hm; len += r[0].length + t2.len; const u = rest.slice(len).match(UNTIL); if (u) len += u[0].length; } }
+          out.time = tt; cut.push([i, i + len]); i += len - 1; continue;
+        }
+      }
+    }
+    let title = s;
+    cut.sort((a, b) => b[0] - a[0]).forEach(([a, b]) => { title = title.slice(0, a) + ' ' + title.slice(b); });
+    // 종류
+    const tw = TYPE_WORDS.find(([w]) => title.includes(w));
+    out.type = tw ? tw[1] : '기타';
+    // 담당 직원 이름이 들어 있으면 그 사람 일정
+    const staff = (S.staff() || []).map(x => x.name).filter(Boolean).sort((a, b) => b.length - a.length).find(n => title.includes(n));
+    if (staff) { out.staff = staff; title = title.replace(staff, ' '); }
+    // 사업체·기관 이름이 들어 있으면 연결 (긴 이름 먼저)
+    const key = x => U.orgKey(x);
+    const tk = key(title);
+    const cands = [...S.get().businesses.map(x => ['biz', x]), ...S.get().networks.map(x => ['net', x])].filter(([, x]) => x.name && key(x.name).length >= 2 && tk.includes(key(x.name))).sort((a, b) => b[1].name.length - a[1].name.length);
+    if (cands[0]) out.target = { kind: cands[0][0], id: cands[0][1].id, name: cands[0][1].name };
+    out.title = title.replace(/\s+/g, ' ').replace(/^[\s,·/-]+|[\s,·/-]+$/g, '').trim();
+    // 날짜 목록 (주말 빼기 선택)
+    if (!out.from) out.from = base;
+    const to = out.to && out.to >= out.from ? out.to : out.from;
+    for (let d = out.from, n = 0; d <= to && n < 62; d = U.addDays(d, 1), n++) {
+      const wd = U.parse(d).getDay();
+      if (opt.skipWeekend && out.to && (wd === 0 || wd === 6)) continue;
+      out.dates.push(d);
+    }
+    return out;
+  }
+  /** 일정으로 만들기 */
+  function toEvents(p) {
+    const title = p.title || (p.target ? `${p.type} - ${p.target.name}` : p.type);
+    return p.dates.map(date => ({ date, time: p.time, type: p.type, title, targetType: p.target ? p.target.kind : '', targetId: p.target ? p.target.id : '', memo: '', staff: p.staff || S.me(), src: '칠판' }));
+  }
+  return { parse, toEvents };
 })();
 
 </script>
@@ -611,7 +593,7 @@ window.App = (() => {
   const NAV = [
     ['dashboard', '대시보드·일정', 'dash'],
     ['field', '현장 모드', 'phone'],
-    ['biz', '사업체·네트워크·지도', 'biz', () => S.get().businesses.length + S.get().networks.length],
+    ['biz', '지도·사업체·네트워크', 'biz', () => S.get().businesses.length + S.get().networks.length],
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
     ['contacts', '연락이력·현장', 'phone'],
@@ -624,9 +606,9 @@ window.App = (() => {
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
     { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'clients', 'biz', 'contacts', 'perf'],
-      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['biz', 'network', 'outreach', 'map', 'cards'], contacts: ['field', 'contacts'] }, desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['map', 'biz', 'network', 'outreach', 'cards'], contacts: ['field', 'contacts'] }, desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'contacts', 'perf'],
-      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['biz', 'network', 'map', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['map', 'biz', 'network', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
@@ -723,7 +705,7 @@ window.App = (() => {
     if (act === 'open') return [[KIND_MENU[d.kind], 1]];
     return GATES[act] || null;
   }
-  const FORM_GATES = { 'fm-add': [['contacts', 2]], 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
+  const FORM_GATES = { 'st-add': [['schedule', 2]], 'fm-add': [['contacts', 2]], 'cl-biz': [['clients', 2]], 'ct-add': [['contacts', 2]], 'perf-add': [['perf', 2]], 'sv-biz': [['biz', 2]], 'sv-job': [['biz', 2]] };
   const CHG_GATES = { 'or-etc': [['network', 2]], 'pa-field': [['perf', 2]], 'pf-field': [['perf', 2]], 'jp-field': [['attend', 2]], 'act-field': [['contacts', 2]] };
   const MENU_NAME = Object.fromEntries(D.PERM_MENUS);
   /** 권한이 모자라면 알리고 false */
@@ -1355,9 +1337,43 @@ window.App = (() => {
     window.addEventListener('afterprint', done);
     setTimeout(() => { window.print(); setTimeout(done, 1000); }, 50);
   }
+  /* ---------- 일정 칠판: 한 줄 입력 미리보기 + 달력 끌어서 기간 고르기 ---------- */
+  const stParse = () => ST.parse($('#stText')?.value || '', { skipWeekend: !!$('#stSkip')?.checked });
+  function stPreview() {
+    const box = $('#stPrev'); const t = $('#stText'); if (!box || !t) return;
+    if (!t.value.trim()) { box.innerHTML = ''; return; }
+    const p = stParse();
+    const days = p.dates.length;
+    const dl = days > 1 ? `${U.dateKo(p.dates[0])} ~ ${U.dateKo(p.dates[days - 1])} · <b>${days}건</b>` : U.dateKo(p.dates[0]) || '날짜 없음';
+    box.innerHTML = `<span class="st-chip">📅 ${dl}</span><span class="st-chip">⏰ ${U.esc(p.time || '시간 없음')}</span><span class="st-chip">🏷 ${U.esc(p.type)}</span>`
+      + `<span class="st-chip">${p.target ? `🏢 ${U.esc(p.target.name)}` : '연결 없음'}</span><span class="st-chip">👤 ${U.esc(p.staff || S.me() || '')}</span>`
+      + `<span class="st-chip st-title">📝 ${U.esc(p.title || (p.target ? p.type + ' - ' + p.target.name : p.type))}</span>`;
+  }
+  let calDrag = null, calDragJust = false;
   function bindSched() {
     $('#evList').innerHTML = V.evList();
     $('#calBox').innerHTML = V.calendar();
+    const t = $('#stText');
+    if (t && !t.dataset.bound) { t.dataset.bound = '1'; t.addEventListener('input', stPreview); $('#stSkip')?.addEventListener('change', stPreview); }
+    stPreview();
+    const box = $('#calBox'); if (!box || box.dataset.drag) return;
+    box.dataset.drag = '1';
+    const mark = () => { const [a, b] = [calDrag.a, calDrag.b].sort(); box.querySelectorAll('.cal-day').forEach(c => c.classList.toggle('rng', c.dataset.date >= a && c.dataset.date <= b)); };
+    box.addEventListener('pointerdown', ev => { if (ev.pointerType !== 'mouse' || ev.button !== 0) return; const c = ev.target.closest('.cal-day'); if (!c) return; calDrag = { a: c.dataset.date, b: c.dataset.date, moved: false }; });
+    box.addEventListener('pointermove', ev => { if (!calDrag) return; const c = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('#calBox .cal-day'); if (c && c.dataset.date !== calDrag.b) { calDrag.b = c.dataset.date; calDrag.moved = true; mark(); } });
+    const end = () => {
+      if (!calDrag) return; const d = calDrag; calDrag = null;
+      if (!d.moved) return;
+      calDragJust = true; setTimeout(() => { calDragJust = false; }, 300);
+      const [a, b] = [d.a, d.b].sort(); const md = s => `${+s.slice(5, 7)}/${+s.slice(8, 10)}`;
+      const inp = $('#stText'); if (!inp) return;
+      inp.value = `${md(a)}~${md(b)} ` + inp.value.replace(/^\s*\d{1,2}[/.]\d{1,2}(\s*[~-]\s*\d{1,2}([/.]\d{1,2})?)?\s*/, '');
+      inp.dispatchEvent(new Event('input', { bubbles: true })); // 쓰던 내용 보관(초안)도 함께 바꾼다
+      inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); stPreview();
+      toast(`${U.dateKo(a)} ~ ${U.dateKo(b)} 기간을 골랐어요. 칠판에 시간·내용을 이어서 쓰고 등록하세요.`);
+    };
+    box.addEventListener('pointerup', end);
+    box.addEventListener('pointerleave', () => { if (calDrag && calDrag.moved) end(); else calDrag = null; });
   }
   /** 한 사람의 메뉴 권한 저장. 전부 기본값이면 지운다 */
   async function savePerms(email, p) {
@@ -2558,7 +2574,7 @@ window.App = (() => {
       if (bigMap && markerGroup.getLayers().length) bigMap.fitBounds(markerGroup.getBounds(), { padding: [30, 30], maxZoom: 14 });
     },
     'map-focus': el => focusPlace(el.dataset.kind, el.dataset.id),
-    'cal-pick': el => { V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
+    'cal-pick': el => { if (calDragJust) return; V.ui.sched.sel = V.ui.sched.sel === el.dataset.date ? '' : el.dataset.date; bindSched(); },
     'cal-move': el => { const [y, m] = V.ui.sched.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.sched.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; bindSched(); },
     'perf-month': el => { const [y, m] = V.ui.perf.month.split('-').map(Number); const d = new Date(y, m - 1 + +el.dataset.d, 1); V.ui.perf.month = `${d.getFullYear()}-${U.pad(d.getMonth() + 1)}`; render(); },
     'perf-set': el => { V.ui.perf.set = el.dataset.set; render(); },
@@ -3393,6 +3409,18 @@ window.App = (() => {
         hiddenHere(who);
         setTimeout(() => { const r = document.querySelector(`#perfResults [data-row="${rec.id}"]`); if (r) r.scrollIntoView({ block: 'center', behavior: 'smooth' }); const fm = document.querySelector('[data-form="perf-add"]'); if (fm) fm.elements.name.focus(); }, 80);
         setTimeout(() => { if (V.ui.perf.flash === rec.id) V.ui.perf.flash = null; }, 4000);
+        return;
+      }
+      if (form.dataset.form === 'st-add') {
+        const p = stParse();
+        if (!$('#stText').value.trim()) return toast('일정을 한 줄로 적어 주세요. 예: 내일 10시 다온식품 방문', 'error');
+        if (!p.dates.length) return toast('날짜를 알 수 없어요. "11/20"이나 "내일"처럼 적어 주세요.', 'error');
+        const evs = ST.toEvents(p);
+        S.upsertMany('ev', evs);
+        V.ui.sched.month = p.dates[0].slice(0, 7); V.ui.sched.sel = p.dates[0];
+        $('#stText').value = ''; clearDraft('st-add');
+        bindSched();
+        toast(`일정 ${evs.length}건을 넣었어요: ${U.dateKo(p.dates[0])}${evs.length > 1 ? ' 부터' : ''}${p.time ? ' ' + p.time : ''} ${evs[0].title}`);
         return;
       }
       if (form.dataset.form === 'fm-add') {
