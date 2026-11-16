@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="../adapter.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>상담기록 불러오기</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="../shared/resume-templates.js"></script>
+<script src="../shared/resume-hwpx.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E9EDF1; --panel:#F7F9FB; --ink:#1D2733; --muted:#5B6878; --line:#C5CED8;
+  --accent:#1E5C8C; --accent-ink:#FFFFFF; --accent-soft:#DCE8F2;
+  --paper:#FFFFFF; --paper-ink:#111111; --warn:#9A4B00; --tag:#E4E9EE;
+  --made:#FFF3C4; --made-line:#E3C55A;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#161B21; --panel:#1F262E; --ink:#E4E9EF; --muted:#9AA7B5; --line:#38424D;
+    --accent:#6FA8D8; --accent-ink:#0E1A26; --accent-soft:#25384A;
+    --paper:#252C34; --paper-ink:#EEF1F4; --warn:#F0A65A; --tag:#2E3741;
+    --made:#3A3420; --made-line:#7A6A2E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#161B21; --panel:#1F262E; --ink:#E4E9EF; --muted:#9AA7B5; --line:#38424D;
+  --accent:#6FA8D8; --accent-ink:#0E1A26; --accent-soft:#25384A;
+  --paper:#252C34; --paper-ink:#EEF1F4; --warn:#F0A65A; --tag:#2E3741;
+  --made:#3A3420; --made-line:#7A6A2E;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 20px 48px;display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:900px){.wrap{grid-template-columns:1fr;padding:16px 16px 40px}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.full{grid-column:1/-1}
+h1{font-size:20px;margin:0 0 4px;font-weight:700}
+h2{font-size:17px;margin:0 0 4px;font-weight:700}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 12px}
+.back{display:inline-block;font-size:13.5px;color:var(--accent);text-decoration:none;font-weight:600;margin-bottom:4px}
+.back:hover{text-decoration:underline}
+input,select,textarea{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--paper);color:var(--paper-ink);width:100%;min-width:0}
+textarea{resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+.status{font-size:13.5px;margin-top:8px;min-height:1.4em;color:var(--muted)}
+.status.err{color:var(--warn)}
+.people{list-style:none;margin:10px 0 0;padding:0;max-height:60vh;overflow:auto;border-top:1px solid var(--line)}
+@media (max-width:900px){.people{max-height:320px}}
+.people button{display:block;width:100%;text-align:left;border:none;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:8px 6px;font-weight:400}
+.people button:hover{background:var(--accent-soft)}
+.people button[aria-current="true"]{background:var(--accent-soft);font-weight:700}
+.people small{color:var(--muted);display:block;font-size:12.5px}
+.info{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 16px;font-size:14px;margin:8px 0 0}
+.info div{min-width:0;overflow-wrap:anywhere}
+.info b{color:var(--muted);font-weight:500;margin-right:6px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0 8px}
+.bar .grow{flex:1}
+.recs{display:grid;gap:10px}
+.rec{border:1px solid var(--line);border-radius:8px;background:var(--paper);padding:10px 12px}
+.rec header{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rec header label{display:flex;gap:8px;align-items:center;font-weight:600;cursor:pointer}
+.rec header input{width:auto}
+.tag{font-size:12px;background:var(--tag);border-radius:4px;padding:1px 8px;color:var(--ink);font-weight:500}
+.rec .body{font-size:13.5px;white-space:pre-wrap;margin-top:6px;color:var(--paper-ink);overflow-wrap:anywhere}
+.rec .body.clip{max-height:7.5em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 70%,transparent)}
+.rec .more{border:none;background:none;color:var(--accent);padding:2px 0;font-size:13px}
+.empty{color:var(--muted);font-size:14px;padding:12px 0}
+.warnbox{font-size:13px;color:var(--warn);background:var(--accent-soft);border-radius:8px;padding:8px 12px;margin-top:12px}
+/* 이력서 칸 */
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;margin-top:16px}
+@media (max-width:420px){.rgrid{grid-template-columns:1fr}}
+.rgrid fieldset{border:1px solid var(--line);border-radius:8px;padding:10px 12px 12px;margin:0;min-width:0;background:var(--paper)}
+.rgrid fieldset.wide{grid-column:1/-1}
+.rgrid legend{font-weight:700;font-size:14px;padding:0 4px}
+.rf{display:grid;grid-template-columns:118px minmax(0,1fr);gap:6px 8px;align-items:center;margin-top:6px}
+.rf label{font-size:13px;color:var(--muted)}
+.rf input,.rf select,.rf textarea,.rtab input{font-size:13.5px;padding:5px 8px}
+.rf.long{grid-template-columns:1fr}
+.rf.long textarea{min-height:120px}
+.rchecks{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13.5px}
+.rchecks label{color:var(--ink);display:flex;gap:4px;align-items:center}
+.rchecks input{width:auto}
+.rtab{width:100%;border-collapse:collapse;margin-top:6px;table-layout:fixed}
+.rtab th{font-size:12px;color:var(--muted);font-weight:600;text-align:left;padding:2px 3px}
+.rtab td{padding:2px 3px}
+.rwrap{overflow-x:auto}
+.rwrap .rtab{min-width:620px}
+.rbtns{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+/* 자기소개서 문장 */
+.shelp{font-size:13px;color:var(--muted);margin:6px 0 0;line-height:1.8}
+.chip{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:0 6px;color:var(--ink);background:var(--paper)}
+.chip.made{background:var(--made);border-color:var(--made-line)}
+.scount{font-size:13.5px;font-weight:600;margin:0}
+.scount.left{color:var(--warn)}
+.stitle{font-weight:700;font-size:14px;margin:14px 0 4px}
+.srow{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:8px;align-items:start;padding:6px;border-radius:6px;margin-top:4px;border:1px solid transparent}
+.srow.made{background:var(--made);border-color:var(--made-line)}
+.srow textarea{font-size:13.5px;padding:5px 8px;min-height:3.4em}
+.sside{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.badge{font-weight:700;font-size:12px;color:var(--ink)}
+.srow.made .badge{color:var(--warn)}
+.sctl{display:flex;gap:4px;margin-top:2px}
+.sctl button,.sadd{padding:3px 10px;font-size:12.5px}
+.sadd{margin-top:6px}
+@media (max-width:600px){.srow{grid-template-columns:1fr}}
+.askbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:14px;white-space:pre-line}
+.askbox button{padding:6px 14px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="panel side" aria-labelledby="h1">
+    <a class="back" href="../01_hub/index.html">← 업무판으로</a>
+    <h1 id="h1">상담기록 불러오기</h1>
+    <p class="sub">참여자를 고르면 참여자 관리 DB에 있는 그분의 상담기록을 모두 불러옵니다. 고른 기록으로 이력서 초안을 만듭니다.</p>
+    <label for="q" class="sub" style="display:block;margin:0 0 4px;font-weight:600;color:var(--ink)">이름으로 찾기</label>
+    <input id="q" type="search" autocomplete="off" placeholder="예) 홍길동">
+    <div class="status" id="pStatus" role="status"></div>
+    <ul class="people" id="people"></ul>
+  </section>
+
+  <section class="panel" aria-labelledby="recH">
+    <h2 id="recH">상담기록</h2>
+    <div id="who" class="empty">왼쪽에서 참여자를 골라 주세요.</div>
+    <div id="recArea" hidden>
+      <div class="bar">
+        <span class="grow sub" style="margin:0" id="recCount"></span>
+        <button type="button" id="allOn">모두 고르기</button>
+        <button type="button" id="allOff">모두 빼기</button>
+      </div>
+      <div class="recs" id="recs"></div>
+      <label for="extra" class="sub" style="display:block;margin:16px 0 4px;font-weight:600;color:var(--ink)">더 적을 내용 (선택)</label>
+      <textarea id="extra" rows="3" placeholder="기록에 없는 학력·경력·취미 등을 적으면 이력서에 함께 넣습니다."></textarea>
+      <div class="bar">
+        <button class="primary" type="button" id="draftBtn">고른 기록으로 이력서 초안 만들기</button>
+        <span class="status" id="draftStatus" role="status" style="margin:0"></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel full" aria-labelledby="resH" id="resumeBox" hidden>
+    <h2 id="resH">이력서 작성</h2>
+    <p class="sub">칸을 확인하고 고친 뒤 원본 양식(한글 파일)으로 받으세요.</p>
+    <p class="warnbox">기록에 없는 내용은 비워 두었습니다. 주민등록번호와 사진 칸은 일부러 채우지 않으니 출력한 뒤 직접 적어 주세요. 자기소개서는 초안이니 본인과 함께 읽고 고쳐 주세요. 진단명·복용약은 본인이 동의한 경우에만 남겨 주세요.</p>
+    <div class="rgrid" id="resumeGrid"></div>
+    <div class="rbtns">
+      <button class="primary" id="resumeABtn" type="button">이력서(공단 양식) 한글 파일로 받기</button>
+      <button class="primary" id="resumeBBtn" type="button">이력서+자기소개서 한글 파일로 받기</button>
+    </div>
+    <div id="saveAsk"></div>
+    <div class="status" id="resumeNote" role="status"></div>
+  </section>
+</main>
+
+<script>
+(function(){
+  const SHEET="1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4", GS="Google Sheets";
+  const ORG={org:"화성시아르딤복지관",orgTel:"031-5183-8914",workerTel:"031-5183-8914"};
+  const $=s=>document.querySelector(s);
+  const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+  const S=v=>String(v==null?"":v).trim();
+  const norm=s=>S(s).replace(/\s/g,"");
+  const pad=n=>String(n).padStart(2,"0");
+  const toIso=s=>{const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(s||"");return m?m[1]+"-"+pad(m[2])+"-"+pad(m[3]):"";};
+  const dotDate=v=>{const i=toIso(v);return i?i.replace(/-/g,"."):S(v);};
+  const nz=o=>Object.fromEntries(Object.entries(o).filter(([k,v])=>Array.isArray(v)?v.length:S(v)));
+  const st=(sel,t,err)=>{const e=$(sel);e.textContent=t;e.classList.toggle("err",!!err);};
+
+  const inClaude=!!(window.claude&&typeof window.claude.use==="function");
+  const useCap=n=>inClaude?claude.use(n).catch(()=>null):Promise.resolve(null);
+  let mcp=null, sample=null, downloads=null;
+  const call=async(tool,input)=>(await mcp.callTool(GS,tool,input)).payload||{};
+  const rows=async range=>(await call("get_values",{spreadsheetId:SHEET,range})).values||[];
+  function dbErr(e){
+    const c=e&&e.code;
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 페이지에서 구글 시트 사용이 허용되지 않았습니다. 다시 불러오고 허용을 선택해 주세요.";
+    if(c==="blocked_by_policy") return "기관 정책으로 이 페이지에서 구글 시트를 쓸 수 없습니다.";
+    return "DB를 읽지 못했습니다."+(e&&e.message?" ("+String(e.message).slice(0,120)+")":"");
+  }
+
+  /* ---------- 참여자 목록 ---------- */
+  let P=[], PH=[], cur=null, RECS=[];
+  async function loadPeople(){
+    st("#pStatus","참여자 명단을 불러오는 중…");
+    try{
+      const v=await rows("참여자!A1:V");
+      PH=v[0]||[]; P=v.slice(1).filter(r=>S(r[0])&&S(r[1]));
+      st("#pStatus","참여자 "+P.length+"명");
+      drawPeople();
+    }catch(e){st("#pStatus",dbErr(e),true);}
+  }
+  function drawPeople(){
+    const q=norm($("#q").value), ul=$("#people"); ul.textContent="";
+    const list=P.filter(r=>!q||norm(r[1]).includes(q)||S(r[0]).includes(q)).sort((a,b)=>S(a[1]).localeCompare(S(b[1]),"ko"));
+    list.slice(0,80).forEach(r=>{
+      const li=el("li"), b=el("button"); b.type="button";
+      b.append(document.createTextNode(S(r[1])));
+      b.append(el("small",null,[S(r[0]),dotDate(r[3]),S(r[18])].filter(Boolean).join(" · ")));
+      if(cur&&S(cur[0])===S(r[0])) b.setAttribute("aria-current","true");
+      b.onclick=()=>pick(r);
+      li.append(b); ul.append(li);
+    });
+    if(!list.length) ul.append(el("li","empty","찾는 분이 없습니다."));
+    else if(list.length>80) ul.append(el("li","empty","더 있습니다. 이름을 더 적어 주세요."));
+  }
+  $("#q").oninput=drawPeople;
+
+  /* ---------- 한 분의 기록 불러오기 ---------- */
+  // 탭마다 등록번호 열, 날짜 열, 보여 줄 열
+  const TABS=[
+    {tab:"구직상담",range:"구직상담!A1:AB",reg:0,date:2,kind:"직업상담기록지"},
+    {tab:"과정상담",range:"과정상담!A1:K",reg:1,date:0,kind:"과정상담일지",kindCol:6},
+    {tab:"취업알선",range:"취업알선!A1:U",reg:1,date:0,kind:"취업알선"},
+    {tab:"서비스이력",range:"서비스이력!A1:H",reg:1,date:0,kind:"서비스이력",kindCol:3}
+  ];
+  const SKIP=/^(등록번호|성명\(자동\))$/;
+  async function pick(r){
+    cur=r; drawPeople();
+    const id=S(r[0]);
+    const who=$("#who"); who.className=""; who.textContent="";
+    const top=el("div"); top.append(el("b",null,S(r[1])+" 님"),document.createTextNode("  "+id));
+    const info=el("div","info");
+    [["생년월일",dotDate(r[3])],["연락처",S(r[4])],["보호자",S(r[5])],["주소",S(r[6])],["장애",[S(r[7]),S(r[8])].filter(Boolean).join(" · ")],["진행단계",S(r[18])],["담당",S(r[12])]]
+      .filter(x=>x[1]).forEach(([k,v])=>{const d=el("div");d.append(el("b",null,k),document.createTextNode(v));info.append(d);});
+    who.append(top,info);
+    $("#recArea").hidden=false; $("#recs").textContent=""; $("#recCount").textContent="기록을 불러오는 중…";
+    try{
+      const all=await Promise.all(TABS.map(t=>rows(t.range)));
+      if(!cur||S(cur[0])!==id) return;   // 그사이 다른 분을 고름
+      RECS=[];
+      TABS.forEach((t,ti)=>{
+        const v=all[ti], head=v[0]||[];
+        v.slice(1).forEach(x=>{
+          if(S(x[t.reg])!==id) return;
+          const fields=head.map((h,i)=>[S(h),S(x[i])]).filter(([h,val])=>h&&val&&!SKIP.test(h)&&i_not(h,t));
+          if(!fields.length) return;
+          RECS.push({tab:t.tab,kind:t.kindCol!=null&&S(x[t.kindCol])?t.kind+" · "+S(x[t.kindCol]):t.kind,date:toIso(x[t.date])||S(x[t.date]),fields,on:true});
+        });
+      });
+      RECS.sort((a,b)=>S(b.date).localeCompare(S(a.date)));
+      drawRecs();
+    }catch(e){$("#recCount").textContent=dbErr(e);}
+  }
+  function i_not(h,t){ // 날짜 열은 머리에 따로 보여 주므로 본문에서 뺌
+    return !(t.tab==="구직상담"&&h==="작성일")&&!(t.tab!=="구직상담"&&/^(상담일자|알선일|일자)$/.test(h));
+  }
+  function drawRecs(){
+    const box=$("#recs"); box.textContent="";
+    if(!RECS.length){box.append(el("div","empty","이 분의 상담기록이 DB에 없습니다. 아래 '더 적을 내용'에 적고 초안을 만들 수 있습니다."));}
+    RECS.forEach((rc,i)=>{
+      const c=el("article","rec"), h=el("header"), l=el("label"), cb=el("input");
+      cb.type="checkbox"; cb.checked=rc.on; cb.onchange=()=>{rc.on=cb.checked;count();};
+      l.append(cb,document.createTextNode(dotDate(rc.date)||"날짜 없음"));
+      h.append(l,el("span","tag",rc.kind));
+      const body=el("div","body clip",rc.fields.map(([k,v])=>k+": "+v).join("\n"));
+      const more=el("button","more","펼쳐 보기"); more.type="button";
+      more.onclick=()=>{const o=body.classList.toggle("clip");more.textContent=o?"펼쳐 보기":"접기";};
+      c.append(h,body,more); box.append(c);
+    });
+    count();
+  }
+  function count(){const n=RECS.filter(r=>r.on).length;$("#recCount").textContent="기록 "+RECS.length+"건 중 "+n+"건을 이력서에 씁니다.";}
+  $("#allOn").onclick=()=>{RECS.forEach(r=>r.on=true);drawRecs();};
+  $("#allOff").onclick=()=>{RECS.forEach(r=>r.on=false);drawRecs();};
+
+  /* ---------- 이력서 초안 ---------- */
+  let R=null;
+  function person(){return Object.fromEntries(PH.map((h,i)=>[S(h),S(cur[i])]).filter(([h,v])=>h&&v&&/^(성명|성별|생년월일|연락처|보호자|주소|장애|수급|비고|단계 메모|근무 사업체|취업일)/.test(h)));}
+  function recsText(){
+    let budget=24000;
+    return RECS.filter(r=>r.on).map(r=>{let t="["+r.kind+" "+(dotDate(r.date)||"")+"]\n"+r.fields.map(([k,v])=>k+": "+v).join("\n");
+      if(t.length>budget) t=t.slice(0,Math.max(0,budget));budget-=t.length;return t;}).filter(Boolean).join("\n\n");
+  }
+  const dataBlock=()=>`[참여자 정보]
+${JSON.stringify(person(),null,1)}
+
+[상담기록]
+${recsText()||"(고른 기록 없음)"}
+
+[더 적을 내용]
+${$("#extra").value.trim()||"(없음)"}`;
+
+  // 자기소개서 세 칸: 문장마다 '기록'(근거 있음)인지 '임의'(짐작해 씀)인지 표시
+  function selfPrompt(field){
+    return `너는 장애인복지관 직업지원팀 사회복지사를 도와, 이력서 쓰기를 어려워하는 참여자의 자기소개서 초안을 쓴다. 본인이 직접 쓴 것처럼 1인칭 '~습니다'체로 쓴다.
+
+세 칸
+- intro(자기소개: 성장과정, 가치관, 강점/약점): 6~8문장. 생활·가족·성장 이야기 → 성격과 강점(장면이 떠오르는 예 하나) → 약점과 그것을 보완하려는 노력 순서.
+- experience(직무 및 활동경력): 5~8문장. 경력·훈련·복지관 프로그램·봉사·일상 활동에서 한 일, 배운 점, 지원 직무에 도움이 되는 점. 경력이 없으면 훈련이나 생활 속 경험(정리정돈, 집안일, 규칙적인 생활 등)으로 쓴다.
+- motivation(지원동기 및 입사 후 포부): 5~7문장. 이 일을 하고 싶은 까닭 → 내 강점과 이 일의 연결 → 입사 후 다짐(제시간 출근, 안전 지키기, 배우는 자세처럼 구체적으로).
+지원분야: ${field||"기록에서 희망 직종 하나를 골라 field에 쓴다"}
+
+문장마다 출처를 단다
+- src "기록": [참여자 정보]·[상담기록]·[더 적을 내용]에 근거가 있는 문장. basis에 근거를 짧게(예: "직업상담 2026.10.01 주요경력").
+- src "임의": 기록에 근거가 없는데 글을 자연스럽고 풍부하게 하려고 네가 짐작해 쓴 문장(성격, 마음가짐, 생활 모습, 다짐 등). basis에 본인에게 무엇을 확인하면 되는지 짧게(예: "꼼꼼한 성격인지 본인 확인").
+- 한 문장 안에 기록과 짐작이 섞이면 "임의"로 단다.
+
+지켜야 할 것
+- 회사명·학교명·기간·자격증·수상·숫자 같은 구체적 사실은 기록에 있을 때만 쓴다. "임의" 문장에서도 이런 사실은 만들지 않는다.
+- 기록이 적어도 짧게 줄이지 말고 "임의" 문장으로 채워 각 칸 분량을 지킨다.
+- 쉬운 낱말로, 한 문장에 한 가지 내용만, 너무 길지 않게. "열정", "최선을 다하는 인재" 같은 뻔한 말만 늘어놓지 말고 장면이 그려지게 쓴다.
+- 성인으로 존중하는 표현을 쓴다. 장애를 앞세우거나 불쌍하게 그리지 않는다. 진단명·약·장애 정도는 쓰지 않는다.
+
+이 JSON 하나만 돌려준다(설명 없이):
+{"field":"","intro":[{"t":"문장","src":"기록","basis":""}],"experience":[{"t":"","src":"임의","basis":""}],"motivation":[{"t":"","src":"","basis":""}]}
+
+${dataBlock()}`;
+  }
+  const SELF=[["intro","자기소개 (성장과정, 가치관, 강점/약점)"],["experience","직무 및 활동경력"],["motivation","지원동기 및 입사 후 포부"]];
+  const normSelf=s=>Object.fromEntries(SELF.map(([k])=>[k,(Array.isArray(s&&s[k])?s[k]:[]).filter(x=>x&&S(x.t)).map(x=>({t:S(x.t),made:S(x.src)!=="기록",basis:S(x.basis)}))]));
+
+  function prompt(){
+    const O=window.RESUME_OPTS;
+    return `너는 장애인복지관 직업지원팀 사회복지사가 참여자의 이력서를 쓰는 것을 돕는다.
+아래 [참여자 정보], [상담기록], [더 적을 내용]에 적힌 사실만 써서 이력서 칸을 채운다. 기록은 최근 것부터 놓여 있고, 서로 다르면 최근 기록을 따른다.
+
+규칙
+- 적혀 있지 않은 내용은 절대 지어내지 말고 빈 문자열 ""로 둔다. 학교명·기간·회사명·연락처·날짜를 추측하지 않는다.
+- 주민등록번호는 어떤 경우에도 넣지 않는다.
+- 고르는 칸(아래 '고를 수 있는 값')은 기록에 분명히 나온 경우에만 그 목록의 값 그대로 쓰고, 아니면 ""(여러 개 고르는 칸은 []).
+- 날짜는 2024.03 또는 2024.03.02처럼 점으로 쓴다. 경력 기간은 "2024.10 ~ 2025.08", 지금 다니면 "~ 현재".
+- 경력은 최근 것부터 최대 3개(취업알선 결과 '취업'·서비스이력의 취업 기록도 경력이다), 학력은 오래된 것부터 최대 2개(최종학력이 마지막), 자격은 최대 2개, 가족은 최대 3명.
+- field(지원분야)는 희망 직종에서 가장 중심이 되는 것 하나를 짧게.
+- disDesc(장애내용 기술)는 기록에 있는 장애·건강 내용을 '~함' 체로 1~2문장. 진단명·약은 기록에 있을 때만.
+
+고를 수 있는 값
+eduStatus: ${O.eduStatus.join(", ")}
+computer(여러 개): ${O.computer.join(", ")}
+langLevel: ${O.langLevel.join(", ")}
+curStatus: ${O.curStatus.join(", ")}
+disType: ${O.disType.join(", ")}
+disDeg: ${O.disDeg.join(", ")}
+aids(여러 개): ${O.aids.join(", ")}
+causeType: ${O.causeType.join(", ")}
+lift: ${O.lift.join(", ")} / stand: ${O.stand.join(", ")} / talk: ${O.talk.join(", ")}
+sight: ${O.sight.join(", ")} / hand: ${O.hand.join(", ")} / hands: ${O.hands.join(", ")}
+days(여러 개): ${O.days.join(", ")}
+
+이 JSON 하나만 돌려준다(설명 없이):
+{"name":"","birth":"","field":"","addr":"","mobile":"","guardTel":"","homeTel":"","email":"","hobby":"","skill":"","insurance":"","benefit":"",
+"edu":[{"in":"","out":"","school":"","major":"","note":""}],"eduStatus":"",
+"trainOrg":"","trainType":"","trainPeriod":"",
+"lic":[{"name":"","issuer":"","date":"","note":""}],"computer":[],"computerEtc":"",
+"langName":"","langLevel":"","langTest":"","langScore":"",
+"career":[{"period":"","place":"","job":"","emptype":"","wage":"","task":"","reason":""}],"curStatus":"","curStatusEtc":"",
+"disType":"","disDeg":"","disRegDate":"","mainPart":"","subPart":"","aids":[],"aidsEtc":"","causeType":"","causeText":"",
+"card":"","onset":"","diagnosis":"","med":"","medCycle":"","disDesc":"",
+"family":[{"rel":"","name":"","age":"","tel":"","live":""}],
+"hours":"","evening":"","days":[],"therapy":"","hospital":"",
+"lift":"","stand":"","talk":"","sight":"","hand":"","hands":""}
+(insurance=4대보험 가입 희망 여부, benefit=기초수급 여부와 종류, card=복지카드 유/무, med=약 복용 여부, hours=하루 희망 근무 시간 숫자, evening=저녁 몇 시까지 근무 가능한지 숫자)
+
+${dataBlock()}`;
+  }
+
+  $("#draftBtn").onclick=async()=>{
+    if(!cur){st("#draftStatus","참여자를 먼저 골라 주세요.",true);return;}
+    if(!sample){st("#draftStatus","이 화면에서는 자동 초안을 쓸 수 없습니다.",true);return;}
+    if(!RECS.some(r=>r.on)&&!$("#extra").value.trim()){st("#draftStatus","기록을 하나 이상 고르거나 '더 적을 내용'을 적어 주세요.",true);return;}
+    const btn=$("#draftBtn"), id=S(cur[0]); btn.disabled=true;
+    try{
+      st("#draftStatus","이력서와 자기소개서 초안을 쓰는 중… (1분쯤 걸립니다)");
+      const [m0,s0]=await Promise.all([sample.json(prompt(),{modelTier:"default"}),sample.json(selfPrompt(""),{modelTier:"complex"}).catch(()=>null)]);
+      const m=m0||{};
+      if(!cur||S(cur[0])!==id) return;
+      const p=person(), deg=S(p["장애정도"]);
+      // DB에 그대로 있는 값은 DB를 먼저(연락처·주소 등은 글자 그대로)
+      const fixed=nz({name:S(cur[1]),birth:dotDate(p["생년월일"]),addr:p["주소"],mobile:p["연락처(본인)"],guardTel:p["보호자 연락처"],
+        disType:window.RESUME_OPTS.disType.includes(p["장애유형"])?p["장애유형"]:"",
+        disDeg:/경증|심하지/.test(deg)?"경증":/중증|심한/.test(deg)?"중증":"",disRegDate:dotDate(p["장애등록일"])});
+      R=Object.assign({},ORG,{worker:S(cur[12])||(window.APP_ME||"김주현")},nz(m),fixed);
+      if(!S(R.field)&&s0&&S(s0.field)) R.field=S(s0.field);
+      R.self=normSelf(s0);
+      renderResume();
+      $("#resumeBox").hidden=false; $("#resumeBox").scrollIntoView({behavior:"smooth",block:"start"});
+      st("#draftStatus","초안을 채웠습니다. 아래 '이력서 작성'에서 고쳐 주세요."+(s0?"":" 자기소개서는 쓰지 못했으니 아래 '자기소개서 다시 쓰기'를 눌러 주세요."),!s0);
+    }catch(e){st("#draftStatus",e&&e.code==="rate_limited"?"잠시 뒤 다시 눌러 주세요.":"초안을 만들지 못했습니다. 다시 눌러 주세요.",true);}
+    finally{btn.disabled=false;}
+  };
+
+  /* 고칠 칸 그리기: 값은 R에 바로 반영 */
+  function renderResume(){
+    const O=window.RESUME_OPTS, g=$("#resumeGrid");g.textContent="";
+    let uid=0;
+    const fs=(title,wide)=>{const f=el("fieldset",wide?"wide":null);f.append(el("legend",null,title));g.append(f);return f;};
+    const txt=(f,lab,k,long)=>{const w=el("div","rf"+(long?" long":""));const id="rz"+(uid++);const l=el("label",null,lab);l.htmlFor=id;
+      const i=el(long?"textarea":"input");i.id=id;i.value=R[k]||"";i.oninput=()=>{R[k]=i.value;};w.append(l,i);f.append(w);};
+    const sel=(f,lab,k,opts)=>{const w=el("div","rf");const id="rz"+(uid++);const l=el("label",null,lab);l.htmlFor=id;
+      const s=el("select");s.id=id;s.append(Object.assign(el("option",null,"(고르지 않음)"),{value:""}));opts.forEach(o=>s.append(Object.assign(el("option",null,o),{value:o})));
+      s.value=opts.includes(R[k])?R[k]:"";s.onchange=()=>{R[k]=s.value;};w.append(l,s);f.append(w);};
+    const chk=(f,lab,k,opts)=>{const w=el("div","rf");w.append(el("label",null,lab));const box=el("div","rchecks");
+      if(!Array.isArray(R[k]))R[k]=[];
+      opts.forEach(o=>{const l=el("label");const c=el("input");c.type="checkbox";c.checked=R[k].includes(o);
+        c.onchange=()=>{R[k]=c.checked?[...new Set(R[k].concat(o))]:R[k].filter(x=>x!==o);};l.append(c,o);box.append(l);});
+      w.append(box);f.append(w);};
+    const tab=(f,k,cols,n)=>{const wrap=el("div","rwrap");const t=el("table","rtab");const hr=el("tr");cols.forEach(([,h])=>hr.append(el("th",null,h)));t.append(hr);
+      const arr=Array.isArray(R[k])?R[k].slice(0,n):[];while(arr.length<n)arr.push({});R[k]=arr;
+      arr.forEach((row,ri)=>{const tr=el("tr");cols.forEach(([ck,h])=>{const td=el("td");const i=el("input");i.value=row[ck]||"";i.setAttribute("aria-label",h+" "+(ri+1));i.oninput=()=>{row[ck]=i.value;};td.append(i);tr.append(td);});t.append(tr);});
+      wrap.append(t);f.append(wrap);};
+
+    let f=fs("개인 정보");
+    txt(f,"성명","name");txt(f,"생년월일","birth");txt(f,"지원분야","field");txt(f,"주소","addr");
+    txt(f,"휴대전화(본인)","mobile");txt(f,"보호자 연락처","guardTel");txt(f,"집 전화","homeTel");txt(f,"이메일","email");
+    txt(f,"취미","hobby");txt(f,"특기","skill");txt(f,"4대보험 희망","insurance");txt(f,"기초수급","benefit");
+    f=fs("학력·훈련·자격");
+    sel(f,"최종학력 상태","eduStatus",O.eduStatus);
+    txt(f,"훈련기관","trainOrg");txt(f,"훈련직종","trainType");txt(f,"훈련기간","trainPeriod");
+    chk(f,"컴퓨터","computer",O.computer);txt(f,"컴퓨터 기타","computerEtc");
+    txt(f,"외국어","langName");sel(f,"외국어 수준","langLevel",O.langLevel);txt(f,"공인시험","langTest");txt(f,"등급·점수","langScore");
+    f=fs("학력 (오래된 것부터)",true);tab(f,"edu",[["in","입학년월"],["out","졸업년월"],["school","학교명"],["major","전공"],["note","비고"]],2);
+    f=fs("자격·면허",true);tab(f,"lic",[["name","자격(면허)명"],["issuer","발행기관"],["date","취득일자"],["note","비고"]],2);
+    f=fs("경력 (최근 것부터)",true);tab(f,"career",[["period","근무기간"],["place","사업체명"],["job","직종"],["emptype","고용형태"],["wage","임금"],["task","직무내용"],["reason","퇴사사유"]],3);
+    sel(f,"현재직업상태","curStatus",O.curStatus);txt(f,"현재상태 기타","curStatusEtc");
+    f=fs("장애·건강");
+    sel(f,"장애유형","disType",O.disType);sel(f,"장애정도","disDeg",O.disDeg);txt(f,"장애등록일","disRegDate");
+    txt(f,"주장애부위","mainPart");txt(f,"부장애부위","subPart");chk(f,"보장구","aids",O.aids);txt(f,"보장구 기타","aidsEtc");
+    sel(f,"장애원인","causeType",O.causeType);txt(f,"원인 내용","causeText");
+    txt(f,"복지카드","card");txt(f,"발병(판정) 시기","onset");txt(f,"주진단명","diagnosis");txt(f,"약 복용","med");txt(f,"복용 주기","medCycle");
+    txt(f,"장애내용 기술","disDesc",true);
+    f=fs("작업능력 (공단 양식)");
+    sel(f,"드는 힘","lift",O.lift);sel(f,"서거나 걷기","stand",O.stand);sel(f,"듣고 말하기","talk",O.talk);
+    sel(f,"시력","sight",O.sight);sel(f,"손작업","hand",O.hand);sel(f,"양손사용","hands",O.hands);
+    f=fs("근무 가능 시간·치료");
+    txt(f,"하루 희망 시간(숫자)","hours");txt(f,"저녁 몇 시까지(숫자)","evening");chk(f,"근무가능 요일","days",O.days);
+    txt(f,"치료 요일·시간","therapy");txt(f,"치료기관(병원)","hospital");
+    f=fs("연계 복지기관");
+    txt(f,"소속기관명","org");txt(f,"기관 연락처","orgTel");txt(f,"담당 사회복지사","worker");txt(f,"담당자 연락처","workerTel");
+    f=fs("가족 관계",true);tab(f,"family",[["rel","관계"],["name","성명"],["age","연령"],["tel","연락처"],["live","동거여부"]],3);
+    f=fs("자기소개서 (이력서+자기소개서 양식)",true);
+    const help=el("p","shelp");
+    help.innerHTML='<span class="chip made">노란 문장</span> = 기록에 없어서 Claude가 <b>임의로 작성</b>한 문장입니다. 본인과 함께 읽고 맞게 고친 뒤 <b>확인함</b>을 눌러 주세요. 맞지 않으면 <b>빼기</b>를 누르세요. <span class="chip">흰 문장</span> = 상담기록에 근거가 있는 문장입니다.';
+    const cnt=el("p","scount");cnt.id="selfCount";
+    const top=el("div","bar");const re=el("button",null,"자기소개서 다시 쓰기");re.type="button";re.id="selfRe";re.onclick=rewriteSelf;
+    top.append(cnt,re);top.firstChild.classList.add("grow");
+    f.append(help,top);
+    if(!R.self) R.self=normSelf(null);
+    SELF.forEach(([k,title])=>selfBlock(f,k,title));
+    updCount();
+  }
+  function updCount(){
+    const e=$("#selfCount"); if(!e||!R||!R.self) return;
+    const n=SELF.reduce((a,[k])=>a+R.self[k].filter(x=>x.made).length,0);
+    e.textContent=n?"확인하지 않은 임의 작성 문장 "+n+"개":"임의 작성 문장을 모두 확인했습니다.";
+    e.classList.toggle("left",!!n);
+  }
+  function selfBlock(f,k,title){
+    const el2=(t,c,x)=>el(t,c,x);
+    const box=el2("div","sbox"); box.append(el2("div","stitle",title));
+    const list=el2("div","slist"); box.append(list);
+    const draw=()=>{list.textContent="";
+      if(!R.self[k].length) list.append(el2("div","empty","문장이 없습니다. '+ 문장 추가'로 적어 주세요."));
+      R.self[k].forEach((x,i)=>{
+        const row=el2("div","srow"+(x.made?" made":""));
+        const ta=el2("textarea");ta.rows=2;ta.value=x.t;ta.setAttribute("aria-label",title+" "+(i+1)+"번째 문장");ta.oninput=()=>{x.t=ta.value;};
+        const side=el2("div","sside");
+        side.append(el2("span","badge",x.made?"임의 작성 · 확인 필요":(x.basis==="직접 작성"?"직접 작성":"기록 근거")));
+        if(x.basis&&x.basis!=="직접 작성") side.append(el2("small",null,x.basis));
+        const ctl=el2("div","sctl");
+        if(x.made){const ok=el2("button",null,"확인함");ok.type="button";ok.onclick=()=>{x.made=false;x.basis="본인 확인함";draw();updCount();};ctl.append(ok);}
+        const del=el2("button",null,"빼기");del.type="button";del.onclick=()=>{R.self[k].splice(i,1);draw();updCount();};ctl.append(del);
+        side.append(ctl); row.append(ta,side); list.append(row);
+      });
+    };
+    const add=el2("button","sadd","+ 문장 추가");add.type="button";
+    add.onclick=()=>{R.self[k].push({t:"",made:false,basis:"직접 작성"});draw();const t=list.querySelectorAll("textarea");t[t.length-1].focus();};
+    draw(); box.append(add); f.append(box);
+  }
+  async function rewriteSelf(){
+    if(!sample||!cur) return;
+    const b=$("#selfRe"); b.disabled=true; const e=$("#selfCount"); e.textContent="자기소개서를 다시 쓰는 중…";
+    try{
+      const s=await sample.json(selfPrompt(S(R.field)),{modelTier:"complex"});
+      R.self=normSelf(s); renderResume();
+    }catch(err){e.textContent=err&&err.code==="rate_limited"?"잠시 뒤 다시 눌러 주세요.":"다시 쓰지 못했습니다. 다시 눌러 주세요.";b.disabled=false;}
+  }
+  // 확인 창(confirm)은 Claude 화면에서 동작하지 않아 페이지 안에서 묻는다
+  function askIn(sel,msg){
+    return new Promise(res=>{
+      const box=$(sel); box.textContent="";
+      const a=el("div","askbox"), y=el("button","primary","예, 그대로 넣기"), n=el("button",null,"아니오");
+      y.type=n.type="button";
+      y.onclick=()=>{box.textContent="";res(true);}; n.onclick=()=>{box.textContent="";res(false);};
+      a.append(el("span",null,msg),y,n); box.append(a); y.focus();
+    });
+  }
+
+  async function saveResume(kind){
+    const note=$("#resumeNote");
+    if(!R){note.textContent="먼저 초안을 만들어 주세요.";return;}
+    if(!window.JSZip||!window.buildResumeA||(!downloads&&inClaude)){note.textContent="이 화면에서는 한글 파일 저장을 쓸 수 없습니다.";note.className="status err";return;}
+    if(kind==="B"&&R.self){
+      const n=SELF.reduce((a,[k])=>a+R.self[k].filter(x=>x.made&&S(x.t)).length,0);
+      if(n&&!(await askIn("#saveAsk","노란색 임의 작성 문장 "+n+"개를 아직 확인하지 않았습니다.\n본인과 확인하지 않은 내용이 그대로 들어갑니다. 계속할까요?"))){note.textContent="저장을 멈췄습니다. 노란 문장을 확인해 주세요.";return;}
+      SELF.forEach(([k])=>{R[k]=R.self[k].map(x=>S(x.t)).filter(Boolean).join(" ");});
+    }
+    note.className="status";note.textContent="한글 파일을 만드는 중…";
+    try{
+      const r=kind==="A"?await buildResumeA(R,new Date()):await buildResumeB(R);
+      const name=(kind==="A"?"이력서_":"이력서·자기소개서_")+(S(R.name)||"이름없음")+(S(R.field)?"("+S(R.field).replace(/[\\/:*?"<>|]/g,"")+")":"")+(downloads?".hwpx.zip":".hwpx");
+      if(downloads) await downloads.save({filename:name,data:r.blob});
+      else{const a=document.createElement("a");a.href=URL.createObjectURL(r.blob);a.download=name;a.click();}
+      note.textContent="저장했습니다."+(downloads?" 파일 이름 끝의 .zip을 지우면(….hwpx) 한글에서 바로 열립니다.":"")+(r.miss.length?" 양식에서 표시할 곳을 찾지 못한 항목: "+r.miss.join(", "):"");
+    }catch(e){note.className="status err";note.textContent=e&&(e.code==="user_declined"||e.code==="declined")?"저장을 취소했습니다.":"한글 파일을 만들지 못했습니다. ("+(e&&e.message||"")+")";}
+  }
+  $("#resumeABtn").onclick=()=>saveResume("A");
+  $("#resumeBBtn").onclick=()=>saveResume("B");
+
+  useCap("sample").then(s=>{sample=s;});
+  useCap("downloads").then(d=>{downloads=d;});
+  useCap("mcp").then(m=>{mcp=m; if(m) loadPeople(); else st("#pStatus",inClaude?"이 화면에서는 DB를 읽을 수 없습니다.":"Claude에서 페이지를 열어 주세요.",true);});
+})();
+</script>
+</body>
+</html>

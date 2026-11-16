@@ -1,0 +1,231 @@
+<!doctype html><html><head>
+<script src="../adapter.js"></script><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>취업알선 결과 기록</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* 레이아웃: 위 머리줄과 보기 고르기, 아래 왼쪽 알선 목록 / 오른쪽 결과 적기 */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --sunk:#E4EAE8; --ink:#1B2826; --muted:#5A6B68; --line:#C9D4D1;
+  --accent:#1F5E5B; --accent-ink:#FFFFFF; --accent-soft:#D6E8E5;
+  --good:#2F6B2F; --good-bg:#DDEFD9; --mid:#8A5A00; --mid-bg:#F6E7C6; --low:#8E3B32; --low-bg:#F4DCD8;
+  --f-body:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+    --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+    --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+  --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+  --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.back{font-size:13.5px;color:var(--accent);text-decoration:none;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:22px;margin:2px 0 0;font-weight:700}
+.sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:10px;flex-wrap:wrap}
+.seg button{border:none;background:none;padding:7px 14px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg .c{font-family:var(--f-num);font-size:12.5px;margin-left:4px;color:var(--muted)}
+.banner{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.banner.err{border-color:var(--low);color:var(--low)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,380px);gap:16px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.list button{width:100%;text-align:left;border:none;background:none;font-weight:400;padding:9px 10px;border-radius:6px;display:grid;grid-template-columns:7.5em minmax(0,1fr) auto;gap:10px;align-items:baseline}
+.list button:hover{background:var(--sunk)}
+.list button[aria-current="true"]{background:var(--accent-soft)}
+.list .d{font-family:var(--f-num);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.list .n{font-weight:600}
+.list .j{font-size:13px;color:var(--muted);display:block;overflow-wrap:anywhere}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.wait{background:var(--mid-bg);color:var(--mid)}
+.pill.ok{background:var(--good-bg);color:var(--good)}
+.pill.no{background:var(--low-bg);color:var(--low)}
+.side{position:sticky;top:calc(12px + env(safe-area-inset-top,0px))}
+@media (max-width:860px){.side{position:static}}
+.who{font-size:18px;font-weight:700;margin:0}
+.what{color:var(--muted);font-size:13.5px;margin:2px 0 12px;overflow-wrap:anywhere}
+.choices{display:flex;gap:6px;flex-wrap:wrap}
+.choices button[aria-pressed="true"].ok{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+.choices button[aria-pressed="true"].no{background:var(--low-bg);color:var(--low);border-color:var(--low)}
+.choices button[aria-pressed="true"].quit{background:var(--sunk);border-color:var(--ink)}
+label.f{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}
+input.txt{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.row .primary{flex:1}
+.status{font-size:13.5px;color:var(--muted);min-height:1.4em;margin-top:8px}
+.status.err{color:var(--low)}
+.status a{color:var(--accent)}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.empty{color:var(--muted);font-size:14px;padding:6px 2px}
+.privacy{font-size:12.5px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <a class="back" id="hubLink" href="#" target="_blank" rel="noopener" hidden>← 업무판으로</a>
+      <h1>취업알선 결과 기록</h1>
+      <p class="sub">알선한 뒤 결과(취업·불합격·포기)와 취업일·퇴사일을 적습니다. 적으면 참여자 진행단계가 자동으로 바뀝니다.</p>
+    </div>
+    <div class="seg" role="group" aria-label="보기">
+      <button type="button" id="v-wait" aria-pressed="true">결과 기다리는 중<span class="c" id="c-wait"></span></button>
+      <button type="button" id="v-work" aria-pressed="false">일하는 중<span class="c" id="c-work"></span></button>
+      <button type="button" id="v-all" aria-pressed="false">전체<span class="c" id="c-all"></span></button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner">구글 시트에서 취업알선 기록을 불러옵니다. 처음에는 구글 시트 사용을 허용할지 묻는 창이 뜹니다.</div>
+
+  <section class="cols" id="main" hidden>
+    <div class="card"><ul class="list" id="list"></ul></div>
+    <div class="side">
+      <div class="card" id="editor">
+        <p class="empty">왼쪽에서 알선 기록을 고르세요.</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="privacy">이 화면은 연 사람의 구글 계정으로 취업알선 탭을 읽고, 저장을 누를 때만 고른 줄의 결과·취업일·퇴사일·퇴사사유·비고 칸을 고칩니다.</p>
+</div>
+
+<script>
+(function(){
+  const HUB_URL="../01_hub/index.html";
+  const SHEET="1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4", GS="Google Sheets";
+  const SHEET_URL="https://docs.google.com/spreadsheets/d/"+SHEET+"/edit";
+  const $=s=>document.querySelector(s);
+  const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+  const s=v=>String(v==null?"":v).trim();
+  const pad=n=>String(n).padStart(2,"0");
+  const toDate=v=>{const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(s(v));return m?new Date(+m[1],+m[2]-1,+m[3]):null;};
+  const isoOf=v=>{const d=toDate(v);return d?d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()):"";};
+  const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());};
+  const T=v=>{v=s(v);return v?"'"+v:"";};
+  if(HUB_URL){$("#hubLink").href=HUB_URL;$("#hubLink").hidden=false;}
+
+  let mcp=null, view="wait", rows=[], sel=null, form=null;
+
+  function errText(e){
+    const c=e&&e.code;
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. 페이지를 새로고침하고 허용을 선택해 주세요.";
+    if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
+    if(c==="tool_error") return "시트가 요청을 거절했습니다. 시트 편집 권한이 있는 계정인지 확인해 주세요.";
+    return "구글 시트와 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
+  }
+  const range=async r=>{const x=await mcp.callTool(GS,"get_values",{spreadsheetId:SHEET,range:r});return (x.payload&&x.payload.values)||[];};
+
+  async function load(){
+    try{
+      const [A,O]=await Promise.all([range("취업알선!A1:U"),range("선택지!J2:J").catch(()=>[])]);
+      const got=O.map(r=>s(r[0])).filter(Boolean);
+      if(got.length) RESULTS=got.includes("취업")?got:["취업"].concat(got);
+      rows=A.slice(1).map((r,i)=>({row:i+2,date:s(r[0]),id:s(r[1]),name:s(r[2]),job:s(r[3]),result:s(r[16]),start:s(r[17]),end:s(r[18]),why:s(r[19]),note:s(r[20])}))
+        .filter(r=>r.id||r.job);
+      $("#banner").hidden=true; $("#main").hidden=false; render();
+    }catch(e){const b=$("#banner");b.hidden=false;b.classList.add("err");b.textContent=errText(e);}
+  }
+
+  let RESULTS=["취업","불합격","포기"]; // 업무판 '선택지 고치기'(선택지 탭 J열)에서 바뀜
+  const isWait=r=>!r.result, isWork=r=>r.result==="취업"&&!r.end;
+  function pill(r){
+    if(!r.result) return el("span","pill wait","결과 기다림");
+    if(r.result==="취업") return el("span","pill ok",r.end?"퇴사":"취업");
+    return el("span","pill no",r.result);
+  }
+  function render(){
+    $("#c-wait").textContent=rows.filter(isWait).length;
+    $("#c-work").textContent=rows.filter(isWork).length;
+    $("#c-all").textContent=rows.length;
+    ["wait","work","all"].forEach(k=>$("#v-"+k).setAttribute("aria-pressed",String(view===k)));
+    const ul=$("#list"); ul.textContent="";
+    const list=rows.filter(view==="wait"?isWait:view==="work"?isWork:()=>true).sort((a,b)=>(toDate(a.date)||0)-(toDate(b.date)||0));
+    if(!list.length){ul.append(el("li","empty",view==="wait"?"결과를 기다리는 알선이 없습니다.":view==="work"?"지금 일하는 중인 분이 없습니다.":"알선 기록이 없습니다."));}
+    list.forEach(r=>{const li=el("li"),b=el("button");b.type="button";
+      const mid=el("span");mid.append(el("span","n",r.name||r.id),el("span","j",r.job||"(사업체 미기재)"));
+      b.append(el("span","d",r.date||"날짜 없음"),mid,pill(r));
+      if(sel===r.row)b.setAttribute("aria-current","true");
+      b.onclick=()=>open(r.row);li.append(b);ul.append(li);});
+    renderEditor();
+  }
+  ["wait","work","all"].forEach(k=>$("#v-"+k).onclick=()=>{view=k;render();});
+
+  function open(row){
+    const r=rows.find(x=>x.row===row); if(!r) return;
+    sel=row; form={result:r.result,start:r.start,end:r.end,why:r.why,note:r.note};
+    render();
+  }
+  function renderEditor(){
+    const box=$("#editor"); box.textContent="";
+    const r=sel&&rows.find(x=>x.row===sel);
+    if(!r){box.append(el("p","empty","왼쪽에서 알선 기록을 고르세요."));return;}
+    box.append(el("p","who",r.name||r.id),el("p","what",(r.date?r.date+" 알선 · ":"")+(r.job||"")));
+    box.append(el("label","f","결과"));
+    const ch=el("div","choices");
+    RESULTS.map(v=>[v,v==="취업"?"ok":"no"]).concat(form.result&&!RESULTS.includes(form.result)?[[form.result,"no"]]:[]).concat([["","quit"]]).forEach(([v,c])=>{
+      const b=el("button",c,v||"아직 모름");b.type="button";b.setAttribute("aria-pressed",String(form.result===v));
+      b.onclick=()=>{form.result=v;if(v==="취업"&&!form.start)form.start=today();renderEditor();};ch.append(b);});
+    box.append(ch);
+    const inp=(label,key,ph,show)=>{if(!show)return;const l=el("label","f",label);const i=el("input","txt");i.type="text";i.value=form[key]||"";i.placeholder=ph;
+      i.addEventListener("input",()=>{form[key]=i.value;});box.append(l,i);};
+    inp("취업일","start","2026-11-06",form.result==="취업");
+    inp("퇴사일","end","퇴사하면 적어 주세요",form.result==="취업");
+    inp("퇴사사유","why","",form.result==="취업"&&(form.end||r.end));
+    inp("비고","note","",true);
+    if(form.result==="취업") box.append(el("p","hint","퇴사일을 적으면 이 분은 진행단계가 '② 알선 대기'로 돌아갑니다."));
+    const row=el("div","row"),save=el("button","primary","저장");save.type="button";save.id="saveBtn";save.onclick=()=>saveRow(r);row.append(save);box.append(row);
+    const st=el("div","status");st.id="status";st.setAttribute("role","status");box.append(st);
+  }
+  function status(t,err,link){const x=$("#status");if(!x)return;x.textContent=t;x.classList.toggle("err",!!err);
+    if(link){x.append(" ");const a=el("a",null,"시트 열기");a.href=SHEET_URL;a.target="_blank";a.rel="noopener";x.append(a);}}
+
+  async function saveRow(r){
+    const f=Object.assign({},form);
+    if(f.result==="취업"&&!isoOf(f.start)){status("취업일을 2026-11-06처럼 적어 주세요.",true);return;}
+    if(s(f.end)&&!isoOf(f.end)){status("퇴사일을 2026-11-06처럼 적어 주세요.",true);return;}
+    const btn=$("#saveBtn"); btn.disabled=true; let step="줄 확인";
+    try{
+      status("시트의 해당 줄을 확인하는 중입니다…");
+      const cur=(await range("취업알선!A"+r.row+":D"+r.row))[0]||[];
+      if(s(cur[1])!==r.id||s(cur[3])!==r.job){status("시트의 줄 순서가 바뀌었습니다. 새로고침한 뒤 다시 골라 주세요.",true);return;}
+      step="결과 저장"; status("저장하는 중입니다…");
+      const emp=f.result==="취업";
+      const vals=[f.result||"",emp?isoOf(f.start):"",emp&&s(f.end)?isoOf(f.end):"",emp?T(f.why):"",T(f.note)];
+      await mcp.callTool(GS,"update_values",{spreadsheetId:SHEET,range:"취업알선!Q"+r.row+":U"+r.row,values:[vals]});
+      Object.assign(r,{result:vals[0],start:vals[1],end:vals[2],why:emp?s(f.why):"",note:s(f.note)});
+      render(); status((r.name||r.id)+"님 알선 결과를 저장했습니다.",false,true);
+    }catch(e){
+      const c=e&&e.code;
+      status("["+step+"] "+(c==="server_unavailable"||c==="upstream_error"?"저장됐는지 확실하지 않습니다. 시트를 열어 확인한 뒤, 빠진 경우에만 다시 눌러 주세요.":errText(e)),true,true);
+    }finally{const b=$("#saveBtn");if(b)b.disabled=false;}
+  }
+
+  const inClaude=!!(window.claude&&typeof window.claude.use==="function");
+  if(!inClaude){$("#banner").textContent="이 화면은 claude.ai에서 열었을 때만 구글 시트를 읽고 저장할 수 있습니다.";}
+  else claude.use("mcp").then(m=>{mcp=m;if(!m){$("#banner").textContent="이 화면에서는 구글 시트를 쓸 수 없습니다. claude.ai에서 다시 열어 주세요.";return;}load();}).catch(()=>{});
+})();
+</script>
+
+</body></html>

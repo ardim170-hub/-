@@ -177,5 +177,5 @@ ${facts}` }],
     return JSON.parse(textOf(msg));
   }
 
-  return { MODEL, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, readContactShot, research, summarize, coach };
+  return { MODEL, run, textOf, available, setKey, localKey, readCard, readCardsPdf, readBizDoc, readContactShot, research, summarize, coach };
 })();

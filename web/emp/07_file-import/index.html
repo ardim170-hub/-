@@ -1,0 +1,629 @@
+<!doctype html><html><head>
+<script src="../adapter.js"></script><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>서류 파일로 입력</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script type="module">import {parse} from "https://cdn.jsdelivr.net/npm/hwp.js@0.0.3/+esm"; window.hwpParse=parse;</script>
+<script src="read-forms.js"></script>
+<style>
+/* 레이아웃: 위 파일 놓는 곳, 아래 파일마다 카드(읽은 내용 확인·고치기 → 저장) */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --sunk:#E4EAE8; --ink:#1B2826; --muted:#5A6B68; --line:#C9D4D1;
+  --accent:#1F5E5B; --accent-ink:#FFFFFF; --accent-soft:#D6E8E5;
+  --good:#2F6B2F; --good-bg:#DDEFD9; --mid:#8A5A00; --mid-bg:#F6E7C6; --low:#8E3B32; --low-bg:#F4DCD8;
+  --f-body:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+    --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+    --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+  --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+  --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 56px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.back{font-size:13.5px;color:var(--accent);text-decoration:none;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:22px;margin:2px 0 0;font-weight:700}
+.sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,select:focus-visible,textarea:focus-visible,input:focus-visible,label.drop:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.banner{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.banner.err{border-color:var(--low);color:var(--low)}
+label.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:150px;border:2px dashed var(--trunk,var(--line));border-radius:14px;background:var(--surface);cursor:pointer;text-align:center;padding:20px}
+label.drop.over{background:var(--accent-soft);border-color:var(--accent)}
+label.drop b{font-size:17px}
+label.drop span{font-size:13px;color:var(--muted)}
+label.drop input{position:absolute;opacity:0;width:1px;height:1px}
+.kinds{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;font-size:13px}
+.kinds div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.kinds b{display:block;font-size:13.5px}
+.kinds span{color:var(--muted)}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.item.done{border-color:var(--good)}
+.item.bad{border-color:var(--low)}
+.ihead{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+.fname{font-weight:700;overflow-wrap:anywhere}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.ok{background:var(--good-bg);color:var(--good)} .pill.wait{background:var(--mid-bg);color:var(--mid)} .pill.no{background:var(--low-bg);color:var(--low)}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:13.5px}
+.ctrl label{display:flex;gap:6px;align-items:center}
+select,input.txt{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:var(--bg);color:var(--ink);max-width:100%;min-width:0}
+.fields{display:grid;grid-template-columns:minmax(0,170px) minmax(0,1fr);gap:4px 12px;align-items:start}
+.fields .k{font-size:13px;color:var(--muted);padding-top:6px}
+.fields .k.hl{color:var(--mid);font-weight:600}
+.fields textarea{font:inherit;font-size:14px;width:100%;border:1px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--bg);color:var(--ink);resize:vertical;min-height:34px}
+@media (max-width:600px){.fields{grid-template-columns:1fr}.fields .k{padding-top:4px}}
+details{font-size:13.5px}
+details summary{cursor:pointer;color:var(--muted)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table.prev{border-collapse:collapse;font-size:12.5px;min-width:100%}
+table.prev th,table.prev td{border-bottom:1px solid var(--line);padding:5px 7px;text-align:left;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis}
+table.prev th{background:var(--sunk);color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.status{font-size:13.5px;color:var(--muted);min-height:1.4em}
+.status.err{color:var(--low)} .status.ok{color:var(--good)}
+.status a{color:var(--accent)}
+.ask{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--mid-bg);border-radius:8px;padding:10px 12px;font-size:14px}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.privacy{font-size:12.5px;color:var(--muted)}
+.pastebox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.pastebox summary{cursor:pointer;font-weight:700;font-size:14px}
+.pastebox textarea{width:100%;box-sizing:border-box;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--bg);color:var(--ink);margin-top:6px}
+</style>
+
+<div class="wrap">
+  <div>
+    <a class="back" href="../01_hub/index.html">← 업무판으로</a>
+    <h1>서류 파일로 입력</h1>
+    <p class="sub">작성해 둔 한글(hwp·hwpx)이나 엑셀 파일을 넣으면 내용을 읽어 참여자 관리 DB에 넣습니다. 저장하기 전에 읽은 내용을 꼭 확인해 주세요.</p>
+  </div>
+
+  <div id="banner" class="banner">구글 시트 "고용지원사업 참여자 관리 DB"를 불러옵니다. 처음에는 구글 시트 사용을 허용할지 묻는 창이 뜹니다.</div>
+
+  <label class="drop" id="drop">
+    <b>여기에 파일을 끌어다 놓거나 눌러서 고르세요</b>
+    <span>hwp · hwpx · xlsx · xls · csv · 여러 개 한꺼번에 가능</span>
+    <input type="file" id="file" multiple accept=".hwp,.hwpx,.xlsx,.xls,.csv">
+  </label>
+
+  <details class="pastebox" id="pastebox">
+    <summary>보안(DRM)이 걸린 엑셀은 복사해서 붙여넣기</summary>
+    <p class="hint">엑셀에서 표를 머리글 줄까지 드래그해 고르고(또는 Ctrl+A) Ctrl+C로 복사한 뒤, 아래 칸을 누르고 Ctrl+V로 붙여넣으세요. 장기근속자 명단처럼 보안이 걸린 엑셀 파일도 이렇게 넣을 수 있습니다.</p>
+    <textarea id="pasteTa" rows="5" placeholder="여기에 엑셀 표를 붙여넣기 (첫 줄은 머리글)" aria-label="엑셀 표 붙여넣기"></textarea>
+    <div class="row"><button type="button" class="primary" id="pasteGo">붙여넣은 표 읽기</button></div>
+  </details>
+
+  <div class="kinds">
+    <div><b>직업상담기록지·구직상담일지</b><span>참여자 + 구직상담 탭 (예전 구직상담기록지 포함)</span></div>
+    <div><b>과정상담일지(사후관리 포함)</b><span>과정상담 탭</span></div>
+    <div><b>직무분석지</b><span>직무분석 탭 (상/중/하 평가 포함)</span></div>
+    <div><b>취업알선 적합성 분석지</b><span>취업알선 탭</span></div>
+    <div><b>취업알선 및 서비스 종합결과서</b><span>서비스이력 탭</span></div>
+    <div><b>엑셀 명단·목록</b><span>고른 탭에 여러 줄 한꺼번에</span></div>
+    <div><b>장기근속자 명단 엑셀</b><span>장기근속자 탭을 통째로 바꿈 (근로자·입사일 열이 있으면 자동으로 알아봄)</span></div>
+  </div>
+
+  <div id="items" style="display:flex;flex-direction:column;gap:12px"></div>
+
+  <p class="privacy">파일은 이 브라우저 안에서만 읽고 어디에도 올리지 않습니다. 한글 서류의 내용 정리에는 Claude가 쓰이고, 저장을 누를 때만 연 사람의 구글 계정으로 시트에 씁니다. 보안(DRM)이 걸린 파일은 열 수 없습니다.</p>
+</div>
+
+<script>
+(function(){
+  const SHEET="1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4", GS="Google Sheets";
+  const SHEET_URL="https://docs.google.com/spreadsheets/d/"+SHEET+"/edit";
+  const $=s=>document.querySelector(s);
+  const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+  const s=v=>String(v==null?"":v).trim();
+  const norm=v=>s(v).replace(/\s|㈜|\(주\)|주식회사/g,"").toLowerCase();
+  const pad=n=>String(n).padStart(2,"0");
+  const toDate=v=>{const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(s(v));return m?new Date(+m[1],+m[2]-1,+m[3]):null;};
+  const isoOf=v=>{const d=toDate(v);return d?d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()):"";};
+  const colL=i=>{let x="";i++;while(i>0){const r=(i-1)%26;x=String.fromCharCode(65+r)+x;i=Math.floor((i-1)/26);}return x;};
+  const cellVal=v=>{v=s(v);if(!v)return null;if(/^\d{4}-\d{2}-\d{2}$/.test(v))return v;return "'"+v;};
+
+  /* 탭마다 자동 계산 칸(쓰면 안 되는 칸) */
+  const TABS=["참여자","구직상담","과정상담","직무분석","취업알선","서비스이력"];
+  const AUTO={참여자:["O","P","Q","S"],구직상담:["B"],과정상담:["C"],직무분석:["A"],취업알선:["C","F","G","H","I","J","K"],서비스이력:["C"]};
+  const EVAL_LABELS=["작업위험요소","작업장환경","동료간분위기","외부인(고객)접촉","용모","손기능","이동능력","주의집중력","과제변화정도","작업지속시간","들기,운반하는힘","변별력","직무의연속성","작업속도","지시이해력","의사소통능력","작업자세","읽기능력","숫자능력","쓰기능력","시간개념","금전개념"];
+  const EVAL_OPTS=[["상: 위험요소가 많다","중: 위험요소가 약간 있다","하: 전혀 위험하지 않다"],["상: 열악하다","중: 보통이다","하: 쾌적하다"],["상: 비협조적이다","중: 보통이다","하: 협조, 지지적이다"],["상: 빈번하다","중: 약간 있다","하: 전혀 없거나 무관"],["상: 청결과 보기 좋은 외모 요함","중: 청결만 요함","하: 중요하지 않음"],["상: 미세한 양손작업 요구","중: 미세하지 않은 양손작업","하: 한 손 작업 가능"],["상: 완전한 신체활동","중: 약간의 이동작업","하: 한 곳에서만 작업"],["상: 주의집중을 매우 요함","중: 대체로 주의집중 요함","하: 주의집중 요하지 않음"],["상: 하루에 5가지 이상 변화","중: 4가지 이하 반복","하: 1가지 반복 작업"],["상: 3시간 이상 지속작업","중: 휴식 없이 2시간 이상","하: 2시간 미만"],["상: 강함(20kg 이상)","중: 보통(5~20kg)","하: 별로 요하지 않음"],["상: 재료 등의 구별이 요구","중: 표시(힌트)에 의한 구별 요구","하: 구별 요구 별로 없음"],["상: 5과제 이상 순서대로","중: 2~4가지 과제 순서대로","하: 한 번에 한 가지 과제"],["상: 빠른 작업(라인작업)","중: 보통 작업","하: 느린 작업"],["상: 매우 중요함","중: 보통","하: 중요하지 않음"],["상: 많이 요구됨","중: 대체로 가능하면 됨","하: 중요하지 않음"],["상: 하루 종일 서서 작업","중: 앉기, 서기 혼합","하: 주로 앉아서 하는 작업"],["상: 문장을 읽고 이해 가능","중: 문자 식별 능력 요구","하: 요구되지 않음"],["상: 계산이 요구됨","중: 3자리 숫자 읽기 요구","하: 2자리 이하 숫자"],["상: 문장 기록 능력이 요구됨","중: 간단한 문자의 기록","하: 요구되지 않음"],["상: 분, 초 단위까지 가능","중: 시간 단위의 이해가 필요","하: 요구되지 않음"],["상: 거스름돈 주고받기","중: 금액을 정확히 파악","하: 요구되지 않음"]];
+
+  /* 서류 종류 */
+  const FORMS={
+    seek:{lab:"직업상담기록지·구직상담일지",tab:"구직상담",person:true},
+    process:{lab:"과정상담일지",tab:"과정상담",person:true},
+    job:{lab:"직무분석지",tab:"직무분석",person:false},
+    fit:{lab:"취업알선 적합성 분석지",tab:"취업알선",person:true},
+    summary:{lab:"취업알선 및 서비스 종합결과서",tab:"서비스이력",person:true}
+  };
+  function detect(text){
+    const t=text.replace(/\s/g,"");
+    if(/직무분석지/.test(t)) return "job";
+    if(/적합성분석지/.test(t)) return "fit";
+    if(/종합결과서/.test(t)) return "summary";
+    if(/과정상담(기록지|일지)/.test(t)) return "process";
+    if(/직업상담기록지|구직상담(기록지|일지)|구직등록번호|구직을신청합니다/.test(t)) return "seek";
+    return "";
+  }
+
+  let mcp=null, sample=null;
+  const H={}; let P=[];   // 탭 머리글, 참여자 목록
+
+  /* ---------- 시트 ---------- */
+  function errText(e){
+    const c=e&&e.code;
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. 페이지를 새로고침하고 허용을 선택해 주세요.";
+    if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
+    if(c==="tool_error") return "시트가 요청을 거절했습니다. 시트 편집 권한이 있는 계정인지 확인해 주세요.";
+    return "구글 시트와 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
+  }
+  const range=async r=>{const x=await mcp.callTool(GS,"get_values",{spreadsheetId:SHEET,range:r});return (x.payload&&x.payload.values)||[];};
+  const put=(r,vals)=>mcp.callTool(GS,"update_values",{spreadsheetId:SHEET,range:r,values:vals});
+  async function loadMeta(){
+    try{
+      for(const t of TABS){H[t]=((await range(t+"!1:1"))[0]||[]).map(s);}
+      await loadPeople();
+      $("#banner").hidden=true;
+    }catch(e){const b=$("#banner");b.hidden=false;b.classList.add("err");b.textContent=errText(e);}
+  }
+  async function loadPeople(){P=(await range("참여자!A2:D")).filter(r=>s(r[0])).map(r=>({id:s(r[0]),name:s(r[1]),birth:s(r[3])}));}
+  const inputCols=tab=>(H[tab]||[]).map((h,i)=>({h,i,L:colL(i)})).filter(c=>c.h&&!AUTO[tab].includes(c.L));
+
+  /* 한 줄 쓰기: obj = {머리글: 값}. 빈 값은 건드리지 않음(덮어쓸 때 기존 값 유지) */
+  async function writeRow(tab,row,obj){
+    const cols=inputCols(tab); let seg=[];
+    const flush=async()=>{if(!seg.length)return;const vals=seg.map(c=>cellVal(obj[c.h]));
+      if(vals.some(v=>v!==null)) await put(tab+"!"+seg[0].L+row+":"+seg[seg.length-1].L+row,[vals]);seg=[];};
+    for(let k=0;k<cols.length;k++){
+      if(seg.length&&cols[k].i!==seg[seg.length-1].i+1) await flush();
+      seg.push(cols[k]);
+    }
+    await flush();
+  }
+  async function nextRow(tab){return (await range(tab+"!A1:A")).length+1;}
+  async function nextTempId(){
+    const ids=(await range("참여자!A2:A")).map(r=>s(r[0]));
+    const max=ids.reduce((m,x)=>{const k=/^임시-(\d+)$/.exec(x);return k?Math.max(m,+k[1]):m;},0);
+    return "임시-"+String(max+1).padStart(3,"0");
+  }
+
+  /* ---------- 파일 받기 ---------- */
+  const drop=$("#drop");
+  ["dragenter","dragover"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.add("over");}));
+  ["dragleave","drop"].forEach(e=>drop.addEventListener(e,ev=>{ev.preventDefault();drop.classList.remove("over");}));
+  drop.addEventListener("drop",ev=>handle([...ev.dataTransfer.files]));
+  $("#file").addEventListener("change",ev=>{handle([...ev.target.files]);ev.target.value="";});
+
+  /* 엑셀에서 복사한 표(탭으로 나뉜 글) 읽기. "…" 안의 줄바꿈도 한 칸으로 봄 */
+  function parseTsv(t){
+    const rows=[];let row=[],cell="",q=false;
+    t=t.replace(/\r\n?/g,"\n");
+    for(let i=0;i<t.length;i++){const c=t[i];
+      if(q){if(c==='"'){if(t[i+1]==='"'){cell+='"';i++;}else q=false;}else cell+=c;continue;}
+      if(c==='"'&&cell==="")q=true;
+      else if(c==="\t"){row.push(cell);cell="";}
+      else if(c==="\n"){row.push(cell);rows.push(row);row=[];cell="";}
+      else cell+=c;}
+    if(cell||row.length){row.push(cell);rows.push(row);}
+    return rows.filter(r=>r.some(x=>s(x)));
+  }
+  $("#pasteGo").addEventListener("click",()=>{
+    const rows=parseTsv($("#pasteTa").value);
+    const card=el("div","item");$("#items").prepend(card);
+    const head=el("div","ihead");head.append(el("span","fname","붙여넣은 표"),el("span","pill wait","읽는 중"));card.append(head);
+    if(rows.length<2){bad(card,"붙여넣은 내용에서 표를 찾지 못했습니다. 엑셀에서 머리글 줄까지 함께 복사해 주세요.");return;}
+    excelCard(card,{name:"붙여넣은 표"},[{name:"붙여넣은 표",rows}]);
+    $("#pasteTa").value="";
+  });
+
+  async function handle(files){
+    for(const f of files){
+      const card=el("div","item"); $("#items").prepend(card);
+      const head=el("div","ihead"); head.append(el("span","fname",f.name),el("span","pill wait","읽는 중"));
+      card.append(head);
+      try{
+        const sn=await FormReader.sniff(f);
+        if(sn.kind==="drm"&&/\.(xlsx|xls|csv)$/i.test(f.name)){bad(card,"보안(DRM)이 걸린 엑셀 파일이라 열 수 없습니다. 엑셀에서 표를 복사(Ctrl+A, Ctrl+C)한 뒤 위 '보안(DRM)이 걸린 엑셀은 복사해서 붙여넣기' 칸에 붙여넣어 주세요.");$("#pastebox").open=true;continue;}
+        if(sn.kind==="drm"){bad(card,"보안(DRM)이 걸린 파일이라 열 수 없습니다. 한글에서 파일을 연 뒤 '다른 이름으로 저장'으로 보안이 없는 곳에 hwpx로 저장해서 넣어 주세요. 저장한 파일에도 보안이 걸리면 이 방법은 쓸 수 없습니다.");continue;}
+        if(sn.kind==="xlsx"||sn.kind==="csv"){excelCard(card,f,FormReader.rowsFromSheet(sn.buf));continue;}
+        if(sn.kind==="hwp"||sn.kind==="hwpx"){
+          if(sn.kind==="hwp"&&!window.hwpParse){bad(card,"hwp 읽기 도구를 아직 불러오지 못했습니다. 잠시 뒤 다시 넣어 주세요.");continue;}
+          const r=sn.kind==="hwpx"?await FormReader.cellsFromHwpx(sn.zip):FormReader.cellsFromHwp(sn.buf);
+          formCard(card,f,r);continue;
+        }
+        bad(card,"이 파일 종류는 읽을 수 없습니다. hwp, hwpx, xlsx, xls, csv만 넣을 수 있습니다.");
+      }catch(e){bad(card,"파일을 읽지 못했습니다. 파일이 손상되었거나 지원하지 않는 형식일 수 있습니다.");}
+    }
+  }
+  function setPill(card,t,c){const p=card.querySelector(".ihead .pill");p.className="pill "+c;p.textContent=t;}
+  function bad(card,msg){setPill(card,"읽지 못함","no");card.classList.add("bad");card.append(el("p","status err",msg));}
+  function statusEl(card){let x=card.querySelector(".status.run");if(!x){x=el("div","status run");x.setAttribute("role","status");card.append(x);}return x;}
+  function say(card,t,cls,link){const x=statusEl(card);x.className="status run"+(cls?" "+cls:"");x.textContent=t;
+    if(link){x.append(" ");const a=el("a",null,"시트 열기");a.href=SHEET_URL;a.target="_blank";a.rel="noopener";x.append(a);}}
+  function ask(card,msg){return new Promise(res=>{const a=el("div","ask");a.append(el("span",null,msg));
+    const y=el("button","primary","예"),n=el("button",null,"아니오");y.type=n.type="button";
+    y.onclick=()=>{a.remove();res(true);};n.onclick=()=>{a.remove();res(false);};a.append(y,n);card.append(a);y.focus();});}
+
+  /* ---------- 한글 서류 ---------- */
+  function cellsToText(cells){
+    const out=[];let len=0;
+    for(const c of cells){if(!c.t)continue;const line=c.t.replace(/\n+/g," / ")+(c.m.length?"  ⟦선택: "+c.m.join(" | ")+"⟧":"");len+=line.length;if(len>14000)break;out.push(line);}
+    return out.join("\n");
+  }
+  function evalFromCells(cells){
+    const n=x=>s(x).replace(/\s/g,"").replace(/，/g,",");
+    return EVAL_LABELS.map((lb,i)=>{
+      const k=cells.findIndex(c=>n(c.t)===lb); if(k<0||k+3>=cells.length) return "";
+      const hit=[1,2,3].filter(o=>cells[k+o].m.length&&n(cells[k+o].m.join(""))===n(cells[k+o].t));
+      return hit.length===1?EVAL_OPTS[i][hit[0]-1]:"";
+    });
+  }
+  function shiftFromCells(cells){
+    const c=cells.find(x=>/1교대.*2교대.*3교대/.test(s(x.t).replace(/\s/g,""))); if(!c||!c.m.length) return "";
+    const w=c.m.join(" "); return ["1교대","2교대","3교대","기타"].find(x=>w.includes(x))||"";
+  }
+
+  function promptFor(kind,text){
+    const tabCols=inputCols(FORMS[kind].tab).map(c=>c.h).filter(h=>!["등록번호"].includes(h));
+    const common=`너는 장애인복지관 직업지원팀의 서류를 데이터베이스에 옮겨 적는 일을 돕는다.
+아래는 한글 서류의 표 칸을 순서대로 읽은 글자다. "⟦선택: …⟧"는 서류에서 굵은 글씨와 밑줄로 고른 항목이다.
+□는 고르지 않은 칸, ■ ▣ ☑ √ v 표시는 고른 칸이다.
+규칙:
+- 서류에 적힌 내용만 옮긴다. 없는 내용은 지어내지 말고 ""로 둔다. 양식에 원래 인쇄된 안내 문구나 빈 보기(예: "( )년 졸업", "□유 □무")는 값이 아니다.
+- 날짜는 YYYY-MM-DD로 바꾼다. 연도가 두 자리면 문맥에 맞는 네 자리로 바꾼다.
+- 여러 줄 내용은 줄바꿈(\\n)으로 이어 쓴다.
+- 설명 없이 JSON 하나만 출력한다.`;
+    if(kind==="seek") return common+`
+출력 형식: {"person":{"등록번호":"","성명":"","성별":"남|여|","생년월일":"","연락처(본인)":"","보호자 연락처":"","주소":"","장애유형":"","장애정도":"심한 장애(중증)|심하지 않은 장애(경증)|","장애등록일":"","수급 구분":"수급|차상위|해당없음|"},"row":{${tabCols.map(h=>JSON.stringify(h)+":\"\"").join(",")}}}
+- person.등록번호는 '구직등록번호' 칸 값. 장애유형은 지체장애·뇌병변장애·시각장애·청각장애·언어장애·지적장애·자폐성장애·정신장애·신장장애·심장장애·호흡기장애·간장애·안면장애·장루·요루장애·뇌전증장애 중 하나.
+- row.작성일은 상담일자나 신청일. row.상담내용은 '상담내용' 칸 그대로. 주민등록번호는 절대 옮기지 않는다(생년월일만).
+
+[서류]
+${text}`;
+    if(kind==="process") return common+`
+출력 형식: {"person":{"성명":"","생년월일":""},"row":{${tabCols.map(h=>JSON.stringify(h)+":\"\"").join(",")}}}
+- row.상담방법은 고른 항목 하나를 "전화상담|내방상담|방문상담|인터넷상담|문자상담|기타(내용)" 중 하나로 쓴다. 고른 표시가 없으면 "".
+
+[서류]
+${text}`;
+    if(kind==="job"){const cols=tabCols.filter(h=>!EVAL_LABELS.includes(h.replace(/\s/g,"").replace(/·/g,",")));
+      return common+`
+출력 형식: {"row":{${cols.map(h=>JSON.stringify(h)+":\"\"").join(",")}}}
+- 상/중/하 평가 22항목, 근무형태(1교대 등)는 따로 읽으므로 비워 둔다.
+- "과제분석(작업순서·방법)"에는 과제명과 작업 순서 표를 줄마다 "- " 로 시작해 옮긴다.
+- 구인성별·구인연령대·구인장애유형·고용형태·근무시간·중식제공·임금·휴일·근무지·교통·사업체 연락처는 서류에 있을 때만 쓴다.
+- "비고"에는 약도 주소와 종합의견, 평가 항목 옆에 적힌 설명 메모를 옮긴다.
+
+[서류]
+${text}`;}
+    if(kind==="fit") return common+`
+출력 형식: {"person":{"등록번호":"","성명":"","생년월일":""},"company":{"사업체명":"","주소":"","전화번호":""},"row":{"알선일":"","구직자 직업능력수준":"","적합성 비교·분석":"","소견: 구직자":"","소견: 사업주":"","소견: 담당자":"","작성자":""}}
+- 표에서 왼쪽은 구직자, 오른쪽은 구인업체 칸이다. 알선일은 '취업알선일' 칸 값.
+
+[서류]
+${text}`;
+    if(kind==="summary") return common+`
+출력 형식: {"person":{"등록번호":"","성명":"","생년월일":""},"rows":[{"일자":"","구분":"본관서비스|외부의뢰|취업경력","서비스명·기관·사업체":"","내용·직무":"","종료일(퇴사일)":"","비고":""}]}
+- 복지관 안 서비스(본관서비스), 다른 기관에 의뢰한 것(외부의뢰), 이전 직장·취업 기록(취업경력)을 한 줄씩 rows에 넣는다. 고른 표시(⟦선택⟧, √, ■)가 있는 서비스만 넣는다.
+
+[서류]
+${text}`;
+    return "";
+  }
+
+  function personPicker(card,st){
+    const wrap=el("label");wrap.append("참여자 ");
+    const sel=el("select");sel.setAttribute("aria-label","참여자 고르기");
+    const pn=norm(st.person&&st.person.성명), pb=isoOf(st.person&&st.person.생년월일), pid=s(st.person&&st.person.등록번호);
+    const score=p=>(pid&&p.id===pid?4:0)+(pn&&norm(p.name)===pn?2:0)+(pb&&isoOf(p.birth)===pb?1:0);
+    const ranked=P.map(p=>({p,sc:score(p)})).sort((a,b)=>b.sc-a.sc||a.p.name.localeCompare(b.p.name,"ko"));
+    const best=ranked[0]&&ranked[0].sc>=2?ranked[0].p.id:"";
+    sel.append(Object.assign(el("option",null,"+ 새 참여자로 추가"),{value:"__new"}));
+    ranked.forEach(({p,sc})=>sel.append(Object.assign(el("option",null,(sc>=2?"★ ":"")+p.name+" ("+p.id+(p.birth?", "+p.birth:"")+")"),{value:p.id})));
+    sel.value=best||"__new"; st.pid=sel.value;
+    sel.onchange=()=>{st.pid=sel.value;};
+    wrap.append(sel);return wrap;
+  }
+  function fieldsBox(obj,highlight){
+    const box=el("div","fields");
+    Object.keys(obj).forEach(k=>{
+      box.append(el("div","k"+(highlight&&highlight.includes(k)?" hl":""),k));
+      const ta=el("textarea");ta.value=s(obj[k]);ta.rows=Math.min(8,Math.max(1,ta.value.split("\n").length));ta.setAttribute("aria-label",k);
+      ta.addEventListener("input",()=>{obj[k]=ta.value;});box.append(ta);
+    });
+    return box;
+  }
+
+  async function formCard(card,f,read){
+    const st={kind:detect(read.body+" "+read.cells.slice(0,6).map(c=>c.t).join(" ")),read};
+    const ctrl=el("div","ctrl"), kl=el("label");kl.append("서류 종류 ");
+    const ks=el("select");ks.append(Object.assign(el("option",null,"고르세요"),{value:""}));
+    Object.entries(FORMS).forEach(([k,v])=>ks.append(Object.assign(el("option",null,v.lab),{value:k})));
+    ks.value=st.kind; kl.append(ks); ctrl.append(kl); card.append(ctrl);
+    const body=el("div");card.append(body);
+    const run=async()=>{
+      body.textContent="";
+      if(!st.kind){setPill(card,"종류 고르기","wait");body.append(el("p","hint","어떤 서류인지 알아보지 못했습니다. 서류 종류를 골라 주세요."));return;}
+      if(!sample){setPill(card,"읽지 못함","no");body.append(el("p","status err","이 화면에서는 서류 내용 정리(Claude)를 쓸 수 없습니다."));return;}
+      setPill(card,"내용 정리 중","wait");
+      try{
+        const o=await sample.json(promptFor(st.kind,cellsToText(read.cells)),{modelTier:"default"})||{};
+        Object.assign(st,{person:o.person||{},row:o.row||{},rows:Array.isArray(o.rows)?o.rows:[],company:o.company||{}});
+        if(st.kind==="job"){
+          const ev=evalFromCells(read.cells), cols=inputCols("직무분석");
+          const evCols=cols.slice(cols.findIndex(c=>c.L==="N"),cols.findIndex(c=>c.L==="N")+22);
+          evCols.forEach((c,i)=>{st.row[c.h]=ev[i]||"";});
+          const sh=shiftFromCells(read.cells); if(sh&&!s(st.row["근무형태"])) st.row["근무형태"]=sh;
+          st.evalFound=ev.filter(Boolean).length;
+        }
+        if(st.kind==="fit") st.row["사업체명"]=s(st.company.사업체명);
+        renderForm(card,body,st);
+      }catch(e){const c=e&&e.code;setPill(card,"읽지 못함","no");body.append(el("p","status err",c==="not_granted"?"서류 내용 정리 사용이 허용되지 않았습니다. 페이지를 새로고침하고 허용을 눌러 주세요.":c==="rate_limited"?"요청이 많습니다. 잠시 뒤 '다시 읽기'를 눌러 주세요.":"서류 내용을 정리하지 못했습니다. '다시 읽기'를 눌러 주세요."));
+        const again=el("button",null,"다시 읽기");again.type="button";again.onclick=run;body.append(again);}
+    };
+    ks.onchange=()=>{st.kind=ks.value;run();};
+    run();
+  }
+
+  function renderForm(card,body,st){
+    body.textContent="";
+    setPill(card,"확인 후 저장","wait");
+    const F=FORMS[st.kind];
+    const top=el("div","ctrl");
+    if(F.person) top.append(personPicker(card,st));
+    top.append(el("span","hint","→ "+F.tab+" 탭"+(F.person?" (새 참여자면 참여자 탭에도 추가)":"")));
+    body.append(top);
+    if(st.kind==="job"){
+      body.append(el("p","hint","상/중/하 평가 "+st.evalFound+"/22개를 서류의 굵은 글씨+밑줄 표시에서 읽었습니다. 표시가 없거나 두 개 이상인 항목은 비워 두었습니다."));
+      const sel=el("label");sel.append("분석일 ");const d=el("input","txt");d.placeholder="2026-11-06 (서류에 칸이 없어 직접 적기)";d.style.width="22em";
+      d.addEventListener("input",()=>{st.row["분석일"]=d.value;});sel.append(d);body.append(sel);
+    }
+    if(F.person&&st.person&&Object.keys(st.person).length){
+      const det=el("details");det.append(el("summary",null,"서류에 적힌 인적사항 (새 참여자로 추가할 때 씀)"),fieldsBox(st.person));body.append(det);
+    }
+    if(st.kind==="fit"){
+      const jobs=[];body.append(el("p","hint","사업체·직무는 직무분석 탭 목록에서 고릅니다. 같은 사업체가 없으면 사업체명만 적힙니다."));
+      const jl=el("label");jl.append("사업체·직무 ");const js=el("select");jl.append(js);body.append(jl);
+      range("직무분석!A2:B").then(rows=>{
+        const cn=norm(st.row["사업체명"]);
+        const all=rows.filter(r=>s(r[0])).map(r=>({label:s(r[0]),biz:s(r[1])}));
+        const hit=all.filter(j=>cn&&(norm(j.biz).includes(cn)||cn.includes(norm(j.biz))));
+        js.append(Object.assign(el("option",null,(st.row["사업체명"]||"(사업체명 없음)")+" / (목록에 없음)"),{value:(st.row["사업체명"]||"")+" / "}));
+        hit.concat(all.filter(j=>!hit.includes(j))).forEach(j=>js.append(Object.assign(el("option",null,(hit.includes(j)?"★ ":"")+j.label),{value:j.label})));
+        js.value=hit[0]?hit[0].label:js.options[0].value; st.row["사업체·직무"]=js.value;
+        js.onchange=()=>{st.row["사업체·직무"]=js.value;};
+      }).catch(()=>{});
+    }
+    if(st.kind==="summary"){
+      const tw=el("div","tablewrap"),t=el("table","prev"),h=el("tr");
+      ["일자","구분","서비스명·기관·사업체","내용·직무","종료일(퇴사일)","비고"].forEach(k=>h.append(el("th",null,k)));t.append(h);
+      st.rows.forEach(r=>{const tr=el("tr");["일자","구분","서비스명·기관·사업체","내용·직무","종료일(퇴사일)","비고"].forEach(k=>tr.append(el("td",null,s(r[k]))));t.append(tr);});
+      if(!st.rows.length){const tr=el("tr");const td=el("td",null,"옮길 서비스 기록을 찾지 못했습니다.");td.colSpan=6;tr.append(td);t.append(tr);}
+      tw.append(t);body.append(tw);
+    }else{
+      const show=Object.fromEntries(Object.entries(st.row).filter(([k])=>k!=="사업체명"));
+      body.append(fieldsBox(show,[]));
+      Object.keys(show).forEach(k=>Object.defineProperty(show,k,{set(v){st.row[k]=v;},get(){return st.row[k];}}));
+    }
+    const row=el("div","row"),save=el("button","primary","시트에 저장");save.type="button";
+    const skip=el("button",null,"이 파일 빼기");skip.type="button";skip.onclick=()=>card.remove();
+    save.onclick=()=>saveForm(card,st,save);
+    row.append(save,skip);body.append(row);
+  }
+
+  async function ensurePerson(card,st){
+    if(st.pid&&st.pid!=="__new") return st.pid;
+    const p=st.person||{};
+    if(!s(p.성명)){say(card,"성명이 없어 새 참여자로 추가할 수 없습니다. 참여자를 목록에서 골라 주세요.","err");return null;}
+    let id=s(p.등록번호);
+    if(id&&P.some(x=>x.id===id)){say(card,"등록번호 "+id+"는 이미 다른 분("+P.find(x=>x.id===id).name+")이 쓰고 있습니다. 목록에서 고르거나 번호를 확인해 주세요.","err");return null;}
+    if(!(await ask(card,s(p.성명)+"님은 참여자 탭에 없습니다. 새 참여자로 추가할까요?"))) {say(card,"저장을 취소했습니다.");return null;}
+    if(!id) id=await nextTempId();
+    const r=await nextRow("참여자");
+    await writeRow("참여자",r,Object.assign({},p,{등록번호:id,생년월일:isoOf(p.생년월일)||s(p.생년월일),담당자:(window.APP_ME||"김주현")}));
+    await loadPeople(); st.pid=id; return id;
+  }
+
+  async function saveForm(card,st,btn){
+    btn.disabled=true; let step="참여자 확인";
+    try{
+      const F=FORMS[st.kind]; const tab=F.tab; let id=null;
+      if(F.person){id=await ensurePerson(card,st);if(!id)return;}
+      step=tab+" 저장";
+      const fixDates=o=>{Object.keys(o).forEach(k=>{if(/일$|일자$|일\(/.test(k)&&toDate(o[k]))o[k]=isoOf(o[k]);});return o;};
+      if(st.kind==="summary"){
+        if(!st.rows.length){say(card,"옮길 줄이 없습니다.","err");return;}
+        const ex=await range("서비스이력!A1:E"); let r=ex.length+1, n=0, dup=0;
+        for(const x of st.rows){
+          const o=fixDates(Object.assign({},x,{등록번호:id}));
+          if(ex.some(e=>s(e[1])===id&&s(e[3])===s(o.구분)&&norm(e[4])===norm(o["서비스명·기관·사업체"]))){dup++;continue;}
+          await writeRow("서비스이력",r++,o);n++;
+        }
+        done(card,n+"줄을 서비스이력 탭에 넣었습니다."+(dup?" 이미 있는 "+dup+"줄은 건너뛰었습니다.":""));return;
+      }
+      const o=fixDates(Object.assign({},st.row));
+      if(id) o.등록번호=id;
+      let r;
+      if(st.kind==="job"){
+        const ex=await range("직무분석!A1:F");
+        const k=ex.findIndex((e,i)=>i>0&&norm(e[1])===norm(o.사업체명)&&norm(e[5])===norm(o.직무명));
+        if(k>0){if(!(await ask(card,"직무분석 탭에 "+o.사업체명+" / "+o.직무명+"이(가) 이미 있습니다. 서류 내용으로 채울까요? (빈칸은 그대로 둡니다)"))){say(card,"저장을 취소했습니다.");return;}r=k+1;}
+        else r=ex.length+1;
+      }else{
+        const keyDate={구직상담:"작성일",과정상담:"상담일자",취업알선:"알선일"}[tab];
+        const ex=await range(tab+"!A1:G");
+        const dcol=tab==="구직상담"?2:0;
+        const k=ex.findIndex((e,i)=>i>0&&(tab==="구직상담"?s(e[0]):s(e[1]))===id&&isoOf(e[dcol])===isoOf(o[keyDate])&&(tab!=="과정상담"||s(e[6])===s(o.상담목적)));
+        if(k>0){if(!(await ask(card,"같은 날짜의 "+tab+" 기록이 이미 있습니다. 서류 내용으로 채울까요? (빈칸은 그대로 둡니다)"))){say(card,"저장을 취소했습니다.");return;}r=k+1;}
+        else r=ex.length+1;
+      }
+      say(card,"저장하는 중입니다…");
+      await writeRow(tab,r,o);
+      done(card,tab+" 탭 "+r+"번째 줄에 저장했습니다.");
+    }catch(e){
+      const c=e&&e.code;
+      say(card,"["+step+"] "+(c==="server_unavailable"||c==="upstream_error"?"저장됐는지 확실하지 않습니다. 시트를 열어 확인한 뒤, 빠진 경우에만 다시 눌러 주세요.":errText(e)),"err",true);
+    }finally{btn.disabled=false;}
+  }
+  function done(card,msg){setPill(card,"저장함","ok");card.classList.add("done");say(card,msg,"ok",true);}
+
+  /* ---------- 엑셀 ---------- */
+  function excelCard(card,f,sheets){
+    setPill(card,"확인 후 저장","wait");
+    const st={sheet:0,tab:"참여자",map:{}};
+    // 장기근속자 명단 엑셀이면 처음부터 '장기근속자 명단'으로
+    const firstRows=sheets.map(x=>(x.rows.find(r=>r.some(c=>s(c)))||[]).map(norm).join("|"));
+    const li=firstRows.findIndex(h=>/근로자|장기근속/.test(h)&&/입사일/.test(h));
+    if(li>=0){st.sheet=li;st.tab=LONG_TAB;}
+    const ctrl=el("div","ctrl");
+    const sl=el("label");sl.append("엑셀 시트 ");const ss=el("select");sheets.forEach((x,i)=>ss.append(Object.assign(el("option",null,x.name),{value:i})));ss.value=String(st.sheet);sl.append(ss);
+    const tl=el("label");tl.append("넣을 탭 ");const ts=el("select");TABS.concat([LONG_TAB]).forEach(t=>ts.append(Object.assign(el("option",null,t===LONG_TAB?"장기근속자 명단(통째로 바꾸기)":t),{value:t})));ts.value=st.tab;tl.append(ts);
+    ctrl.append(sl,tl);card.append(ctrl);
+    const body=el("div");card.append(body);
+    const draw=()=>{
+      body.textContent="";
+      const rows=sheets[st.sheet].rows.filter(r=>r.some(x=>s(x)));
+      if(rows.length<2){body.append(el("p","hint","이 시트에는 머리글과 내용이 없습니다."));return;}
+      if(st.tab===LONG_TAB){longDraw(card,body,rows);return;}
+      const hdr=rows[0].map(s), data=rows.slice(1);
+      const cols=inputCols(st.tab);
+      // 머리글 이름으로 자동 짝짓기
+      st.map={};
+      cols.forEach(c=>{const hn=norm(c.h.replace(/\(.*?\)/g,""));const j=hdr.findIndex(x=>norm(x)===norm(c.h)||(hn&&norm(x.replace(/\(.*?\)/g,""))===hn));if(j>=0)st.map[c.h]=j;});
+      body.append(el("p","hint","왼쪽은 '"+st.tab+"' 탭의 칸, 오른쪽은 엑셀의 열입니다. 이름이 같은 열은 미리 짝지어 두었습니다. 등록번호 열이 없으면 성명(과 생년월일)으로 참여자를 찾아 채웁니다."));
+      const box=el("div","fields");
+      cols.forEach(c=>{
+        box.append(el("div","k",c.h));
+        const sel=el("select");sel.append(Object.assign(el("option",null,"(넣지 않음)"),{value:""}));
+        hdr.forEach((h,j)=>sel.append(Object.assign(el("option",null,h||("열 "+(j+1))),{value:j})));
+        sel.value=st.map[c.h]!=null?String(st.map[c.h]):"";
+        sel.onchange=()=>{if(sel.value==="")delete st.map[c.h];else st.map[c.h]=+sel.value;};
+        box.append(sel);
+      });
+      body.append(box);
+      const tw=el("div","tablewrap"),t=el("table","prev"),h=el("tr");hdr.forEach(x=>h.append(el("th",null,x)));t.append(h);
+      data.slice(0,4).forEach(r=>{const tr=el("tr");hdr.forEach((_,j)=>tr.append(el("td",null,s(r[j]))));t.append(tr);});
+      const det=el("details");det.append(el("summary",null,"엑셀 내용 미리 보기 (처음 4줄, 전체 "+data.length+"줄)"),tw);tw.append(t);body.append(det);
+      const row=el("div","row"),save=el("button","primary",data.length+"줄 저장");save.type="button";
+      const skip=el("button",null,"이 파일 빼기");skip.type="button";skip.onclick=()=>card.remove();
+      save.onclick=()=>saveExcel(card,st,hdr,data,save);row.append(save,skip);body.append(row);
+    };
+    ss.onchange=()=>{st.sheet=+ss.value;draw();};
+    ts.onchange=()=>{st.tab=ts.value;draw();};
+    draw();
+  }
+  /* ---------- 장기근속자 명단: 시트 '장기근속자' 탭을 엑셀 내용으로 통째로 바꿈 ----------
+     탭 열: A 근로자, B 사업체명, C 입사일, D 장기근속 여부, E 등록번호(자동, 수식), F 비고, G 불러온 날 */
+  const LONG_TAB="장기근속자";
+  function longRows(rows){
+    const hdr=rows[0].map(norm);
+    const f=re=>hdr.findIndex(h=>re.test(h));
+    const iN=f(/^(근로자|성명|이름|근로자명)$/), iB=f(/사업체|회사|근무처/), iD=f(/입사일|취업일/), iY=f(/장기근속여부|여부/), iX=f(/비고/);
+    if(iN<0||iD<0) return {err:"엑셀 첫 줄에 '근로자'(또는 성명)와 '입사일' 열이 있어야 합니다."};
+    const t0=new Date(), today=t0.getFullYear()+"-"+pad(t0.getMonth()+1)+"-"+pad(t0.getDate());
+    const list=rows.slice(1).map(r=>{
+      const name=s(r[iN]); if(!name||/^\d+$/.test(name)) return null;
+      const raw=s(r[iD]); let d="";
+      const us=/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(raw); // 엑셀이 1/2/25(월/일/연)로 줄 때
+      if(us){const y=us[3].length===2?2000+(+us[3]):+us[3];d=y+"-"+pad(us[1])+"-"+pad(us[2]);}
+      else d=isoOf(raw);
+      if(!d&&/^\d{5}$/.test(raw)){const x=new Date(Math.round((+raw-25569)*864e5));d=x.getUTCFullYear()+"-"+pad(x.getUTCMonth()+1)+"-"+pad(x.getUTCDate());}
+      const note=[iX>=0?s(r[iX]):"",!d&&raw?"입사일 "+raw:""].filter(Boolean).join(" / ");
+      return {name,biz:iB>=0?s(r[iB]):"",date:d,yn:iY>=0?s(r[iY]).toUpperCase():"",note,today};
+    }).filter(Boolean);
+    return {list};
+  }
+  function longDraw(card,body,rows){
+    const {list,err}=longRows(rows);
+    if(err){body.append(el("p","hint",err));return;}
+    body.append(el("p","hint","시트의 '장기근속자' 탭을 이 엑셀 내용으로 통째로 바꿉니다(엑셀이 바뀔 때마다 다시 넣으면 됩니다). 참여자 탭과 같은 이름이 한 명뿐이면 등록번호가 자동으로 이어집니다. 업무판 '장기근속 격려'가 이 명단으로 날짜를 셉니다."));
+    const tw=el("div","tablewrap"),t=el("table","prev"),h=el("tr");["근로자","사업체명","입사일","장기근속 여부","비고"].forEach(x=>h.append(el("th",null,x)));t.append(h);
+    list.forEach(o=>{const tr=el("tr");[o.name,o.biz,o.date||"(없음)",o.yn,o.note].forEach(x=>tr.append(el("td",null,x)));t.append(tr);});
+    tw.append(t);body.append(tw);
+    const noDate=list.filter(o=>!o.date).length;
+    if(noDate) body.append(el("p","hint","입사일이 없거나 날짜로 읽지 못한 "+noDate+"명은 카운트다운에서 빠집니다."));
+    const row=el("div","row"),save=el("button","primary","명단 "+list.length+"명으로 바꾸기");save.type="button";
+    const skip=el("button",null,"이 파일 빼기");skip.type="button";skip.onclick=()=>card.remove();
+    save.onclick=()=>saveLong(card,list,save);row.append(save,skip);body.append(row);
+  }
+  async function saveLong(card,list,btn){
+    if(!list.length){say(card,"넣을 사람이 없습니다.","err");return;}
+    btn.disabled=true;
+    try{
+      const old=(await range(LONG_TAB+"!A2:A")).filter(r=>s(r[0])).length;
+      if(!(await ask(card,"'장기근속자' 탭의 지금 명단 "+old+"명을 지우고, 이 엑셀의 "+list.length+"명으로 바꿀까요?"))){btn.disabled=false;return;}
+      say(card,"바꾸는 중입니다…");
+      const n=Math.max(old,list.length), A=[], F=[];
+      for(let k=0;k<n;k++){const o=list[k];
+        A.push(o?[cellVal(o.name),cellVal(o.biz),o.date||"",cellVal(o.yn)]:["","","",""]);
+        F.push(o?[cellVal(o.note)||"",o.today]:["",""]);}
+      await put(LONG_TAB+"!A2:D"+(n+1),A.map(r=>r.map(v=>v==null?"":v)));
+      await put(LONG_TAB+"!F2:G"+(n+1),F);
+      done(card,"장기근속자 명단을 "+list.length+"명으로 바꿨습니다. 업무판에서 '다시 불러오기'를 누르면 장기근속 격려에 반영됩니다.");
+    }catch(e){
+      const c=e&&e.code;
+      if(c==="tool_error") say(card,"시트에 '장기근속자' 탭이 없거나 쓸 수 없습니다. "+errText(e),"err",true);
+      else say(card,errText(e),"err",true);
+    }finally{btn.disabled=false;}
+  }
+
+  async function saveExcel(card,st,hdr,data,btn){
+    const tab=st.tab;
+    if(!Object.keys(st.map).length){say(card,"짝지은 열이 없습니다. 넣을 칸을 하나 이상 골라 주세요.","err");return;}
+    if(!(await ask(card,data.length+"줄을 '"+tab+"' 탭 맨 아래에 넣을까요? 같은 기록으로 보이는 줄은 건너뜁니다."))) return;
+    btn.disabled=true; let n=0, skipped=0, noId=[];
+    try{
+      say(card,"넣는 중입니다…");
+      const ex=await range(tab+"!A1:G"); let r=ex.length+1;
+      const nameIdx=hdr.findIndex(x=>norm(x)==="성명"||norm(x)==="이름"), birthIdx=hdr.findIndex(x=>/생년월일/.test(x));
+      for(const d of data){
+        const o={};Object.entries(st.map).forEach(([h,j])=>{o[h]=s(d[j]);});
+        Object.keys(o).forEach(k=>{if(/일$|일자$/.test(k)&&toDate(o[k]))o[k]=isoOf(o[k]);});
+        if(tab!=="참여자"&&tab!=="직무분석"&&!s(o.등록번호)){
+          const nm=nameIdx>=0?norm(d[nameIdx]):"", bd=birthIdx>=0?isoOf(d[birthIdx]):"";
+          const hit=P.filter(p=>nm&&norm(p.name)===nm&&(!bd||isoOf(p.birth)===bd));
+          if(hit.length===1)o.등록번호=hit[0].id;else{noId.push(nameIdx>=0?s(d[nameIdx]):"(이름 없음)");continue;}
+        }
+        if(tab==="참여자"){
+          if(s(o.등록번호)&&ex.some(e=>s(e[0])===s(o.등록번호))){skipped++;continue;}
+          if(!s(o.등록번호)&&P.some(p=>norm(p.name)===norm(o.성명)&&(!o.생년월일||isoOf(p.birth)===isoOf(o.생년월일)))){skipped++;continue;}
+          if(!s(o.등록번호)) o.등록번호=await nextTempId();
+        }
+        await writeRow(tab,r++,o); n++;
+        if(tab==="참여자") await loadPeople();
+        say(card,n+"줄 넣는 중…");
+      }
+      done(card,n+"줄을 '"+tab+"' 탭에 넣었습니다."+(skipped?" 이미 있는 "+skipped+"줄은 건너뛰었습니다.":"")+(noId.length?" 참여자를 찾지 못한 "+noId.length+"줄은 넣지 않았습니다: "+noId.slice(0,10).join(", ")+(noId.length>10?" 외":""):""));
+    }catch(e){
+      const c=e&&e.code;
+      say(card,n+"줄까지 넣은 뒤 멈췄습니다. "+(c==="server_unavailable"||c==="upstream_error"?"시트를 열어 어디까지 들어갔는지 확인해 주세요.":errText(e)),"err",true);
+    }finally{btn.disabled=false;}
+  }
+
+  const inClaude=!!(window.claude&&typeof window.claude.use==="function");
+  if(!inClaude){$("#banner").textContent="이 화면은 claude.ai에서 열었을 때만 구글 시트에 저장할 수 있습니다.";}
+  else{
+    claude.use("sample").then(x=>{sample=x;}).catch(()=>{});
+    claude.use("mcp").then(m=>{mcp=m;if(!m){$("#banner").textContent="이 화면에서는 구글 시트를 쓸 수 없습니다. claude.ai에서 다시 열어 주세요.";return;}loadMeta();}).catch(()=>{});
+  }
+})();
+</script>
+
+</body></html>

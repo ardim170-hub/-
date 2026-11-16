@@ -42,7 +42,8 @@ self.addEventListener('fetch', e => {
   let url;
   try { url = new URL(req.url); } catch (err) { return; }
   if (/version\.json$/.test(url.pathname)) return; // 버전 확인은 늘 인터넷에서
-  const isPage = req.mode === 'navigate' || (url.origin === location.origin && /\/(index\.html)?$/.test(url.pathname));
+  // 앱 첫 화면(/ 또는 /index.html)만 저장본으로. 업무판(/emp/…) 같은 다른 화면은 아래 일반 규칙으로
+  const isPage = url.origin === location.origin && /^\/(index\.html)?$/.test(url.pathname);
   if (isPage) {
     const hitP = caches.match('index.html').catch(() => null);
     const netP = hitP.then(() => updateIndex());

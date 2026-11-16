@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<script src="../adapter.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>월별 계획·결과보고</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="monthly-templates.js"></script>
+<script src="monthly-hwpx.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E9EDF1; --panel:#F7F9FB; --ink:#1D2733; --muted:#5B6878; --line:#C5CED8;
+  --accent:#1E5C8C; --accent-ink:#FFFFFF; --accent-soft:#DCE8F2;
+  --paper:#FFFFFF; --paper-ink:#111111; --warn:#9A4B00; --ok:#2F6B3A; --tag:#E4E9EE;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#161B21; --panel:#1F262E; --ink:#E4E9EF; --muted:#9AA7B5; --line:#38424D;
+    --accent:#6FA8D8; --accent-ink:#0E1A26; --accent-soft:#25384A;
+    --paper:#252C34; --paper-ink:#EEF1F4; --warn:#F0A65A; --ok:#8BC79A; --tag:#2E3741;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#161B21; --panel:#1F262E; --ink:#E4E9EF; --muted:#9AA7B5; --line:#38424D;
+  --accent:#6FA8D8; --accent-ink:#0E1A26; --accent-soft:#25384A;
+  --paper:#252C34; --paper-ink:#EEF1F4; --warn:#F0A65A; --ok:#8BC79A; --tag:#2E3741;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 20px 56px}
+@media (max-width:700px){.wrap{padding:16px 16px 40px}}
+h1{font-size:21px;margin:0 0 4px}
+h2{font-size:17px;margin:0 0 6px}
+h3{font-size:15px;margin:0 0 6px}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 12px}
+.back{display:inline-block;font-size:13.5px;color:var(--accent);text-decoration:none;font-weight:600;margin-bottom:4px}
+.back:hover{text-decoration:underline}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 16px;border-bottom:1px solid var(--line)}
+.tabs button{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;padding:8px 12px;font-weight:600;color:var(--muted)}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:16px}
+input,select,textarea{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:6px;padding:6px 9px;background:var(--paper);color:var(--paper-ink);min-width:0}
+textarea{width:100%;resize:vertical;min-height:96px;line-height:1.55}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.small{padding:3px 9px;font-size:12.5px}
+button:disabled{opacity:.55;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.status{font-size:13.5px;margin-top:8px;min-height:1.4em;color:var(--muted);white-space:pre-line}
+.status.err{color:var(--warn)}
+.status a{color:var(--accent)}
+.hint{font-size:12.5px;color:var(--muted)}
+.tablewrap{overflow-x:auto}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th,table.t td{border:1px solid var(--line);padding:5px 7px;text-align:center;vertical-align:middle}
+table.t th{background:var(--tag);font-weight:600;font-size:13px}
+table.t td.l{text-align:left}
+table.t input{width:100%;text-align:center}
+table.t input.num{width:64px}
+.pct{font-size:12px;color:var(--muted);display:block}
+.over{color:var(--ok);font-weight:600}
+.under{color:var(--warn);font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:13px;font-weight:600}
+.auto{font-size:13.5px;background:var(--accent-soft);border-radius:6px;padding:6px 10px;margin-bottom:4px}
+.weeks td input{width:auto}
+details.list{border:1px solid var(--line);border-radius:8px;background:var(--paper);margin-top:10px}
+details.list summary{cursor:pointer;padding:8px 12px;font-weight:600}
+details.list .in{padding:0 12px 12px}
+.edt td{padding:2px}
+.edt input{border:1px solid transparent;background:transparent;text-align:left}
+.edt input:hover,.edt input:focus{border-color:var(--line);background:var(--paper)}
+.askbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:14px;white-space:pre-line}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 12px;margin-top:8px}
+.form .wide{grid-column:1/-1}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:600}
+.privacy{font-size:12.5px;color:var(--muted);margin-top:18px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../01_hub/index.html">← 업무판으로</a>
+  <h1>월별 고용지원사업 계획·결과보고</h1>
+  <p class="sub">실적(횟수·인원·명단)은 참여자 관리 DB에서 셉니다. 수행방법·평가결과·향후계획 같은 글은 직접 쓰고, 저장하면 다음 달에 불러와 고쳐 쓸 수 있습니다. 서류는 원본 한글 양식에 그대로 채웁니다.</p>
+  <div class="status" id="loadStatus" role="status">참여자 관리 DB를 불러오는 중…</div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-plan" aria-selected="true">실시계획서</button>
+    <button role="tab" id="tab-result" aria-selected="false">결과보고서·현황 리스트</button>
+    <button role="tab" id="tab-biz" aria-selected="false">사업체 기록 (고용자원개발·사업체 관리)</button>
+  </div>
+
+  <!-- ===== 실시계획서 ===== -->
+  <section id="pane-plan" role="tabpanel" aria-labelledby="tab-plan">
+    <div class="panel">
+      <div class="row">
+        <label class="row" style="font-weight:600">계획할 달 <input type="month" id="planYM"></label>
+        <span class="hint grow" id="planFrom"></span>
+      </div>
+      <div class="row" style="margin-top:8px"><label class="row" style="font-weight:600">기간 <input id="planPeriod" style="min-width:260px"></label></div>
+    </div>
+    <div class="panel">
+      <h2>산출목표</h2>
+      <div class="tablewrap"><table class="t" id="planTargets"></table></div>
+    </div>
+    <div class="panel">
+      <h2>수행방법</h2>
+      <p class="hint">한 줄이 한 문단입니다. '- '로 시작하는 줄은 항목, '&lt;직업상담&gt;'처럼 꺾쇠로 쓴 줄은 제목입니다.</p>
+      <div class="grid2" id="planMethods"></div>
+    </div>
+    <div class="panel">
+      <h2>진행일정</h2>
+      <div class="tablewrap"><table class="t weeks" id="planWeeks"></table></div>
+    </div>
+    <div class="panel">
+      <h2>예산 (세출)</h2>
+      <div class="form" id="planBudget"></div>
+    </div>
+    <div class="panel">
+      <div class="row">
+        <button class="primary" id="planSave">시트에 저장</button>
+        <button class="primary" id="planHwp">실시계획서 한글 파일 받기</button>
+      </div>
+      <div id="planAsk"></div>
+      <div class="status" id="planStatus" role="status"></div>
+    </div>
+  </section>
+
+  <!-- ===== 결과보고서 ===== -->
+  <section id="pane-result" role="tabpanel" aria-labelledby="tab-result" hidden>
+    <div class="panel">
+      <div class="row">
+        <label class="row" style="font-weight:600">보고할 달 <input type="month" id="resYM"></label>
+        <button class="small" id="resReload">DB에서 명단 다시 불러오기</button>
+        <span class="hint grow" id="resFrom"></span>
+      </div>
+      <div class="row" style="margin-top:8px"><label class="row" style="font-weight:600">기간 <input id="resPeriod" style="min-width:260px"></label></div>
+    </div>
+    <div class="panel">
+      <h2>실적 (달성도)</h2>
+      <p class="hint">목표는 같은 달 실시계획서에서 가져옵니다. 실적은 아래 명단으로 셉니다. 명단을 고치면 실적도 바로 바뀝니다.</p>
+      <div class="tablewrap"><table class="t" id="resTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>사업별 현황 리스트</h2>
+      <p class="hint">DB에서 이 달 기록을 모은 명단입니다. 빠진 기록은 '+ 줄 추가'로 넣고, 틀린 줄은 고치거나 지우세요. (여기서 고친 것은 이 보고서에만 쓰이고 DB 기록은 바뀌지 않습니다.)</p>
+      <div id="resLists"></div>
+    </div>
+    <div class="panel">
+      <h2>수행방법</h2>
+      <p class="hint" id="devHint"></p>
+      <div class="grid2" id="resMethods"></div>
+    </div>
+    <div class="panel">
+      <h2>진행일정</h2>
+      <div class="row"><span class="hint grow">명단 날짜로 주차를 표시했습니다. 눌러서 고칠 수 있습니다.</span><button class="small" id="resWeeksAuto">날짜로 다시 표시</button></div>
+      <div class="tablewrap"><table class="t weeks" id="resWeeks"></table></div>
+    </div>
+    <div class="panel">
+      <h2>결산 (세출)</h2>
+      <div class="form" id="resSpend"></div>
+    </div>
+    <div class="panel">
+      <h2>평가결과</h2>
+      <p class="hint">첫 문장(달성률)은 실적으로 자동으로 씁니다. 그 아래 내용만 적으세요.</p>
+      <div class="grid2" id="resEvals"></div>
+    </div>
+    <div class="panel">
+      <h2>향후계획</h2>
+      <textarea id="resFuture" style="min-height:220px" aria-label="향후계획"></textarea>
+    </div>
+    <div class="panel">
+      <div class="row">
+        <button class="primary" id="resSave">시트에 저장</button>
+        <button class="primary" id="resHwp">결과보고서 한글 파일 받기</button>
+        <button class="primary" id="listHwp">사업별 현황 리스트 받기 (6개 묶음)</button>
+      </div>
+      <div id="resAsk"></div>
+      <div class="status" id="resStatus" role="status"></div>
+    </div>
+  </section>
+
+  <!-- ===== 사업체 기록 ===== -->
+  <section id="pane-biz" role="tabpanel" aria-labelledby="tab-biz" hidden>
+    <div class="panel">
+      <h2>고용자원개발 기록하기</h2>
+      <p class="hint">구인 사업체에 연락하거나 방문할 때마다 한 줄씩 적습니다. 결과보고서의 고용자원개발 횟수와 현황 리스트가 여기서 나옵니다.</p>
+      <div class="form" id="devForm">
+        <label>일자<input type="date" data-k="d"></label>
+        <label>사업체명<input data-k="biz" list="bizNames" autocomplete="off"></label>
+        <label>위치<input data-k="loc" placeholder="예) 발안"></label>
+        <label>주작업(직무)<input data-k="job"></label>
+        <label class="wide">연락방법·내용<input data-k="how" placeholder="예) 고용24 공고 보고 전화, 장애인 채용 관심 있음"></label>
+        <label>채용의사<select data-k="will"><option value="">(모름)</option><option>있음</option><option>검토 중</option><option>없음</option></select></label>
+        <label>직무분석<select data-k="ja"><option value="">(아직)</option><option>완료</option><option>예정</option></select></label>
+        <label class="wide">비고<input data-k="note"></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary" id="devAdd">고용자원개발 탭에 저장</button></div>
+      <div class="status" id="devStatus" role="status"></div>
+    </div>
+    <div class="panel">
+      <h2>사업체 관리 기록하기</h2>
+      <p class="hint">이미 개발한 사업체에 고용 확인·상담 등으로 연락할 때마다 한 줄씩 적습니다.</p>
+      <div class="form" id="mngForm">
+        <label>관리일자<input type="date" data-k="d"></label>
+        <label>사업체명<input data-k="biz" list="bizNames" autocomplete="off"></label>
+        <label>업종 및 직무내용<input data-k="kind" placeholder="예) 제조업/종량제봉투 포장"></label>
+        <label class="wide">세부내용<input data-k="detail" placeholder="예) 추가고용건 확인(아직은 채용계획 없음)"></label>
+        <label class="wide">비고<input data-k="note"></label>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="primary" id="mngAdd">사업체관리 탭에 저장</button></div>
+      <div class="status" id="mngStatus" role="status"></div>
+    </div>
+    <div class="panel">
+      <div class="row"><h2 class="grow" style="margin:0">이번 달 기록</h2><label class="row hint">달 <input type="month" id="bizYM"></label></div>
+      <h3 style="margin-top:12px" id="devListH">고용자원개발</h3>
+      <div class="tablewrap"><table class="t" id="devList"></table></div>
+      <h3 style="margin-top:16px" id="mngListH">사업체 관리</h3>
+      <div class="tablewrap"><table class="t" id="mngList"></table></div>
+      <p class="hint">기록을 고치거나 지울 때는 업무판 '기록 고치기'나 시트에서 합니다.</p>
+    </div>
+    <datalist id="bizNames"></datalist>
+  </section>
+
+  <p class="privacy">이 화면은 연 사람의 구글 계정으로 참여자 관리 DB를 읽고, '저장'을 누를 때만 고용자원개발·사업체관리·월별보고 탭에 씁니다. 현황 리스트에는 참여자 이름이 들어가니 받은 파일은 내부 보고에만 쓰세요.</p>
+</div>
+
+<script>
+(function(){
+  const SHEET="1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4", GS="Google Sheets";
+  const SHEET_URL="https://docs.google.com/spreadsheets/d/"+SHEET+"/edit";
+  const $=s=>document.querySelector(s);
+  const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+  const S=v=>String(v==null?"":v).trim();
+  const pad=n=>String(n).padStart(2,"0");
+  const DOW=["일","월","화","수","목","금","토"];
+  const toDate=v=>{const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(S(v));return m?new Date(+m[1],+m[2]-1,+m[3]):null;};
+  const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  const md=d=>(d.getMonth()+1)+"/"+d.getDate();
+  const mdw=d=>md(d)+"("+DOW[d.getDay()]+")";
+  const T=v=>{v=S(v);return v?"'"+v:"";};
+  const CATS=["직업상담","취업알선","취업확정","사후관리","고용자원개발","사업체관리"];
+  const PERSON=[true,true,true,true,false,false];
+
+  /* ---------- 연결 ---------- */
+  const inClaude=!!(window.claude&&typeof window.claude.use==="function");
+  const useCap=n=>inClaude?claude.use(n).catch(()=>null):Promise.resolve(null);
+  let mcp=null, downloads=null;
+  const call=async(tool,input)=>(await mcp.callTool(GS,tool,input)).payload||{};
+  const range=async r=>(await call("get_values",{spreadsheetId:SHEET,range:r})).values||[];
+  function errText(e){
+    const c=e&&e.code;
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. 새로고침하고 허용을 선택해 주세요.";
+    if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
+    if(c==="tool_error") return "시트가 요청을 거절했습니다."+(e.message?" ("+String(e.message).slice(0,140)+")":"");
+    return "저장됐는지 확실하지 않습니다. 시트를 열어 확인해 주세요.";
+  }
+  function st(sel,t,err,link){const x=$(sel);x.textContent=t;x.classList.toggle("err",!!err);
+    if(link){x.append(" ");const a=el("a",null,"시트 열기");a.href=SHEET_URL;a.target="_blank";a.rel="noopener";x.append(a);}}
+  function askIn(sel,msg){return new Promise(res=>{const box=$(sel);box.textContent="";const a=el("div","askbox");
+    const y=el("button","primary","예"),n=el("button",null,"아니오");y.type=n.type="button";
+    y.onclick=()=>{box.textContent="";res(true);};n.onclick=()=>{box.textContent="";res(false);};a.append(el("span",null,msg),y,n);box.append(a);y.focus();});}
+  async function freeRow(tab,start){
+    let r=start;
+    for(let k=0;k<50;k++){
+      const v=(await range(tab+"!A"+r+":B"+(r+4))).map(x=>S(x&&x[0])||S(x&&x[1]));
+      const j=[0,1,2,3,4].findIndex(i=>!v[i]);
+      if(j===0) return r; r+=j<0?5:j;
+    }
+    throw new Error("빈 줄을 찾지 못했습니다");
+  }
+
+  /* ---------- DB 읽기 ---------- */
+  let DB=null, DEF=null;
+  async function loadDB(){
+    const [P,C,K,A,DV,MG,RP]=await Promise.all([range("참여자!A1:B"),range("구직상담!A1:AB"),range("과정상담!A1:G"),range("취업알선!A1:S"),
+      range("고용자원개발!A1:H"),range("사업체관리!A1:E"),range("월별보고!A1:D")]);
+    const name={}; P.slice(1).forEach(r=>{if(S(r[0]))name[S(r[0])]=S(r[1]);});
+    DB={name,
+      seek:C.slice(1).filter(r=>S(r[0])&&!/적합성 분석지에서 옮김/.test(S(r[27]))).map(r=>({id:S(r[0]),d:toDate(r[2])})),
+      sess:K.slice(1).filter(r=>S(r[1])).map(r=>({id:S(r[1]),d:toDate(r[0]),p:S(r[6])})),
+      place:A.slice(1).filter(r=>S(r[1])).map(r=>({id:S(r[1]),d:toDate(r[0]),biz:S(r[3]).split(/\s*\/\s*/)[0],res:S(r[16]),start:toDate(r[17])})),
+      dev:DV.slice(1).map((r,i)=>({row:i+2,d:toDate(r[0]),biz:S(r[1]),loc:S(r[2]),job:S(r[3]),how:S(r[4]),will:S(r[5]),ja:S(r[6]),note:S(r[7])})).filter(x=>x.biz),
+      mng:MG.slice(1).map((r,i)=>({row:i+2,d:toDate(r[0]),biz:S(r[1]),kind:S(r[2]),detail:S(r[3]),note:S(r[4])})).filter(x=>x.biz),
+      reports:RP.slice(1).map((r,i)=>({row:i+2,ym:S(r[0]),kind:S(r[1]),json:S(r[2])})).filter(x=>x.ym),
+      rowsDV:DV.length, rowsMG:MG.length, rowsRP:RP.length};
+    const names=new Set([...DB.dev.map(x=>x.biz),...DB.mng.map(x=>x.biz),...DB.place.map(x=>x.biz)].filter(Boolean));
+    const dl=$("#bizNames"); dl.textContent=""; [...names].sort((a,b)=>a.localeCompare(b,"ko")).forEach(n=>dl.append(Object.assign(el("option"),{value:n})));
+  }
+  const nm=id=>DB.name[id]||id;
+  const inYM=(d,y,m)=>d&&d.getFullYear()===y&&d.getMonth()+1===m;
+  const ymOf=v=>{const m=/^(\d{4})-(\d{2})$/.exec(v||"");return m?{y:+m[1],m:+m[2]}:null;};
+  function period(y,m){
+    let a=new Date(y,m-1,1); while(a.getDay()===0||a.getDay()===6) a.setDate(a.getDate()+1);
+    let b=new Date(y,m,0); while(b.getDay()===0||b.getDay()===6) b.setDate(b.getDate()-1);
+    return {text:y+". "+m+". "+a.getDate()+".("+DOW[a.getDay()]+")~"+b.getDate()+".("+DOW[b.getDay()]+")",start:y+". "+m+". "+a.getDate()+".",end:m+". "+b.getDate()+"."};
+  }
+  const splitPeriod=(txt,y,m)=>{const p=period(y,m);const x=/(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\.[^~]*~\s*(?:(\d{1,2})\.\s*)?(\d{1,2})\./.exec(txt||"");
+    return x?{start:x[1]+". "+x[2]+". "+x[3]+".",end:(x[4]||x[2])+". "+x[5]+"."}:p;};
+  function savedFor(ym,kind){const r=DB.reports.filter(x=>x.ym===ym&&x.kind===kind).pop();if(!r)return null;try{return JSON.parse(r.json);}catch(e){return null;}}
+  function latestBefore(ym,kind){const rs=DB.reports.filter(x=>x.kind===kind&&x.ym<ym).sort((a,b)=>a.ym.localeCompare(b.ym));
+    for(let i=rs.length-1;i>=0;i--){try{return {ym:rs[i].ym,v:JSON.parse(rs[i].json)};}catch(e){}}return null;}
+
+  /* ---------- 공용 그리기 ---------- */
+  function weeksTable(tbl,weeks,m){
+    tbl.textContent="";
+    const h=el("tr");h.append(el("th",null,"내용"));for(let w=1;w<=5;w++)h.append(el("th",null,m+"월 "+w+"주"));tbl.append(h);
+    CATS.forEach((c,r)=>{const tr=el("tr");tr.append(el("th",null,c));
+      for(let w=0;w<5;w++){const td=el("td"),cb=el("input");cb.type="checkbox";cb.checked=!!weeks[r][w];cb.setAttribute("aria-label",c+" "+(w+1)+"주");
+        cb.onchange=()=>{weeks[r][w]=cb.checked;};td.append(cb);tr.append(td);}
+      tbl.append(tr);});
+  }
+  function textBoxes(box,labels,arr,prefix){
+    box.textContent="";
+    labels.forEach((lab,i)=>{const f=el("div","field");const id=prefix+i;const l=el("label",null,lab);l.htmlFor=id;
+      const t=el("textarea");t.id=id;t.value=arr[i]||"";t.oninput=()=>{arr[i]=t.value;};f.append(l,t);box.append(f);});
+  }
+  function formFields(box,defs,obj){
+    box.textContent="";
+    defs.forEach(([k,lab,wide])=>{const l=el("label",wide?"wide":null,lab);const i=el("input");i.value=obj[k]||"";i.oninput=()=>{obj[k]=i.value;if(obj._on)obj._on();};l.append(i);box.append(l);});
+  }
+
+  /* ================= 실시계획서 ================= */
+  let PL=null;
+  function newPlan(y,m){
+    const ym=y+"-"+pad(m), saved=savedFor(ym,"계획"), prev=latestBefore(ym,"계획");
+    const base=saved||(prev?prev.v:null);
+    const p=period(y,m);
+    PL={y,m,ym,
+      period:saved?saved.period:p.text,
+      targets:JSON.parse(JSON.stringify(base?base.targets:DEF.plan.targets)),
+      methods:(base?base.methods:DEF.plan.methods).slice(),
+      weeks:saved?saved.weeks:CATS.map(()=>[1,1,1,1,1]),
+      budget:Object.assign({},base?base.budget:DEF.plan.budget)};
+    $("#planFrom").textContent=saved?"저장해 둔 "+m+"월 계획서를 불러왔습니다.":prev?prev.ym.replace("-","년 ")+"월 계획서 글을 불러왔습니다. 고쳐서 저장하세요.":"지난 계획서가 없어 원본 양식(11월) 글로 채웠습니다.";
+    drawPlan();
+  }
+  function drawPlan(){
+    $("#planPeriod").value=PL.period; $("#planPeriod").oninput=e=>{PL.period=e.target.value;};
+    const tb=$("#planTargets"); tb.textContent="";
+    const h=el("tr");["구분","횟수","실인원","연인원"].forEach(x=>h.append(el("th",null,x)));tb.append(h);
+    const tot=el("tr");
+    const upd=()=>{tot.textContent="";tot.append(el("th",null,"계"));
+      [0,1,2].forEach(k=>{const v=PL.targets.slice(0,k?4:6).reduce((s,r)=>s+(+r[k]||0),0);tot.append(el("td",null,v+(k?"명":"회")));});};
+    CATS.forEach((c,i)=>{const tr=el("tr");tr.append(el("th",null,c));
+      [0,1,2].forEach(k=>{const td=el("td");
+        if(k>0&&!PERSON[i]){td.textContent="-";}
+        else{const n=el("input","num");n.type="number";n.min="0";n.value=PL.targets[i][k];n.setAttribute("aria-label",c+" "+["횟수","실인원","연인원"][k]);
+          n.oninput=()=>{PL.targets[i][k]=+n.value||0;upd();};td.append(n,document.createTextNode(k?"명":"회"));}
+        tr.append(td);});
+      tb.append(tr);});
+    upd(); tb.append(tot);
+    textBoxes($("#planMethods"),CATS.map(c=>"<"+(c==="사업체관리"?"사업체 관리":c)+">"),PL.methods,"pm");
+    weeksTable($("#planWeeks"),PL.weeks,PL.m);
+    formFields($("#planBudget"),[["item","항목"],["amount","예산액"],["basis","산출근거"],["note","비고(지출방법)"]],PL.budget);
+  }
+  $("#planYM").onchange=()=>{const v=ymOf($("#planYM").value);if(v&&DB)newPlan(v.y,v.m);};
+
+  async function saveReport(kind,ym,obj,stSel,askSel){
+    if(!mcp){st(stSel,"이 화면에서는 저장할 수 없습니다.",true);return false;}
+    const kn=kind==="계획"?"실시계획서 글을":"결과보고 글과 명단을";
+    const json=JSON.stringify(obj);
+    try{
+      st(stSel,"월별보고 탭을 확인하는 중…");
+      const rows=await range("월별보고!A1:B");
+      let r=rows.findIndex((x,i)=>i>0&&S(x[0])===ym&&S(x[1])===kind);
+      if(r>0){
+        if(!(await askIn(askSel,ym.replace("-","년 ")+"월 "+kn+" 이미 저장해 두었습니다. 지금 내용으로 바꿀까요?"))){st(stSel,"저장을 취소했습니다.");return false;}
+        r=r+1;
+        const chk=(await range("월별보고!A"+r+":B"+r))[0]||[];
+        if(S(chk[0])!==ym||S(chk[1])!==kind){st(stSel,"그사이 월별보고 탭 줄이 바뀌었습니다. 다시 눌러 주세요.",true);return false;}
+      }else r=await freeRow("월별보고",rows.length+1);
+      await call("update_values",{spreadsheetId:SHEET,range:"월별보고!A"+r+":D"+r,values:[[T(ym),T(kind),T(json),iso(new Date())]]});
+      const ex=DB.reports.find(x=>x.ym===ym&&x.kind===kind); if(ex) ex.json=json; else DB.reports.push({row:r,ym,kind,json});
+      st(stSel,ym.replace("-","년 ")+"월 "+kn+" 저장했습니다(월별보고 탭 "+r+"번째 줄). 다음 달에 이 글을 불러옵니다.",false,true);
+      return true;
+    }catch(e){st(stSel,errText(e),true,true);return false;}
+  }
+  $("#planSave").onclick=async()=>{const b=$("#planSave");b.disabled=true;
+    try{await saveReport("계획",PL.ym,{v:1,period:PL.period,targets:PL.targets,methods:PL.methods,weeks:PL.weeks,budget:PL.budget},"#planStatus","#planAsk");}finally{b.disabled=false;}};
+
+  async function saveFile(name,blob,stSel){
+    if(!downloads&&inClaude){st(stSel,"이 화면에서는 파일 저장을 쓸 수 없습니다.",true);return;}
+    const fname=downloads&&/\.hwpx$/.test(name)?name+".zip":name;
+    try{
+      if(downloads) await downloads.save({filename:fname,data:blob});
+      else{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;a.click();}
+      st(stSel,"저장했습니다: "+fname+(fname.endsWith(".hwpx.zip")?"\n파일 이름 끝의 .zip을 지우면(….hwpx) 한글에서 바로 열립니다.":""));
+    }catch(e){st(stSel,e&&(e.code==="user_declined"||e.code==="declined")?"저장을 취소했습니다.":"파일을 저장하지 못했습니다.",true);}
+  }
+  $("#planHwp").onclick=async()=>{
+    const b=$("#planHwp");b.disabled=true;st("#planStatus","한글 파일을 만드는 중…");
+    try{const sp=splitPeriod(PL.period,PL.y,PL.m);
+      const blob=await MonthlyHwpx.buildPlan({y:PL.y,m:PL.m,period:PL.period,start:sp.start,end:sp.end,targets:PL.targets,methods:PL.methods,weeks:PL.weeks,budget:PL.budget});
+      await saveFile(PL.y+"년 "+PL.m+"월 고용지원사업 실시계획서.hwpx",blob,"#planStatus");
+    }catch(e){st("#planStatus","한글 파일을 만들지 못했습니다. ("+(e&&e.message||"")+")",true);}finally{b.disabled=false;}
+  };
+
+  /* ================= 결과보고서 ================= */
+  const LISTS=[
+    {cols:[["name","성명"],["dates","상담일자"],["n","상담횟수",1]]},
+    {cols:[["name","성명"],["biz","사업체"]]},
+    {cols:[["name","성명"],["biz","사업체"],["date","근로계약일"]]},
+    {cols:[["name","성명"],["dates","상담일자"],["n","상담횟수",1]]},
+    {cols:[["biz","사업체"],["loc","위치"],["job","주작업"],["n","횟수",1]]},
+    {cols:[["biz","사업체명"],["kind","업종 및 직무내용"],["date","관리일자"],["detail","세부내용"]]}
+  ];
+  function listsFromDB(y,m){
+    const grp=(recs)=>{const g={};recs.forEach(x=>{(g[x.id]=g[x.id]||[]).push(x.d);});
+      return Object.entries(g).map(([id,ds])=>{ds.sort((a,b)=>a-b);return {name:nm(id),dates:ds.map(mdw).join(", "),n:ds.length,_d:ds.map(d=>d.getDate())};})
+        .sort((a,b)=>a._d[0]-b._d[0]||a.name.localeCompare(b.name,"ko"));};
+    const L=[];
+    L[0]=grp(DB.seek.filter(x=>inYM(x.d,y,m)).concat(DB.sess.filter(x=>/직업상담|구직/.test(x.p)&&inYM(x.d,y,m))));
+    L[1]=DB.place.filter(x=>inYM(x.d,y,m)).sort((a,b)=>a.d-b.d).map(x=>({name:nm(x.id),biz:x.biz,_d:[x.d.getDate()]}));
+    L[2]=DB.place.filter(x=>x.res==="취업"&&inYM(x.start,y,m)).sort((a,b)=>a.start-b.start).map(x=>({name:nm(x.id),biz:x.biz,date:md(x.start),_d:[x.start.getDate()]}));
+    L[3]=grp(DB.sess.filter(x=>/사후/.test(x.p)&&inYM(x.d,y,m)));
+    const dg={};DB.dev.filter(x=>inYM(x.d,y,m)).sort((a,b)=>a.d-b.d).forEach(x=>{const k=x.biz.replace(/\s/g,"");if(!dg[k])dg[k]={biz:x.biz,loc:x.loc,job:x.job,n:0,_d:[]};dg[k].n++;dg[k]._d.push(x.d.getDate());if(!dg[k].loc)dg[k].loc=x.loc;if(!dg[k].job)dg[k].job=x.job;});
+    L[4]=Object.values(dg);
+    L[5]=DB.mng.filter(x=>inYM(x.d,y,m)).sort((a,b)=>a.d-b.d).map(x=>({biz:x.biz,kind:x.kind,date:md(x.d),detail:x.detail,_d:[x.d.getDate()]}));
+    return L;
+  }
+  function actualOf(L){
+    return L.map((rows,i)=>{
+      const named=rows.filter(r=>S(r.name)||S(r.biz));
+      const n=LISTS[i].cols.some(c=>c[2])?named.reduce((s,r)=>s+(+r.n||0),0):named.length;
+      if(!PERSON[i]) return [n,0,0];
+      const people=new Set(named.map(r=>S(r.name).replace(/\s/g,"")).filter(Boolean)).size;
+      return [n,people,n];
+    });
+  }
+  function weeksFrom(L,y,m){
+    const off=(new Date(y,m-1,1).getDay()+6)%7;
+    return L.map(rows=>{const w=[0,0,0,0,0];rows.forEach(r=>{let ds=r._d;
+      if(!ds){ds=[];const re=/(\d{1,2})\/(\d{1,2})/g;let x;const t=S(r.dates||r.date);while((x=re.exec(t)))if(+x[1]===m)ds.push(+x[2]);}
+      ds.forEach(d=>{w[Math.min(4,Math.floor((d-1+off)/7))]=1;});});return w;});
+  }
+  let RS=null;
+  function newResult(y,m,fresh){
+    const ym=y+"-"+pad(m), saved=fresh?null:savedFor(ym,"결과"), prev=latestBefore(ym,"결과"), plan=savedFor(ym,"계획");
+    const base=saved||(prev?prev.v:null);
+    const L=saved&&saved.lists?saved.lists:listsFromDB(y,m);
+    RS={y,m,ym,
+      period:saved?saved.period:period(y,m).text,
+      targets:JSON.parse(JSON.stringify(plan?plan.targets:saved?saved.targets:base?base.targets:DEF.plan.targets)),
+      lists:L,
+      methods:(base?base.methods:DEF.report.methods).slice(),
+      weeks:saved?saved.weeks:weeksFrom(L,y,m),
+      spend:Object.assign({item:"고용자원개발",budget:"",used:"",detail:"",left:"",note:"체크카드 결제"},saved?saved.spend:plan?{item:plan.budget.item,budget:plan.budget.amount}:{}),
+      evals:(base?base.evals:DEF.report.evals).slice(),
+      future:base?base.future:DEF.report.future};
+    $("#resFrom").textContent=(saved?"저장해 둔 "+m+"월 결과보고를 불러왔습니다(명단 포함). ":prev?prev.ym.replace("-","년 ")+"월 결과보고 글을 불러왔습니다. ":"지난 결과보고가 없어 원본 양식(9월) 글로 채웠습니다. ")+(plan?"목표는 "+m+"월 계획서에서 가져왔습니다.":"⚠ "+m+"월 계획서가 저장돼 있지 않아 목표는 "+(saved?"저장해 둔 값":base?"지난 보고서 값":"원본 양식 값")+"입니다. 확인해 주세요.");
+    drawResult();
+  }
+  const AUTO=[(t,a,p)=>`직업상담 실시율 계획한 목표 ${t}회 중 ${a}회로 ${p} 달성함.`,(t,a,p)=>`취업알선 계획한 목표 ${t}회 중 ${a}회로 ${p} 달성함.`,
+    (t,a,p)=>`취업확정율 계획한 목표 ${t}회 중 ${a}회로 ${p} 달성함.`,(t,a,p)=>`사후관리 실시율 계획한 목표 ${t}회 중 ${a}회로 ${p} 달성함.`,
+    (t,a,p)=>`사업체 개발율은 계획 목표 ${t}회 대비 ${a}회를 개발하여 ${p} 달성함.`,(t,a,p)=>`사업체 관리율은 계획 목표 ${t}회 대비 ${a}회를 관리하여 ${p} 달성함.`];
+  const pct=(a,b)=>b>0?Math.round(a/b*100)+"%":"-";
+  const autoEvals=()=>{const A=actualOf(RS.lists);return AUTO.map((f,i)=>f(RS.targets[i][0],A[i][0],pct(A[i][0],RS.targets[i][0])));};
+  function drawTable(){
+    const A=actualOf(RS.lists), tb=$("#resTable"); tb.textContent="";
+    const h=el("tr");["구분","목표 횟수","실적 횟수","목표 실인원","실적 실인원","목표 연인원","실적 연인원"].forEach(x=>h.append(el("th",null,x)));tb.append(h);
+    const cell=(a,t,u)=>{const td=el("td");td.append(document.createTextNode(a+u));const s=el("span","pct "+(t>0?(a>=t?"over":"under"):""),"("+pct(a,t)+")");td.append(s);return td;};
+    CATS.forEach((c,i)=>{const tr=el("tr");tr.append(el("th",null,c));
+      [0,1,2].forEach(k=>{
+        if(k>0&&!PERSON[i]){tr.append(el("td",null,"-"),el("td",null,"-"));return;}
+        const td=el("td"),n=el("input","num");n.type="number";n.min="0";n.value=RS.targets[i][k];n.setAttribute("aria-label",c+" 목표");
+        n.oninput=()=>{RS.targets[i][k]=+n.value||0;drawTable();drawEvals();};td.append(n);tr.append(td,cell(A[i][k],RS.targets[i][k],k?"명":"회"));});
+      tb.append(tr);});
+    const tr=el("tr");tr.append(el("th",null,"계"));
+    [0,1,2].forEach(k=>{const t=RS.targets.slice(0,k?4:6).reduce((s,r)=>s+(+r[k]||0),0),a=A.slice(0,k?4:6).reduce((s,r)=>s+r[k],0);tr.append(el("td",null,t+(k?"명":"회")),cell(a,t,k?"명":"회"));});
+    tb.append(tr);
+  }
+  function drawLists(){
+    const box=$("#resLists"); const open=[...box.querySelectorAll("details")].map(d=>d.open); box.textContent="";
+    LISTS.forEach((L,i)=>{
+      const rows=RS.lists[i], A=actualOf(RS.lists)[i];
+      const d=el("details","list"); d.open=!!open[i];
+      d.append(el("summary",null,(i+1)+". "+CATS[i]+" — "+A[0]+"회"+(PERSON[i]?" · "+A[1]+"명":"")+" ("+rows.length+"줄)"));
+      const inn=el("div","in"), wrap=el("div","tablewrap"), t=el("table","t edt");
+      const h=el("tr");h.append(el("th",null,"연번"));L.cols.forEach(c=>h.append(el("th",null,c[1])));h.append(el("th",null,""));t.append(h);
+      rows.forEach((r,ri)=>{const tr=el("tr");tr.append(el("td",null,String(ri+1)));
+        L.cols.forEach(([k,lab,num])=>{const td=el("td"),inp=el("input",num?"num":null);if(num){inp.type="number";inp.min="0";}inp.value=r[k]==null?"":r[k];inp.setAttribute("aria-label",CATS[i]+" "+(ri+1)+"번 "+lab);
+          inp.onchange=()=>{r[k]=num?(+inp.value||0):inp.value;if(k==="dates"||k==="date")delete r._d;refresh();};td.append(inp);tr.append(td);});
+        const del=el("button","small","지우기");del.type="button";del.onclick=()=>{rows.splice(ri,1);refresh();};const td=el("td");td.append(del);tr.append(td);t.append(tr);});
+      wrap.append(t);
+      const add=el("button","small","+ 줄 추가");add.type="button";add.style.marginTop="6px";
+      add.onclick=()=>{const o={};L.cols.forEach(([k,,num])=>o[k]=num?1:"");rows.push(o);refresh();const ins=box.querySelectorAll("details")[i].querySelectorAll("input");if(ins.length)ins[ins.length-L.cols.length].focus();};
+      inn.append(wrap,add); d.append(inn); box.append(d);
+    });
+  }
+  function drawEvals(){
+    const box=$("#resEvals"); const auto=autoEvals(); box.textContent="";
+    ["직업상담","취업알선","취업확정","사후관리","사업체 개발","사업체 관리"].forEach((lab,i)=>{
+      const f=el("div","field"), id="re"+i, l=el("label",null,lab); l.htmlFor=id;
+      const t=el("textarea"); t.id=id; t.value=RS.evals[i]||""; t.oninput=()=>{RS.evals[i]=t.value;};
+      f.append(l,el("div","auto","자동 문장: "+auto[i]),t); box.append(f);});
+  }
+  function refresh(){drawTable();drawLists();drawEvals();}
+  function drawResult(){
+    $("#resPeriod").value=RS.period; $("#resPeriod").oninput=e=>{RS.period=e.target.value;};
+    refresh();
+    textBoxes($("#resMethods"),CATS.map(c=>"<"+(c==="사업체관리"?"사업체 관리":c)+">"),RS.methods,"rm");
+    const dv=DB.dev.filter(x=>inYM(x.d,RS.y,RS.m));
+    $("#devHint").textContent="참고: "+RS.m+"월 고용자원개발 기록은 연락 "+new Set(dv.map(x=>x.biz.replace(/\s/g,""))).size+"곳, 채용의사 있음 "+new Set(dv.filter(x=>x.will==="있음").map(x=>x.biz.replace(/\s/g,""))).size+"곳, 직무분석 완료 "+new Set(dv.filter(x=>x.ja==="완료").map(x=>x.biz.replace(/\s/g,""))).size+"곳입니다. 수행방법에 숫자를 쓸 때 참고하세요.";
+    weeksTable($("#resWeeks"),RS.weeks,RS.m);
+    const sp=RS.spend; sp._on=()=>{const a=parseInt(String(sp.budget).replace(/\D/g,"")),b=parseInt(String(sp.used).replace(/\D/g,""));
+      if(!isNaN(a)&&!isNaN(b)){sp.left=(a-b).toLocaleString("ko-KR")+"원";const li=[...$("#resSpend").querySelectorAll("input")][4];if(li)li.value=sp.left;}};
+    formFields($("#resSpend"),[["item","항목"],["budget","예산"],["used","집행"],["detail","집행내역"],["left","잔액"],["note","비고(지출방법)"]],sp);
+    $("#resFuture").value=RS.future; $("#resFuture").oninput=e=>{RS.future=e.target.value;};
+  }
+  $("#resYM").onchange=()=>{const v=ymOf($("#resYM").value);if(v&&DB)newResult(v.y,v.m);};
+  $("#resReload").onclick=async()=>{
+    if(!(await askIn("#resAsk","DB에서 "+RS.m+"월 명단을 다시 불러올까요?\n화면에서 고친 명단은 사라집니다(글은 그대로)."))) return;
+    try{st("#resStatus","DB를 다시 읽는 중…");await loadDB();RS.lists=listsFromDB(RS.y,RS.m);RS.weeks.splice(0,6,...weeksFrom(RS.lists,RS.y,RS.m));refresh();weeksTable($("#resWeeks"),RS.weeks,RS.m);st("#resStatus","명단을 다시 불러왔습니다.");}
+    catch(e){st("#resStatus",errText(e),true);}
+  };
+  $("#resWeeksAuto").onclick=()=>{RS.weeks.splice(0,6,...weeksFrom(RS.lists,RS.y,RS.m));weeksTable($("#resWeeks"),RS.weeks,RS.m);};
+  const resObj=()=>({v:1,period:RS.period,targets:RS.targets,lists:RS.lists.map(l=>l.map(r=>{const o=Object.assign({},r);delete o._d;return o;})),methods:RS.methods,weeks:RS.weeks,spend:Object.fromEntries(Object.entries(RS.spend).filter(([k])=>k!=="_on")),evals:RS.evals,future:RS.future});
+  $("#resSave").onclick=async()=>{const b=$("#resSave");b.disabled=true;try{await saveReport("결과",RS.ym,resObj(),"#resStatus","#resAsk");}finally{b.disabled=false;}};
+  $("#resHwp").onclick=async()=>{
+    const b=$("#resHwp");b.disabled=true;st("#resStatus","한글 파일을 만드는 중…");
+    try{const sp=splitPeriod(RS.period,RS.y,RS.m);
+      const blob=await MonthlyHwpx.buildReport({y:RS.y,m:RS.m,period:RS.period,start:sp.start,end:sp.end,targets:RS.targets,actual:actualOf(RS.lists),
+        methods:RS.methods,weeks:RS.weeks,evals:RS.evals,autoEval:autoEvals(),future:RS.future,spend:RS.spend});
+      await saveFile(RS.y+"년 "+RS.m+"월 고용지원사업 결과보고서.hwpx",blob,"#resStatus");
+    }catch(e){st("#resStatus","한글 파일을 만들지 못했습니다. ("+(e&&e.message||"")+")",true);}finally{b.disabled=false;}
+  };
+  $("#listHwp").onclick=async()=>{
+    const b=$("#listHwp");b.disabled=true;st("#resStatus","현황 리스트 6개를 만드는 중…");
+    try{
+      const y=RS.y,m=RS.m,A=actualOf(RS.lists),zip=new JSZip();
+      const names=[m+"월 구직상담",m+"월 취업알선",m+"월 취업확정",m+"월 사후관리",m+"월 고용자원개발",y+"년 "+m+"월 사업체 관리 리스트"];
+      for(let i=0;i<6;i++){
+        const rows=RS.lists[i].filter(r=>LISTS[i].cols.some(([k])=>S(r[k]))).map((r,ri)=>[String(ri+1),...LISTS[i].cols.map(([k,,num])=>num?(+r[k]||0)+"회":S(r[k]))]);
+        const blob=await MonthlyHwpx.buildList("L"+(i+1),m,y,rows,A[i][0]);
+        zip.file((i+1)+". "+names[i]+".hwpx",await blob.arrayBuffer());
+      }
+      const out=await zip.generateAsync({type:"blob",mimeType:"application/zip"});
+      await saveFile(m+"월 사업별 현황 리스트.zip",out,"#resStatus");
+      if(!$("#resStatus").classList.contains("err")) $("#resStatus").textContent+="\n묶음 파일을 풀면 사업별 한글 파일 6개(.hwpx)가 나옵니다.";
+    }catch(e){st("#resStatus","현황 리스트를 만들지 못했습니다. ("+(e&&e.message||"")+")",true);}finally{b.disabled=false;}
+  };
+
+  /* ================= 사업체 기록 ================= */
+  // 사업체 이름은 ㈜·(주)·주식회사를 빼고 저장(2026-11-16 이름 통일 규칙)
+  const readForm=sel=>{const o=Object.fromEntries([...$(sel).querySelectorAll("[data-k]")].map(i=>[i.dataset.k,i.value.trim()]));
+    if(o.biz) o.biz=o.biz.replace(/㈜|\(주\)|주식회사/g,"").replace(/\s+/g," ").trim(); return o;};
+  const clearForm=(sel,keep)=>[...$(sel).querySelectorAll("[data-k]")].forEach(i=>{if(!keep.includes(i.dataset.k))i.value="";});
+  // 사업체 이름을 고르면 지난 기록에서 위치·직무·업종을 채움
+  const lastOf=(arr,biz,k)=>{const b=biz.replace(/\s/g,"");const x=arr.filter(r=>r.biz.replace(/\s/g,"")===b&&r[k]).pop();return x?x[k]:"";};
+  $("#devForm [data-k=biz]").addEventListener("change",e=>{if(!DB)return;const f=$("#devForm");
+    ["loc","job"].forEach(k=>{const i=f.querySelector("[data-k="+k+"]");if(!i.value)i.value=lastOf(DB.dev,e.target.value,k);});});
+  $("#mngForm [data-k=biz]").addEventListener("change",e=>{if(!DB)return;const i=$("#mngForm [data-k=kind]");if(!i.value)i.value=lastOf(DB.mng,e.target.value,"kind");});
+  async function addRow(tab,cols,vals,stSel,btn){
+    if(!mcp){st(stSel,"이 화면에서는 저장할 수 없습니다.",true);return false;}
+    btn.disabled=true;
+    try{st(stSel,tab+" 탭에 저장하는 중…");
+      const n=(await range(tab+"!A1:A")).length;
+      const r=await freeRow(tab,n+1);
+      await call("update_values",{spreadsheetId:SHEET,range:tab+"!A"+r+":"+cols+r,values:[vals]});
+      st(stSel,tab+" 탭 "+r+"번째 줄에 저장했습니다.",false,true);return true;
+    }catch(e){st(stSel,errText(e),true,true);return false;}finally{btn.disabled=false;}
+  }
+  $("#devAdd").onclick=async()=>{
+    const v=readForm("#devForm");
+    if(!v.d||!v.biz){st("#devStatus","일자와 사업체명을 적어 주세요.",true);return;}
+    if(await addRow("고용자원개발","H",[v.d,T(v.biz),T(v.loc),T(v.job),T(v.how),T(v.will),T(v.ja),T(v.note)],"#devStatus",$("#devAdd"))){
+      DB.dev.push({d:toDate(v.d),biz:v.biz,loc:v.loc,job:v.job,how:v.how,will:v.will,ja:v.ja,note:v.note});clearForm("#devForm",["d"]);drawBiz();}
+  };
+  $("#mngAdd").onclick=async()=>{
+    const v=readForm("#mngForm");
+    if(!v.d||!v.biz){st("#mngStatus","관리일자와 사업체명을 적어 주세요.",true);return;}
+    if(await addRow("사업체관리","E",[v.d,T(v.biz),T(v.kind),T(v.detail),T(v.note)],"#mngStatus",$("#mngAdd"))){
+      DB.mng.push({d:toDate(v.d),biz:v.biz,kind:v.kind,detail:v.detail,note:v.note});clearForm("#mngForm",["d"]);drawBiz();}
+  };
+  function drawBiz(){
+    const v=ymOf($("#bizYM").value); if(!v||!DB) return;
+    const dv=DB.dev.filter(x=>inYM(x.d,v.y,v.m)).sort((a,b)=>a.d-b.d), mg=DB.mng.filter(x=>inYM(x.d,v.y,v.m)).sort((a,b)=>a.d-b.d);
+    $("#devListH").textContent="고용자원개발 "+dv.length+"회"; $("#mngListH").textContent="사업체 관리 "+mg.length+"회";
+    const fill=(tbl,heads,rows)=>{tbl.textContent="";const h=el("tr");heads.forEach(x=>h.append(el("th",null,x)));tbl.append(h);
+      if(!rows.length){const tr=el("tr"),td=el("td",null,"기록이 없습니다.");td.colSpan=heads.length;tr.append(td);tbl.append(tr);}
+      rows.forEach(r=>{const tr=el("tr");r.forEach((x,i)=>tr.append(el("td",i>1?"l":null,x)));tbl.append(tr);});};
+    fill($("#devList"),["일자","사업체","위치","주작업","연락방법·내용","채용의사","직무분석"],dv.map(x=>[mdw(x.d),x.biz,x.loc,x.job,x.how,x.will,x.ja]));
+    fill($("#mngList"),["일자","사업체","업종 및 직무내용","세부내용"],mg.map(x=>[mdw(x.d),x.biz,x.kind,x.detail]));
+  }
+  $("#bizYM").onchange=drawBiz;
+
+  /* ---------- 탭 ---------- */
+  const TABS=["plan","result","biz"];
+  TABS.forEach(k=>$("#tab-"+k).onclick=()=>{TABS.forEach(j=>{$("#tab-"+j).setAttribute("aria-selected",String(j===k));$("#pane-"+j).hidden=j!==k;});try{localStorage.setItem("monthly-tab",k);}catch(e){}});
+  try{const k=localStorage.getItem("monthly-tab");if(TABS.includes(k))$("#tab-"+k).click();}catch(e){}
+
+  /* ---------- 시작 ---------- */
+  (async()=>{
+    try{DEF=await MonthlyHwpx.readDefaults();}catch(e){st("#loadStatus","원본 양식을 읽지 못했습니다. ("+(e&&e.message||"")+")",true);return;}
+    const now=new Date(), cur=new Date(now.getFullYear(),now.getMonth()+(now.getDate()>20?1:0),1), prev=new Date(now.getFullYear(),now.getMonth()-1,1);
+    $("#planYM").value=cur.getFullYear()+"-"+pad(cur.getMonth()+1);
+    $("#resYM").value=prev.getFullYear()+"-"+pad(prev.getMonth()+1);
+    $("#bizYM").value=now.getFullYear()+"-"+pad(now.getMonth()+1);
+    $("#devForm [data-k=d]").value=iso(now); $("#mngForm [data-k=d]").value=iso(now);
+    downloads=await useCap("downloads");
+    mcp=await useCap("mcp");
+    if(!mcp){st("#loadStatus",inClaude?"이 화면에서는 DB를 읽을 수 없습니다.":"Claude에서 열어야 DB를 읽을 수 있습니다.",true);return;}
+    try{await loadDB();st("#loadStatus","");$("#loadStatus").hidden=true;
+      const a=ymOf($("#planYM").value),b=ymOf($("#resYM").value);newPlan(a.y,a.m);newResult(b.y,b.m);drawBiz();}
+    catch(e){st("#loadStatus",errText(e),true,true);}
+  })();
+})();
+</script>
+</body>
+</html>

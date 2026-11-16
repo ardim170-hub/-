@@ -1,0 +1,651 @@
+<!doctype html><html><head>
+<script src="../adapter.js"></script><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>취업 매칭 도우미</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="fit-template.js"></script>
+<script src="fit-hwpx.js"></script>
+<style>
+/* 레이아웃: 위 머리줄 + 탭, 아래 왼쪽 목록(찾기) / 오른쪽 상세·추천. 좁은 화면은 한 줄로 쌓음 */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --sunk:#E4EAE8; --ink:#1B2826; --muted:#5A6B68; --line:#C9D4D1;
+  --accent:#1F5E5B; --accent-ink:#FFFFFF; --accent-soft:#D6E8E5;
+  --good:#2F6B2F; --good-bg:#DDEFD9; --mid:#8A5A00; --mid-bg:#F6E7C6; --low:#8E3B32; --low-bg:#F4DCD8;
+  --f-body:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+    --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+    --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+  --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+  --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-0.01em;text-wrap:balance}
+.sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+.loadinfo{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--muted)}
+button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:10px;width:max-content;max-width:100%;overflow-x:auto}
+.tabs button{border:none;background:none;padding:8px 16px;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.banner{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.banner.err{border-color:var(--low);color:var(--low)}
+.cols{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:820px){.cols{grid-template-columns:1fr}}
+.listbox{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;position:sticky;top:calc(12px + env(safe-area-inset-top,0px))}
+@media (max-width:820px){.listbox{position:static}}
+.listbox input{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--ink)}
+.filter{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.list{list-style:none;margin:0;padding:0;max-height:62vh;overflow:auto;display:flex;flex-direction:column;gap:2px}
+@media (max-width:820px){.list{max-height:38vh}}
+.list button{width:100%;text-align:left;border:none;background:none;font-weight:400;padding:8px 10px;border-radius:6px;display:flex;flex-direction:column;gap:1px}
+.list button:hover{background:var(--sunk)}
+.list button[aria-current="true"]{background:var(--accent-soft)}
+.list .t{font-weight:600}
+.list .m{font-size:12.5px;color:var(--muted)}
+.detail{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px;min-width:0}
+.card h2{font-size:18px;margin:0 0 2px;text-wrap:balance}
+.card h3{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.kv{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 14px;margin:10px 0 0;font-size:14px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px;background:var(--sunk);color:var(--muted);vertical-align:middle}
+.pill.high{background:var(--good-bg);color:var(--good)}
+.pill.mid{background:var(--mid-bg);color:var(--mid)}
+.pill.low{background:var(--low-bg);color:var(--low)}
+.recohead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.recos{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.reco{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--bg)}
+.reco .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.reco .name{font-weight:700;font-size:15.5px;background:none;border:none;padding:0;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.reco .meta{font-size:12.5px;color:var(--muted)}
+.reco .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:8px}
+@media (max-width:640px){.reco .grid{grid-template-columns:1fr}}
+.reco h4{font-size:12.5px;margin:0 0 2px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.reco ul{margin:0;padding-left:1.1em;font-size:13.5px}
+.empty{color:var(--muted);font-size:14px}
+table.hist{width:100%;border-collapse:collapse;font-size:13.5px}
+table.hist th,table.hist td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.hist th{color:var(--muted);font-weight:600;font-size:12.5px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13px}
+.tablewrap{overflow-x:auto}
+.todo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:820px){.todo{grid-template-columns:1fr}}
+.todo li{padding:8px 0;border-bottom:1px solid var(--line);list-style:none;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.todo ul{margin:0;padding:0}
+.todo li button{border:none;background:none;padding:0;color:var(--accent);font-weight:600;text-align:left}
+.privacy{font-size:12.5px;color:var(--muted)}
+.back{font-size:13.5px;color:var(--accent);text-decoration:none;font-weight:600}
+.back:hover{text-decoration:underline}
+.reco .actions{margin-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.reco .actions button{font-size:13px;padding:6px 12px}
+.pick{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.pick select{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--bg);color:var(--ink);max-width:100%;min-width:0;flex:1}
+/* 적합성 분석지 */
+.formbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.formbar .btns{display:flex;flex-wrap:wrap;gap:8px}
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:28px 26px;overflow-x:auto}
+table.fit td.t{padding:10px 12px}
+table.fit .ttl{text-align:center;font-size:20px;font-weight:700;margin:0 0 6px}
+table.fit .wr{text-align:right;font-size:13.5px;margin:0}
+table.fit .wr span{display:inline-block;min-width:4em}
+table.fit .wr span:empty::before{content:attr(data-ph);color:var(--muted)}
+table.fit{width:100%;min-width:640px;border-collapse:collapse;table-layout:fixed;font-size:14px}
+table.fit td{border:1px solid var(--muted);padding:6px 8px;vertical-align:middle}
+table.fit td.h{background:var(--sunk);text-align:center;font-weight:600;white-space:pre-line}
+table.fit td.v{text-align:center}
+table.fit td.w{text-align:left}
+table.fit [contenteditable]{display:block;min-height:1.5em;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:3px}
+table.fit [contenteditable]:hover{background:var(--accent-soft)}
+table.fit [contenteditable]:focus{outline:2px solid var(--accent);outline-offset:1px}
+table.fit [contenteditable]:empty::before{content:attr(data-ph);color:var(--muted)}
+.fstatus{font-size:13.5px;color:var(--muted);min-height:1.4em}
+.fstatus.err{color:var(--low)}
+.fstatus a{color:var(--accent)}
+.ask{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--mid-bg);color:var(--ink);border-radius:8px;padding:10px 12px;margin-top:6px}
+@media (prefers-reduced-motion:no-preference){.reco{animation:fade .25s ease-out}@keyframes fade{from{opacity:.4}to{opacity:1}}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <a class="back" href="../01_hub/index.html">← 업무판으로</a>
+      <h1>취업 매칭 도우미</h1>
+      <p class="sub">고용지원사업 참여자 관리 DB에 등록된 조건을 읽어, 사업체와 참여자를 서로 추천합니다.</p>
+    </div>
+    <div class="loadinfo"><span id="loadState">기록을 불러오기 전입니다.</span><button id="reloadBtn" type="button">다시 불러오기</button></div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-job" aria-selected="true" type="button">사업체로 찾기</button>
+    <button role="tab" id="tab-person" aria-selected="false" type="button">사람으로 찾기</button>
+    <button role="tab" id="tab-todo" aria-selected="false" type="button">챙길 사람</button>
+  </div>
+
+  <div id="banner" class="banner">구글 시트 "고용지원사업 참여자 관리 DB"에서 참여자, 구직상담, 직무분석, 취업알선, 과정상담 기록을 불러옵니다. 처음에는 구글 시트 사용을 허용할지 묻는 창이 뜹니다.</div>
+
+  <section id="view-list" class="cols" hidden>
+    <div class="listbox">
+      <input id="q" type="search" placeholder="이름·사업체·직무 검색" aria-label="검색">
+      <label class="filter" id="filterWrap"><input type="checkbox" id="showAll"> <span id="filterLabel">취업·사후관리·보류·종결도 보기</span></label>
+      <ul class="list" id="list"></ul>
+    </div>
+    <div class="detail" id="detail"></div>
+  </section>
+
+  <section id="view-form" class="detail" hidden>
+    <div class="card">
+      <div class="formbar">
+        <div><h2 id="formTitle">취업알선 적합성 분석지</h2><p class="sub">칸을 눌러 바로 고칠 수 있습니다. 비교·분석과 소견은 등록된 기록을 보고 초안을 채웁니다.</p></div>
+        <div class="btns">
+          <button type="button" id="fAi">분석·소견 다시 쓰기</button>
+          <button type="button" id="fClose">닫기</button>
+        </div>
+      </div>
+      <div class="formbar" style="margin-top:12px">
+        <div class="btns">
+          <button type="button" class="primary" id="fSheet">시트 취업알선 탭에 저장</button>
+          <button type="button" id="fHwpx">한글(hwpx) 파일로 저장</button>
+        </div>
+      </div>
+      <div class="fstatus" id="fStatus" role="status"></div>
+      <div id="fAsk"></div>
+    </div>
+    <div class="paper">
+      <table class="fit" id="fitTable"></table>
+    </div>
+  </section>
+
+  <section id="view-todo" hidden>
+    <div class="todo">
+      <div class="card"><h3>30일 넘게 상담 기록이 없는 분</h3><ul id="todoQuiet"></ul></div>
+      <div class="card"><h3>알선했지만 결과가 비어 있는 건</h3><ul id="todoOpen"></ul></div>
+    </div>
+  </section>
+
+  <p class="privacy">이 화면은 연 사람의 구글 계정으로 시트를 읽기만 하고, 시트를 고치지 않습니다. 추천은 등록된 기록만 보고 정리한 참고용이며, 최종 판단은 담당자가 합니다. 장애·건강 정보가 보이므로 화면을 다른 사람과 공유하지 마세요.</p>
+</div>
+
+<script>
+(function(){
+  const SHEET="1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4", GS="Google Sheets";
+  const $=s=>document.querySelector(s);
+  const el=(tag,cls,text)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;};
+  const s=v=>String(v==null?"":v).trim();
+  const cut=(v,n)=>{v=s(v).replace(/\s+\n/g,"\n");return v.length>n?v.slice(0,n)+"…":v;};
+  const norm=v=>s(v).replace(/\s/g,"").toLowerCase();
+  // 진행단계는 참여자 탭 S열(기록을 보고 자동으로 정해짐)
+  const INACTIVE=["④ 취업·사후관리","⑤ 종결","보류"];
+  const MATCHABLE=["② 알선 대기","③ 알선 진행"];
+  const EVAL=["작업 위험요소","작업장 환경","동료간 분위기","외부인(고객) 접촉","용모","손 기능","이동능력","주의집중력","과제 변화정도","작업 지속시간","들기·운반하는 힘","변별력","직무의 연속성","작업 속도","지시 이해력","의사소통 능력","작업자세","읽기능력","숫자능력","쓰기능력","시간개념","금전개념"];
+
+  const D={people:[],byId:{},jobs:[],byJob:{},placements:[],loaded:false};
+  let tab="job", sel={job:null,person:null}, reco={}, mcp=null, sample=null, downloads=null, form=null;
+  try{const t=localStorage.getItem("match-tab");if(["job","person","todo"].includes(t))tab=t;}catch(e){}
+
+  /* ---------- 날짜·나이 ---------- */
+  function toDate(v){
+    const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(s(v)); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+    const d=s(v).replace(/\D/g,"");
+    if(d.length===8) return new Date(+d.slice(0,4),+d.slice(4,6)-1,+d.slice(6,8));
+    if(d.length===6){const y=+d.slice(0,2);return new Date((y>30?1900:2000)+y,+d.slice(2,4)-1,+d.slice(4,6));}
+    return null;
+  }
+  function age(v){const b=toDate(v);if(!b||isNaN(b))return null;const t=new Date();let a=t.getFullYear()-b.getFullYear();if(t<new Date(t.getFullYear(),b.getMonth(),b.getDate()))a--;return a>0&&a<110?a:null;}
+  const daysSince=v=>{const d=toDate(v);return d?Math.floor((Date.now()-d.getTime())/864e5):null;};
+
+  /* ---------- 불러오기 ---------- */
+  function errText(e){
+    const c=e&&e.code;
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결한 뒤 '다시 불러오기'를 눌러 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가한 뒤 '다시 불러오기'를 눌러 주세요.";
+    if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. '다시 불러오기'를 누르고 허용을 선택해 주세요.";
+    if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
+    if(c==="tool_error") return "시트를 읽지 못했습니다. 시트 편집 권한이 있는 계정인지 확인해 주세요.";
+    return "시트를 불러오지 못했습니다. 잠시 뒤 '다시 불러오기'를 눌러 주세요.";
+  }
+  async function range(r){const res=await mcp.callTool(GS,"get_values",{spreadsheetId:SHEET,range:r});return (res.payload&&res.payload.values)||[];}
+
+  async function load(){
+    const btn=$("#reloadBtn"); btn.disabled=true;
+    $("#loadState").textContent="불러오는 중…";
+    try{
+      const P=await range("참여자!A1:S");
+      const [C,J,A,K]=await Promise.all([range("구직상담!A1:AB"),range("직무분석!A1:BB"),range("취업알선!A1:U"),range("과정상담!A1:K")]);
+      build(P,C,J,A,K);
+      D.loaded=true;
+      const t=new Date();
+      $("#loadState").textContent="참여자 "+D.people.length+"명 · 직무 "+D.jobs.length+"개 · "+t.getHours()+":"+String(t.getMinutes()).padStart(2,"0")+" 불러옴";
+      $("#banner").hidden=true;
+      reco={};
+      render();
+    }catch(e){
+      $("#loadState").textContent="불러오지 못했습니다.";
+      const b=$("#banner"); b.hidden=false; b.classList.add("err"); b.textContent=errText(e);
+    }finally{btn.disabled=false;}
+  }
+
+  function build(P,C,J,A,K){
+    D.people=[];D.byId={};
+    P.slice(1).forEach(r=>{
+      const id=s(r[0]); if(!id) return;
+      const p={id,name:s(r[1]),sex:s(r[2]),birth:s(r[3]),age:age(r[3]),addr:s(r[6]),dtype:s(r[7]),ddeg:s(r[8]),status:s(r[18])||"① 초기상담",
+        tel:s(r[4]),manager:s(r[12]),counsel:s(r[14]),last:s(r[15]),placeN:s(r[16]),note:s(r[17]),cs:null,prog:[],place:[]};
+      D.people.push(p); D.byId[id]=p;
+    });
+    C.slice(1).forEach(r=>{const p=D.byId[s(r[0])];if(!p)return;const d=toDate(r[2]);if(!p.cs||(d&&(!p.csd||d>p.csd))){p.cs=r;p.csd=d;}});
+    K.slice(1).forEach(r=>{const p=D.byId[s(r[1])];if(p)p.prog.push({date:s(r[0]),content:s(r[8]),plan:s(r[9])});});
+    D.people.forEach(p=>p.prog.sort((a,b)=>(toDate(b.date)||0)-(toDate(a.date)||0)));
+    D.jobs=[];D.byJob={};
+    J.slice(1).forEach((r,i)=>{
+      const biz=s(r[1]),title=s(r[5]); if(!biz&&!title) return;
+      const j={key:"J"+(i+2),label:s(r[0])||biz+" / "+title,biz,title,date:s(r[2]),r};
+      D.jobs.push(j); D.byJob[j.key]=j;
+    });
+    D.jobs.sort((a,b)=>a.biz.localeCompare(b.biz,"ko"));
+    D.placements=A.slice(1).filter(r=>s(r[1])||s(r[3])).map(r=>({date:s(r[0]),id:s(r[1]),name:s(r[2])||(D.byId[s(r[1])]||{}).name||"",job:s(r[3]),result:s(r[16]),start:s(r[17]),end:s(r[18])}));
+    D.placements.forEach(a=>{const p=D.byId[a.id];if(p)p.place.push(a);});
+  }
+
+  /* ---------- 추천 재료(요약) ---------- */
+  function personBrief(p){
+    const c=p.cs||[];
+    const o={id:p.id,나이:p.age,성별:p.sex,장애:[p.dtype,p.ddeg].filter(Boolean).join(" "),사는곳:cut(p.addr,30),진행상태:p.status,
+      자격증:cut(c[6],80),경력:cut(c[9],120),희망업종:cut(c[10],40),희망직종:cut(c[11],60),희망근무지역:cut(c[12],60),희망임금:cut(c[13],40),
+      희망고용형태:cut(c[15],30),희망근무시간:cut(c[17],40),기타희망:cut(c[18],80),건강:cut(c[25],150),종합소견:cut(c[26],200),
+      최근상담:p.prog[0]?cut(p.prog[0].date+" "+p.prog[0].plan,160):"",
+      알선이력:p.place.map(a=>a.job+(a.result?"("+a.result+")":"")).join("; ")};
+    Object.keys(o).forEach(k=>{if(o[k]===""||o[k]==null)delete o[k];});
+    return o;
+  }
+  function jobBrief(j){
+    const r=j.r, ev=EVAL.map((n,i)=>s(r[13+i])?n+": "+cut(r[13+i],40):"").filter(Boolean).join(" / ");
+    const memo=s(r[53]); const opin=memo.includes("[종합의견]")?memo.slice(memo.indexOf("[종합의견]")):memo;
+    const o={id:j.key,사업체:j.biz,직무:j.title,주작업:cut(r[6],150),보조작업:cut(r[7],80),주요사항:cut(r[8],200),작업시간:cut(r[9],60),근무형태:cut(r[11],30),
+      직무요구:cut(ev,300),구인성별:s(r[42]),구인연령:s(r[43]),구인장애유형:s(r[44]),요구기술:cut(r[45],60),고용형태:s(r[46]),근무시간:cut(r[47],60),
+      임금:cut(r[49],40),휴일:cut(r[50],40),근무지교통:cut(r[51],100),종합의견:cut(opin,300)};
+    Object.keys(o).forEach(k=>{if(!o[k])delete o[k];});
+    return o;
+  }
+  const RULES=`규칙:
+- 등록된 내용만 근거로 쓴다. 기록에 없는 것은 지어내지 말고 check(확인할 것)에 적는다.
+- 구인 연령·성별·장애유형, 근무시간, 출퇴근(사는 곳과 근무지·교통), 임금, 건강·신체 제약을 서로 비교한다.
+- 분명히 어긋나는 조건(예: 구인 연령 밖, 출퇴근 불가)이 있으면 추천하지 않는다.
+- 이미 같은 사업체에 알선해 결과가 나온 경우는 그 사실을 concern에 적는다.
+- fit은 "높음", "보통", "낮음" 중 하나. 잘 맞는 순서로 최대 5개.
+- good(맞는 점), concern(걸리는 점), check(확인할 것)은 각각 0~3개, 한 항목 30자 안팎의 개조식(~함, ~임)으로 쓴다.
+- note에는 전체를 한 문장으로 요약한다. 추천할 대상이 없으면 items를 비우고 note에 이유를 쓴다.
+설명 없이 JSON만 출력한다: {"items":[{"id":"","fit":"","good":[],"concern":[],"check":[]}],"note":""}`;
+
+  async function recommend(kind,key){
+    if(!sample){reco[kind+key]={err:"이 화면에서는 추천 기능을 쓸 수 없습니다. claude.ai에서 열어 주세요."};render();return;}
+    reco[kind+key]={busy:true}; render();
+    try{
+      let prompt;
+      if(kind==="job"){
+        const j=D.byJob[key];
+        const pool=D.people.filter(p=>MATCHABLE.includes(p.status)).map(personBrief);
+        prompt="너는 장애인복지관 직업지원팀의 취업알선을 돕는다. 아래 [구인 직무]에 잘 맞는 참여자를 [참여자 목록]에서 골라 추천한다. id는 참여자의 등록번호를 그대로 쓴다.\n"+RULES+
+          "\n\n[구인 직무]\n"+JSON.stringify(jobBrief(j))+"\n\n[참여자 목록]\n"+pool.map(o=>JSON.stringify(o)).join("\n");
+      }else{
+        const p=D.byId[key];
+        prompt="너는 장애인복지관 직업지원팀의 취업알선을 돕는다. 아래 [참여자]에게 잘 맞는 직무를 [직무 목록]에서 골라 추천한다. id는 직무 목록의 id(J로 시작)를 그대로 쓴다.\n"+RULES+
+          "\n\n[참여자]\n"+JSON.stringify(personBrief(p))+"\n\n[직무 목록]\n"+D.jobs.map(j=>JSON.stringify(jobBrief(j))).join("\n");
+      }
+      const out=await sample.json(prompt,{modelTier:"default"});
+      const valid=kind==="job"?D.byId:D.byJob;
+      const items=(out&&Array.isArray(out.items)?out.items:[]).filter(x=>x&&valid[s(x.id)]).slice(0,5);
+      reco[kind+key]={items,note:s(out&&out.note)};
+    }catch(e){
+      const c=e&&e.code;
+      reco[kind+key]={err:c==="not_granted"?"추천 기능 사용이 허용되지 않았습니다. 페이지를 다시 열고 허용을 눌러 주세요.":c==="rate_limited"?"요청이 많습니다. 잠시 뒤 다시 눌러 주세요.":"추천을 만들지 못했습니다. 다시 눌러 주세요."};
+    }
+    render();
+  }
+
+  /* ---------- 그리기 ---------- */
+  function kv(pairs){const dl=el("dl","kv");pairs.forEach(([k,v])=>{if(!s(v))return;dl.append(el("dt",null,k),el("dd",null,s(v)));});return dl;}
+  const fitCls=f=>f==="높음"?"high":f==="보통"?"mid":f==="낮음"?"low":"";
+  function statusPill(st){return el("span","pill"+(st==="③ 알선 진행"?" mid":st==="② 알선 대기"?" high":""),st);}
+
+  function renderTabs(){
+    ["job","person","todo"].forEach(t=>$("#tab-"+t).setAttribute("aria-selected",String(t===tab)));
+    $("#view-list").hidden=!D.loaded||tab==="todo"||!!form;
+    $("#view-todo").hidden=!D.loaded||tab!=="todo"||!!form;
+    $("#view-form").hidden=!form;
+  }
+  function renderList(){
+    const q=norm($("#q").value), all=$("#showAll").checked, ul=$("#list"); ul.textContent="";
+    $("#filterLabel").textContent=tab==="job"?"분석일 없는 직무도 보기":"취업·사후관리·보류·종결도 보기";
+    $("#q").placeholder=tab==="job"?"사업체·직무 검색":"이름·등록번호 검색";
+    let rows;
+    if(tab==="job") rows=D.jobs.filter(j=>(!q||norm(j.label).includes(q))).map(j=>({k:j.key,t:j.biz||"(사업체명 없음)",m:j.title+(j.date?" · 분석 "+j.date:"")}));
+    else rows=D.people.filter(p=>(all||!INACTIVE.includes(p.status))&&(!q||norm(p.name+p.id).includes(q)))
+      .sort((a,b)=>a.status.localeCompare(b.status,"ko")||a.name.localeCompare(b.name,"ko")).map(p=>({k:p.id,t:p.name||"(이름 없음)",m:p.status+(p.age?" · "+p.age+"세":"")+(p.dtype?" · "+p.dtype:"")}));
+    $("#filterWrap").hidden=tab==="job";
+    if(!rows.length){ul.append(el("li","empty",q?"검색 결과가 없습니다.":"목록이 비어 있습니다."));return;}
+    rows.forEach(r=>{
+      const li=el("li"),b=el("button");b.type="button";b.append(el("span","t",r.t),el("span","m",r.m));
+      if(sel[tab]===r.k)b.setAttribute("aria-current","true");
+      b.onclick=()=>{sel[tab]=r.k;render();if(innerWidth<=820)$("#detail").scrollIntoView({behavior:"smooth",block:"start"});};
+      li.append(b);ul.append(li);
+    });
+  }
+
+  function recoBlock(kind,key){
+    const card=el("div","card"), head=el("div","recohead");
+    head.append(el("h3",null,kind==="job"?"이 직무에 맞는 참여자 추천":"이 분에게 맞는 직무 추천"));
+    const st=reco[kind+key], b=el("button","primary",st&&st.items?"다시 추천 받기":"추천 받기"); b.type="button";
+    b.disabled=!!(st&&st.busy); b.onclick=()=>recommend(kind,key);
+    head.append(b); card.append(head);
+    card.append(el("p","hint",kind==="job"?"② 알선 대기·③ 알선 진행 단계 참여자의 구직 희망 조건, 건강 상태, 최근 상담 계획을 이 직무의 구인 조건과 비교합니다.":"등록된 모든 직무의 구인 조건과 이 분의 희망 조건, 건강 상태, 알선 이력을 비교합니다."));
+    if(!st) return card;
+    if(st.busy){card.append(el("p","empty","기록을 비교하는 중입니다…"));return card;}
+    if(st.err){const p=el("p","empty",st.err);p.style.color="var(--low)";card.append(p);return card;}
+    if(st.note) card.append(el("p",null,st.note));
+    const box=el("div","recos");
+    if(!st.items.length) box.append(el("p","empty","추천할 대상이 없습니다."));
+    st.items.forEach(x=>{
+      const r=el("div","reco"), top=el("div","top");
+      const id=s(x.id), name=el("button","name");name.type="button";
+      if(kind==="job"){const p=D.byId[id];name.textContent=p.name;top.append(name,el("span","meta",[p.id,p.age?p.age+"세":"",p.dtype].filter(Boolean).join(" · ")));
+        name.onclick=()=>{tab="person";sel.person=id;saveTab();render();scrollTo({top:0});};}
+      else{const j=D.byJob[id];name.textContent=j.label;top.append(name);
+        name.onclick=()=>{tab="job";sel.job=id;saveTab();render();scrollTo({top:0});};}
+      top.prepend(el("span","pill "+fitCls(s(x.fit)),"적합 "+(s(x.fit)||"?")));
+      r.append(top);
+      const g=el("div","grid");
+      [["맞는 점",x.good],["걸리는 점",x.concern],["확인할 것",x.check]].forEach(([h,arr])=>{
+        const c=el("div");c.append(el("h4",null,h));const ul=el("ul");
+        (Array.isArray(arr)&&arr.length?arr:["없음"]).forEach(t=>ul.append(el("li",null,s(t))));c.append(ul);g.append(c);
+      });
+      r.append(g);
+      const act=el("div","actions"), fb=el("button",null,"적합성 분석지 작성"); fb.type="button";
+      fb.onclick=()=>kind==="job"?openForm(id,key,x):openForm(key,id,x);
+      act.append(fb); r.append(act);
+      box.append(r);
+    });
+    card.append(box);
+    return card;
+  }
+
+  function placeTable(rows,cols){
+    if(!rows.length) return el("p","empty","알선 기록이 없습니다.");
+    const w=el("div","tablewrap"),t=el("table","hist"),h=el("tr");
+    cols.forEach(c=>h.append(el("th",null,c[0])));t.append(h);
+    rows.forEach(a=>{const tr=el("tr");cols.forEach(c=>{const td=el("td",c[2]||null,s(a[c[1]])||"-");tr.append(td);});t.append(tr);});
+    w.append(t);return w;
+  }
+
+  function renderDetail(){
+    const box=$("#detail"); box.textContent="";
+    const key=sel[tab];
+    if(tab==="job"){
+      const j=key&&D.byJob[key];
+      if(!j){box.append(Object.assign(el("div","card"),{}),);box.lastChild.append(el("h3",null,"사업체·직무를 고르세요"),el("p","empty","왼쪽 목록에서 직무를 고르면 구인 조건과 함께, 이 직무에 맞는 참여자를 추천받을 수 있습니다."));return;}
+      const r=j.r, c=el("div","card");
+      c.append(el("h2",null,j.biz),el("p","sub",j.title+(j.date?" · 분석일 "+j.date:"")));
+      c.append(kv([["주작업",r[6]],["보조작업",r[7]],["주요 사항",r[8]],["근무시간",r[47]||r[9]],["임금",r[49]],["휴일",r[50]],["고용형태",r[46]],
+        ["구인 조건",[r[42]&&"성별 "+s(r[42]),r[43]&&"연령 "+s(r[43]),r[44]&&"장애 "+s(r[44])].filter(Boolean).join(" · ")],["요구 기술",r[45]],["근무지·교통",r[51]],["현장관리자",r[4]],["연락처",r[52]]]));
+      box.append(c, recoBlock("job",key));
+      const h=el("div","card");h.append(el("h3",null,"이 직무 알선 기록"));
+      h.append(placeTable(D.placements.filter(a=>norm(a.job)===norm(j.label)||(j.biz&&norm(a.job).startsWith(norm(j.biz)))),[["알선일","date","num"],["성명","name"],["결과","result"],["취업일","start","num"]]));
+      box.append(h);
+    }else if(tab==="person"){
+      const p=key&&D.byId[key];
+      if(!p){const c=el("div","card");c.append(el("h3",null,"참여자를 고르세요"),el("p","empty","왼쪽 목록에서 이름을 고르면 희망 조건, 최근 상담, 알선 이력과 함께 맞는 직무를 추천받을 수 있습니다."));box.append(c);return;}
+      const c=el("div","card"), cs=p.cs||[], h2=el("h2",null,p.name+" ");h2.append(statusPill(p.status));
+      c.append(h2,el("p","sub",[p.id,p.age?p.age+"세":"",p.sex,[p.dtype,p.ddeg].filter(Boolean).join(" ")].filter(Boolean).join(" · ")));
+      const dl=kv([["최근 상담일",p.last?p.last+(daysSince(p.last)!=null?" ("+daysSince(p.last)+"일 전)":""):"기록 없음"],["사는 곳",p.addr],["희망 직종",cs[11]],["희망 근무지역",cs[12]],["희망 임금",cs[13]],["희망 고용형태",cs[15]],
+        ["희망 근무시간",cs[17]],["자격증",cs[6]],["경력",cs[9]],["건강·신체",cs[25]],["종합소견",cs[26]],["비고",p.note]]);
+      c.append(dl);
+      if(!p.cs) c.append(el("p","hint","직업상담기록지(구직상담 탭) 기록이 없어 희망 조건을 알 수 없습니다. 추천이 부정확할 수 있습니다."));
+      box.append(c, recoBlock("person",key));
+      const pk=el("div","card"); pk.append(el("h3",null,"직접 골라 적합성 분석지 쓰기"));
+      const row=el("div","pick"), sl=el("select"); sl.id="pickJob"; sl.setAttribute("aria-label","사업체·직무 고르기");
+      sl.append(Object.assign(el("option",null,"사업체·직무 고르기"),{value:""}));
+      D.jobs.forEach(j=>sl.append(Object.assign(el("option",null,j.label),{value:j.key})));
+      const pb=el("button",null,"적합성 분석지 작성"); pb.type="button";
+      pb.onclick=()=>{if(sl.value)openForm(key,sl.value,null);};
+      row.append(sl,pb); pk.append(row); box.append(pk);
+      if(p.prog[0]){const g=el("div","card");g.append(el("h3",null,"최근 과정상담 ("+p.prog[0].date+")"));g.append(kv([["상담 내용",cut(p.prog[0].content,600)],["결과·계획",p.prog[0].plan]]));box.append(g);}
+      const h=el("div","card");h.append(el("h3",null,"알선 이력"));
+      h.append(placeTable(p.place,[["알선일","date","num"],["사업체·직무","job"],["결과","result"],["취업일","start","num"],["퇴사일","end","num"]]));
+      box.append(h);
+    }
+  }
+
+  function renderTodo(){
+    const quiet=$("#todoQuiet"), open=$("#todoOpen"); quiet.textContent=""; open.textContent="";
+    const qs=D.people.filter(p=>!INACTIVE.includes(p.status)).map(p=>({p,d:daysSince(p.last)})).filter(x=>x.d==null||x.d>30)
+      .sort((a,b)=>(b.d==null?1e9:b.d)-(a.d==null?1e9:a.d));
+    if(!qs.length) quiet.append(el("li","empty","모두 30일 안에 상담했습니다."));
+    qs.forEach(({p,d})=>{const li=el("li"),b=el("button",null,p.name);b.type="button";b.onclick=()=>{tab="person";sel.person=p.id;saveTab();render();};
+      li.append(b,el("span","num",d==null?"상담 기록 없음":d+"일 전"));quiet.append(li);});
+    const os=D.placements.filter(a=>!a.result).sort((a,b)=>(toDate(a.date)||0)-(toDate(b.date)||0));
+    if(!os.length) open.append(el("li","empty","결과가 빈 알선 기록이 없습니다."));
+    os.forEach(a=>{const li=el("li"),b=el("button",null,(a.name||a.id)+" → "+(a.job||"?"));b.type="button";
+      b.onclick=()=>{if(D.byId[a.id]){tab="person";sel.person=a.id;saveTab();render();}};
+      li.append(b,el("span","num",a.date||"날짜 없음"));open.append(li);});
+  }
+
+  /* ---------- 취업알선 적합성 분석지 ---------- */
+  // 원본 '취업알선 적합성 분석지.hwp' 표와 같은 7열 칸 배치(화면 입력용). 한글 파일은 원본 양식에 값만 채운다.
+  // h: 머리칸, k: 입력칸, cs/rs: 칸 합치기, w: 긴 글(왼쪽 정렬)
+  const SPEC=[
+    [{title:1,cs:7}],
+    [{h:"항목",cs:3},{h:"구직자",cs:2},{h:"구인업체",cs:2}],
+    [{h:"취업알선일",cs:3},{k:"date_s",cs:2},{k:"date_j",cs:2}],
+    [{h:"기초정보",cs:3,rs:7},{h:"등록번호"},{k:"reg_s"},{h:"등록번호"},{k:"reg_j"}],
+    [{h:"성  명"},{k:"name"},{h:"사업체명"},{k:"biz"}],
+    [{h:"생년월일"},{k:"birth"},{h:"구인성별"},{k:"jsex"}],
+    [{h:"성별"},{k:"sex"},{h:"구인연령대"},{k:"jage"}],
+    [{h:"등록장애"},{k:"dis"},{h:"구인장애유형"},{k:"jdis"}],
+    [{h:"주  소"},{k:"addr_s"},{h:"주소"},{k:"addr_j"}],
+    [{h:"전화번호"},{k:"tel_s"},{h:"전화번호"},{k:"tel_j"}],
+    [{h:"경력/모집직종",cs:3,rs:3},{h:"직업경력"},{k:"car_s"},{h:"직업경력"},{k:"car_j"}],
+    [{h:"자격증/학력"},{k:"lic_s"},{h:"자격증/학력"},{k:"lic_j"}],
+    [{h:"직업능력수준"},{k:"abil"},{h:"요구기술"},{k:"skill"}],
+    [{h:"희망취업조건",rs:6},{h:"고용형태",cs:2},{k:"emp_s",cs:2},{k:"emp_j",cs:2}],
+    [{h:"근무시간",cs:2},{k:"hrs_s",cs:2},{k:"hrs_j",cs:2}],
+    [{h:"중식제공유무",cs:2},{k:"lunch_s",cs:2},{k:"lunch_j",cs:2}],
+    [{h:"희망임금",cs:2},{k:"pay_s",cs:2},{k:"pay_j",cs:2}],
+    [{h:"휴일",cs:2},{k:"hol_s",cs:2},{k:"hol_j",cs:2}],
+    [{h:"근무지/교통",cs:2},{k:"loc_s",cs:2},{k:"loc_j",cs:2}],
+    [{h:"적합성\n비교 ·분석",cs:3},{k:"fit",cs:4,w:1}],
+    [{h:"분석 및\n소   견",cs:2,rs:3},{h:"구직자"},{k:"op_s",cs:4,w:1}],
+    [{h:"사업주"},{k:"op_b",cs:4,w:1}],
+    [{h:"담당자"},{k:"op_m",cs:4,w:1}]
+  ];
+  const PH={car_j:"무관",lic_j:"무관",fit:"초안을 쓰는 중이거나 비어 있습니다",op_s:"구직자 소견",op_b:"사업주 소견",op_m:"담당자 소견"};
+  const koDate=d=>d.getFullYear()+". "+(d.getMonth()+1)+". "+d.getDate()+".";
+  const isoOf=v=>{const d=toDate(v);return d&&!isNaN(d)?d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"):"";};
+  const grab=(re,t)=>{const m=re.exec(s(t));return m?m[1].trim():"";};
+
+  function prefill(p,j){
+    const c=p.cs||[], r=j.r, today=koDate(new Date());
+    const deg=/경증|심하지/.test(p.ddeg)?"(경증)":/중증|심한/.test(p.ddeg)?"(중증)":"";
+    const parts=s(r[51]).split(/\s+\/\s+/).map(x=>x.trim()).filter(Boolean);
+    const addrRe=/(시|군|구|읍|면|동|로|길)\s*\d/;
+    let addrJ=grab(/약도 주소:\s*([^\n]+)/,r[53])||parts.filter(x=>addrRe.test(x)).pop()||"";
+    const locJ=parts.filter(x=>x!==addrJ).join(" / ")||s(r[51]);
+    return {date_s:today,date_j:today,reg_s:p.id,reg_j:"",name:p.name,biz:j.biz,birth:p.birth,jsex:s(r[42]),sex:p.sex,jage:s(r[43]),
+      dis:(p.dtype?p.dtype+deg:""),jdis:s(r[44]),addr_s:p.addr,addr_j:addrJ,tel_s:p.tel,tel_j:s(r[52]),
+      car_s:s(c[9]),car_j:"",lic_s:[s(c[6]),s(c[3])].filter(Boolean).join(" / "),lic_j:"",
+      abil:grab(/직업능력수준:\s*([^\n]+)/,c[26]),skill:s(r[45]),
+      emp_s:s(c[15]),emp_j:s(r[46]),hrs_s:s(c[17]),hrs_j:s(r[47])||s(r[9]),lunch_s:grab(/중식:\s*([^/\n]+)/,c[18]),lunch_j:s(r[48]),
+      pay_s:s(c[13]),pay_j:s(r[49]),hol_s:grab(/휴일:\s*([^/\n]+)/,c[18]),hol_j:s(r[50]),loc_s:s(c[12]),loc_j:locJ,
+      fit:"",op_s:"",op_b:"",op_m:"",writer:p.manager||""};
+  }
+
+  function layout(spec){ // 칸마다 실제 열 위치 계산(위 줄에서 내려온 합친 칸 건너뜀)
+    const occ=[], out=[];
+    spec.forEach((row,ri)=>{occ[ri]=occ[ri]||[];let c=0;const cells=[];
+      row.forEach(cell=>{while(occ[ri][c])c++;const cs=cell.cs||1,rs=cell.rs||1;
+        for(let a=0;a<rs;a++){occ[ri+a]=occ[ri+a]||[];for(let b=0;b<cs;b++)occ[ri+a][c+b]=1;}
+        cells.push(Object.assign({col:c,row:ri,cs,rs},cell));c+=cs;});
+      out.push(cells);});
+    return out;
+  }
+  const LAYOUT=layout(SPEC);
+
+  function renderForm(){
+    const t=$("#fitTable"); t.textContent="";
+    const cg=el("colgroup");[2326,1562,3889,6183,15239,6466,14956].forEach(w=>{const c=el("col");c.style.width=(w/506.2).toFixed(2)+"%";cg.append(c);});t.append(cg);
+    LAYOUT.forEach(row=>{const tr=el("tr");
+      row.forEach(cell=>{const td=el("td",cell.title?"t":cell.h?"h":(cell.w?"w":"v"));if(cell.cs>1)td.colSpan=cell.cs;if(cell.rs>1)td.rowSpan=cell.rs;
+        if(cell.title){
+          td.append(el("p","ttl","취업알선 적합성 분석지"));
+          const wr=el("p","wr","작성자: "),sp=el("span");sp.contentEditable="true";sp.id="fWriter";sp.dataset.ph="이름";sp.textContent=form.v.writer||"";
+          sp.addEventListener("input",()=>{form.v.writer=sp.innerText.trim();});wr.append(sp," (인)");td.append(wr);
+        }
+        else if(cell.h)td.textContent=cell.h;
+        else{const d=el("div");d.contentEditable="true";d.dataset.k=cell.k;if(PH[cell.k])d.dataset.ph=PH[cell.k];d.textContent=form.v[cell.k]||"";
+          d.addEventListener("input",()=>{form.v[cell.k]=d.innerText.replace(/ /g," ").replace(/\n+$/,"");});td.append(d);}
+        tr.append(td);});
+      t.append(tr);});
+    $("#formTitle").textContent=form.v.name+" → "+form.j.label;
+  }
+
+  function fStatus(t,err,link){const x=$("#fStatus");x.textContent=t;x.classList.toggle("err",!!err);
+    if(link){x.append(" ");const a=el("a",null,"시트 열기");a.href="https://docs.google.com/spreadsheets/d/"+SHEET+"/edit";a.target="_blank";a.rel="noopener";x.append(a);}}
+  function ask(msg){ // 화면 안에서 묻기(창 띄우기는 이 화면에서 동작하지 않음)
+    return new Promise(res=>{const box=$("#fAsk");box.textContent="";const a=el("div","ask");a.append(el("span",null,msg));
+      const y=el("button","primary","예"),n=el("button",null,"아니오");y.type=n.type="button";
+      y.onclick=()=>{box.textContent="";res(true);};n.onclick=()=>{box.textContent="";res(false);};a.append(y,n);box.append(a);y.focus();});
+  }
+
+  function openForm(pid,jkey,rec){
+    const p=D.byId[pid], j=D.byJob[jkey]; if(!p||!j) return;
+    form={p,j,rec,v:prefill(p,j)};
+    $("#fAsk").textContent=""; fStatus("");
+    renderTabs(); renderForm(); scrollTo({top:0});
+    aiFill();
+  }
+  $("#fClose").onclick=()=>{form=null;render();};
+  $("#fAi").onclick=()=>aiFill();
+
+  async function aiFill(){
+    if(!form) return;
+    if(!sample){fStatus("이 화면에서는 초안 쓰기를 쓸 수 없습니다. 비교·분석과 소견을 직접 적어 주세요.",true);return;}
+    const f=form, v=f.v, btn=$("#fAi"); btn.disabled=true; fStatus("비교·분석과 소견 초안을 쓰는 중입니다…");
+    const seeker={나이:f.p.age,성별:v.sex,등록장애:v.dis,주소:v.addr_s,직업경력:v.car_s,자격증:v.lic_s,직업능력수준:v.abil,
+      희망고용형태:v.emp_s,희망근무시간:v.hrs_s,중식:v.lunch_s,희망임금:v.pay_s,휴일:v.hol_s,근무지교통:v.loc_s,
+      건강:cut((f.p.cs||[])[25],200),종합소견:cut((f.p.cs||[])[26],200),최근상담계획:f.p.prog[0]?cut(f.p.prog[0].plan,200):""};
+    const job=jobBrief(f.j);
+    const prompt=`너는 장애인복지관 직업지원팀 사회복지사의 '취업알선 적합성 분석지' 작성을 돕는다.
+[구직자]와 [구인업체] 기록을 비교해 분석지의 글 칸을 채운다.
+작성 규칙:
+- 기록에 있는 내용만 근거로 쓴다. 지어내지 않는다. 기록이 없어 판단할 수 없는 부분은 "~는 확인이 필요함."으로 쓴다.
+- 사회복지 기록체로 쓴다. 문장 끝은 "~함.", "~임.", "~것으로 보임.", "~판단됨." 중에서 고른다.
+- fit(적합성 비교·분석): 희망취업조건(고용형태, 근무시간, 중식, 임금, 휴일, 근무지·교통)과 구인 조건을 견주어 1~2문장. 맞지 않는 조건이 있으면 무엇인지 적는다.
+- seeker(소견: 구직자): 구직자가 바라는 일자리와 상황을 1문장으로.
+- employer(소견: 사업주): 사업체가 찾는 사람과 채용 상황을 1문장으로.
+- manager(소견: 담당자): 구직자의 장애·건강 특성과 직무 특성(작업 자세, 힘, 속도 등)을 견주어 적합 여부와 이유를 1~2문장으로.
+- ability(직업능력수준): 기록에 근거가 있을 때만 "의사소통, 신체활동 양호"처럼 짧게 쓰고, 없으면 "".
+- 예시 문체: "희망취업조건이 대부분 부합하여 취업 가능성이 높을 것으로 판단됨.", "앉아서 하는 단순 조립 작업으로 하지 장애가 있는 구직자에게 적합할 것으로 보임."
+설명 없이 JSON만 출력한다: {"fit":"","seeker":"","employer":"","manager":"","ability":""}
+
+[구직자]
+${JSON.stringify(seeker)}
+
+[구인업체]
+${JSON.stringify(job)}
+${f.rec?"\n[매칭 메모]\n"+JSON.stringify({맞는점:f.rec.good,걸리는점:f.rec.concern,확인할것:f.rec.check}):""}`;
+    try{
+      const o=await sample.json(prompt,{modelTier:"default"})||{};
+      if(form!==f) return;
+      const put=(k,val)=>{val=s(val);if(val){v[k]=val;}};
+      put("fit",o.fit);put("op_s",o.seeker);put("op_b",o.employer);put("op_m",o.manager);if(!v.abil)put("abil",o.ability);
+      renderForm(); fStatus("초안을 채웠습니다. 내용을 확인하고 고친 뒤 저장해 주세요.");
+    }catch(e){
+      if(form!==f) return;
+      const c=e&&e.code;
+      fStatus(c==="not_granted"?"초안 쓰기 사용이 허용되지 않았습니다. 비교·분석과 소견을 직접 적어 주세요.":c==="rate_limited"?"요청이 많습니다. 잠시 뒤 '분석·소견 다시 쓰기'를 눌러 주세요.":"초안을 쓰지 못했습니다. '분석·소견 다시 쓰기'를 누르거나 직접 적어 주세요.",true);
+    }finally{btn.disabled=false;}
+  }
+
+  /* 시트 취업알선 탭에 저장 */
+  const T=v=>{v=s(v);return v?"'"+v:"";};
+  $("#fSheet").onclick=async()=>{
+    if(!form||!mcp) return;
+    const f=form, v=f.v, date=isoOf(v.date_s);
+    if(!date){fStatus("취업알선일을 '2026. 11. 6.'처럼 적어 주세요.",true);return;}
+    const btn=$("#fSheet"); btn.disabled=true; let step="취업알선 확인";
+    try{
+      fStatus("취업알선 탭을 확인하는 중입니다…");
+      const rows=await range("취업알선!A1:D");
+      let r=rows.findIndex((x,i)=>i>0&&s(x[1])===f.p.id&&s(x[3])===f.j.label&&isoOf(x[0])===date);
+      if(r>0){
+        if(!(await ask("같은 날 같은 사업체로 알선한 기록이 이미 있습니다. 지금 내용으로 덮어쓸까요?"))){fStatus("저장을 취소했습니다.");return;}
+        r=r+1;
+      }else r=rows.length+1;
+      step="취업알선 저장"; fStatus("취업알선 탭에 저장하는 중입니다…");
+      const up=(rg,vals)=>mcp.callTool(GS,"update_values",{spreadsheetId:SHEET,range:"취업알선!"+rg,values:[vals]});
+      await up("A"+r+":B"+r,[date,T(f.p.id)]);
+      await up("D"+r+":E"+r,[T(f.j.label),T(v.abil)]);
+      await up("L"+r+":P"+r,[T(v.fit),T(v.op_s),T(v.op_b),T(v.op_m),T(v.writer)]);
+      const rec={date,id:f.p.id,name:f.p.name,job:f.j.label,result:"",start:"",end:""};
+      if(!D.placements.some(a=>a.id===rec.id&&a.job===rec.job&&isoOf(a.date)===date)){D.placements.push(rec);f.p.place.push(rec);}
+      fStatus(f.p.name+"님 알선 기록을 취업알선 탭에 저장했습니다. 결과(취업 여부)는 나중에 시트에서 적어 주세요.",false,true);
+    }catch(e){
+      fStatus("["+step+"] "+(e&&(e.code==="server_unavailable"||e.code==="upstream_error")?"저장됐는지 확실하지 않습니다. 시트를 열어 확인한 뒤, 빠진 경우에만 다시 눌러 주세요.":errText(e)),true,true);
+    }finally{btn.disabled=false;}
+  };
+
+  /* 한글(hwpx) 파일 저장: 원본 양식에 값만 채움 */
+  $("#fHwpx").onclick=async()=>{
+    if(!form) return;
+    if(!downloads||!window.JSZip||!window.buildFitHwpx||!window.FIT_TEMPLATE_B64){fStatus("이 화면에서는 한글 저장을 쓸 수 없습니다.",true);return;}
+    const btn=$("#fHwpx"); btn.disabled=true;
+    try{
+      const blob=await buildFitHwpx(JSZip,form.v);
+      await downloads.save({filename:"취업알선 적합성 분석지_"+(form.v.name||"이름없음")+".hwpx.zip",data:blob});
+      fStatus("저장했습니다. 파일 이름 끝의 .zip을 지우면(….hwpx) 한글에서 바로 열립니다.");
+    }catch(e){
+      fStatus(e&&e.code==="declined"?"저장을 취소했습니다.":"한글 파일을 만들지 못했습니다. 다시 눌러 주세요.",!(e&&e.code==="declined"));
+    }finally{btn.disabled=false;}
+  };
+
+  function saveTab(){try{localStorage.setItem("match-tab",tab);}catch(e){}}
+  function render(){renderTabs();if(!D.loaded)return;if(tab==="todo")renderTodo();else{renderList();renderDetail();}}
+
+  ["job","person","todo"].forEach(t=>$("#tab-"+t).onclick=()=>{form=null;tab=t;saveTab();render();});
+  $("#q").addEventListener("input",renderList);
+  $("#showAll").addEventListener("change",renderList);
+  $("#reloadBtn").onclick=()=>{if(mcp)load();};
+  renderTabs();
+
+  const inClaude=!!(window.claude&&typeof window.claude.use==="function");
+  if(!inClaude){$("#banner").textContent="이 화면은 claude.ai에서 열었을 때만 구글 시트를 읽을 수 있습니다.";$("#reloadBtn").disabled=true;}
+  else{
+    claude.use("sample").then(x=>{sample=x;}).catch(()=>{});
+    claude.use("downloads").then(x=>{downloads=x;if(!x)$("#fHwpx").hidden=true;}).catch(()=>{});
+    claude.use("mcp").then(m=>{mcp=m;
+      if(!m){$("#banner").textContent="이 화면에서는 구글 시트를 읽을 수 없습니다. claude.ai에서 다시 열어 주세요.";$("#reloadBtn").disabled=true;return;}
+      load();
+    }).catch(()=>{});
+  }
+})();
+</script>
+
+</body></html>

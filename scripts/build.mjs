@@ -1,7 +1,7 @@
 // 배포 파일을 만든다.  사용: node scripts/build.mjs
 //  1) dist/아르딤_취업지원.html  : 모든 CSS·JS를 한 파일에 합친 버전. 더블클릭하면 이 PC에서만 쓰는 로컬 모드로 실행된다.
 //  2) dist/apps-script/          : 구글 Apps Script에 붙여 넣는 팀 공유 버전 (Code.gs, index.html, appsscript.json)
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, cpSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -110,6 +110,8 @@ if (!webHtml.includes('bridge.js') && !webHtml.includes('APP_CONFIG')) throw new
 writeFileSync(join(WEB, 'index.html'), webHtml);
 writeFileSync(join(WEB, 'sw.js'), read('web/sw.js')); // 저장소 이름은 그대로 (새 화면은 sw.js가 뒤에서 받아 바꾼다)
 copyFileSync(join(root, 'web', 'manifest.webmanifest'), join(WEB, 'manifest.webmanifest'));
-writeFileSync(join(WEB, 'version.json'), JSON.stringify({ v: stamp })); // 앱이 새 버전이 있는지 확인하는 데 쓴다
+writeFileSync(join(WEB, 'version.json'), JSON.stringify({ v: stamp }));
+// 고용지원 업무판(고용공단): web/emp 화면 8개 + 연결 파일을 그대로 복사
+cpSync(join(root, 'web', 'emp'), join(WEB, 'emp'), { recursive: true }); // 앱이 새 버전이 있는지 확인하는 데 쓴다
 for (const n of ['icon-192', 'icon-512', 'maskable-512', 'apple-touch-icon']) copyFileSync(join(root, 'web', 'icons', `${n}.png`), join(WEB, 'icons', `${n}.png`));
 console.log(`앱 버전: dist/web/ (${kb(join(WEB, 'index.html'))}) → Firebase 호스팅`);

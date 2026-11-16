@@ -1,0 +1,454 @@
+<!doctype html><html><head>
+<script src="../adapter.js"></script><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>과정상담·사후관리 일지</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="proc-template.js"></script>
+<script src="proc-hwpx.js"></script>
+<style>
+/* 레이아웃: 위 머리줄(업무판으로·목적 고르기), 아래 왼쪽 참여자·메모·저장 / 오른쪽 원본 양식 모양 입력표 */
+:root{
+  --bg:#EEF2F1; --surface:#FFFFFF; --sunk:#E4EAE8; --ink:#1B2826; --muted:#5A6B68; --line:#C9D4D1;
+  --accent:#1F5E5B; --accent-ink:#FFFFFF; --accent-soft:#D6E8E5;
+  --good:#2F6B2F; --good-bg:#DDEFD9; --mid:#8A5A00; --mid-bg:#F6E7C6; --low:#8E3B32; --low-bg:#F4DCD8;
+  --f-body:"Pretendard Variable",Pretendard,"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+    --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+    --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121918; --surface:#1A2422; --sunk:#222E2C; --ink:#E3ECEA; --muted:#98AAA6; --line:#33433F;
+  --accent:#7CC2BB; --accent-ink:#0D1A18; --accent-soft:#21403C;
+  --good:#9AD28F; --good-bg:#203A1E; --mid:#E8BE6A; --mid-bg:#3B2F17; --low:#F0A097; --low-bg:#3E2220;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.back{font-size:13.5px;color:var(--accent);text-decoration:none;font-weight:600}
+.back:hover{text-decoration:underline}
+h1{font-size:22px;margin:2px 0 0;font-weight:700;text-wrap:balance}
+.sub{color:var(--muted);font-size:13.5px;margin:2px 0 0}
+button{font:inherit;font-size:14px;font-weight:600;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:10px;flex-wrap:wrap}
+.seg button{border:none;background:none;padding:7px 14px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--accent);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.banner{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.banner.err{border-color:var(--low);color:var(--low)}
+.cols{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.side{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;min-width:0}
+.card h3{font-size:14px;margin:0 0 8px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+input.txt,textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);color:var(--ink)}
+textarea{min-height:150px;resize:vertical}
+.list{list-style:none;margin:8px 0 0;padding:0;max-height:34vh;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.list button{width:100%;text-align:left;border:none;background:none;font-weight:400;padding:7px 9px;border-radius:6px;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.list button:hover{background:var(--sunk)}
+.list button[aria-current="true"]{background:var(--accent-soft)}
+.list .n{font-weight:600}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.pill.high{background:var(--good-bg);color:var(--good)}
+.pill.mid{background:var(--mid-bg);color:var(--mid)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.row .primary{flex:1}
+.status{font-size:13.5px;color:var(--muted);min-height:1.4em;margin-top:6px}
+.status.err{color:var(--low)}
+.status a{color:var(--accent)}
+.ask{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--mid-bg);border-radius:8px;padding:10px 12px;margin-top:6px;font-size:14px}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+.paper{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:24px 22px;overflow-x:auto}
+table.form{width:100%;min-width:620px;border-collapse:collapse;table-layout:fixed;font-size:14px}
+table.form td{border:1px solid var(--muted);padding:7px 9px;vertical-align:middle}
+table.form td.h{background:var(--sunk);text-align:center;font-weight:600;white-space:pre-line}
+table.form td.v{text-align:center}
+table.form td.w{text-align:left;vertical-align:top}
+table.form td.title{font-size:22px;font-weight:700;text-align:center;letter-spacing:.1em}
+table.form td.sign{height:44px}
+table.form [contenteditable]{display:block;min-height:1.5em;white-space:pre-wrap;overflow-wrap:anywhere;border-radius:3px}
+table.form td.w [contenteditable]{min-height:6em}
+table.form [contenteditable]:hover{background:var(--accent-soft)}
+table.form [contenteditable]:empty::before{content:attr(data-ph);color:var(--muted)}
+.methods{display:grid;grid-template-columns:repeat(3,max-content);gap:4px 22px;justify-content:center}
+.methods button{border:none;background:none;padding:2px 0;font-weight:400;color:var(--ink)}
+.methods button[aria-pressed="true"]{font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.hist{display:flex;flex-direction:column;gap:8px}
+.hist .item{border-left:3px solid var(--line);padding:2px 0 2px 10px;font-size:13.5px}
+.hist .d{color:var(--muted);font-size:12.5px}
+.privacy{font-size:12.5px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <a class="back" id="hubLink" href="#" target="_blank" rel="noopener" hidden>← 업무판으로</a>
+      <h1 id="pageTitle">과정상담·사후관리 일지</h1>
+      <p class="sub">원본 '과정상담일지' 양식에 그대로 채우고, 참여자 관리 DB의 과정상담 탭에 저장합니다.</p>
+    </div>
+    <div class="seg" role="group" aria-label="상담목적">
+      <button type="button" id="p-job" aria-pressed="true">직업상담</button>
+      <button type="button" id="p-after" aria-pressed="false">사후관리</button>
+      <button type="button" id="p-etc" aria-pressed="false">기타</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner">구글 시트에서 참여자 목록을 불러옵니다. 처음에는 구글 시트 사용을 허용할지 묻는 창이 뜹니다.</div>
+
+  <section class="cols">
+    <div class="side">
+      <div class="card">
+        <h3>참여자 고르기</h3>
+        <input class="txt" id="q" type="search" placeholder="이름 검색" aria-label="참여자 이름 검색">
+        <ul class="list" id="plist"></ul>
+      </div>
+      <div class="card">
+        <h3>상담 메모 (선택)</h3>
+        <textarea id="memo" placeholder="상담하면서 적은 메모를 붙여넣으세요. '정리하기'를 누르면 상담내용과 지원계획 초안을 양식에 채웁니다."></textarea>
+        <div class="row"><button type="button" id="aiBtn">정리하기</button></div>
+      </div>
+      <div class="card" id="nextCard" hidden>
+        <h3>다음 사후관리</h3>
+        <p class="hint" id="nextInfo" style="white-space:pre-line"></p>
+        <label class="hint" for="nextDate" style="display:block;margin-top:6px">다음 사후관리일</label>
+        <input class="txt" id="nextDate" type="date">
+        <p class="hint" id="nextHint" style="margin-top:6px">저장할 때 함께 적습니다. 주기대로 계산한 날을 그대로 두면 자동으로 셉니다. 날을 바꾸면 그 날을 먼저 씁니다.</p>
+      </div>
+      <div class="card">
+        <h3>저장</h3>
+        <div class="row">
+          <button type="button" class="primary" id="saveBtn">과정상담 탭에 저장</button>
+          <button type="button" id="hwpBtn">한글(hwpx) 파일로 저장</button>
+        </div>
+        <div class="status" id="status" role="status"></div>
+        <div id="askBox"></div>
+        <button type="button" id="newBtn" style="margin-top:8px">새로 쓰기</button>
+      </div>
+      <div class="card" id="histCard" hidden>
+        <h3>이 분의 최근 상담</h3>
+        <div class="hist" id="hist"></div>
+      </div>
+    </div>
+
+    <div class="paper">
+      <table class="form" id="form">
+        <colgroup><col style="width:15%"><col style="width:30%"><col style="width:19%"><col style="width:18%"><col style="width:18%"></colgroup>
+        <tr><td class="title" colspan="3" rowspan="2">과 정 상 담 기 록 지</td><td class="h">담 당</td><td class="h">팀 장</td></tr>
+        <tr><td class="sign"></td><td class="sign"></td></tr>
+        <tr><td class="h" rowspan="2">성    명</td><td class="v" rowspan="2"><div contenteditable="true" data-k="name" data-ph="왼쪽에서 고르기"></div></td><td class="h">생년월일</td><td class="v" colspan="2"><div contenteditable="true" data-k="birth"></div></td></tr>
+        <tr><td class="h">상담자</td><td class="v" colspan="2"><div contenteditable="true" data-k="counselor"></div></td></tr>
+        <tr><td class="h" rowspan="2">상담일자</td><td class="v" rowspan="2"><div contenteditable="true" data-k="date" data-ph="2026. 11. 6."></div></td><td class="h">상담장소</td><td class="v" colspan="2"><div contenteditable="true" data-k="place"></div></td></tr>
+        <tr><td class="h">내담자/장애인과의 관계</td><td class="v" colspan="2"><div contenteditable="true" data-k="relation"></div></td></tr>
+        <tr><td class="h">상담목적</td><td class="v" colspan="4"><div contenteditable="true" data-k="purpose"></div></td></tr>
+        <tr><td class="h">상담방법</td><td class="v" colspan="4"><div class="methods" id="methods"></div></td></tr>
+        <tr><td class="h">상담
+내용</td><td class="w" colspan="4"><div contenteditable="true" data-k="content" data-ph="상담 내용"></div></td></tr>
+        <tr><td class="h">상담결과
+및
+지원계획</td><td class="w" colspan="4"><div contenteditable="true" data-k="result" data-ph="상담결과 및 지원계획"></div></td></tr>
+        <tr><td class="h">수퍼비전
+(supervision)</td><td class="v" colspan="4"><div contenteditable="true" data-k="supervision"></div></td></tr>
+      </table>
+    </div>
+  </section>
+
+  <p class="privacy">이 화면은 연 사람의 구글 계정으로 참여자 관리 DB를 읽고, 저장을 누를 때만 과정상담 탭에 한 줄을 씁니다. 상담 내용에는 민감정보가 들어가니 화면을 다른 사람과 공유하지 마세요.</p>
+</div>
+
+<script>
+(function(){
+  const HUB_URL="../01_hub/index.html";   // 업무판(몸통) 주소
+  const SHEET="1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4", GS="Google Sheets";
+  const SHEET_URL="https://docs.google.com/spreadsheets/d/"+SHEET+"/edit";
+  const METHODS=["전화상담","내방상담","방문상담","인터넷상담","문자상담","기타"], CIRC=["①","②","③","④","⑤","⑥"];
+  const $=s=>document.querySelector(s);
+  const el=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+  const s=v=>String(v==null?"":v).trim();
+  const norm=v=>s(v).replace(/\s/g,"");
+  const pad=n=>String(n).padStart(2,"0");
+  const koDate=d=>d.getFullYear()+". "+(d.getMonth()+1)+". "+d.getDate()+".";
+  const toDate=v=>{const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(s(v));return m?new Date(+m[1],+m[2]-1,+m[3]):null;};
+  const isoOf=v=>{const d=toDate(v);return d?d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()):"";};
+  const birthKo=v=>{const d=toDate(v);return d?d.getFullYear()+". "+pad(d.getMonth()+1)+". "+pad(d.getDate())+".":s(v);};
+  const T=v=>{v=s(v);return v?"'"+v:"";};
+
+  if(HUB_URL){$("#hubLink").href=HUB_URL;$("#hubLink").hidden=false;}
+
+  let mcp=null, sample=null, downloads=null;
+  const D={people:[],byId:{},sessions:[]};
+  let purpose="직업상담", sel=null, method=2, methodEtc="";
+  const v={};
+
+  /* ---------- 양식 칸 ---------- */
+  const fields=()=>[...document.querySelectorAll("#form [data-k]")];
+  function setV(k,val){v[k]=s(val);const e=document.querySelector('#form [data-k="'+k+'"]');if(e)e.textContent=v[k];}
+  fields().forEach(e=>e.addEventListener("input",()=>{v[e.dataset.k]=e.innerText.replace(/ /g," ").replace(/\n+$/,"");saveDraft();}));
+  function renderMethods(){
+    const box=$("#methods"); box.textContent="";
+    METHODS.forEach((m,i)=>{const b=el("button",null,CIRC[i]+" "+(i===5?"기타("+(methodEtc||"현장상담")+")":m));b.type="button";
+      b.setAttribute("aria-pressed",String(method===i+1));
+      b.onclick=()=>{method=i+1;renderMethods();saveDraft();};box.append(b);});
+  }
+  function defaults(){
+    setV("counselor",(window.APP_ME||"김주현")); setV("place","화성시아르딤복지관"); setV("relation","본인");
+    setV("date",koDate(new Date())); setV("purpose",purpose);
+  }
+
+  /* ---------- 임시 저장(이 브라우저에만) ---------- */
+  const DRAFT="proc-draft-v1";
+  function saveDraft(){try{localStorage.setItem(DRAFT,JSON.stringify({v,method,methodEtc,purpose,sel,memo:$("#memo").value}));}catch(e){}}
+  function loadDraft(){
+    let d=null;try{d=JSON.parse(localStorage.getItem(DRAFT)||"null");}catch(e){}
+    defaults();
+    const fromAfter=location.hash.startsWith("#aftercare");
+    if(fromAfter) purpose="사후관리";
+    if(d){Object.entries(d.v||{}).forEach(([k,x])=>setV(k,x));method=d.method||2;methodEtc=d.methodEtc||"";
+      if(!fromAfter&&d.purpose)purpose=d.purpose==="구직상담"?"직업상담":d.purpose;sel=d.sel||null;$("#memo").value=d.memo||"";}
+    setPurpose(purpose,!fromAfter);   // 사후관리 링크로 열면 상담목적 칸도 '사후관리'로
+  }
+
+  /* ---------- 목적 ---------- */
+  function setPurpose(p,keep){
+    purpose=p;
+    $("#p-job").setAttribute("aria-pressed",String(p==="직업상담"));
+    $("#p-after").setAttribute("aria-pressed",String(p==="사후관리"));
+    $("#p-etc").setAttribute("aria-pressed",String(p!=="직업상담"&&p!=="사후관리"));
+    if(!keep||!v.purpose) setV("purpose",p==="기타"?"":p);
+    $("#pageTitle").textContent=p==="사후관리"?"사후관리 일지":"과정상담 일지";
+    renderList(); renderNext(); saveDraft();
+  }
+  $("#p-job").onclick=()=>setPurpose("직업상담");
+  $("#p-after").onclick=()=>setPurpose("사후관리");
+  $("#p-etc").onclick=()=>{setPurpose("기타");const e=document.querySelector('#form [data-k="purpose"]');e.focus();};
+
+  /* ---------- 참여자 목록 ---------- */
+  function stagePill(st){return el("span","pill"+(st.startsWith("③")?" mid":st.startsWith("②")?" high":""),st||"단계 없음");}
+  function renderList(){
+    const ul=$("#plist"); ul.textContent="";
+    if(!D.people.length){ul.append(el("li","hint","참여자 목록을 불러오는 중입니다."));return;}
+    const q=norm($("#q").value);
+    const after=purpose==="사후관리";
+    const rank=p=>after?(p.stage.startsWith("④")?0:1):(p.stage.startsWith("④")||p.stage.startsWith("⑤")||p.stage==="보류"?1:0);
+    const rows=D.people.filter(p=>!q||norm(p.name+p.id).includes(q)).sort((a,b)=>rank(a)-rank(b)||a.name.localeCompare(b.name,"ko"));
+    if(!rows.length){ul.append(el("li","hint","검색 결과가 없습니다."));return;}
+    rows.forEach(p=>{const li=el("li"),b=el("button");b.type="button";b.append(el("span","n",p.name),stagePill(p.stage));
+      if(sel===p.id)b.setAttribute("aria-current","true");
+      b.onclick=()=>pick(p.id);li.append(b);ul.append(li);});
+  }
+  $("#q").addEventListener("input",renderList);
+  function pick(id){
+    const p=D.byId[id]; if(!p) return;
+    sel=id; setV("name",p.name); setV("birth",birthKo(p.birth));
+    renderList(); renderHist(); renderNext(); saveDraft();
+  }
+
+  /* ---------- 다음 사후관리일 ---------- */
+  // 주기: 취업 후 1개월까지 2주마다, 6개월까지 매달, 그 뒤 3개월마다(업무판과 같은 규칙)
+  function addMonths(d,k){const a=new Date(d.getFullYear(),d.getMonth()+k,d.getDate());return a.getDate()!==d.getDate()?new Date(d.getFullYear(),d.getMonth()+k+1,0):a;}
+  function nextAfter(start,last){
+    const base=last&&last>=start?last:start;
+    if(base<addMonths(start,1)) return {date:new Date(base.getFullYear(),base.getMonth(),base.getDate()+14),cycle:"2주"};
+    if(base<addMonths(start,6)) return {date:addMonths(base,1),cycle:"매달"};
+    return {date:addMonths(base,3),cycle:"3개월"};
+  }
+  const isoD=d=>d?d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()):"";
+  let nextAuto="";
+  function renderNext(){
+    const card=$("#nextCard"), p=sel&&D.byId[sel];
+    if(purpose!=="사후관리"||!p){card.hidden=true;nextAuto="";return;}
+    card.hidden=false;
+    const today=toDate(v.date)||new Date();
+    const info=[];
+    if(p.start){const a=nextAfter(p.start,today);nextAuto=isoD(a.date);
+      info.push("취업일 "+koDate(p.start)+(p.biz?" · "+p.biz.replace(/\s*\/\s*$/,""):""),"이번 상담("+koDate(today)+") 뒤 "+a.cycle+" 주기 → "+koDate(a.date));}
+    else{nextAuto="";info.push("취업일을 몰라 주기를 셀 수 없습니다. 다음 날을 직접 골라 주세요.");}
+    if(p.nextManual) info.push("지금 적혀 있는 다음 사후관리일: "+koDate(p.nextManual)+"(직접 정함)");
+    $("#nextInfo").textContent=info.join("\n");
+    const inp=$("#nextDate");
+    if(!inp.dataset.touched||inp.dataset.for!==p.id){inp.value=nextAuto;inp.dataset.for=p.id;delete inp.dataset.touched;}
+  }
+  $("#nextDate").addEventListener("input",()=>{$("#nextDate").dataset.touched="1";});
+  document.querySelector('#form [data-k="date"]').addEventListener("input",()=>renderNext());
+  function renderHist(){
+    const box=$("#hist"); box.textContent=""; const p=sel&&D.byId[sel];
+    if(!p){$("#histCard").hidden=true;return;}
+    const rows=D.sessions.filter(x=>x.id===p.id).sort((a,b)=>(toDate(b.date)||0)-(toDate(a.date)||0)).slice(0,3);
+    $("#histCard").hidden=false;
+    if(!rows.length){box.append(el("p","hint","과정상담 기록이 아직 없습니다."));return;}
+    rows.forEach(r=>{const it=el("div","item");it.append(el("div","d",r.date+" · "+(r.purpose||"")),el("div",null,(r.plan||r.content||"").slice(0,160)));box.append(it);});
+  }
+
+  /* ---------- 불러오기 ---------- */
+  function errText(e){
+    const c=e&&e.code;
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. 페이지를 새로고침하고 허용을 선택해 주세요.";
+    if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
+    if(c==="tool_error") return "시트가 요청을 거절했습니다. 시트 편집 권한이 있는 계정인지 확인해 주세요.";
+    return "구글 시트와 연결하지 못했습니다. 잠시 뒤 다시 시도해 주세요.";
+  }
+  const range=async r=>{const x=await mcp.callTool(GS,"get_values",{spreadsheetId:SHEET,range:r});return (x.payload&&x.payload.values)||[];};
+  async function load(){
+    try{
+      const [P,K,A]=await Promise.all([range("참여자!A1:W"),range("과정상담!A1:K"),range("취업알선!A1:S").catch(()=>[])]);
+      D.people=[];D.byId={};
+      P.slice(1).forEach((r,i)=>{const id=s(r[0]);if(!id)return;
+        const jobs=A.slice(1).filter(x=>s(x[1])===id&&s(x[16])==="취업"&&!s(x[18])&&toDate(x[17])).sort((a,b)=>toDate(b[17])-toDate(a[17]));
+        const p={id,row:i+2,name:s(r[1]),birth:s(r[3]),stage:s(r[18]),
+          start:jobs[0]?toDate(jobs[0][17]):toDate(r[19]),biz:jobs[0]?s(jobs[0][3]):s(r[20]),nextManual:toDate(r[22])};
+        D.people.push(p);D.byId[id]=p;});
+      D.sessions=K.slice(1).filter(r=>s(r[1])).map(r=>({date:s(r[0]),id:s(r[1]),purpose:s(r[6]),content:s(r[8]),plan:s(r[9])}));
+      $("#banner").hidden=true;
+      // 업무판 카드에서 열면(#aftercare=등록번호) 그분을 바로 고름
+      const m=/^#aftercare=(.+)$/.exec(location.hash); if(m){const id=decodeURIComponent(m[1]);if(D.byId[id]&&sel!==id){pick(id);}}
+      renderList(); renderHist(); renderNext();
+    }catch(e){const b=$("#banner");b.hidden=false;b.classList.add("err");b.textContent=errText(e);}
+  }
+
+  /* ---------- 상태 표시·묻기 ---------- */
+  function status(t,err,link){const x=$("#status");x.textContent=t;x.classList.toggle("err",!!err);
+    if(link){x.append(" ");const a=el("a",null,"시트 열기");a.href=SHEET_URL;a.target="_blank";a.rel="noopener";x.append(a);}}
+  function ask(msg){return new Promise(res=>{const box=$("#askBox");box.textContent="";const a=el("div","ask");a.append(el("span",null,msg));
+    const y=el("button","primary","예"),n=el("button",null,"아니오");y.type=n.type="button";
+    y.onclick=()=>{box.textContent="";res(true);};n.onclick=()=>{box.textContent="";res(false);};a.append(y,n);box.append(a);y.focus();});}
+
+  /* ---------- 정리하기(초안) ---------- */
+  $("#aiBtn").onclick=async()=>{
+    const memo=s($("#memo").value);
+    if(!memo){status("메모를 먼저 적어 주세요.",true);$("#memo").focus();return;}
+    if(!sample){status("이 화면에서는 정리하기를 쓸 수 없습니다. 양식에 직접 적어 주세요.",true);return;}
+    const btn=$("#aiBtn"); btn.disabled=true; status("메모를 양식에 맞게 정리하는 중입니다…");
+    const p=sel&&D.byId[sel]; const last=p?D.sessions.filter(x=>x.id===p.id).sort((a,b)=>(toDate(b.date)||0)-(toDate(a.date)||0))[0]:null;
+    const prompt=`너는 장애인복지관 직업지원팀 사회복지사의 '과정상담기록지' 작성을 돕는다. 상담목적은 "${v.purpose||purpose}"이다.
+아래 메모를 읽고 기록지 칸을 채운 JSON 하나만 출력한다. 설명, 마크다운 없이 JSON만 출력한다.
+규칙:
+- 메모에 없는 내용은 지어내지 않는다. 사업체 이름, 날짜, 숫자를 만들어 넣지 않는다.
+- 사회복지 기록체 개조식으로 쓴다. 문장 끝은 "~함.", "~임.", "~것으로 보임.", "~할 예정임." 중에서 고른다.
+- content(상담내용)는 문장 배열, 한 항목에 한 문장, 최대 8문장. 상담 흐름 순서대로 쓴다.
+- result(상담결과 및 지원계획)는 문장 배열, 2~3문장. 메모에 계획이 없으면 상담 내용에 맞는 다음 지원(재상담, 사업체 방문, 취업알선, 근무 적응 점검 등)을 제안하되 날짜·사업체는 만들지 않는다.
+- 사후관리 상담이면 근무 적응, 직무 수행, 동료·관리자 관계, 출퇴근, 건강, 급여 등 메모에 나온 내용을 중심으로 정리한다.
+- method: 1 전화, 2 내방, 3 방문, 4 인터넷, 5 문자, 6 기타. 메모로 알 수 없으면 null. 기타이면 method_etc에 적는다(예: "현장상담").
+- place, relation: 메모에 나오면 적고, 없으면 "".
+- date: 메모에 상담 날짜가 있으면 YYYY-MM-DD, 없으면 "".
+출력: {"content":[],"result":[],"method":null,"method_etc":"","place":"","relation":"","date":""}
+${p?"\n[참여자 단계] "+p.stage:""}${last?"\n[지난 상담 계획] "+(last.plan||"").slice(0,200):""}
+
+[메모]
+"""
+${memo}
+"""`;
+    try{
+      const o=await sample.json(prompt,{modelTier:"default"})||{};
+      const lines=a=>(Array.isArray(a)?a:[]).map(x=>s(x)).filter(Boolean).map(x=>x.startsWith("-")?x:"- "+x).join("\n");
+      if(lines(o.content)) setV("content",lines(o.content));
+      if(lines(o.result)) setV("result",lines(o.result));
+      if([1,2,3,4,5,6].includes(+o.method)){method=+o.method;methodEtc=s(o.method_etc);renderMethods();}
+      if(s(o.place)) setV("place",o.place);
+      if(s(o.relation)) setV("relation",o.relation);
+      if(toDate(o.date)) setV("date",koDate(toDate(o.date)));
+      saveDraft(); status("정리했습니다. 내용을 확인하고 고친 뒤 저장해 주세요.");
+    }catch(e){const c=e&&e.code;status(c==="not_granted"?"정리하기 사용이 허용되지 않았습니다. 양식에 직접 적어 주세요.":c==="rate_limited"?"요청이 많습니다. 잠시 뒤 다시 눌러 주세요.":"정리하지 못했습니다. 다시 누르거나 직접 적어 주세요.",true);}
+    finally{btn.disabled=false;}
+  };
+
+  // 맨 아래 빈 줄 찾기: 고른 줄에 이미 무엇이 있으면 빈 줄이 나올 때까지 내려감(다른 분 줄 덮어쓰기 방지)
+  async function freeRow(start){
+    let r=start;
+    for(let k=0;k<50;k++){
+      const v5=(await range("과정상담!A"+r+":B"+(r+4))).map(x=>s(x&&x[0])||s(x&&x[1]));
+      const j=[0,1,2,3,4].findIndex(i=>!v5[i]);
+      if(j===0) return r;
+      r+=j<0?5:j;
+    }
+    throw new Error("빈 줄을 찾지 못했습니다");
+  }
+
+  /* ---------- 과정상담 탭에 저장 ---------- */
+  $("#saveBtn").onclick=async()=>{
+    if(!mcp){status("이 화면에서는 저장할 수 없습니다.",true);return;}
+    const p=sel&&D.byId[sel];
+    if(!p){status("왼쪽에서 참여자를 먼저 골라 주세요.",true);return;}
+    const date=isoOf(v.date);
+    if(!date){status("상담일자를 '2026. 11. 6.'처럼 적어 주세요.",true);return;}
+    if(!s(v.content)){status("상담내용을 적어 주세요.",true);return;}
+    const btn=$("#saveBtn"); btn.disabled=true; let step="과정상담 확인";
+    try{
+      status("과정상담 탭을 확인하는 중입니다…");
+      const rows=await range("과정상담!A1:G");
+      const pur=s(v.purpose);
+      let r=rows.findIndex((x,i)=>i>0&&s(x[1])===p.id&&isoOf(x[0])===date&&s(x[6])===pur);
+      if(r>0){
+        if(!(await ask("이 분의 "+date+" "+pur+" 기록이 이미 있습니다. 지금 내용으로 덮어쓸까요?"))){status("저장을 취소했습니다.");return;}
+        r=r+1;
+        // 덮어쓰기 직전에 그 줄이 아직 이 분 기록인지 다시 확인
+        const chk=(await range("과정상담!A"+r+":G"+r))[0]||[];
+        if(s(chk[1])!==p.id||isoOf(chk[0])!==date){status("그사이 과정상담 탭 줄 순서가 바뀌었습니다. 다시 저장을 눌러 주세요.",true);return;}
+      }else r=await freeRow(rows.length+1);
+      step="과정상담 저장"; status("과정상담 탭에 저장하는 중입니다…");
+      const methodText=method===6?"기타("+(methodEtc||"현장상담")+")":METHODS[method-1];
+      // A~K를 한 번에 씀(C 성명은 자동 칸이라 null로 두어 건드리지 않음): 일부만 들어가 빈 줄이 남는 일 방지
+      await mcp.callTool(GS,"update_values",{spreadsheetId:SHEET,range:"과정상담!A"+r+":K"+r,values:[[date,T(p.id),null,T(v.counselor),T(v.place),T(v.relation),T(pur),T(methodText),T(v.content),T(v.result),T(v.supervision)]]});
+      D.sessions.push({date,id:p.id,purpose:pur,content:v.content,plan:v.result}); renderHist();
+      let nextMsg="";
+      if(pur==="사후관리"){
+        step="다음 사후관리일 저장";
+        const nv=$("#nextDate").value, manual=nv&&nv!==nextAuto?nv:"";   // 주기대로 계산한 날이면 비워 두어 자동으로 셈
+        const chk=(await range("참여자!A"+p.row+":A"+p.row))[0]||[];
+        if(s(chk[0])!==p.id) nextMsg=" 다음 사후관리일은 참여자 탭 줄이 바뀌어 적지 못했습니다. 업무판 '기록 고치기'에서 적어 주세요.";
+        else if(manual||p.nextManual){
+          await mcp.callTool(GS,"update_values",{spreadsheetId:SHEET,range:"참여자!W"+p.row,values:[[manual]]});
+          p.nextManual=manual?toDate(manual):null;
+        }
+        if(!nextMsg&&nv) nextMsg=" 다음 사후관리일: "+koDate(toDate(nv))+(manual?"(직접 정함)":"(주기대로)")+".";
+        renderNext();
+      }
+      status(p.name+"님 "+pur+" 기록을 저장했습니다."+nextMsg,!!/적지 못했습니다/.test(nextMsg),true);
+    }catch(e){
+      const c=e&&e.code;
+      status("["+step+"] "+(c==="server_unavailable"||c==="upstream_error"?"저장됐는지 확실하지 않습니다. 시트를 열어 확인한 뒤, 빠진 경우에만 다시 눌러 주세요.":errText(e)),true,true);
+    }finally{btn.disabled=false;}
+  };
+
+  /* ---------- 한글 파일 ---------- */
+  $("#hwpBtn").onclick=async()=>{
+    if(!downloads||!window.JSZip||!window.buildProcHwpx){status("이 화면에서는 한글 저장을 쓸 수 없습니다.",true);return;}
+    const btn=$("#hwpBtn"); btn.disabled=true;
+    try{
+      const blob=await buildProcHwpx(JSZip,Object.assign({},v,{method,methodEtc}));
+      const kind=s(v.purpose)==="사후관리"?"사후관리":"과정상담일지";
+      await downloads.save({filename:kind+"_"+(v.name||"이름없음")+"_"+(isoOf(v.date)||"날짜없음")+".hwpx.zip",data:blob});
+      status("저장했습니다. 파일 이름 끝의 .zip을 지우면(….hwpx) 한글에서 바로 열립니다.");
+    }catch(e){status(e&&e.code==="declined"?"저장을 취소했습니다.":"한글 파일을 만들지 못했습니다. 다시 눌러 주세요.",!(e&&e.code==="declined"));}
+    finally{btn.disabled=false;}
+  };
+
+  $("#newBtn").onclick=async()=>{
+    if(!(await ask("양식과 메모를 모두 비우고 새로 쓸까요?"))) return;
+    fields().forEach(e=>{v[e.dataset.k]="";e.textContent="";});
+    sel=null; method=2; methodEtc=""; $("#memo").value=""; defaults(); renderMethods(); renderList(); renderHist(); saveDraft(); status("");
+  };
+
+  loadDraft(); renderMethods();
+  const inClaude=!!(window.claude&&typeof window.claude.use==="function");
+  if(!inClaude){$("#banner").textContent="이 화면은 claude.ai에서 열었을 때만 구글 시트를 읽고 저장할 수 있습니다.";}
+  else{
+    claude.use("sample").then(x=>{sample=x;if(!x)$("#aiBtn").disabled=true;}).catch(()=>{});
+    claude.use("downloads").then(x=>{downloads=x;if(!x)$("#hwpBtn").hidden=true;}).catch(()=>{});
+    claude.use("mcp").then(m=>{mcp=m;if(!m){$("#banner").textContent="이 화면에서는 구글 시트를 쓸 수 없습니다. claude.ai에서 다시 열어 주세요.";$("#saveBtn").disabled=true;return;}load();}).catch(()=>{});
+  }
+})();
+</script>
+
+</body></html>

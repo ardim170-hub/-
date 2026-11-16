@@ -86,7 +86,7 @@
     // 이 기기에 저장해 둔 데이터(빠른 시작용)도 지운다
     Promise.resolve(window.S && S.clearCache ? S.clearCache() : null).then(function () { location.replace(location.pathname); });
   }
-  window.AppAuth = { login: login, logout: logout, token: token, keep: keep, email: function () { return ls.get(HINT_KEY) || ''; } };
+  window.AppAuth = { login: login, logout: logout, token: token, keep: keep, email: function () { return ls.get(HINT_KEY) || ''; }, needLogin: function () { needLogin(); } };
 
   /* ---------- 2) 로그인 화면 (앱 첫 화면) ---------- */
   var gateShown = false;
@@ -138,7 +138,8 @@
   /** 지금 무언가 입력 중인가 (그때는 화면을 옮기지 않는다) */
   function busy() {
     var a = document.activeElement;
-    return !!(document.querySelector('#drawer.open, .modal.open, .modal-back') || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.id !== 'fmQ'));
+    // 업무판(안쪽 화면)을 보고 있으면 거기서 입력 중일 수 있으니 화면을 옮기지 않는다
+    return !!(document.querySelector('#drawer.open, .modal.open, .modal-back') || (a && /^(INPUT|TEXTAREA|SELECT|IFRAME)$/.test(a.tagName) && a.id !== 'fmQ') || document.getElementById('empFrame'));
   }
   /** 로그인 유지: 출입증이 곧 끝나면 입력 중이 아닐 때 조용히 새로 받는다 (구글이 1시간짜리만 주기 때문) */
   function refreshCheck() {

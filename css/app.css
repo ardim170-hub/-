@@ -2252,3 +2252,8 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   .ev > .inline { grid-area: act; justify-content: flex-start; flex-wrap: wrap; gap: 4px; }
   .ev-title { font-size: 15.5px; line-height: 1.4; }
 }
+
+/* 고용지원 업무판: 화면 아래까지 꽉 차게 */
+.emp-wrap { margin: -8px 0 0; }
+.emp-frame { display: block; width: 100%; height: calc(100vh - 120px); min-height: 560px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+@media (max-width: 720px) { .emp-frame { height: calc(100vh - 170px); border-radius: 0; border-left: 0; border-right: 0; } .emp-wrap { margin: 0 -16px; } }
