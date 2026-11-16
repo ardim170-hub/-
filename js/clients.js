@@ -1,5 +1,5 @@
 /* 이용자 관리 (현장중심): 복지관 시트 '이용자입력'에서 이용자를 골라 등록하고,
- * 과정도(대기자 → 초기면접 → 직업상담 → 사례회의 → 직업재활계획서 → 현장훈련 → 취업알선 → 취업)에서 지금 어디까지 왔는지 관리한다.
+ * 과정도(대기자 → 초기면접 → 직업상담 → 사례회의 → 직업재활계획서 → 훈련대기 → 현장훈련 → 취업대기 → 취업알선 → 취업)에서 지금 어디까지 왔는지 관리한다.
  * 현장훈련·취업알선·취업은 사업체와 연결하고(예: 문○○ - ○○병원 (취업)), 퇴사·중단하면 대기자로 돌아가며 지난 기록(log)은 남긴다.
  * 우리 시트에는 이용자번호·이름·단계·직업욕구·메모만 두고, 성별·나이·장애정보는 복지관 시트에서 그때그때 불러온다 */
 window.CL = (() => {
@@ -7,7 +7,7 @@ window.CL = (() => {
   const ui = { q: '', view: 'board', find: '', found: null, finding: false, info: {}, infoAsked: new Set(), pick: null };
   const STAGES = D.CLIENT_STAGES, BIZ = D.CLIENT_BIZ_STAGES;
   // 예전 단계 이름 → 새 이름
-  const OLD = { '현장훈련 대기': '현장훈련', '취업 대기': '취업알선' };
+  const OLD = { '현장훈련 대기': '훈련대기', '취업 대기': '취업대기' };
   const stageOf = c => { const st = OLD[c.stage] || c.stage; return STAGES.includes(st) ? st : STAGES[0]; };
   const list = () => (S.view().clients || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   const stageIdx = c => STAGES.indexOf(stageOf(c));

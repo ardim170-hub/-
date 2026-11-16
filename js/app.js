@@ -3,12 +3,12 @@ window.App = (() => {
   const $ = (s, r = document) => r.querySelector(s);
   const view = $('#view');
   const NAV = [
-    ['dashboard', '대시보드', 'dash'],
+    ['dashboard', '대시보드·일정', 'dash'],
     ['field', '현장 모드', 'phone'],
-    ['biz', '사업체·네트워크', 'biz', () => S.get().businesses.length + S.get().networks.length],
+    ['biz', '사업체·네트워크·지도', 'biz', () => S.get().businesses.length + S.get().networks.length],
     ['map', '지도', 'map'],
     ['schedule', '일정', 'cal', () => S.get().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7).length || ''],
-    ['contacts', '연락이력', 'log'],
+    ['contacts', '연락이력·현장', 'phone'],
     ['clients', '이용자', 'user', () => (S.view().clients || []).length || ''],
     ['perf', '실적', 'perf'],
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
@@ -17,38 +17,46 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
-    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'field', 'biz', 'map', 'schedule', 'contacts', 'clients', 'perf', 'outreach'], desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'field', 'biz', 'map', 'schedule', 'contacts', 'perf'], desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+    { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'clients', 'biz', 'contacts', 'perf'],
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['biz', 'network', 'outreach', 'map', 'cards'], contacts: ['field', 'contacts'] }, desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'contacts', 'perf'],
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['biz', 'network', 'map', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
   ];
   const SEC_HINT = {
-    dashboard: () => '오늘 할 일·달력', field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
+    dashboard: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `오늘 할 일 · 이번 주 일정 ${n}건` : '오늘 할 일·달력·일정'; }, field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '사업체 연락·방문', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
+    contacts: () => '현장 모드 · 연락·방문 기록', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
   let secKey = lsGetSec() || 'field';
   /** 지금 구역: 보고 있는 화면이 들어 있는 구역 (지금 구역에 없으면 그 화면이 있는 첫 구역) */
+  /** 구역 안에서 이 화면이 들어 있는 메뉴 (탭으로 묶인 메뉴면 그 메뉴 키) */
+  const hubKeyIn = (sec, r) => (sec && sec.hubs ? Object.keys(sec.hubs).find(k => sec.hubs[k].includes(r)) : '') || '';
+  const secHas = (sec, r) => !!sec && (sec.items.includes(r) || !!hubKeyIn(sec, r));
   function curSec() {
-    const n = (r => (['biz', 'network', 'cards'].includes(r) ? 'biz' : r))(route());
+    const r = route(), n = ['biz', 'network', 'cards'].includes(r) ? 'biz' : r;
     const cur = SECS.find(x => x.k === secKey);
-    if (cur && cur.items.includes(n)) return cur;
-    const hit = SECS.find(x => x.items.includes(n)) || SECS[0];
+    if (secHas(cur, r) || (cur && cur.items.includes(n))) return cur;
+    const hit = SECS.find(x => secHas(x, r)) || SECS.find(x => x.items.includes(n)) || SECS[0];
     secKey = hit.k; lsSetSec(hit.k);
     return hit;
   }
   /** 휴대폰 아래 막대 4칸: 현장 모드가 있는 구역은 '현장'을 맨 앞에 (대시보드는 더보기로) */
-  const mobileItems = sec => (sec.items.includes('field') ? ['field', ...sec.items.filter(k => k !== 'field' && k !== 'dashboard'), 'dashboard'] : sec.items).filter(k => canSee(k)).slice(0, 4);
+  const mobileItems = sec => (sec.hubs && sec.hubs.contacts ? ['contacts', ...sec.items.filter(k => k !== 'contacts')] : sec.items).filter(k => canSee(k)).slice(0, 4);
   const MOBILE = [['dashboard', '홈', 'dash'], ['biz', '사업체', 'biz'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   const route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'dashboard');
   // 사업체·기관·명함은 한 메뉴(사업체·네트워크)의 탭: 주소는 #/biz · #/network · #/cards 그대로
   const HUB_R = ['biz', 'network', 'cards'];
-  const navOf = r => (HUB_R.includes(r) ? 'biz' : r);
+  const navOf = r => { const s = SECS.find(x => x.k === secKey); return hubKeyIn(s, r) || (HUB_R.includes(r) ? 'biz' : r); };
+  /** 탭으로 묶인 메뉴의 탭 목록 (지금 구역 기준, 볼 수 있는 것만) */
+  const hubTabsOf = k => { const s = SECS.find(x => x.k === secKey); return ((s && s.hubs && s.hubs[k]) || []).filter(t => !MENU_NAME[t] || S.level(t) >= 1); };
   /** 메뉴를 눌렀을 때 갈 곳: 사업체·네트워크는 볼 수 있는 첫 탭 */
-  const hrefOf = k => (k === 'biz' ? HUB_R.find(x => S.level(x) >= 1) || 'biz' : k);
-  const canSee = k => (k === 'biz' ? HUB_R.some(x => S.level(x) >= 1) : !MENU_NAME[k] || S.level(k) >= 1);
+  const narrow = () => !!(window.matchMedia && matchMedia('(max-width: 720px)').matches);
+  const hrefOf = k => { const t = hubTabsOf(k); if (k === 'contacts' && t.length) return narrow() && t.includes('field') ? 'field' : (t.includes('contacts') ? 'contacts' : t[0]); return t.length ? t[0] : (k === 'biz' ? HUB_R.find(x => S.level(x) >= 1) || 'biz' : k); };
+  const canSee = k => { const t = hubTabsOf(k); if (t.length) return true; return k === 'biz' ? HUB_R.some(x => S.level(x) >= 1) : !MENU_NAME[k] || S.level(k) >= 1; };
 
   /* ---------- Toast / Confirm ---------- */
   function toast(msg, type = '', opt = {}) {
@@ -146,7 +154,7 @@ window.App = (() => {
     $('#sideNav').innerHTML = sec.items.filter(k => canSee(k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
     const mItems = mobileItems(sec);
     const moreActive = !mItems.includes(n);
-    const SHORT = { field: '현장', dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', contacts: '연락', perf: '실적', attend: '출석부', data: '데이터' };
+    const SHORT = { field: '현장', contacts: '현장', clients: '이용자', dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', perf: '실적', attend: '출석부', data: '데이터' };
     $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>${appAccount()}`;
@@ -265,7 +273,8 @@ window.App = (() => {
     let [html, after] = pages[r] || pages.dashboard;
     if (MENU_NAME[r] && S.level(r) < 1) [html, after] = [() => `<div class="panel"><div class="empty"><strong>${MENU_NAME[r]} 메뉴는 볼 권한이 없어요</strong>관리자에게 권한을 요청하세요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`, null];
     try {
-      keepDrafts(() => { view.innerHTML = html(); after && after(); });
+      V.ui.hubAllowed = hubTabsOf('biz');
+      keepDrafts(() => { view.innerHTML = groupTabs(r) + html(); after && after(); });
       crumb(r);
       scopeBanner();
     } catch (err) {
@@ -309,6 +318,16 @@ window.App = (() => {
     bar.className = 'scope-banner';
     bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
     view.prepend(bar);
+  }
+  /** 탭으로 묶인 메뉴의 탭 줄 (대시보드·일정 / 연락이력·현장 / 사업체·네트워크·홍보·지도·명함) */
+  const GROUP_LABEL = { dashboard: ['대시보드', 'dash'], schedule: ['일정', 'cal'], field: ['현장 모드', 'phone'], contacts: ['연락이력', 'log'] };
+  function groupTabs(r) {
+    const k = hubKeyIn(SECS.find(x => x.k === secKey), r);
+    if (!k) return '';
+    if (k === 'biz') return ['biz', 'network', 'cards'].includes(r) ? '' : `<nav class="hub-tabs" id="hubTabs" aria-label="사업체·네트워크·지도">${V.hubTabsInner(r)}</nav>`;
+    const tabs = hubTabsOf(k);
+    if (tabs.length < 2) return '';
+    return `<nav class="hub-tabs grp-tabs" aria-label="${U.esc(NAV.find(x => x[0] === k)?.[1] || '')}">${tabs.map(t => { const [l, ic] = GROUP_LABEL[t] || [t, 'dash']; return `<a href="#/${t}" class="hub-tab hub-${t} ${t === r ? 'on' : ''}" ${t === r ? 'aria-current="page"' : ''}>${V.I[ic]}<span>${l}</span></a>`; }).join('')}</nav>`;
   }
   function bindField() {
     const q = $('#fmQ');

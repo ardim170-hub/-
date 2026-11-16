@@ -206,7 +206,7 @@ window.V = (() => {
   }
 
   /* ================= 사업체·네트워크 (사업체 · 기관 · 명함 한 메뉴) ================= */
-  const HUB = [['biz', '사업체', 'biz'], ['network', '기관<i class="hub-long">·네트워크</i>', 'net'], ['cards', '명함', 'card']];
+  const HUB = [['biz', '사업체', 'biz'], ['network', '기관<i class="hub-long">·네트워크</i>', 'net'], ['outreach', '홍보<i class="hub-long">·방문처</i>', 'send'], ['map', '지도', 'map'], ['cards', '명함', 'card']];
   /** 검색어가 같은 탭마다 몇 개 걸리는지 (탭 옆 숫자) */
   function hubCounts(q = ui.hub.q) {
     const v = S.view();
@@ -215,9 +215,11 @@ window.V = (() => {
       biz: [n(v.businesses, b => U.match(q, b.name, b.industry, b.jobs, b.address, b.ceo, b.memo, b.staff, b.phone, ...S.cardsOf('biz', b.id).flatMap(c => [c.name, c.mobile, c.phone]))), v.businesses.length],
       network: [n(v.networks, x => U.match(q, x.name, x.relation, x.promo, x.memo, x.address, x.staff, ...S.cardsOf('net', x.id).flatMap(c => [c.name, c.mobile, c.phone]))), v.networks.length],
       cards: [n(v.cards, c => U.match(q, c.name, c.org, c.dept, c.title, c.mobile, c.phone, c.email, (c.tags || []).join(','), c.memo, c.address)), v.cards.length],
+      outreach: (() => { const t = v.networks.filter(x => window.OR && OR.isTarget(x)).length; return [t, t]; })(),
+      map: null,
     };
   }
-  const hubTabsInner = tab => { const c = hubCounts(); return HUB.filter(([k]) => S.level(k) >= 1).map(([k, l, ic]) => `<a href="#/${k}" class="hub-tab hub-${k} ${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${I[ic]}<span>${l}</span><b class="num">${ui.hub.q ? `${c[k][0]}<small>/${c[k][1]}</small>` : c[k][1]}</b></a>`).join(''); };
+  const hubTabsInner = tab => { const c = hubCounts(); return HUB.filter(([k]) => (ui.hubAllowed && ui.hubAllowed.length ? ui.hubAllowed.includes(k) : ['biz', 'network', 'cards'].includes(k)) && (!['biz', 'network', 'cards'].includes(k) || S.level(k) >= 1)).map(([k, l, ic]) => `<a href="#/${k}" class="hub-tab hub-${k} ${tab === k ? 'on' : ''}" ${tab === k ? 'aria-current="page"' : ''}>${I[ic]}<span>${l}</span>${c[k] ? `<b class="num">${ui.hub.q ? `${c[k][0]}<small>/${c[k][1]}</small>` : c[k][1]}</b>` : ''}</a>`).join(''); };
   /** 화면 머리: 제목 하나 + 탭별 버튼, 그 아래 탭, 분류 대기 명함 한 줄 */
   function hubHead(tab) {
     const desc = {
