@@ -30,7 +30,11 @@
       });
     } else throw fail('tool_error', '지원하지 않는 기능: ' + tool);
     if (res.status === 401) { if (app && app.AppAuth.needLogin) app.AppAuth.needLogin(); throw fail('needs_reauth', '로그인을 다시 확인해야 해요.'); }
-    if (res.status === 403 || res.status === 404) throw fail('tool_error', '업무판 구글 시트를 열 권한이 없어요. 시트 주인에게 이 계정(' + ((app && app.AppAuth.email()) || '') + ')으로 공유를 요청해 주세요.');
+    if (res.status === 403 || res.status === 404) {
+      var body = ''; try { body = JSON.stringify(await res.clone().json()); } catch (e) { /* 내용 없음 */ }
+      if (/has not been used|SERVICE_DISABLED|is disabled/i.test(body)) throw fail('tool_error', '구글 클라우드(ardim-jobs)에서 "Google Sheets API"가 꺼져 있어요. 관리자가 한 번 켜 주면 돼요.');
+      throw fail('tool_error', '업무판 구글 시트를 열 권한이 없어요. 시트 주인에게 이 계정(' + ((app && app.AppAuth.email()) || '') + ')으로 공유를 요청해 주세요.');
+    }
     if (!res.ok) throw fail('tool_error', '구글 시트 오류 ' + res.status);
     return { payload: await res.json() };
   }
