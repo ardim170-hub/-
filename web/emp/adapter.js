@@ -50,13 +50,19 @@
   }
   function makeSample() {
     if (!(app && app.AI && app.AI.run && app.AI.available())) return null; // AI 키가 없으면 AI 버튼이 꺼진다
-    return {
-      json: async function (prompt, opts) {
-        var complex = opts && opts.modelTier === 'complex';
-        var msg = await app.AI.run({ max_tokens: complex ? 8000 : 4000, messages: [{ role: 'user', content: String(prompt) + '\n\n답은 JSON 값 하나만 주세요. 설명이나 ``` 표시는 붙이지 마세요.' }] });
-        return pickJson(app.AI.textOf(msg));
-      },
+    // sample(글, {onText}) → {text}  (직업평가 화면) / sample.json(글) → JSON (업무판 화면)
+    var ask = async function (prompt, opts) {
+      var msg = await app.AI.run({ max_tokens: 8000, messages: [{ role: 'user', content: String(prompt) }] });
+      var text = app.AI.textOf(msg);
+      if (opts && typeof opts.onText === 'function') { try { opts.onText({ text: text }); } catch (e) { /* 화면 쪽 오류 무시 */ } }
+      return { text: text };
     };
+    ask.json = async function (prompt, opts) {
+      var complex = opts && opts.modelTier === 'complex';
+      var msg = await app.AI.run({ max_tokens: complex ? 8000 : 4000, messages: [{ role: 'user', content: String(prompt) + '\n\n답은 JSON 값 하나만 주세요. 설명이나 ``` 표시는 붙이지 마세요.' }] });
+      return pickJson(app.AI.textOf(msg));
+    };
+    return ask;
   }
   var downloads = {
     save: async function (o) {
@@ -67,11 +73,88 @@
       return true;
     },
   };
+  /* ---------- db: 직업평가 기록 저장 ----------
+   * claude.ai의 '사람마다 따로 저장'을 우리 팀 구글 시트의 '직업평가' 탭으로 대신한다.
+   * 한 줄 = 기록 하나: A 기록ID · B 작성자(메일) · C 고친 때 · D~ 기록(JSON, 셀 한 칸 5만 자 제한이라 나눠 담음)
+   * 화면은 'data/users/<내 메일>' 묶음만 보므로, 각자 자기 기록만 보인다(시트에는 팀 기록이 모인다). */
+  var DB_SHEET = (app && app.APP_CONFIG && app.APP_CONFIG.dbSheet) || '';
+  var TAB = '직업평가', CHUNK = 45000, NCOL = 8; // D~K: 최대 약 36만 자
+  var colL = function (i) { return String.fromCharCode(65 + i); };
+  async function api(path, opt) {
+    var t = token(); if (!t) throw fail('needs_reauth', '로그인을 다시 확인해야 해요.');
+    opt = opt || {}; opt.headers = Object.assign({ Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, opt.headers || {});
+    var r = await fetch(SHEETS + encodeURIComponent(DB_SHEET) + path, opt);
+    if (!r.ok) throw fail('tool_error', '직업평가 기록 저장소(구글 시트) 오류 ' + r.status);
+    return r.json();
+  }
+  var tabReady = null;
+  function ensureTab() {
+    if (!tabReady) tabReady = (async function () {
+      var meta = await api('?fields=sheets.properties.title');
+      if ((meta.sheets || []).some(function (x) { return x.properties.title === TAB; })) return;
+      await api(':batchUpdate', { method: 'POST', body: JSON.stringify({ requests: [{ addSheet: { properties: { title: TAB, gridProperties: { rowCount: 500, columnCount: 3 + NCOL } } } }] }) });
+      await api('/values/' + encodeURIComponent(TAB + '!A1:D1') + '?valueInputOption=RAW', { method: 'PUT', body: JSON.stringify({ values: [['기록ID', '작성자', '고친 때', '기록(JSON)']] }) });
+    })().catch(function (e) { tabReady = null; throw e; });
+    return tabReady;
+  }
+  async function readAll() {
+    await ensureTab();
+    var j = await api('/values/' + encodeURIComponent(TAB + '!A2:' + colL(2 + NCOL)));
+    return (j.values || []).map(function (r, i) { return { row: i + 2, id: r[0] || '', owner: r[1] || '', at: +r[2] || 0, json: r.slice(3).join('') }; });
+  }
+  function docOf(x) { var d = null; try { d = JSON.parse(x.json); } catch (e) { d = null; } return { id: x.id, exists: !!d, data: function () { return d; } }; }
+  function collection(path) {
+    var owner = String(path).split('/').pop();
+    var mine = function (rows) { return rows.filter(function (x) { return x.id && x.owner === owner; }); };
+    var seen = {};
+    var col = {
+      get: async function () { var rows = mine(await readAll()); rows.forEach(function (x) { seen[x.id] = x.at; }); return { docs: rows.map(docOf) }; },
+      doc: function (id) {
+        return {
+          set: async function (data) {
+            var copy = JSON.parse(JSON.stringify(data)); delete copy.aiLog; // AI 원문 기록은 이 기기에만 (칸 크기 줄이기)
+            var json = JSON.stringify(copy), parts = [];
+            for (var i = 0; i < json.length; i += CHUNK) parts.push(json.slice(i, i + CHUNK));
+            if (parts.length > NCOL) throw fail('tool_error', '기록이 너무 길어 시트에 다 담을 수 없어요.');
+            while (parts.length < NCOL) parts.push('');
+            var at = copy.updatedAt || Date.now(), row = [id, owner, String(at)].concat(parts);
+            var hit = (await readAll()).find(function (x) { return x.id === id; }); // 쓰기 직전에 다시 확인
+            if (hit) await api('/values/' + encodeURIComponent(TAB + '!A' + hit.row + ':' + colL(2 + NCOL) + hit.row) + '?valueInputOption=RAW', { method: 'PUT', body: JSON.stringify({ values: [row] }) });
+            else await api('/values/' + encodeURIComponent(TAB + '!A:' + colL(2 + NCOL)) + ':append?valueInputOption=RAW&insertDataOption=INSERT_ROWS', { method: 'POST', body: JSON.stringify({ values: [row] }) });
+            seen[id] = at;
+          },
+          delete: async function () {
+            var hit = (await readAll()).find(function (x) { return x.id === id && x.owner === owner; });
+            if (hit) await api('/values/' + encodeURIComponent(TAB + '!A' + hit.row + ':' + colL(2 + NCOL) + hit.row) + ':clear', { method: 'POST', body: '{}' });
+            delete seen[id];
+          },
+        };
+      },
+      // 다른 기기에서 고친 기록: 1분마다 확인해서 알려 준다
+      onSnapshot: function (cb) {
+        var tick = async function () {
+          try {
+            var rows = mine(await readAll()), changes = [];
+            rows.forEach(function (x) { if ((seen[x.id] || 0) < x.at) { changes.push({ type: seen[x.id] ? 'modified' : 'added', doc: docOf(x) }); seen[x.id] = x.at; } });
+            if (changes.length) cb({ docChanges: function () { return changes; } });
+          } catch (e) { /* 다음에 다시 */ }
+        };
+        var t = setInterval(tick, 60000);
+        return function () { clearInterval(t); };
+      },
+    };
+    return col;
+  }
+  var db = DB_SHEET ? { collection: collection } : null;
+  var user = { id: async function () { return (app && app.AppAuth.email()) || ''; } };
+
   window.claude = {
     use: async function (name) {
       if (name === 'mcp') return mcp;
       if (name === 'sample') return makeSample();
       if (name === 'downloads') return downloads;
+      if (name === 'db') return db;
+      if (name === 'user') return (app && app.AppAuth.email()) ? user : null;
       return null;
     },
   };
