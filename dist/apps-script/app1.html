@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.11.18 09:06";</script>
+<script>(window.__parts = window.__parts || []).push('app1'); (window.__ver = window.__ver || {})['app1'] = "2026.11.18 09:53";</script>
 <script>
 /* 공통 유틸: 날짜, 문자열, 포맷 */
 window.U = (() => {
@@ -2100,8 +2100,8 @@ window.V = (() => {
     if (!links.length) return '';
     return `<nav class="quick-links" aria-label="바로가기">${links.map(l => l.url
       ? `<a class="qlink" href="${e(l.url)}" target="_blank" rel="noopener">${e(l.label)}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a>`
-      : `<a class="qlink empty" href="#/data" title="데이터 관리에서 주소를 입력하세요">${e(l.label)} <span>주소 입력</span></a>`).join('')}
-      <a class="qlink edit" href="#/data" title="바로가기 편집">편집</a></nav>`;
+      : `<a class="qlink empty" href="#/dconnect" title="데이터 관리에서 주소를 입력하세요">${e(l.label)} <span>주소 입력</span></a>`).join('')}
+      <a class="qlink edit" href="#/dconnect" title="바로가기 편집">편집</a></nav>`;
   }
 
   function staffPanel() {
@@ -3076,20 +3076,13 @@ window.V = (() => {
       <p class="sub" style="margin:10px 0 0">💡 AI 요금이 걱정되면 Anthropic 콘솔에서 <b>월 사용 한도</b>를 정해 두세요. 한도에 닿으면 AI 버튼만 잠시 멈추고, 나머지 기능은 그대로 돼요.</p>
     </section>`;
   }
-  function dataTabs(admin) {
-    const has = { people: true, connect: true, cost: true, backup: true, check: true };
-    const list = DATA_TABS.filter(([k]) => has[k]);
-    if (!list.some(([k]) => k === ui.dataTab)) ui.dataTab = list[0][0];
-    return `<nav class="hub-tabs data-tabs" role="tablist" aria-label="데이터 관리 수납함">${list.map(([k, ic, l]) => `<button type="button" role="tab" class="hub-tab ${ui.dataTab === k ? 'on' : ''}" aria-selected="${ui.dataTab === k}" data-act="data-tab" data-tab="${k}"><i>${ic}</i><span>${l}</span></button>`).join('')}</nav>`;
-  }
   function dataPage() {
     const st = S.get();
     const admin = S.isAdmin();
     const acc = S.accessInfo();
     return `
-      <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
+      <div class="page-head"><div><h1 class="page-title">${(DATA_TABS.find(x => x[0] === ui.dataTab) || [, '', '데이터 관리'])[2]} <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
       ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.<br><span class="sub">내 계정: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · 관리자가 되어야 한다면 이 주소를 관리자에게 알려 주세요.</span></div>` : ''}
-      ${dataTabs(admin)}
       <div class="data-grid" data-on="${ui.dataTab}">
         ${connMap()}
         ${costPanel()}

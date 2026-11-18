@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.18 09:06";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.18 09:53";</script>
 <script>
 /* 현장 모드: 밖에서 휴대폰으로 쓰는 첫 화면.
  * ① 사업체·기관 찾기 → 그곳의 연락이력(최신순)·명함·전화·길찾기
@@ -603,6 +603,12 @@ window.App = (() => {
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
+    // 데이터 관리 수납함: 왼쪽 메뉴 5칸
+    ['dpeople', '사람·권한', 'user'],
+    ['dconnect', '연결(API)', 'net'],
+    ['dcost', '요금·결제', 'perf'],
+    ['dbackup', '백업·정리', 'data'],
+    ['dcheck', '점검', 'log'],
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
@@ -611,12 +617,12 @@ window.App = (() => {
     { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'empboard', 'biz', 'contacts', 'perf'],
       hubs: { dashboard: ['dashboard', 'schedule'], empboard: ['empboard', 'empeval'], biz: ['map', 'biz', 'network', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
-    { k: 'data', label: '데이터 관리', prog: '', items: ['data'], desc: '직원·계정·권한, 엑셀 백업·가져오기' },
+    { k: 'data', label: '데이터 관리', prog: '', items: ['dpeople', 'dconnect', 'dcost', 'dbackup', 'dcheck'], desc: '사람·권한 · 연결(API) · 요금 · 백업 · 점검' },
   ];
   const SEC_HINT = {
     dashboard: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `오늘 할 일 · 이번 주 일정 ${n}건` : '오늘 할 일·달력·일정'; }, field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한',
+    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => '사용 권한 · 직원과 소속', dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -835,6 +841,7 @@ window.App = (() => {
   }
   function render() {
     const r = route();
+    if (r === 'data') { location.replace('#/' + (location.hash.includes('t=') ? 'd' + location.hash.split('t=')[1] : 'dpeople')); return; } // 예전 주소는 첫 칸으로
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     document.body.dataset.sec = curSec().k; // 구역 색
     // 지도는 지금 구역의 사업만 (현장중심이면 현장중심 지도만)
@@ -859,7 +866,7 @@ window.App = (() => {
       outreach: [OR.page, bindOutreach],
       clients: [CL.page, bindClients],
       attend: [AT.page, bindAttend],
-      data: S.isAdmin() ? [V.dataPage, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`],
+      ...Object.fromEntries(['people', 'connect', 'cost', 'backup', 'check'].map(t => ['d' + t, S.isAdmin() ? [() => { V.ui.dataTab = t; return V.dataPage(); }, bindData] : [() => `<div class="panel"><div class="empty"><strong>데이터 관리는 관리자만 볼 수 있어요</strong>사업체·네트워크·명함·연락이력·일정·실적·명령부 등록과 삭제는 그대로 할 수 있어요.<br>내 계정: <b>${U.esc(S.accessInfo().me || '(확인 안 됨)')}</b> · 이 PC 사용자는 왼쪽 아래에서 바꿀 수 있어요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`]])),
     };
     let [html, after] = pages[r] || pages.dashboard;
     if (MENU_NAME[r] && S.level(r) < 1) [html, after] = [() => `<div class="panel"><div class="empty"><strong>${MENU_NAME[r]} 메뉴는 볼 권한이 없어요</strong>관리자에게 권한을 요청하세요.<div><a class="btn" href="#/dashboard">대시보드로</a></div></div></div>`, null];
@@ -903,7 +910,7 @@ window.App = (() => {
   /** 한 사람 기록만 보는 중이면 화면 위에 크게 알린다 (다른 직원이 넣은 기록이 안 보여 헷갈리지 않게) */
   function scopeBanner() {
     const sc = S.getScope();
-    if (!sc.startsWith('s:') || route() === 'data') return;
+    if (!sc.startsWith('s:') || /^d(people|connect|cost|backup|check)$/.test(route())) return;
     const sec = SECS.find(x => x.k === secKey) || {};
     const bar = document.createElement('div');
     bar.className = 'scope-banner';
