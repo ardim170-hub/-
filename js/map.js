@@ -157,13 +157,13 @@ window.M = (() => {
       : '<div class="pop-meta pop-nocard">연결된 명함 없음</div>';
     return `<div class="pop tone-${tone}"><div class="pop-kind">${{ biz: '사업체 개발', placed: '취업 연계', employ: '지원고용 진행', training: '현장훈련 진행', net: '기관', home: '우리 복지관' }[tone]}</div>
       <div class="pop-name">${U.esc(x.name)}</div><div class="pop-meta">${meta}${x.approx ? '<br>읍면동 중심의 대략적 위치' : ''}</div>
-      ${x.address ? `<div class="pop-addr">📍 ${U.esc(x.address)} <button class="linklike" type="button" data-act="copy" data-v="${U.esc(x.address)}">복사</button></div>` : ''}
-      ${x.phone ? `<div class="pop-addr">📞 <a href="tel:${U.esc(String(x.phone).replace(/[^0-9+]/g, ''))}">${U.esc(x.phone)}</a></div>` : ''}
+      ${x.address ? `<div class="pop-addr">${V.I.map} ${U.esc(x.address)} <button class="linklike" type="button" data-act="copy" data-v="${U.esc(x.address)}">복사</button></div>` : ''}
+      ${x.phone ? `<div class="pop-addr">${V.I.phone} <a href="tel:${U.esc(String(x.phone).replace(/[^0-9+]/g, ''))}">${U.esc(x.phone)}</a></div>` : ''}
       <div class="pop-links"><a href="${naverSearch(x)}" target="_blank" rel="noopener">네이버 지도</a><a href="${kakaoLink(x)}" target="_blank" rel="noopener">카카오맵</a></div>
       ${cardList}
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${x.id}">상세 보기</button><button class="btn btn-sm" type="button" data-act="cards-of" data-kind="${kind}" data-id="${x.id}">명함 관리에서 보기${cards.length ? ` (${cards.length})` : ''}</button></div>
       <div class="inline pop-actions"><button class="btn btn-sm btn-route" type="button" data-act="route-to" data-kind="${kind}" data-id="${x.id}">여기까지 길찾기</button><button class="btn btn-ghost btn-sm" type="button" data-act="route-from" data-kind="${kind}" data-id="${x.id}">여기서 출발</button>${soloBtn(kind, x)}</div>
-      <div class="inline pop-edit"><button class="linklike" type="button" data-act="edit" data-kind="${kind}" data-id="${x.id}">✏️ 수정</button><button class="linklike" type="button" data-act="map-move" data-kind="${kind}" data-id="${x.id}">📍 위치 옮기기</button>${S.isHome(x) ? '' : `<button class="linklike pop-del" type="button" data-act="delete" data-kind="${kind}" data-id="${x.id}">🗑 삭제</button>`}</div>
+      <div class="inline pop-edit"><button class="linklike" type="button" data-act="edit" data-kind="${kind}" data-id="${x.id}">${V.I.edit} 수정</button><button class="linklike" type="button" data-act="map-move" data-kind="${kind}" data-id="${x.id}">${V.I.map} 위치 옮기기</button>${S.isHome(x) ? '' : `<button class="linklike pop-del" type="button" data-act="delete" data-kind="${kind}" data-id="${x.id}">${V.I.trash} 삭제</button>`}</div>
       ${progTags(x)}</div>`;
   }
 

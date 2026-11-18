@@ -126,7 +126,7 @@ window.OR = (() => {
       <p class="sub" style="margin:0">${e(st.file)} · ${cats.map(c => `${e(c)} ${st.rows.filter(r => r.category === c).length}`).join(' · ')}</p></div>
       <div class="dr-body">
         <p class="sub">새로 <b>${fresh}곳</b>을 기관으로 등록하고, 이미 있는 <b>${upd}곳</b>은 분류·세부 정보·빈 칸을 채워요. 주소로 지도 위치를 차례로 찾아요.</p>
-        ${warn.length ? `<p class="form-notice">⚠ 다른 분류와 전화번호가 같은 ${warn.length}곳은 잘못 복사된 번호 같아서 비워 두었어요: ${warn.slice(0, 6).map(r => `${e(r.name)}(${e(r.phoneWarn)})`).join(', ')}${warn.length > 6 ? ' …' : ''}</p>` : ''}
+        ${warn.length ? `<p class="form-notice">${V.I.alert} 다른 분류와 전화번호가 같은 ${warn.length}곳은 잘못 복사된 번호 같아서 비워 두었어요: ${warn.slice(0, 6).map(r => `${e(r.name)}(${e(r.phoneWarn)})`).join(', ')}${warn.length > 6 ? ' …' : ''}</p>` : ''}
         <div class="table-wrap"><table class="tbl bulk-tbl"><thead><tr><th></th><th>분류</th><th>이름</th><th>주소</th><th>연락처</th><th>세부 정보</th></tr></thead><tbody>
         ${st.rows.map((r, i) => `<tr class="${r.on ? '' : 'dup'}"><td><input type="checkbox" data-act="or-pick" data-i="${i}" ${r.on ? 'checked' : ''} aria-label="넣기"></td><td class="nowrap">${e(r.category)}</td>
           <td><b>${e(r.name)}</b>${r.match ? ' <span class="badge">채움</span>' : r.biz ? `<div class="meta">사업체 '${e(r.biz)}'로 이미 있음</div>` : ' <span class="badge accent">새로</span>'}</td>
@@ -191,7 +191,7 @@ window.OR = (() => {
           <td>${Object.entries(n.info || {}).map(([k, val]) => `<span class="or-chip">${e(k)} <b>${e(val)}</b></span>`).join('')}</td>
           <td class="or-etc-td"><textarea class="input or-etc" rows="1" data-chg="or-etc" data-id="${n.id}" data-field="etc" placeholder="자유롭게 적기 (담당자, 다음 방문 계획 등)" aria-label="${e(n.name)} 기타">${e(n.etc || '')}</textarea></td>
           <td class="nowrap">${v ? `<b class="num">${U.dateDot(v.date)}</b><div class="meta">${e(v.type)}${v.staff ? ' · ' + e(v.staff) : ''}</div>` : '<span class="sub">아직 없음</span>'}</td>
-          <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button> <button class="btn btn-sm btn-ghost or-del" type="button" data-act="delete" data-kind="net" data-id="${n.id}" title="${e(n.name)} 삭제" aria-label="${e(n.name)} 삭제">🗑</button></td></tr>`; }).join('')}
+          <td class="nowrap"><button class="btn btn-sm ${thisYear ? '' : 'btn-primary'}" type="button" data-act="or-visit" data-id="${n.id}">오늘 방문</button> <button class="btn btn-sm btn-ghost or-del" type="button" data-act="delete" data-kind="net" data-id="${n.id}" title="${e(n.name)} 삭제" aria-label="${e(n.name)} 삭제">${V.I.trash}</button></td></tr>`; }).join('')}
         </tbody></table></div></section>`;
     }).join('');
   }

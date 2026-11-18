@@ -179,7 +179,7 @@ window.App = (() => {
     if (!old.length) return;
     const bar = document.createElement('div');
     bar.className = 'ver-warn';
-    bar.innerHTML = `⚠ 파일이 서로 다른 때 것이 섞여 있어요: <b>${old.map(k => k + '.html').join(', ')}</b>이(가) index.html(${U.esc(v)})과 달라요. 그래서 화면 모양이 깨지거나 기능이 안 될 수 있어요. 받은 파일 중 <b>${old.map(k => k + '.html').join(', ')}</b>을(를) 처음부터 끝까지 다시 붙여넣고(Ctrl+A → Ctrl+V) 새 버전으로 배포해 주세요. <button type="button" onclick="this.parentNode.remove()">닫기</button>`;
+    bar.innerHTML = `${V.I.alert} 파일이 서로 다른 때 것이 섞여 있어요: <b>${old.map(k => k + '.html').join(', ')}</b>이(가) index.html(${U.esc(v)})과 달라요. 그래서 화면 모양이 깨지거나 기능이 안 될 수 있어요. 받은 파일 중 <b>${old.map(k => k + '.html').join(', ')}</b>을(를) 처음부터 끝까지 다시 붙여넣고(Ctrl+A → Ctrl+V) 새 버전으로 배포해 주세요. <button type="button" onclick="this.parentNode.remove()">닫기</button>`;
     document.body.prepend(bar);
   }
   /* ---------- 보기 범위 · 동기화 상태 ---------- */
@@ -208,7 +208,7 @@ window.App = (() => {
   }
   function renderSync(sync) {
     const btn = $('#syncBtn');
-    if (btn && !btn.disabled) btn.textContent = S.isAdmin() ? '💾 저장·새로고침' : '⟳ 새로고침';
+    if (btn && !btn.disabled) btn.textContent = S.isAdmin() ? '저장·새로고침' : '⟳ 새로고침';
     const el = $('#syncState');
     if (!S.REMOTE) { el.hidden = true; return; }
     el.hidden = false;
@@ -251,6 +251,25 @@ window.App = (() => {
       if (el) { el.focus({ preventScroll: true }); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} }
     }
   }
+  /* 화면이 바뀔 때만 한 번: 살짝 떠오르며 들어오고, 큰 숫자는 0에서 올라간다 (같은 화면을 다시 그릴 때는 그대로) */
+  let enteredRoute = '';
+  const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function playEnter() {
+    if (calm()) return;
+    view.classList.remove('enter'); void view.offsetWidth; view.classList.add('enter');
+    clearTimeout(playEnter.t); playEnter.t = setTimeout(() => view.classList.remove('enter'), 700);
+    view.querySelectorAll('.kpi-value, .dp-kpi > b.num').forEach(el => {
+      const tn = [...el.childNodes].find(n => n.nodeType === 3 && /\d/.test(n.nodeValue));
+      if (!tn) return;
+      const raw = tn.nodeValue, m = raw.match(/[\d,]+(\.\d+)?/); if (!m) return;
+      const to = parseFloat(m[0].replace(/,/g, '')), dec = (m[1] || '').length - (m[1] ? 1 : 0), comma = m[0].includes(',');
+      if (!(to > 0) || to > 1e7) return;
+      const fmt = v => { const t = v.toFixed(Math.max(0, dec)); return comma ? Number(t).toLocaleString('ko-KR', { minimumFractionDigits: Math.max(0, dec) }) : t; };
+      const t0 = performance.now(), dur = 600;
+      const step = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3); tn.nodeValue = raw.replace(m[0], fmt(to * e)); if (k < 1 && tn.isConnected) requestAnimationFrame(step); };
+      requestAnimationFrame(step);
+    });
+  }
   function render() {
     const r = route();
     if (r === 'data') { location.replace('#/' + (location.hash.includes('t=') ? 'd' + location.hash.split('t=')[1] : 'dpeople')); return; } // 예전 주소는 첫 칸으로
@@ -287,6 +306,7 @@ window.App = (() => {
       keepDrafts(() => { view.innerHTML = groupTabs(r) + html(); after && after(); });
       crumb(r);
       scopeBanner();
+      if (r !== enteredRoute) { enteredRoute = r; playEnter(); }
     } catch (err) {
       console.error(err);
       view.innerHTML = `<div class="panel"><div class="empty"><strong>화면을 그리는 중 문제가 생겼습니다</strong>${U.esc(err.message)}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
@@ -326,7 +346,7 @@ window.App = (() => {
     const sec = SECS.find(x => x.k === secKey) || {};
     const bar = document.createElement('div');
     bar.className = 'scope-banner';
-    bar.innerHTML = `👤 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
+    bar.innerHTML = `${V.I.user} 지금 <b>${U.esc(sc.slice(2))}</b> 선생님 기록만 보고 있어요. 다른 선생님이 넣은 기록은 안 보여요.${sec.prog ? ` <button class="btn btn-sm btn-primary" type="button" data-act="scope-set" data-scope="p:${U.esc(sec.prog)}">${U.esc(sec.label)} 전체 보기</button>` : ''}`;
     view.prepend(bar);
   }
   /** 탭으로 묶인 메뉴의 탭 줄 (대시보드·일정 / 연락이력·현장 / 사업체·네트워크·홍보·지도·명함) */
@@ -655,12 +675,12 @@ window.App = (() => {
     const area = D.areaAt(lat, lng);
     const prog = V.ui.map.prog && D.PROGRAM[V.ui.map.prog];
     L.popup({ className: 'add-pop' }).setLatLng(latlng).setContent(`<div class="pop"><div class="pop-kind">여기에 추가</div><div class="pop-name">${area ? U.esc(area) : '화성시 밖'}</div>${prog ? `<div class="pop-meta">${U.esc(prog.map)} 지도에 넣어요</div>` : ''}
-      <div class="pop-addr" id="addHereAddr">📍 주소 찾는 중…</div>
+      <div class="pop-addr" id="addHereAddr">${V.I.map} 주소 찾는 중…</div>
       <div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="map-add-here" data-kind="biz" data-lat="${lat}" data-lng="${lng}">사업체 개발 등록</button><button class="btn btn-sm" type="button" data-act="map-add-here" data-kind="net" data-lat="${lat}" data-lng="${lng}">기관 등록</button></div></div>`).openOn(bigMap);
     M.revGeo(lat, lng).then(r => {
       const box = $('#addHereAddr'); if (!box) return;
       const addr = r && (r.road || r.addr);
-      box.innerHTML = addr ? `📍 ${U.esc(addr)}${r.bldg ? ` <b>${U.esc(r.bldg)}</b>` : ''}` : '주소를 찾지 못했어요 (등록 후 직접 적어 주세요)';
+      box.innerHTML = addr ? `${V.I.map} ${U.esc(addr)}${r.bldg ? ` <b>${U.esc(r.bldg)}</b>` : ''}` : '주소를 찾지 못했어요 (등록 후 직접 적어 주세요)';
       if (addr) document.querySelectorAll('.add-pop [data-act="map-add-here"]').forEach(b => { b.dataset.address = addr; });
     });
   }
@@ -678,7 +698,7 @@ window.App = (() => {
     box.innerHTML = `<div class="ps-head"><b>'${U.esc(q)}' 검색 결과</b><button class="icon-btn" type="button" data-act="place-close" aria-label="닫기">${V.I.close}</button></div>
       ${mine.length ? `<div class="ps-sec">등록된 곳</div>${mine.map(([k, x]) => `<button type="button" class="ps-item mine" data-act="map-focus" data-kind="${k}" data-id="${x.id}"><b>${U.esc(x.name)}</b><span>${U.esc(k === 'biz' ? (x.industry || '사업체') : (x.category || '기관'))} · ${U.esc(x.address || x.area || '')}</span><em>등록됨</em></button>`).join('')}` : ''}
       <div class="ps-sec">새로 찾은 곳 ${placeList.length ? `<span class="sub">${placeList.length}곳</span>` : ''}</div>
-      ${placeList.length ? placeList.map((p, i) => { const g = reg(p); return `<button type="button" class="ps-item" data-act="place-pick" data-i="${i}"><b>${U.esc(p.name)}</b><span>${U.esc([p.cat, p.road || p.addr].filter(Boolean).join(' · '))}</span>${p.phone ? `<span>📞 ${U.esc(p.phone)}</span>` : ''}${g ? '<em>등록됨</em>' : ''}</button>`; }).join('')
+      ${placeList.length ? placeList.map((p, i) => { const g = reg(p); return `<button type="button" class="ps-item" data-act="place-pick" data-i="${i}"><b>${U.esc(p.name)}</b><span>${U.esc([p.cat, p.road || p.addr].filter(Boolean).join(' · '))}</span>${p.phone ? `<span>${V.I.phone} ${U.esc(p.phone)}</span>` : ''}${g ? '<em>등록됨</em>' : ''}</button>`; }).join('')
         : `<div class="ps-empty">찾지 못했어요. 주소(예: 향남읍 발안로 1)나 다른 이름으로 찾아보세요.</div>`}`;
   }
   function placeCard(p) {
@@ -687,8 +707,8 @@ window.App = (() => {
     const kind = g ? (S.get().businesses.includes(g) ? 'biz' : 'net') : '';
     const data = `data-lat="${p.lat}" data-lng="${p.lng}" data-pname="${U.esc(p.name)}" data-address="${U.esc(p.road || p.addr || '')}" data-phone="${U.esc(p.phone || '')}" data-cat="${U.esc(p.cat === '주소' ? '' : p.cat || '')}"`;
     return `<div class="pop place-pop"><div class="pop-kind">${U.esc(p.cat || '장소')}</div><div class="pop-name">${U.esc(p.name)}</div>
-      ${p.road ? `<div class="pop-addr">📍 ${U.esc(p.road)}</div>` : ''}${p.addr && p.addr !== p.road ? `<div class="pop-meta">지번 ${U.esc(p.addr)}</div>` : ''}
-      ${p.phone ? `<div class="pop-addr">📞 <a href="tel:${U.esc(p.phone.replace(/[^0-9+]/g, ''))}">${U.esc(p.phone)}</a></div>` : ''}
+      ${p.road ? `<div class="pop-addr">${V.I.map} ${U.esc(p.road)}</div>` : ''}${p.addr && p.addr !== p.road ? `<div class="pop-meta">지번 ${U.esc(p.addr)}</div>` : ''}
+      ${p.phone ? `<div class="pop-addr">${V.I.phone} <a href="tel:${U.esc(p.phone.replace(/[^0-9+]/g, ''))}">${U.esc(p.phone)}</a></div>` : ''}
       ${g ? `<div class="pop-meta" style="margin-top:6px">이미 등록된 <b>${U.esc(g.name)}</b>이 있어요.</div><div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="open" data-kind="${kind}" data-id="${g.id}">상세 보기</button></div>`
         : `<div class="inline pop-actions"><button class="btn btn-sm btn-primary" type="button" data-act="place-add" data-kind="biz" ${data}>사업체로 등록</button><button class="btn btn-sm" type="button" data-act="place-add" data-kind="net" ${data}>기관으로 등록</button></div>`}</div>`;
   }
@@ -773,9 +793,9 @@ window.App = (() => {
     const p = stParse();
     const days = p.dates.length;
     const dl = days > 1 ? `${U.dateKo(p.dates[0])} ~ ${U.dateKo(p.dates[days - 1])} · <b>${days}건</b>` : U.dateKo(p.dates[0]) || '날짜 없음';
-    box.innerHTML = `<span class="st-chip">📅 ${dl}</span><span class="st-chip">⏰ ${U.esc(p.time || '시간 없음')}</span><span class="st-chip">🏷 ${U.esc(p.type)}</span>`
-      + `<span class="st-chip">${p.target ? `🏢 ${U.esc(p.target.name)}` : '연결 없음'}</span><span class="st-chip">👤 ${U.esc(p.staff || S.me() || '')}</span>`
-      + `<span class="st-chip st-title">📝 ${U.esc(p.title || (p.target ? p.type + ' - ' + p.target.name : p.type))}</span>`;
+    box.innerHTML = `<span class="st-chip">${V.I.cal} ${dl}</span><span class="st-chip">${U.esc(p.time || '시간 없음')}</span><span class="st-chip">${V.I.data} ${U.esc(p.type)}</span>`
+      + `<span class="st-chip">${p.target ? `${V.I.biz} ${U.esc(p.target.name)}` : '연결 없음'}</span><span class="st-chip">${V.I.user} ${U.esc(p.staff || S.me() || '')}</span>`
+      + `<span class="st-chip st-title">${V.I.edit} ${U.esc(p.title || (p.target ? p.type + ' - ' + p.target.name : p.type))}</span>`;
   }
   let calDrag = null, calDragJust = false;
   function bindSched() {
@@ -949,7 +969,7 @@ window.App = (() => {
           <label class="dd-gh"><input type="checkbox" data-act="dedupe-on" data-g="${gi}" ${g.on ? 'checked' : ''}><b>묶음 ${gi + 1}</b> <span class="sub">${e(g.why.join(' · '))} · ${g.items.length}건</span>${g.on ? '' : ' <span class="badge">건너뜀</span>'}</label>
           ${g.items.map(x => `<label class="dd-item ${g.keep === x.id ? 'keep' : ''}"><input type="radio" name="dd${gi}" data-act="dedupe-keep" data-g="${gi}" data-id="${x.id}" ${g.keep === x.id ? 'checked' : ''} ${g.on ? '' : 'disabled'}>
             <span class="dd-main"><b>${e(x.name)}</b>${g.keep === x.id ? ' <span class="badge accent">남김</span>' : g.on ? ' <span class="badge dup">합쳐서 지움</span>' : ''}<span class="meta">${meta(x) || '정보 없음'}${acts(x) ? ` · 활동 ${acts(x)}건` : ''}${x.createdAt ? ` · 등록 ${U.dateDot(String(x.createdAt).slice(0, 10))}` : ''}</span></span></label>`).join('')}
-        </section>`).join('') : `<p class="empty">겹치는 ${what}가 없어요. 깔끔해요 👍</p>`}</div>
+        </section>`).join('') : `<p class="empty">겹치는 ${what}가 없어요. 깔끔해요 </p>`}</div>
       <div class="dr-foot"><button class="btn" type="button" data-act="dr-close">닫기</button><button class="btn btn-primary" type="button" data-act="dedupe-commit" ${n ? '' : 'disabled'}>${n}건 합쳐서 정리</button></div>`;
   }
   /* ---------- 실적 연동: 복지관 사업실적 시트로 보내기 (실적 화면의 '실적 연동' 탭) ---------- */
@@ -1007,7 +1027,7 @@ window.App = (() => {
       if (org.key !== key) return;
       if (commit) {
         org.done = { ...res, item: item || '', at: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) }; org.res = null;
-        toast(`✅ 보내기 완료! ${item ? `[${item}] ` : ''}실적(일반) ${res.add.gen}줄 · 실적(기타) ${res.add.etc}줄을 복지관 시트에 넣었어요.`, '', { action: { label: '시트 열기', run: () => window.open(res.url, '_blank') } });
+        toast(`보내기 완료. ${item ? `[${item}] ` : ''}실적(일반) ${res.add.gen}줄 · 실적(기타) ${res.add.etc}줄을 복지관 시트에 넣었어요.`, '', { action: { label: '시트 열기', run: () => window.open(res.url, '_blank') } });
         sentKeys.forEach(k => org.pick.delete(k));
         return orgSyncRun(false);
       }
@@ -1029,7 +1049,7 @@ window.App = (() => {
     const etcSt = x => { if (!r || !r.st || !org.etcRows) return ''; const i = org.etcRows.findIndex(y => y.date === x.date && y.item === x.item && y.note === x.note); return i < 0 ? '' : r.st.etc[i]; };
     const missing = rows.need.filter(n => !namesOf(n).length).length;
     const auto = '<td class="sh-auto">자동</td>', blankY = '<td class="sh-y"></td>', chk = '<td class="sh-y sh-c">☐</td>';
-    const genHead = ['연번', '이용자번호', '이름 ✏️', '구분', '장애유형', '장애정도', '지역', '성별', '나이', '사업날짜', '대분류', '중분류', '세부사업명', '회차', '비고', '소급추가', '차감(취소)'];
+    const genHead = ['연번', '이용자번호', '이름', '구분', '장애유형', '장애정도', '지역', '성별', '나이', '사업날짜', '대분류', '중분류', '세부사업명', '회차', '비고', '소급추가', '차감(취소)'];
     const etcHead = ['연번', '사업날짜', '대분류', '중분류', '세부사업명', '참여인원', '참여인원(신규)', '회차', '비고', '소급추가', '차감(취소)'];
     const H = cols => cols.map(c => `<th>${c}</th>`).join('');
     const ekAll = etcPicks(rows.etc);
@@ -1067,30 +1087,30 @@ window.App = (() => {
     }).join('');
     const add = r ? r.add.gen + r.add.etc : 0;
     const open = sendOpen(f.month), admin = S.isAdmin(), canSend = open || admin;
-    const dayBox = open ? `<div class="os-day open">📅 오늘은 <b>${m}월 실적을 보내는 날</b>이에요 (${sendDayLabel(f.month)}).</div>`
-      : `<div class="os-day">📅 ${m}월 실적은 <b>${sendDayLabel(f.month)}</b> 하루만 보낼 수 있어요 (그 달 마지막 평일). 지금은 미리보기·이름 넣기·비교만 돼요.${admin ? ' <span class="sub">관리자는 확인을 한 번 더 누르면 지금도 보낼 수 있어요.</span>' : ''}</div>`;
+    const dayBox = open ? `<div class="os-day open">${V.I.cal} 오늘은 <b>${m}월 실적을 보내는 날</b>이에요 (${sendDayLabel(f.month)}).</div>`
+      : `<div class="os-day">${V.I.cal} ${m}월 실적은 <b>${sendDayLabel(f.month)}</b> 하루만 보낼 수 있어요 (그 달 마지막 평일). 지금은 미리보기·이름 넣기·비교만 돼요.${admin ? ' <span class="sub">관리자는 확인을 한 번 더 누르면 지금도 보낼 수 있어요.</span>' : ''}</div>`;
     const totalPick = [...org.pick].filter(k => ekAll.includes(k) || rows.need.some(n => namesOf(n).some(nm => genPick(n.key, nm) === k))).length;
     let state = '';
     if (!S.REMOTE) state = '<p class="form-notice">복지관 시트와 비교·보내기는 팀 공유 사이트(구글 시트 연결)에서 돼요. 여기서는 어떻게 나뉘어 들어갈지만 보여요.</p>';
-    else if (org.busy === 'send') state = `<div class="os-busy send"><span class="os-spin"></span><div><b>📤 ${org.busyItem ? `[${e(org.busyItem)}] ` : ''}복지관 실적 시트에 보내는 중이에요…</b><br><span class="sub">노란 칸에 한 줄씩 적고 있어요. 10~40초 걸려요. 창을 닫거나 다른 화면으로 가지 마세요.</span></div></div>`;
+    else if (org.busy === 'send') state = `<div class="os-busy send"><span class="os-spin"></span><div><b>${V.I.send} ${org.busyItem ? `[${e(org.busyItem)}] ` : ''}복지관 실적 시트에 보내는 중이에요…</b><br><span class="sub">노란 칸에 한 줄씩 적고 있어요. 10~40초 걸려요. 창을 닫거나 다른 화면으로 가지 마세요.</span></div></div>`;
     else if (org.busy === 'undo') state = `<div class="os-busy send"><span class="os-spin"></span><div><b>↩ [${e(org.busyItem)}] 보낸 줄을 복지관 시트에서 지우는 중이에요…</b><br><span class="sub">잠시 기다려 주세요.</span></div></div>`;
-    else if (org.busy) state = '<div class="os-busy"><span class="os-spin"></span><div><b>🔄 복지관 실적 시트와 비교하는 중이에요…</b><br><span class="sub">이미 들어간 줄이 있는지, 이용자입력에 있는 이름인지 확인하고 있어요. 10~30초 걸려요.</span></div></div>';
+    else if (org.busy) state = '<div class="os-busy"><span class="os-spin"></span><div><b>' + V.I.refresh + ' 복지관 실적 시트와 비교하는 중이에요…</b><br><span class="sub">이미 들어간 줄이 있는지, 이용자입력에 있는 이름인지 확인하고 있어요. 10~30초 걸려요.</span></div></div>';
     else if (org.err) state = `<p class="form-notice">복지관 시트에 연결하지 못했어요: ${e(org.err)}<br><span class="sub">처음 쓸 때는 다른 스프레드시트에 쓰는 권한이 새로 필요해요. Code.gs를 새로 붙여 넣고 새 버전으로 배포한 뒤, 권한 창에서 허용해 주세요. 복지관 실적 시트에 편집 권한도 있어야 해요.</span></p>`;
-    else if (cur && org.stale) state = '<p class="form-notice">이름을 고쳤어요. <b>🔄 복지관 시트와 비교</b>를 눌러 다시 확인한 뒤 보내 주세요.</p>';
+    else if (cur && org.stale) state = '<p class="form-notice">이름을 고쳤어요. <b>' + V.I.refresh + ' 복지관 시트와 비교</b>를 눌러 다시 확인한 뒤 보내 주세요.</p>';
     else if (r) state = `<div class="os-sum"><span>보낼 곳 <b>${e(r.title)}</b> <a href="${e(r.url)}" target="_blank" rel="noopener">열기 ↗</a></span><span>새로 넣을 줄 <b class="num">${add}</b></span><span>이미 있어서 건너뜀 ${r.dup.gen + r.dup.etc}</span></div>`;
     const why = [];
     if (missing) why.push(`<li><b>이름이 빈 줄 ${missing}개</b> — 실적(일반)은 이름이 있어야 보내요. 표의 노란 이름 칸을 채워 주세요.</li>`);
     if (r && r.dup.gen + r.dup.etc) why.push(`<li><b>이미 들어가 있는 줄 ${r.dup.gen + r.dup.etc}개</b> — 복지관 시트에 같은 줄(실적(일반): 이름·날짜·세부사업 / 실적(기타): 날짜·세부사업·비고)이 있어서 건너뛰어요. 고쳐서 다시 보내려면 그 항목의 <b>보낸 것 취소</b>를 먼저 누르세요.</li>`);
     if (r && Object.keys(r.badItems || {}).length) why.push(`<li><b>분류가 없는 세부사업</b>(${Object.keys(r.badItems).map(e).join(', ')}) — 복지관 시트 실적분류설정에 없는 이름이라 못 보내요.</li>`);
     const dups = cur && org.dups ? [...org.dups.gen.map(x => `${U.dateDot(x.date)} · ${e(x.item)} · ${e(x.name)} <span class="sub">(${x.row}행)</span>`), ...org.dups.etc.map(x => `${U.dateDot(x.date)} · ${e(x.item)} · ${e(x.note || '비고 없음')} <span class="sub">(${x.row}행)</span>`)] : [];
-    const dupBox = dups.length ? `<div class="os-dupbox"><b>⚠ 복지관 시트에 같은 줄이 두 번 이상 들어가 있어요 (${dups.length}줄)</b>
+    const dupBox = dups.length ? `<div class="os-dupbox"><b>${V.I.alert} 복지관 시트에 같은 줄이 두 번 이상 들어가 있어요 (${dups.length}줄)</b>
       <p class="sub">이 달·이 사업의 같은 줄 중 <b>맨 위 한 줄만 남기고</b> 아래 줄을 지워요. 다른 사업(장애인일자리 등) 줄은 건드리지 않아요.</p>
       <details><summary>지울 줄 보기</summary><ul class="sub">${dups.slice(0, 100).map(x => `<li>${x}</li>`).join('')}</ul></details>
       <button class="btn btn-sm btn-danger" type="button" data-act="org-dedupe" ${org.busy ? 'disabled' : ''}>중복 ${dups.length}줄 지우기</button></div>` : '';
     return `<section class="panel panel-pad os">
-      <h2 class="section-title">📤 ${m}월 실적 보내기 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
-      <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸을 적고 → ② <b>🔄 복지관 시트와 비교</b> → ③ 보낼 줄을 <b>체크</b>하고 <b>보내기</b> (체크한 줄만 넘어가요). 고쳐서 다시 보내려면 그 항목의 <b>보낸 것 취소</b> 후 다시 보내세요. 여기 적은 이름은 우리 사이트에 저장하지 않아요.</p>
-      ${done ? `<div class="os-done"><b>✅ 보내기 완료${done.item ? ` · ${e(done.item)}` : ''} (${e(done.at || '')})</b>
+      <h2 class="section-title">${m}월 실적 보내기 <span class="sub">${e(def.mid)} → 복지관 사업실적 시트의 노란 칸</span></h2>
+      <p class="sub" style="margin:0 0 8px">① 실적(일반) 표의 노란 <b>이름</b> 칸을 적고 → ② <b>${V.I.refresh} 복지관 시트와 비교</b> → ③ 보낼 줄을 <b>체크</b>하고 <b>보내기</b> (체크한 줄만 넘어가요). 고쳐서 다시 보내려면 그 항목의 <b>보낸 것 취소</b> 후 다시 보내세요. 여기 적은 이름은 우리 사이트에 저장하지 않아요.</p>
+      ${done ? `<div class="os-done"><b>보내기 완료${done.item ? ` · ${e(done.item)}` : ''} (${e(done.at || '')})</b>
         <p>복지관 실적 시트에 <b>실적(일반) ${done.add.gen}줄</b> · <b>실적(기타) ${done.add.etc}줄</b>을 맨 아래에 넣었어요.${done.dup.gen + done.dup.etc ? ` 이미 들어가 있던 ${done.dup.gen + done.dup.etc}줄은 건너뛰었어요.` : ''}</p>
         <ul class="sub"><li>이용자번호·장애유형·대분류 같은 칸은 복지관 시트의 식이 알아서 채워요.</li><li>아래 표의 결과가 <b>"이미 있음"</b>으로 바뀌었으면 들어간 거예요. 다시 눌러도 두 번 들어가지 않아요.</li><li>잘못 보냈으면 그 항목의 <b>보낸 것 취소</b>를 누르세요.</li></ul>
         <a class="btn btn-sm" href="${e(done.url)}" target="_blank" rel="noopener">복지관 시트에서 확인하기 ↗</a></div>` : ''}
@@ -1099,7 +1119,7 @@ window.App = (() => {
       <datalist id="clNames">${(S.get().clients || []).map(c => `<option value="${e(c.name)}">`).join('')}</datalist>
       ${!org.busy && why.length ? `<div class="os-why"><b>안 보내지는 줄이 있는 이유</b><ul>${why.join('')}</ul></div>` : ''}
       ${!org.busy ? dupBox : ''}
-      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>🔄 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy && canSend ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
+      <div class="inline os-acts">${S.REMOTE ? `<button class="btn" type="button" data-act="org-sync-check" ${org.busy ? 'disabled' : ''}>${V.I.refresh} 복지관 시트와 비교</button><button class="btn btn-primary" type="button" data-act="org-pick-every" ${r && add && !org.busy ? '' : 'disabled'}>새 줄 모두 체크</button><button class="btn btn-primary" type="button" data-act="org-sync-commit" ${r && totalPick && !org.busy && canSend ? '' : 'disabled'}>${org.busy === 'send' && !org.busyItem ? '보내는 중…' : !r ? '먼저 비교해 주세요' : totalPick ? `체크한 ${totalPick}줄 보내기` : '보낼 줄을 체크하세요'}</button>` : ''}${missing ? `<span class="sub">이름이 빈 줄 ${missing}개는 보내지 않아요.</span>` : ''}</div>
       ${r && Object.keys(r.unknown || {}).length ? orgUserFormHtml(r) : ''}
       ${blocks || '<p class="sub">이 달 보낼 실적이 없어요.</p>'}
     </section>`;
@@ -1110,7 +1130,7 @@ window.App = (() => {
     const dl = (id, list) => `<datalist id="${id}">${(list || []).map(v => `<option value="${e(v)}">`).join('')}</datalist>`;
     const sel = (k, list, def = '') => `<select class="select sm" data-ou="${k}"><option value="">-</option>${(list || []).map(v => `<option ${v === def ? 'selected' : ''}>${e(v)}</option>`).join('')}</select>`;
     const no = i => (f.year && f.next ? `${f.year}-${String(f.next + i).padStart(5, '0')}` : '');
-    return `<div class="ou-box"><p class="form-notice">⚠ 복지관 시트 <b>이용자입력</b>에 없는 이름 ${names.length}명이에요. 이대로 보내면 이용자번호·장애유형 칸이 비고 <b>월별 이용자명단에서 빠져요</b>. 아래에 적고 <b>이용자입력에 등록</b>을 누르세요. 이름이 틀린 거면 실적 화면에서 이름을 고쳐 주세요.</p>
+    return `<div class="ou-box"><p class="form-notice">${V.I.alert} 복지관 시트 <b>이용자입력</b>에 없는 이름 ${names.length}명이에요. 이대로 보내면 이용자번호·장애유형 칸이 비고 <b>월별 이용자명단에서 빠져요</b>. 아래에 적고 <b>이용자입력에 등록</b>을 누르세요. 이름이 틀린 거면 실적 화면에서 이름을 고쳐 주세요.</p>
       ${dl('ouType', f.type)}${dl('ouTown', f.town)}${dl('ouIncome', f.income)}${dl('ouCity', f.city)}
       <div class="table-wrap"><table class="tbl ou-tbl"><thead><tr><th></th><th>이름</th><th>이용자번호</th><th>성별</th><th>생년월일</th><th>장애유형</th><th>장애정도</th><th>지역</th><th>읍면동</th><th>소득구분</th><th>비고</th></tr></thead><tbody>
       ${names.map((n, i) => `<tr data-ou-row="${e(n)}"><td><input type="checkbox" data-ou="on" checked aria-label="${e(n)} 등록"></td><th class="nowrap">${e(n)} <span class="sub">${r.unknown[n]}줄</span></th>
@@ -1124,7 +1144,7 @@ window.App = (() => {
         <td><input class="input sm" data-ou="income" list="ouIncome" style="width:120px"></td>
         <td><input class="input sm" data-ou="note" style="width:100px"></td></tr>`).join('')}
       </tbody></table></div>
-      <div class="inline" style="margin-top:8px"><button class="btn btn-primary" type="button" data-act="org-user-add">✔ 고른 사람 이용자입력에 등록</button><span class="sub">이용자번호는 지금 시트의 마지막 번호 다음으로 채워 뒀어요. 복지관 시스템 번호가 따로 있으면 그 번호로 고쳐 주세요.</span></div></div>`;
+      <div class="inline" style="margin-top:8px"><button class="btn btn-primary" type="button" data-act="org-user-add">✓ 고른 사람 이용자입력에 등록</button><span class="sub">이용자번호는 지금 시트의 마지막 번호 다음으로 채워 뒀어요. 복지관 시스템 번호가 따로 있으면 그 번호로 고쳐 주세요.</span></div></div>`;
   }
   function renderDrawer(keepScroll) {
     const top = stack[stack.length - 1];
@@ -1172,7 +1192,7 @@ window.App = (() => {
       inner.innerHTML = `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">저장 점검 결과</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
         <p class="sub" style="margin:0">${U.esc(r.me || '')} · ${r.admin ? '관리자' : '사용자'} · 구글 시트에 시험 줄을 쓰고 지워 봤어요.</p></div>
         <div class="dr-body">
-          <div class="st-sum ${bad.length ? 'bad' : 'good'}">${bad.length ? `⚠ ${bad.length}개 시트에 저장이 안 돼요` : `✅ ${ok}개 시트 모두 정상 저장돼요`}${top.wait ? `<br><small>이 컴퓨터에 아직 못 보낸 기록 ${top.wait}건이 있어요. 아래 '지금 다시 보내기'를 누르세요.</small>` : '<br><small>보관함에 못 보낸 기록도 없어요.</small>'}</div>
+          <div class="st-sum ${bad.length ? 'bad' : 'good'}">${bad.length ? `${V.I.alert} ${bad.length}개 시트에 저장이 안 돼요` : `${ok}개 시트 모두 정상 저장돼요`}${top.wait ? `<br><small>이 컴퓨터에 아직 못 보낸 기록 ${top.wait}건이 있어요. 아래 '지금 다시 보내기'를 누르세요.</small>` : '<br><small>보관함에 못 보낸 기록도 없어요.</small>'}</div>
           <table class="tbl st-tbl"><thead><tr><th>시트</th><th>결과</th><th>내용</th></tr></thead><tbody>${r.sheets.map(x => `<tr><th>${U.esc(x.sheet)}</th><td>${x.ok === true ? '<span class="badge success">정상</span>' : x.ok === false ? '<span class="badge dup">안 됨</span>' : '<span class="badge">건너뜀</span>'}</td><td class="wrap">${U.esc(x.msg)}</td></tr>`).join('')}</tbody></table>
           ${bad.some(x => /Authorization|권한|authoriz/i.test(x.msg)) ? '<p class="form-notice">Apps Script 권한 승인이 필요해 보여요. Apps Script 편집기에서 <b>api_selfTest</b> 함수를 한 번 실행해 권한을 허용한 뒤, 배포 관리 → 새 버전으로 다시 배포하세요.</p>' : ''}
         </div>
@@ -1301,12 +1321,12 @@ window.App = (() => {
     if (!['biz', 'net', 'card'].includes(kind)) return toast(msg);
     if (kind === 'card' && rec.linkType) {
       const t = S.find(rec.linkType, rec.linkId);
-      return toast(`${msg} ${t ? `'${t.name}'에 연결된 명함이라 지도에서 그곳을 누르면 보여요.` : ''}`, '', t && M.hasPos(t) ? { action: { label: '📍 지도에서 보기', run: () => A['map-show']({ dataset: { kind: rec.linkType, id: t.id } }) } } : {});
+      return toast(`${msg} ${t ? `'${t.name}'에 연결된 명함이라 지도에서 그곳을 누르면 보여요.` : ''}`, '', t && M.hasPos(t) ? { action: { label: '지도에서 보기', run: () => A['map-show']({ dataset: { kind: rec.linkType, id: t.id } }) } } : {});
     }
     const run = () => A['map-show']({ dataset: { kind, id: rec.id } });
     // 주소로 위치를 찾는 중이면 잠시 뒤 다시 확인한다
     const cur = S.find(kind, rec.id) || rec;
-    if (M.hasPos(cur)) return toast(`${msg} 지도에도 ${cur.approx ? '대략적인 위치로 ' : ''}표시돼요.`, '', { action: { label: '📍 지도에서 보기', run } });
+    if (M.hasPos(cur)) return toast(`${msg} 지도에도 ${cur.approx ? '대략적인 위치로 ' : ''}표시돼요.`, '', { action: { label: '지도에서 보기', run } });
     if (kind === 'card') return toast(`${msg} 명함에 주소가 없어 지도에는 안 나와요. 사업체·기관에 연결하면 그곳 위치로 보여요.`);
     toast(`${msg} 주소가 없어 아직 지도에 안 나와요.`, 'error', { action: { label: '위치 정하기', run: () => push({ type: 'form', kind, id: rec.id, focus: 'address' }, true) } });
   }
@@ -1474,7 +1494,7 @@ window.App = (() => {
         ${st.rows.map((r, i) => `<tr class="${r.on ? '' : 'dup'}"><td><input type="checkbox" data-cbon="${i}" ${r.on ? 'checked' : ''} aria-label="등록"></td>
           <td>${r.photo ? `<img class="cb-thumb" src="${r.photo}" alt="">` : ''}<div class="sub">${r.page ? r.page + '쪽' : ''}</div></td>
           <td>${inp(i, 'name', 90)}${r.dup ? `<div class="sub" style="color:var(--danger)">이미 있음: ${U.esc(r.dup)}</div>` : ''}</td><td>${inp(i, 'title', 80)}</td><td>${inp(i, 'org', 150)}</td><td>${inp(i, 'mobile', 125)}</td><td>${inp(i, 'phone', 125)}</td><td>${inp(i, 'email', 150)}</td>
-          <td class="nowrap">${r.linkName ? `🔗 ${U.esc(r.linkName)}` : '<span class="sub">분류 대기</span>'}</td></tr>`).join('')}
+          <td class="nowrap">${r.linkName ? `${V.I.link} ${U.esc(r.linkName)}` : '<span class="sub">분류 대기</span>'}</td></tr>`).join('')}
         </tbody></table></div>
         <div class="perf-form" style="margin-top:12px"><label>받은 날<input class="input" type="date" id="cbMet" value="${U.esc(st.metAt)}"></label><label class="grow">받은 곳 <span class="sub">(행사·방문처 등)</span><input class="input" id="cbWhere" value="${U.esc(st.metWhere)}" placeholder="예: 경기 서남부 채용박람회"></label></div>
       </div>
@@ -1578,7 +1598,7 @@ window.App = (() => {
       f.addMode = !f.addMode;
       if (f.addMode && f.pick) A['route-pick']();
       const b = $('#mapAddBtn');
-      if (b) { b.classList.toggle('on', f.addMode); b.textContent = f.addMode ? '✔ 추가할 곳을 찍으세요' : '＋ 여기에 추가'; }
+      if (b) { b.classList.toggle('on', f.addMode); b.textContent = f.addMode ? '✓ 추가할 곳을 찍으세요' : '＋ 여기에 추가'; }
       $('#bigMap')?.classList.toggle('adding', f.addMode);
       if (f.addMode) toast('지도에서 새로 등록할 자리를 누르세요. (오른쪽 클릭으로도 언제든 추가할 수 있어요)');
     },
@@ -1981,7 +2001,7 @@ window.App = (() => {
       f.pick = !f.pick;
       if (f.pick) { f.route = null; bigMap?.closePopup(); toast('지도에서 출발할 곳을 찍으세요. 점이나 아무 곳이나 찍을 수 있어요.'); }
       const b = $('#routePickBtn');
-      if (b) { b.classList.toggle('on', f.pick); b.setAttribute('aria-pressed', f.pick); b.textContent = f.pick ? '✔ 두 곳 찍는 중' : '📍 두 곳 찍어 길찾기'; }
+      if (b) { b.classList.toggle('on', f.pick); b.setAttribute('aria-pressed', f.pick); b.textContent = f.pick ? '✓ 두 곳 찍는 중' : '두 곳 찍어 길찾기'; }
       refreshMap(false);
     },
     'route-prov': el => { V.ui.map.rprov = el.dataset.prov; drawRoute(false); if (routeWin && !routeWin.closed) openRouteWin(true); },
@@ -2097,7 +2117,7 @@ window.App = (() => {
       const d = org.dups; if (!d) return; const n = d.gen.length + d.etc.length;
       if (!(await confirmBox(`복지관 시트의 중복 ${n}줄을 지울까요?`, `같은 줄 중 맨 위 한 줄만 남기고 아래 ${n}줄을 지워요. 이 달·이 사업 줄만 지우고, 지운 줄은 시트의 '버전 기록'에서 되살릴 수 있어요.`, '중복 지우기'))) return;
       org.busy = 'check'; bindPerf();
-      try { const r = await S.call('api_orgPerfDedupe', { month: V.ui.perf.month, items: D.PERF_SETS[V.ui.perf.set].items, commit: true, sheet: S.get().settings.orgPerfSheet || '' }); toast(`✅ 중복 ${r.removed}줄을 지웠어요.`); }
+      try { const r = await S.call('api_orgPerfDedupe', { month: V.ui.perf.month, items: D.PERF_SETS[V.ui.perf.set].items, commit: true, sheet: S.get().settings.orgPerfSheet || '' }); toast(`중복 ${r.removed}줄을 지웠어요.`); }
       catch (err) { toast('중복을 지우지 못했어요: ' + ((err && err.message) || err), 'error'); }
       orgSyncRun(false);
     },
@@ -2493,7 +2513,7 @@ window.App = (() => {
     'backup-list': async () => {
       const box = $('#gBackups'); if (!box) return;
       box.textContent = '불러오는 중…';
-      try { const r = await S.call('api_backupList'); box.innerHTML = `<ul class="bf-ul">${r.list.map(f => `<li><a href="${U.esc(f.url)}" target="_blank" rel="noopener">💾 ${U.esc(f.name)}</a></li>`).join('') || '<li class="sub">아직 백업이 없어요.</li>'}</ul><a class="sub" href="${U.esc(r.folder)}" target="_blank" rel="noopener">백업 폴더 열기 ↗</a>`; }
+      try { const r = await S.call('api_backupList'); box.innerHTML = `<ul class="bf-ul">${r.list.map(f => `<li><a href="${U.esc(f.url)}" target="_blank" rel="noopener">${V.I.save} ${U.esc(f.name)}</a></li>`).join('') || '<li class="sub">아직 백업이 없어요.</li>'}</ul><a class="sub" href="${U.esc(r.folder)}" target="_blank" rel="noopener">백업 폴더 열기 ↗</a>`; }
       catch (err) { box.textContent = '못 불러왔어요: ' + (err.message || err); }
     },
     'backup-toggle': async el => { await S.saveSettings({ backupOn: el.checked ? '' : 'N' }); toast(el.checked ? '매일 자동 백업해요 (자동 작업이 켜져 있어야 해요).' : '자동 백업을 껐어요.'); },

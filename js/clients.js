@@ -55,7 +55,7 @@ window.CL = (() => {
   const stageBadge = c => `<span class="cl-stage s${stageIdx(c)}">${stageIdx(c) ? stageIdx(c) + '. ' : ''}${e(stageOf(c))}</span>`;
   const card = c => { const re = ends(c), last = re[re.length - 1];
     return `<button type="button" class="cl-card" data-act="cl-open" data-id="${c.id}"><b>${e(c.name)}${re.length ? ' <span class="cl-re">재등록</span>' : ''}</b> <span class="sub num">${e(c.no || '')}</span>
-      <span class="cl-card-i">${infoLine(c)}</span>${bizLine(c) ? `<span class="cl-card-b">🏢 ${e(bizLine(c))}</span>` : ''}${c.job ? `<span class="cl-card-j">희망: ${e(c.job)}</span>` : ''}
+      <span class="cl-card-i">${infoLine(c)}</span>${bizLine(c) ? `<span class="cl-card-b">${V.I.biz} ${e(bizLine(c))}</span>` : ''}${c.job ? `<span class="cl-card-j">희망: ${e(c.job)}</span>` : ''}
       ${last && stageOf(c) === '대기자' ? `<span class="cl-card-j">이전: ${e(last.biz || '')} ${e(last.stage)} → ${U.dateDot(last.d)} ${e(last.note || '종료')}</span>` : ''}
       <span class="cl-dots">${STAGES.slice(1).map((st, k) => `<i class="${k + 1 <= stageIdx(c) ? 'on' : ''}" title="${e(st)} ${e(stageDate(c, st))}"></i>`).join('')}</span><span class="sub">${stageDate(c, stageOf(c)) ? U.dateDot(stageDate(c, stageOf(c))) : ''}${c.staff ? ' · ' + e(c.staff) : ''}</span></button>`; };
   function foundHtml() {
@@ -76,14 +76,14 @@ window.CL = (() => {
       <p class="sub" style="margin:0">${c.no ? (ui.info[c.no] ? [i.sex, i.birth && `${i.birth} (${i.age}세)`, i.type, i.grade, [i.city, i.town].filter(Boolean).join(' '), i.income].filter(Boolean).map(e).join(' · ') : '기본 정보 불러오는 중…') : '이용자입력에 없는 사람이에요.'}</p></div>
       <div class="dr-body">
         <h3 class="dp-dr-h">과정도 <span class="sub">단계를 누르면 지금 단계가 바뀌고 그날 날짜가 남아요. 현장훈련·취업알선·취업은 사업체를 골라 연결해요</span></h3>
-        ${bizLine(c) ? `<div class="cl-now">🏢 <b>${e(c.biz)}</b> (${e(cur)}) ${stageDate(c, cur) ? `<span class="sub">${U.dateDot(stageDate(c, cur))}부터</span>` : ''}
+        ${bizLine(c) ? `<div class="cl-now">${V.I.biz} <b>${e(c.biz)}</b> (${e(cur)}) ${stageDate(c, cur) ? `<span class="sub">${U.dateDot(stageDate(c, cur))}부터</span>` : ''}
           <button class="btn btn-sm" type="button" data-act="cl-end" data-id="${c.id}">퇴사·중단 → 대기자로</button></div>` : ''}
         <ol class="cl-steps">${STAGES.map((st, j) => `<li class="${st === '대기자' ? (cur === st ? 'cur wait' : 'wait') : j < k ? 'done' : j === k ? 'cur' : ''}"><button type="button" data-act="cl-stage" data-id="${c.id}" data-stage="${e(st)}"><b>${st === '대기자' ? '⏸' : j}</b><span>${e(st)}${BIZ.includes(st) && cur === st && c.biz ? ` · ${e(c.biz)}` : ''}</span></button>
           <input class="input sm" type="date" data-cl-date="${e(st)}" data-id="${c.id}" value="${e(stageDate(c, st))}" aria-label="${e(st)} 날짜"></li>
           ${ui.pick && ui.pick.id === c.id && ui.pick.stage === st ? pickHtml(c, st) : ''}`).join('')}</ol>
         ${cur !== '대기자' && !bizLine(c) ? `<div class="inline" style="margin-top:8px"><button class="btn btn-sm btn-ghost" type="button" data-act="cl-end" data-id="${c.id}">중단 → 대기자로</button></div>` : ''}
         <h3 class="dp-dr-h">지난 기록 <span class="sub">단계가 바뀔 때마다 남아요${ends(c).length ? ` · 퇴사·중단 ${ends(c).length}번` : ''}</span></h3>
-        ${log.length ? `<ul class="cl-log">${log.slice().reverse().map(x => `<li class="${x.ev === 'end' ? 'end' : ''}"><span class="num">${U.dateDot(x.d)}</span> ${x.ev === 'end' ? `<b>퇴사·중단</b> ${e(x.biz ? x.biz + ' ' : '')}${e(x.stage)}${x.note ? ' · ' + e(x.note) : ''} → 대기자` : `${e(x.stage)}${x.biz ? ' · 🏢 ' + e(x.biz) : ''}`}${x.by ? ` <span class="sub">${e(x.by)}</span>` : ''}</li>`).join('')}</ul>` : '<p class="sub">아직 없어요.</p>'}
+        ${log.length ? `<ul class="cl-log">${log.slice().reverse().map(x => `<li class="${x.ev === 'end' ? 'end' : ''}"><span class="num">${U.dateDot(x.d)}</span> ${x.ev === 'end' ? `<b>퇴사·중단</b> ${e(x.biz ? x.biz + ' ' : '')}${e(x.stage)}${x.note ? ' · ' + e(x.note) : ''} → 대기자` : `${e(x.stage)}${x.biz ? ' · ' + V.I.biz + ' ' + e(x.biz) : ''}`}${x.by ? ` <span class="sub">${e(x.by)}</span>` : ''}</li>`).join('')}</ul>` : '<p class="sub">아직 없어요.</p>'}
         <form id="clForm" data-id="${c.id}" autocomplete="off">
           <h3 class="dp-dr-h">직업욕구</h3>
           <div class="cl-needs">${D.CLIENT_NEEDS.map(([key, l]) => `<label>${l}<input class="input" name="${key}" value="${e(c[key] || '')}"></label>`).join('')}</div>

@@ -24,7 +24,7 @@ window.R = (() => {
       .sort((x, y) => x.a.date.localeCompare(y.a.date) || x.a.id.localeCompare(y.a.id));
   }
   /** 연락 결과 세 가지: 완료(체크한 것) / 진행중 / 실패. 체크 안 한 줄은 연락결과로 짐작 (채용안함·채용마감 = 실패) */
-  const OUTCOMES = [['완료', 'done', '✔'], ['진행중', 'going', '…'], ['실패', 'fail', '✕']];
+  const OUTCOMES = [['완료', 'done', '✓'], ['진행중', 'going', '…'], ['실패', 'fail', '✕']];
   const outcomeOf = a => (['완료', '진행중', '실패'].includes(a.outcome) ? a.outcome : a.type === '채용연계' ? '완료' : ['채용안함', '채용마감'].includes(a.result) ? '실패' : '진행중');
   const ocCls = a => OUTCOMES.find(o => o[0] === outcomeOf(a))[1];
   function contactKpis(rows) {
@@ -56,16 +56,16 @@ window.R = (() => {
     return `
       <div class="page-head">
         <div><h1 class="page-title">연락이력</h1><div class="page-desc">사업체 연락·방문을 한 줄씩 기록하고, 공유 시트의 연락이력·보고용 시트 모양 그대로 복사합니다.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="ct-paste">붙여넣기·엑셀 파일로 한 번에 가져오기</button><button class="btn btn-primary" type="button" data-act="month-xlsx" data-month="${f.month}">📊 ${V.monthLabel(f.month)} 엑셀로 정리</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="ct-paste">붙여넣기·엑셀 파일로 한 번에 가져오기</button><button class="btn btn-primary" type="button" data-act="month-xlsx" data-month="${f.month}">${V.I.perf} ${V.monthLabel(f.month)} 엑셀로 정리</button></div>
       </div>
       <div class="toolbar perf-bar">${monthNav('ct-month', f.month)}
         <div class="chips"><button type="button" class="chip ${f.tab === 'log' ? 'on' : ''}" data-act="ct-tab" data-tab="log">연락이력</button><button type="button" class="chip ${f.tab === 'report' ? 'on' : ''}" data-act="ct-tab" data-tab="report">보고용 (방문 사업체)</button></div>
       </div>
       ${secStaffBar()}
-      <a class="btn btn-primary mobile-only mob-cta" href="#/field">✏️ 현장 모드에서 바로 기록하기</a>
+      <a class="btn btn-primary mobile-only mob-cta" href="#/field">${V.I.edit} 현장 모드에서 바로 기록하기</a>
       <section class="panel panel-pad perf-input desk-only">
         <div class="ct-add-head"><h2 class="section-title">연락 기록 추가 <span class="sub">처음 보는 곳은 <b>미등록</b>으로 연락이력에만 남아요. 아래 목록에서 <b>사업체 등록</b>을 눌러야 사업체 개발·지도에 올라가요</span></h2>
-          <span class="ct-shot"><button class="btn btn-sm" type="button" data-act="ct-shot">📷 캡처로 채우기</button><span class="sub">구인공고·문자 캡처를 고르거나, 이 화면에서 <b>Ctrl+V</b>로 붙여넣으면 칸을 채워 줘요</span></span></div>
+          <span class="ct-shot"><button class="btn btn-sm" type="button" data-act="ct-shot">${V.I.camera} 캡처로 채우기</button><span class="sub">구인공고·문자 캡처를 고르거나, 이 화면에서 <b>Ctrl+V</b>로 붙여넣으면 칸을 채워 줘요</span></span></div>
         <form class="perf-form" data-form="ct-add" autocomplete="off">
           <label>날짜<input class="input" type="date" name="date" value="${f.month === U.today().slice(0, 7) ? U.today() : f.month + '-01'}" required></label>
           <label>방식<select class="select" name="type">${opts(CONTACT_TYPES, '전화')}</select></label>
@@ -100,7 +100,7 @@ window.R = (() => {
     const legend = CONTACT_TYPES.map(k => `<span><i style="background:${TYPE_COLOR[k]}"></i>${k}</span>`).join('');
     const bar = x => CONTACT_TYPES.filter(k => x.t[k]).map(k => `<i class="scb-seg" style="width:${x.t[k] / max * 100}%;background:${TYPE_COLOR[k]}" title="${e(x.n)} · ${k} ${x.t[k]}건"></i>`).join('');
     return `<section class="panel panel-pad staff-chart">
-      <div class="sc-head"><h2 class="section-title">👥 담당자별 연락 현황 <span class="sub">${V.monthLabel(month)} · 누가 얼마나 연락했는지</span></h2><div class="scb-legend">${legend}</div></div>
+      <div class="sc-head"><h2 class="section-title">담당자별 연락 현황 <span class="sub">${V.monthLabel(month)} · 누가 얼마나 연락했는지</span></h2><div class="scb-legend">${legend}</div></div>
       <div class="scb-rows">${by.map(x => `<div class="scb-row">
         <span class="scb-name">${e(x.n)}</span>
         <div class="scb-track" role="img" aria-label="${e(x.n)} ${x.total}건: ${CONTACT_TYPES.map(k => `${k} ${x.t[k]}`).join(', ')}">${bar(x) || '<span class="scb-zero">이 달 기록 없음</span>'}</div>
@@ -127,7 +127,7 @@ window.R = (() => {
     if (ui.contacts.autoHide) return '';
     const list = autoBiz();
     if (!list.length) return '';
-    return `<details class="panel-pad reg-clean" ${ui.contacts.autoOpen ? 'open' : ''}><summary data-act="ct-auto-open"><b>🧹 연락이력으로 자동 등록됐던 사업체 ${list.length}곳 정리</b> <span class="sub">연락만 한 곳이 사업체 개발·지도에 올라가 있어요. 뺄 곳을 골라 미등록으로 돌리세요 (연락 기록은 그대로)</span></summary>
+    return `<details class="panel-pad reg-clean" ${ui.contacts.autoOpen ? 'open' : ''}><summary data-act="ct-auto-open"><b>연락이력으로 자동 등록됐던 사업체 ${list.length}곳 정리</b> <span class="sub">연락만 한 곳이 사업체 개발·지도에 올라가 있어요. 뺄 곳을 골라 미등록으로 돌리세요 (연락 기록은 그대로)</span></summary>
       <div class="inline" style="margin:8px 0"><button class="btn btn-sm" type="button" data-act="ct-auto-all" data-v="1">모두 고르기</button><button class="btn btn-sm" type="button" data-act="ct-auto-all" data-v="0">모두 풀기</button><button class="btn btn-sm btn-primary" type="button" data-act="ct-unreg">고른 곳 미등록으로 (사업체·지도에서 빼기)</button><button class="btn btn-sm btn-ghost" type="button" data-act="ct-auto-hide">이대로 두기</button></div>
       <div class="table-wrap" style="max-height:420px"><table class="tbl"><thead><tr><th></th><th>사업체명</th><th>단계</th><th>처음 연락</th><th class="r">연락</th><th>최근 결과</th><th>담당</th></tr></thead><tbody>
         ${list.map(({ b, acts }) => { const last = acts.slice().sort((x, y) => y.date.localeCompare(x.date))[0] || {}; return `<tr><td><input type="checkbox" class="reg-pick" value="${b.id}" checked aria-label="${e(b.name)} 미등록으로"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b></td><td>${e(b.stage || '')}</td><td class="num nowrap">${e(b.discoveredAt || '')}</td><td class="r num">${acts.length}</td><td class="clip" title="${e(last.content || '')}">${e(last.result || last.content || '')}</td><td>${e(b.staff || '')}</td></tr>`; }).join('')}
@@ -180,16 +180,16 @@ window.R = (() => {
     const all = rows, ocN = k => all.filter(r => outcomeOf(r.a) === k).length;
     const shown = f.oc ? all.filter(r => outcomeOf(r.a) === f.oc) : all;
     const ocBar = `<div class="oc-bar"><div class="chips" role="tablist" aria-label="진행 결과로 거르기"><button type="button" class="chip ${!f.oc ? 'on' : ''}" data-act="ct-ocf" data-v="">전체 <span class="n">${all.length}</span></button>${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="chip oc-chip ${c} ${f.oc === k ? 'on' : ''}" data-act="ct-ocf" data-v="${k}"><i class="oc-dot ${c}"></i>${k} <span class="n">${ocN(k)}</span></button>`).join('')}</div>
-      <span class="sub">줄 오른쪽 <b>✔ 완료 · … 진행중 · ✕ 실패</b>를 눌러 체크하세요. 체크하지 않은 줄은 연락결과가 채용안함·채용마감이면 실패, 나머지는 진행중으로 보여요.</span></div>`;
+      <span class="sub">줄 오른쪽 <b>✓ 완료 · … 진행중 · ✕ 실패</b>를 눌러 체크하세요. 체크하지 않은 줄은 연락결과가 채용안함·채용마감이면 실패, 나머지는 진행중으로 보여요.</span></div>`;
     return kpi + staffChart(rows, f.month) + `<section class="panel">
       <div class="panel-pad perf-actions"><h2 class="section-title">${V.monthLabel(f.month)} 연락이력 <span class="sub num">${rows.length}건</span> <span class="oc-sum"><i class="oc-dot done"></i>완료 ${ocN('완료')} · <i class="oc-dot going"></i>진행중 ${ocN('진행중')} · <i class="oc-dot fail"></i>실패 ${ocN('실패')}</span></h2>
         <button class="btn btn-primary" type="button" data-act="ct-copy" ${rows.length ? '' : 'disabled'}>${V.I.copy}연락이력 시트용 복사</button></div>
       <p class="sub perf-help">공유 시트 <b>○월 연락이력</b> 탭에서 새 줄의 <b>날짜</b> 칸을 누르고 Ctrl+V 하세요. (날짜 · 사업체명 · 주소 · 전화번호 · 담당자 · 직종 · 결과 · 연락결과 · 상태 · 상담자)</p>
       ${rows.length ? ocBar : ''}
-      ${(() => { const pend = [...new Map(all.filter(r => S.isPending(r.b)).map(r => [r.b.id, r.b])).values()]; return pend.length ? `<div class="reg-bar"><span><span class="badge reg-no">미등록</span> 이 달 연락한 곳 중 <b>${pend.length}곳</b>은 사업체·지도에 안 올라가 있어요. 올릴 곳만 줄의 <b>✏️ 사업체 등록</b> / <b>✏️ 기관 등록</b>을 눌러 직접 입력하세요. (연락 기록은 등록한 곳으로 이어져요)</span></div>` : ''; })()}
+      ${(() => { const pend = [...new Map(all.filter(r => S.isPending(r.b)).map(r => [r.b.id, r.b])).values()]; return pend.length ? `<div class="reg-bar"><span><span class="badge reg-no">미등록</span> 이 달 연락한 곳 중 <b>${pend.length}곳</b>은 사업체·지도에 안 올라가 있어요. 올릴 곳만 줄의 <b>${V.I.edit} 사업체 등록</b> / <b>${V.I.edit} 기관 등록</b>을 눌러 직접 입력하세요. (연락 기록은 등록한 곳으로 이어져요)</span></div>` : ''; })()}
       ${autoBizPanel()}
       ${shown.length ? `<div class="table-wrap"><table class="tbl perf-tbl ct-tbl"><thead><tr><th>진행</th><th class="r">번호</th><th>날짜</th><th>사업체명</th><th>주소</th><th>전화번호</th><th>담당자</th><th>직종</th><th>결과</th><th>연락결과</th><th>상태</th><th>상담자</th><th>방식</th><th>구인공고</th><th></th></tr></thead><tbody>
-        ${shown.map(({ a, b }, i) => `<tr class="sc-row oc-row ${ocCls(a)}${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="oc-cell"><div class="oc-seg" role="group" aria-label="진행 결과">${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="${c} ${outcomeOf(a) === k ? 'on' : ''} ${a.outcome === k ? 'set' : ''}" data-act="ct-oc" data-id="${a.id}" data-v="${k}" title="${k}${a.outcome === k ? ' (체크함)' : outcomeOf(a) === k ? ' (자동으로 짐작 · 눌러서 확정)' : ''}" aria-pressed="${outcomeOf(a) === k}">${ic} ${k}</button>`).join('')}</div></td><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b>${S.isPending(b) ? (() => { const sn = sameNet(b), inst = !!sn || INST.test(b.name); return `<div class="reg-box"><span class="badge reg-no" title="연락만 한 곳 · 사업체 개발·지도에 안 나와요">미등록</span><button class="btn btn-sm reg-btn ${inst ? '' : 'pri'}" type="button" data-act="ct-reg-form" data-kind="biz" data-id="${b.id}" title="사업체 등록 화면을 열어요. 내용을 직접 넣고 저장하면 사업체·지도에 올라가요">✏️ 사업체 등록</button>${sn ? `<button class="btn btn-sm reg-btn pri" type="button" data-act="ct-reg" data-kind="net" data-id="${b.id}" title="네트워크에 이미 있는 '${e(sn.name)}'에 이 연락 기록을 붙여요">↪ 기관 '${e(sn.name)}'에 붙이기</button>` : `<button class="btn btn-sm reg-btn ${inst ? 'pri' : ''}" type="button" data-act="ct-reg-form" data-kind="net" data-id="${b.id}" title="기관 등록 화면을 열어요. 내용을 직접 넣고 저장하면 네트워크·지도에 올라가요">✏️ 기관 등록</button>`}</div>`; })() : ''}</td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
+        ${shown.map(({ a, b }, i) => `<tr class="sc-row oc-row ${ocCls(a)}${f.flash === a.id ? ' pt-new' : ''}" data-row="${a.id}" style="--sc:${V.staffColor(a.staff)}" title="기록: ${e(a.staff || '')}"><td class="oc-cell"><div class="oc-seg" role="group" aria-label="진행 결과">${OUTCOMES.map(([k, c, ic]) => `<button type="button" class="${c} ${outcomeOf(a) === k ? 'on' : ''} ${a.outcome === k ? 'set' : ''}" data-act="ct-oc" data-id="${a.id}" data-v="${k}" title="${k}${a.outcome === k ? ' (체크함)' : outcomeOf(a) === k ? ' (자동으로 짐작 · 눌러서 확정)' : ''}" aria-pressed="${outcomeOf(a) === k}">${ic} ${k}</button>`).join('')}</div></td><td class="r num">${i + 1}</td><td class="num"><input class="input sm ct-date" type="date" value="${a.date}" data-chg="act-field" data-id="${a.id}" data-field="date" aria-label="날짜"></td><td><b class="link" data-act="open" data-kind="biz" data-id="${b.id}">${e(b.name)}</b>${S.isPending(b) ? (() => { const sn = sameNet(b), inst = !!sn || INST.test(b.name); return `<div class="reg-box"><span class="badge reg-no" title="연락만 한 곳 · 사업체 개발·지도에 안 나와요">미등록</span><button class="btn btn-sm reg-btn ${inst ? '' : 'pri'}" type="button" data-act="ct-reg-form" data-kind="biz" data-id="${b.id}" title="사업체 등록 화면을 열어요. 내용을 직접 넣고 저장하면 사업체·지도에 올라가요">${V.I.edit} 사업체 등록</button>${sn ? `<button class="btn btn-sm reg-btn pri" type="button" data-act="ct-reg" data-kind="net" data-id="${b.id}" title="네트워크에 이미 있는 '${e(sn.name)}'에 이 연락 기록을 붙여요">↪ 기관 '${e(sn.name)}'에 붙이기</button>` : `<button class="btn btn-sm reg-btn ${inst ? 'pri' : ''}" type="button" data-act="ct-reg-form" data-kind="net" data-id="${b.id}" title="기관 등록 화면을 열어요. 내용을 직접 넣고 저장하면 네트워크·지도에 올라가요">${V.I.edit} 기관 등록</button>`}</div>`; })() : ''}</td><td class="clip" title="${e(b.address)}">${e(b.address || '')}</td>
           <td class="num">${e(phoneOf(b))}</td><td>${e(a.contactName || contactOf(b))}</td><td class="clip">${e(a.jobType || b.jobs || '')}</td><td class="wrap"><textarea class="input sm ct-txt" rows="1" data-chg="act-field" data-id="${a.id}" data-field="content" aria-label="결과">${e(a.content)}</textarea></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="result">${opts(D.CONTACT_RESULTS, a.result, '-')}</select></td>
           <td><select class="select sm" data-chg="act-field" data-id="${a.id}" data-field="status">${opts(D.CONTACT_STATUS, a.status, '-')}</select></td>

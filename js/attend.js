@@ -98,7 +98,7 @@ window.AT = (() => {
     return `
       <div class="page-head">
         <div><h1 class="page-title">출석부 <span class="sub">장애인일자리</span></h1><div class="page-desc">참여자 근태를 달력처럼 칠해서 기록하고, 시간·실적건수·실근무 일수를 자동으로 셉니다. 인쇄하면 A4 가로 한 장이에요.</div></div>
-        <div class="inline"><button class="btn" type="button" data-act="at-import">엑셀 파일 불러오기</button><button class="btn" type="button" data-act="at-pastetbl">표 붙여넣기</button><button class="btn btn-primary" type="button" data-act="at-print" ${ui.view === 'year' ? 'disabled' : ''}>🖨 인쇄</button></div>
+        <div class="inline"><button class="btn" type="button" data-act="at-import">엑셀 파일 불러오기</button><button class="btn" type="button" data-act="at-pastetbl">표 붙여넣기</button><button class="btn btn-primary" type="button" data-act="at-print" ${ui.view === 'year' ? 'disabled' : ''}>${V.I.print} 인쇄</button></div>
       </div>
       <div class="toolbar perf-bar at-bar">
         <div class="month-nav"><button class="icon-btn" type="button" data-act="at-year" data-d="-1" aria-label="이전 해">${V.I.back}</button><b class="num">${ui.month.slice(0, 4)}년</b><button class="icon-btn" type="button" data-act="at-year" data-d="1" aria-label="다음 해" style="transform:scaleX(-1)">${V.I.back}</button></div>
@@ -183,7 +183,7 @@ window.AT = (() => {
         <div class="at-brush" role="group" aria-label="고른 칸에 넣기"><span class="sub">고른 칸에</span>${brushes.map(([k, l]) => `<button type="button" class="br ${ST[k] ? 'st-' + k : ''} br-${k === '휴' ? 'off' : k}" data-act="at-apply" data-v="${k}" tabindex="-1">${l}</button>`).join('')}
           <button type="button" class="br" data-act="at-undo" tabindex="-1" title="Ctrl+Z">↶ 되돌리기</button></div>
         <div class="inline at-acts">
-          <button class="btn btn-sm" type="button" data-act="at-fill" ${list.length ? '' : 'disabled'}>📅 기본 시간으로 이 달 채우기</button>
+          <button class="btn btn-sm" type="button" data-act="at-fill" ${list.length ? '' : 'disabled'}>${V.I.cal} 기본 시간으로 이 달 채우기</button>
           <button class="btn btn-sm" type="button" data-act="at-xlsx" ${list.length ? '' : 'disabled'}>엑셀로 받기</button>
         </div>
       </div>
@@ -256,7 +256,7 @@ window.AT = (() => {
     const why = s => [s.off && `휴무 ${s.off}`, s.병 && `병가 ${s.병}`, s.특 && `특휴 ${s.특}`, s.공 && `공가 ${s.공}`, s.결 && `결근 ${s.결}`].filter(Boolean).join(' · ');
     return `<div class="at-short ${short.length ? '' : 'ok'}">
       <div class="at-short-head">
-        <b>${short.length ? `⚠ ${mt.goal}시간 미만 <span class="num">${short.length}</span>명` : `✅ 모두 ${mt.goal}시간 이상`}</b>
+        <b>${short.length ? `${V.I.alert} ${mt.goal}시간 미만 <span class="num">${short.length}</span>명` : `모두 ${mt.goal}시간 이상`}</b>
         <span class="sub">${V.monthLabel(m)} · ${base.length}명 중</span>
         ${short.length || ui.shortOnly ? `<button type="button" class="chip ${ui.shortOnly ? 'on' : ''}" data-act="at-shortonly">${ui.shortOnly ? '전체 다시 보기' : '표에서 이 사람들만 보기'}</button>` : ''}
       </div>

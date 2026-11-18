@@ -19,7 +19,7 @@
 @media (min-width: 861px) {
   body { background: var(--b-bg); color: var(--b-ink); }
   .site-head { box-shadow: none; border-bottom: 1px solid var(--b-line); }
-  .sec-btn { font-size: 16.5px; font-weight: 750; color: #3A4553; }
+  .sec-btn { font-size: 16.5px; font-weight: 650; color: #3A4553; }
   .sec-btn::after { height: 3px; left: 14px; right: 14px; }
 
   /* 왼쪽 메뉴: 어두운 남색 바탕 */
@@ -37,7 +37,7 @@
   .side-nav a:hover svg { background: rgba(255, 255, 255, .1); }
   .side-nav a.active { background: rgba(255, 255, 255, .09); color: #fff; box-shadow: none; border: 0; }
   .side-nav a.active svg { background: var(--sc); color: #fff; }
-  .side-nav a.active .sn-t b { font-weight: 800; }
+  .side-nav a.active .sn-t b { font-weight: 700; }
   .side-nav a.active .sn-t small { color: #A9B6C7; }
   .side-nav a.active::before { content: ""; display: block; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--sc); }
   .side-nav a .count { color: var(--b-side-mute); }
@@ -52,7 +52,7 @@
   .search-trigger { border-color: var(--b-line); border-radius: 6px; box-shadow: var(--b-shadow); }
 
   /* 본문: 얇은 테두리 카드 · 6~8px 모서리 */
-  .page-title { font-size: 24px; font-weight: 750; letter-spacing: -.02em; color: var(--b-ink); }
+  .page-title { font-size: 24px; font-weight: 650; letter-spacing: -.02em; color: var(--b-ink); }
   .panel, .kpis { border-radius: 8px; border-color: var(--b-line); box-shadow: var(--b-shadow); }
   .btn { border-radius: 6px; }
   .input, .select, .textarea { border-radius: 6px; }
@@ -80,7 +80,7 @@
 
   /* 큰 제목 */
   .page-head { margin: 4px 0 12px; }
-  .page-title { font-size: 31px; font-weight: 800; letter-spacing: -.025em; color: #000; }
+  .page-title { font-size: 31px; font-weight: 700; letter-spacing: -.025em; color: #000; }
   .page-title::before { display: none; }
   .page-desc { color: #6C6C70; }
 

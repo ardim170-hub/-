@@ -53,9 +53,9 @@ window.FM = (() => {
       <div class="fm-search"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="6"/><path d="m14 14 4 4"/></svg>
         <input class="input" id="fmQ" type="search" value="${e(ui.q)}" placeholder="사업체·기관·명함 이름 (두세 글자)" autocomplete="off" enterkeyhint="search"></div>
       <div id="fmList">${q ? listHtml(found, q) : `
-        ${ag.length ? `<section class="fm-sec"><h2>⏰ 다시 연락할 곳 <span class="sub">마지막 연락 3주 넘음</span></h2>${ag.map(rowHtml).join('')}</section>` : ''}
-        <section class="fm-sec"><h2>🕘 내가 최근 연락한 곳</h2>${rec.map(rowHtml).join('') || '<p class="sub fm-none">아직 없어요. 아래 "+ 연락 기록"으로 시작해 보세요.</p>'}</section>`}</div>
-      <div class="fm-dock"><button type="button" class="btn btn-primary fm-big" data-act="fm-new">＋ 연락 기록</button><button type="button" class="btn fm-big" data-act="card-photo">📷 명함 찍기</button></div>
+        ${ag.length ? `<section class="fm-sec"><h2>다시 연락할 곳 <span class="sub">마지막 연락 3주 넘음</span></h2>${ag.map(rowHtml).join('')}</section>` : ''}
+        <section class="fm-sec"><h2>내가 최근 연락한 곳</h2>${rec.map(rowHtml).join('') || '<p class="sub fm-none">아직 없어요. 아래 "+ 연락 기록"으로 시작해 보세요.</p>'}</section>`}</div>
+      <div class="fm-dock"><button type="button" class="btn btn-primary fm-big" data-act="fm-new">＋ 연락 기록</button><button type="button" class="btn fm-big" data-act="card-photo">${V.I.camera} 명함 찍기</button></div>
     </div>`;
   }
   function listHtml(found, q) {
@@ -74,18 +74,18 @@ window.FM = (() => {
       <h1 class="fm-name">${e(x.name)}</h1>
       <p class="sub fm-meta">${[kind === 'net' ? x.category : (S.isPending(x) ? '미등록' : x.stage), x.industry, x.staff && '담당 ' + x.staff].filter(Boolean).map(e).join(' · ')}${x.address ? `<br>${e(x.address)}` : ''}</p>
       <div class="fm-acts">
-        ${phones[0] ? `<a class="btn fm-act" href="tel:${e(telOf(phones[0].tel))}">📞 전화<small>${e(phones[0].name || phones[0].label)}</small></a>` : '<span class="btn fm-act off">📞 전화<small>번호 없음</small></span>'}
-        ${navUrl ? `<a class="btn fm-act" href="${e(navUrl)}" target="_blank" rel="noopener">🗺️ 길찾기<small>카카오맵</small></a>` : '<span class="btn fm-act off">🗺️ 길찾기<small>주소 없음</small></span>'}
-        <button type="button" class="btn btn-primary fm-act" data-act="fm-add">✏️ 기록<small>오늘 연락</small></button>
+        ${phones[0] ? `<a class="btn fm-act" href="tel:${e(telOf(phones[0].tel))}">${V.I.phone} 전화<small>${e(phones[0].name || phones[0].label)}</small></a>` : '<span class="btn fm-act off">' + V.I.phone + ' 전화<small>번호 없음</small></span>'}
+        ${navUrl ? `<a class="btn fm-act" href="${e(navUrl)}" target="_blank" rel="noopener">${V.I.map} 길찾기<small>카카오맵</small></a>` : '<span class="btn fm-act off">' + V.I.map + ' 길찾기<small>주소 없음</small></span>'}
+        <button type="button" class="btn btn-primary fm-act" data-act="fm-add">${V.I.edit} 기록<small>오늘 연락</small></button>
       </div>
-      ${phones.length > 1 ? `<div class="fm-phones">${phones.slice(1).map(p => `<a href="tel:${e(telOf(p.tel))}">📞 ${e(p.name || p.label)} <span class="sub">${e(p.label !== '대표' ? p.label : '')} ${e(p.tel)}</span></a>`).join('')}</div>` : ''}
+      ${phones.length > 1 ? `<div class="fm-phones">${phones.slice(1).map(p => `<a href="tel:${e(telOf(p.tel))}">${V.I.phone} ${e(p.name || p.label)} <span class="sub">${e(p.label !== '대표' ? p.label : '')} ${e(p.tel)}</span></a>`).join('')}</div>` : ''}
       ${ui.adding ? addHtml(kind, x) : ''}
       <section class="fm-sec"><h2>연락이력 <span class="sub">${acts.length}건 · 최신순</span></h2>
         ${acts.length ? acts.slice(0, 40).map(a => `<article class="fm-log">
           <div class="fm-log-h"><b class="num">${U.dateDot(a.date)}</b> <span class="fm-tag">${e(a.type || '')}</span> <span class="sub">${ago(a.date)}${a.staff ? ' · ' + e(a.staff) : ''}</span></div>
           <p>${e(a.content || '')}</p>
           ${[a.contactName && '담당자 ' + a.contactName, a.result, a.jobType && '직종 ' + a.jobType].filter(Boolean).length ? `<p class="sub">${[a.contactName && '담당자 ' + a.contactName, a.result, a.jobType && '직종 ' + a.jobType].filter(Boolean).map(e).join(' · ')}</p>` : ''}
-        </article>`).join('') : '<p class="sub fm-none">아직 연락 기록이 없어요. 위 "✏️ 기록"으로 첫 기록을 남겨 보세요.</p>'}
+        </article>`).join('') : '<p class="sub fm-none">아직 연락 기록이 없어요. 위 "' + V.I.edit + ' 기록"으로 첫 기록을 남겨 보세요.</p>'}
       </section>
     </div>`;
   }

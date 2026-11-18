@@ -104,15 +104,15 @@ window.DP = (() => {
     return { list: out, facts, live, left, passed, total: wd.length };
   }
   function coachHtml(cd, label, periodLabel) {
-    const icon = { bad: '🔴', warn: '🟠', info: '🔵', good: '✅' };
+    const icon = { bad: '<i class="lv-dot bad"></i>', warn: '<i class="lv-dot warn"></i>', info: '<i class="lv-dot info"></i>', good: '<i class="lv-dot good"></i>' };
     const top = cd.list.filter(x => x.lv !== 'good').slice(0, 3), rest = cd.list.filter(x => !top.includes(x));
     const item = x => `<li class="dpc-i ${x.lv}"><span class="dpc-ic" aria-hidden="true">${icon[x.lv]}</span><div><b>${x.t}</b><p>${x.d}</p>${x.act ? `<div class="inline dpc-act">${x.act}</div>` : ''}</div></li>`;
     const ai = ui.ai && ui.ai.key === label + periodLabel ? ui.ai : null;
     return `<section class="dpc">
-      <div class="dpc-head"><h3>🧭 실시간 코칭 <span class="sub">${e(periodLabel)}${cd.live ? ` · 평일 ${cd.passed}/${cd.total}일 지남, ${cd.left}일 남음` : ''} · 기록을 넣으면 바로 바뀌어요</span></h3>
-        ${AI.available() ? `<button class="btn btn-sm btn-primary" type="button" data-act="dp-ai" ${ui.aiBusy ? 'disabled' : ''}>${ui.aiBusy ? 'AI가 보는 중…' : '✨ AI 코칭 받기'}</button>` : '<span class="sub">데이터 관리에서 AI 키를 넣으면 AI 코칭도 받을 수 있어요</span>'}</div>
-      ${ai ? `<div class="dpc-ai"><b>✨ AI 코칭</b> <span class="sub">${e(ai.at)}</span><div class="dpc-ai-t">${e(ai.text).replace(/\n/g, '<br>')}</div></div>` : ''}
-      ${top.length ? `<ul class="dpc-list">${top.map(item).join('')}</ul>` : '<p class="sub" style="margin:0">지금은 모든 항목이 목표대로 가고 있어요. 👏</p>'}
+      <div class="dpc-head"><h3>실시간 코칭 <span class="sub">${e(periodLabel)}${cd.live ? ` · 평일 ${cd.passed}/${cd.total}일 지남, ${cd.left}일 남음` : ''} · 기록을 넣으면 바로 바뀌어요</span></h3>
+        ${AI.available() ? `<button class="btn btn-sm btn-primary" type="button" data-act="dp-ai" ${ui.aiBusy ? 'disabled' : ''}>${ui.aiBusy ? 'AI가 보는 중…' : 'AI 코칭 받기'}</button>` : '<span class="sub">데이터 관리에서 AI 키를 넣으면 AI 코칭도 받을 수 있어요</span>'}</div>
+      ${ai ? `<div class="dpc-ai"><b>AI 코칭</b> <span class="sub">${e(ai.at)}</span><div class="dpc-ai-t">${e(ai.text).replace(/\n/g, '<br>')}</div></div>` : ''}
+      ${top.length ? `<ul class="dpc-list">${top.map(item).join('')}</ul>` : '<p class="sub" style="margin:0">지금은 모든 항목이 목표대로 가고 있어요. </p>'}
       ${rest.length ? `<details class="dpc-more"><summary>코칭 ${rest.length}개 더 보기</summary><ul class="dpc-list">${rest.map(item).join('')}</ul></details>` : ''}
     </section>`;
   }
@@ -200,7 +200,7 @@ window.DP = (() => {
       </button>`;
     };
     return `<section class="dp">
-      <div class="dp-top"><h2 class="dp-title">📊 ${e(label)} 실적 대시보드 <span class="num">${Y}</span></h2>
+      <div class="dp-top"><h2 class="dp-title">${e(label)} 실적 대시보드 <span class="num">${Y}</span></h2>
         <div class="dp-ctl"><div class="seg"><button type="button" class="${ui.mode === 'year' ? 'on' : ''}" data-act="dp-mode" data-mode="year">연간</button><button type="button" class="${ui.mode === 'month' ? 'on' : ''}" data-act="dp-mode" data-mode="month">월간</button></div>
           <button class="icon-btn" type="button" data-act="dp-move" data-d="-1" aria-label="이전">◀</button><b class="num dp-period">${periodLabel}</b><button class="icon-btn" type="button" data-act="dp-move" data-d="1" aria-label="다음">▶</button></div></div>
       <div class="dp-kpis">${kpis}</div>
@@ -211,7 +211,7 @@ window.DP = (() => {
         <span class="seg"><button type="button" class="${isCum ? '' : 'on'}" data-act="dp-view" data-v="month">월별</button><button type="button" class="${isCum ? 'on' : ''}" data-act="dp-view" data-v="cum">누적</button></span></div>
       <div class="dp-chart" role="img" aria-label="${Y}년 ${isCum ? '누적' : '월별'} 실적: ${vals.map((n, k) => `${k + 1}월 ${n}건`).join(', ')}">${bars}</div>
       ${coachHtml(coachData(set, items, G, Y, M, yLines, mon, cum), label, periodLabel)}
-      <details class="dp-tables" ${ui.tables ? 'open' : ''}><summary data-act="dp-tables">📋 표로 보기 <span class="sub">${set === GL.SET ? '연인원 / 실인원 / 횟수 · ' : ''}세부사업별 실적 요약</span></summary>
+      <details class="dp-tables" ${ui.tables ? 'open' : ''}><summary data-act="dp-tables">표로 보기 <span class="sub">${set === GL.SET ? '연인원 / 실인원 / 횟수 · ' : ''}세부사업별 실적 요약</span></summary>
       ${set === GL.SET ? `<div class="dp-sec-t">연인원 / 실인원 / 횟수 <span class="sub">기관 실적표와 같은 모양 · ${mm}월 · 누적 · 연간 목표</span></div>${GL.triHtml(M)}` : ''}
       <div class="dp-sec-t">세부사업별 실적 요약 <span class="sub">(목표 대비 달성률 · ${e(G.note)})</span></div>
       <div class="table-wrap"><table class="tbl dp-tbl">
@@ -241,7 +241,7 @@ window.DP = (() => {
         <td>${own ? `<button class="icon-btn" type="button" data-act="dp-mgr-del" data-item="${e(i)}" aria-label="${e(i)} 지우기" title="${n ? '기록이 있으면 못 지워요' : '지우기'}" ${n ? 'disabled' : ''}>${V.I.close}</button>` : ''}</td></tr>`;
     };
     const gHead = isGL ? '<th class="r">연인원</th><th class="r">실인원</th><th class="r">횟수</th>' : '<th class="r">연간 목표(횟수)</th>';
-    return `<details class="dp-mgr" ${ui.mgr ? 'open' : ''} id="dpMgr"><summary data-act="dp-mgr"><b>⚙️ 세부사업·목표 관리</b> <span class="sub">세부사업 추가·이름 바꾸기·목표 고치기 · 저장하면 실적 탭에 바로 반영돼요</span></summary>
+    return `<details class="dp-mgr" ${ui.mgr ? 'open' : ''} id="dpMgr"><summary data-act="dp-mgr"><b>세부사업·목표 관리</b> <span class="sub">세부사업 추가·이름 바꾸기·목표 고치기 · 저장하면 실적 탭에 바로 반영돼요</span></summary>
       <div class="dp-mgr-body">
         ${isGL ? `<div class="inline goal-top"><label>기준 연도 <input class="input sm num" id="mgrBaseYear" value="${g.baseYear}" style="width:72px"></label><label>기준 개월 수 <input class="input sm num" id="mgrMonths" value="${g.months}" style="width:56px"></label><span class="sub">${g.baseYear}년은 ${13 - (Number(g.months) || 12)}~12월 목표, 다음 해부터 × 12 ÷ ${g.months}</span></div>` : ''}
         <div class="table-wrap"><table class="tbl dp-mgr-tbl"><thead><tr><th>세부사업</th>${gHead}<th class="r sub">${Y}년 목표</th><th>세는 법</th><th class="r">기록</th><th></th></tr></thead>
@@ -284,11 +284,11 @@ window.DP = (() => {
     const sv = staffs.map(n => [n, sumC(list.filter(l => l.staff === n))]), smax = Math.max(1, ...sv.map(x => x[1]));
     const title = isCum ? `누적 실적 · ${Y}년 ${first}~${mm}월` : `${Y}년 ${mm}월 실적`;
     const recs = list.slice().sort((x, y) => y.d.localeCompare(x.d));
-    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${isCum ? '📈' : '📅'} ${e(title)}</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
+    return `<div class="dr-head"><div class="dr-top"><h2 class="dr-title">${isCum ? '' + V.I.perf + '' : '' + V.I.cal + ''} ${e(title)}</h2><button class="icon-btn" type="button" data-act="dr-close" aria-label="닫기">${V.I.close}</button></div>
       <div class="seg" style="margin-top:6px"><button type="button" class="${isCum ? 'on' : ''}" data-act="dp-sum" data-kind="cum">누적 (연간 목표 대비)</button><button type="button" class="${isCum ? '' : 'on'}" data-act="dp-sum" data-kind="mon">${mm}월 (월 목표 대비)</button></div></div>
       <div class="dr-body">
         <div class="dp-sum-top">${ring(p, 96)}<div><b class="num dp-sum-n">${U.num(tot)}</b><span class="sub"> / ${U.num(totT)}건 (${isCum ? '연간 목표' : '월 목표'})</span>
-          <p class="sub" style="margin:4px 0 0">${p == null ? '' : p >= 100 ? '목표를 채웠어요 👏' : `${U.num(Math.max(0, totT - tot))}건 남았어요.`} ${isCum ? '점선 = 지금쯤 가 있어야 할 곳' : M === T.slice(0, 7) ? `평일 ${wd.filter(d => d < T).length}/${wd.length}일 지남 · 점선 = 지금쯤 가 있어야 할 곳` : ''}</p></div></div>
+          <p class="sub" style="margin:4px 0 0">${p == null ? '' : p >= 100 ? '목표를 채웠어요 ' : `${U.num(Math.max(0, totT - tot))}건 남았어요.`} ${isCum ? '점선 = 지금쯤 가 있어야 할 곳' : M === T.slice(0, 7) ? `평일 ${wd.filter(d => d < T).length}/${wd.length}일 지남 · 점선 = 지금쯤 가 있어야 할 곳` : ''}</p></div></div>
         ${isCum ? `<h3 class="dp-dr-h">누적 추이 <span class="sub">파란 선 = 쌓인 실적 · 회색 점선 = 쌓인 목표</span></h3>${cumChart(labels, act, gl, Math.max(0, mm - first))}`
           : `<h3 class="dp-dr-h">${mm}월 날짜별 실적</h3>${(() => { const days = Array.from({ length: new Date(Y, mm, 0).getDate() }, (_, k) => k + 1); return miniCols(days.map(d => sumC(mon.filter(l => +l.d.slice(8, 10) === d))), days.map(() => 0), days.map(d => (d % 5 === 1 ? String(d) : '')), M === T.slice(0, 7) ? +T.slice(8, 10) - 1 : -1); })()}`}
         <h3 class="dp-dr-h">세부사업별 <span class="sub">막대 = ${isCum ? '누적' : '이 달'} 실적 ÷ ${isCum ? '연간' : '월'} 목표 · 누르면 그 사업 자세히</span></h3>

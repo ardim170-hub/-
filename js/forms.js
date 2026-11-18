@@ -180,7 +180,7 @@ window.F = (() => {
           <div class="photo-drop" id="photoDrop">
             <img id="photoPreview" ${S.photo(x) ? `src="${S.photo(x)}"` : 'hidden'} alt="명함 사진 미리보기">
             <span id="photoHint">${x.photo ? '' : '명함을 찍은 사진을 올려 두면 원본을 다시 확인할 수 있어요.'}</span>
-            <div class="inline"><label class="btn btn-sm btn-primary" for="f_fillFile">📷 사진·파일(PDF)로 내용 채우기</label><label class="btn btn-sm" for="f_photoFile">사진만 넣기</label>${x.photo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="photo-clear">사진 삭제</button>' : ''}</div>
+            <div class="inline"><label class="btn btn-sm btn-primary" for="f_fillFile">${V.I.camera} 사진·파일(PDF)로 내용 채우기</label><label class="btn btn-sm" for="f_photoFile">사진만 넣기</label>${x.photo ? '<button class="btn btn-ghost btn-sm" type="button" data-act="photo-clear">사진 삭제</button>' : ''}</div>
             <input type="file" id="f_photoFile" accept="image/*" capture="environment" hidden>
             <input type="file" id="f_fillFile" accept="image/*,application/pdf,.pdf" hidden>
           </div>
