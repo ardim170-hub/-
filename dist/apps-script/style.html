@@ -2259,6 +2259,19 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .emp-frame { display: block; width: 100%; height: calc(100vh - 120px); min-height: 560px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 @media (max-width: 720px) { .emp-frame { height: calc(100vh - 170px); border-radius: 0; border-left: 0; border-right: 0; } .emp-wrap { margin: 0 -16px; } }
 
+/* 데이터 관리 수납함: 고른 칸의 상자만 보이기 */
+.data-grid[data-on] > [data-dtab] { display: none; }
+.data-grid[data-on="people"] > [data-dtab="people"], .data-grid[data-on="connect"] > [data-dtab="connect"], .data-grid[data-on="cost"] > [data-dtab="cost"],
+.data-grid[data-on="backup"] > [data-dtab="backup"], .data-grid[data-on="check"] > [data-dtab="check"] { display: block; }
+.data-grid > .conn-map, .data-grid > .cost-panel { grid-column: 1 / -1; }
+.conn-tbl td, .cost-tbl td { vertical-align: top; font-size: 14px; }
+.conn-tbl td:first-child { white-space: nowrap; }
+.cost-tbl td:first-child { min-width: 150px; }
+.conn-tbl td:last-child, .cost-tbl td:last-child { white-space: nowrap; }
+.cost-sum { margin: 4px 0 12px; padding: 10px 14px; border-radius: 8px; background: var(--ss, #EEF1F5); font-size: 14.5px; }
+.cost-sum b:first-child { margin-right: 8px; }
+.data-tabs .hub-tab i { font-style: normal; }
+
 </style>
 <style>
 /* ================= 디자인 B: 컴퓨터는 Tabler(관리자 화면) 느낌, 휴대폰은 Ionic(아이폰 기본 앱) 느낌 =================
@@ -2401,5 +2414,9 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   .side-nav a.active::before { left: -8px; }
 }
 
-:root { --css-ver: "2026.11.18 08:54"; }
+/* 왼쪽 남색 메뉴가 긴 화면에서도 끝까지 이어지게 */
+@media (min-width: 1101px) { .app { background: linear-gradient(to right, var(--b-navy) 248px, transparent 248px); } }
+@media (max-width: 1100px) and (min-width: 861px) { .app { background: linear-gradient(to right, var(--b-navy) 92px, transparent 92px); } }
+
+:root { --css-ver: "2026.11.18 09:06"; }
 </style>

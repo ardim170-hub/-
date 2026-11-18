@@ -2583,6 +2583,19 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 .emp-frame { display: block; width: 100%; height: calc(100vh - 120px); min-height: 560px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 @media (max-width: 720px) { .emp-frame { height: calc(100vh - 170px); border-radius: 0; border-left: 0; border-right: 0; } .emp-wrap { margin: 0 -16px; } }
 
+/* 데이터 관리 수납함: 고른 칸의 상자만 보이기 */
+.data-grid[data-on] > [data-dtab] { display: none; }
+.data-grid[data-on="people"] > [data-dtab="people"], .data-grid[data-on="connect"] > [data-dtab="connect"], .data-grid[data-on="cost"] > [data-dtab="cost"],
+.data-grid[data-on="backup"] > [data-dtab="backup"], .data-grid[data-on="check"] > [data-dtab="check"] { display: block; }
+.data-grid > .conn-map, .data-grid > .cost-panel { grid-column: 1 / -1; }
+.conn-tbl td, .cost-tbl td { vertical-align: top; font-size: 14px; }
+.conn-tbl td:first-child { white-space: nowrap; }
+.cost-tbl td:first-child { min-width: 150px; }
+.conn-tbl td:last-child, .cost-tbl td:last-child { white-space: nowrap; }
+.cost-sum { margin: 4px 0 12px; padding: 10px 14px; border-radius: 8px; background: var(--ss, #EEF1F5); font-size: 14.5px; }
+.cost-sum b:first-child { margin-right: 8px; }
+.data-tabs .hub-tab i { font-style: normal; }
+
 </style>
 <style>
 /* ================= 디자인 B: 컴퓨터는 Tabler(관리자 화면) 느낌, 휴대폰은 Ionic(아이폰 기본 앱) 느낌 =================
@@ -2725,6 +2738,10 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
   .side-nav a.active::before { left: -8px; }
 }
 
+/* 왼쪽 남색 메뉴가 긴 화면에서도 끝까지 이어지게 */
+@media (min-width: 1101px) { .app { background: linear-gradient(to right, var(--b-navy) 248px, transparent 248px); } }
+@media (max-width: 1100px) and (min-width: 861px) { .app { background: linear-gradient(to right, var(--b-navy) 92px, transparent 92px); } }
+
 </style>
 </head>
 <body>
@@ -2811,7 +2828,7 @@ tr.pt-new td { animation: ptNew 2.4s ease-out; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.18 08:54";</script>
+<script>window.APP_VERSION = "2026.11.18 09:06";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -4797,6 +4814,7 @@ window.V = (() => {
     camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
   };
   const ui = {
+    dataTab: 'people',
     biz: { stage: '전체', q: '', area: '', industry: '', mandatory: false, dup: false, prog: '', sort: 'recent', period: 'all', month: U.today().slice(0, 7) },
     net: { cat: '전체', q: '', status: '', dup: false },
     cards: { q: '', link: 'all', sort: 'recent', idx: '', dup: false, of: null },
@@ -5509,7 +5527,7 @@ window.V = (() => {
     if (!S.REMOTE || !S.isAdmin()) return '';
     const st = S.get().settings;
     const on = (k, v = 'Y') => st[k] === v;
-    return `<section class="panel panel-pad link-panel">
+    return `<section data-dtab="connect" class="panel panel-pad link-panel">
       <h2 class="section-title">🔗 자동 백업 · 아침 메일</h2>
       <div class="lk"><h3>💾 자동 백업 <span class="sub" id="gLastBackup">${st.lastBackup ? '마지막 ' + e(st.lastBackup) : ''}</span></h3>
         <p class="sub">자동 작업을 켜면 <b>매일 새벽 2시</b>에 시트 전체를 드라이브 "아르딤 취업지원 백업" 폴더에 복사해요 (30개 보관). 실수로 지워도 되살릴 수 있어요.</p>
@@ -5524,9 +5542,9 @@ window.V = (() => {
   }
   /** 데이터 관리의 구글 캘린더 연결 칸 */
   function calPanel() {
-    if (!S.REMOTE) return `<section class="panel panel-pad"><h2 class="section-title">📅 구글 캘린더 연결</h2><p class="sub" style="margin:8px 0 0">팀 공유(구글 시트·Apps Script) 버전에서 연결할 수 있어요. 이 브라우저 전용 버전에서는 일정마다 📅 버튼으로 구글 캘린더에 한 건씩 넣을 수 있어요.</p></section>`;
+    if (!S.REMOTE) return `<section data-dtab="connect" class="panel panel-pad"><h2 class="section-title">📅 구글 캘린더 연결</h2><p class="sub" style="margin:8px 0 0">팀 공유(구글 시트·Apps Script) 버전에서 연결할 수 있어요. 이 브라우저 전용 버전에서는 일정마다 📅 버튼으로 구글 캘린더에 한 건씩 넣을 수 있어요.</p></section>`;
     if (!S.isAdmin()) return '';
-    return `<section class="panel panel-pad cal-panel">
+    return `<section data-dtab="connect" class="panel panel-pad cal-panel">
       <h2 class="section-title">📅 구글 캘린더 연결 ${calOn() ? '<span class="badge success">연결됨</span>' : '<span class="badge">연결 안 됨</span>'}</h2>
       <ol class="steps-help">
         <li>구글 캘린더(calendar.google.com) 왼쪽 <b>다른 캘린더 +</b> → <b>새 캘린더 만들기</b> → 이름 예: "아르딤 직업지원팀"</li>
@@ -5841,6 +5859,61 @@ window.V = (() => {
     const admins = split(st.admins), members = split(st.members);
     return [...new Set([...admins, ...members])].map(email => ({ email, admin: admins.includes(email) }));
   }
+  /* ================= 데이터 관리 = 수납함: 사람·권한 / 연결(API) / 요금·결제 / 백업·정리 / 점검 ================= */
+  const DATA_TABS = [['people', '👥', '사람·권한'], ['connect', '🔌', '연결(API)'], ['cost', '💳', '요금·결제'], ['backup', '📦', '백업·정리'], ['check', '🩺', '점검']];
+  const cfg = () => window.APP_CONFIG || {};
+  const ok = (on, yes = '연결됨', no = '꺼짐') => (on ? `<span class="badge success">${yes}</span>` : `<span class="badge">${no}</span>`);
+  const ext = (href, label) => (href ? `<a href="${e(href)}" target="_blank" rel="noopener">${e(label)} ↗</a>` : '');
+  /** 어디에 무엇이 연결돼 있나 (열쇠 값은 보여 주지 않고, 어디에 보관돼 있는지만) */
+  function connMap() {
+    const st = S.get().settings, c = cfg(), web = !!c.clientId, gcp = 'ardim-jobs';
+    const rows = [
+      ['구글 로그인', '앱에 들어갈 때 (복지관 계정 ardim.or.kr만)', '구글 클라우드 ' + gcp + ' · OAuth 클라이언트 (비밀값 없음)', web ? ok(true, '사용 중') : '<span class="sub">공유 사이트는 구글이 직접</span>', ext(`https:\/\/console.cloud.google.com/apis/credentials?project=${gcp}`, '설정')],
+      ['팀 구글 시트', '모든 기록 저장 (사업체·연락·일정·실적·이용자…)', '시트 공유 권한 (복지관 계정 편집자)', ok(S.REMOTE, '연결됨', '이 브라우저에만 저장'), c.dbSheet ? ext(`https:\/\/docs.google.com/spreadsheets/d/${c.dbSheet}/edit`, '시트 열기') : ''],
+      ['Apps Script 서버', '저장·불러오기, AI 대신 호출, 캘린더·메일·백업 자동 작업', 'Apps Script 프로젝트 (AI 키는 여기 "스크립트 속성"에)', ok(S.REMOTE), c.scriptId ? ext(`https:\/\/script.google.com/home/projects/${c.scriptId}/edit`, '프로젝트') : ''],
+      ['Google Sheets API', '고용공단 → 고용지원 업무판 · 직업평가 기록지', '로그인한 사람 출입증 (따로 키 없음)', web ? ok(true, '사용 중') : '<span class="sub">앱에서만</span>', ext(`https:\/\/console.cloud.google.com/apis/library/sheets.googleapis.com?project=${gcp}`, 'API 상태')],
+      ['Claude AI', '명함 사진 읽기 · 사업체 기초 조사 · 3줄 요약 · 업무판 AI 초안', S.REMOTE ? 'Apps Script 스크립트 속성 (브라우저에는 없음)' : '이 브라우저', ok(AI.available(), '사용 중'), ext('https:\/\/console.anthropic.com', '콘솔')],
+      ['브이월드 지도', '지도 배경(한글 지도) · 주소로 위치 찾기', '팀 시트 설정', ok(!!st.vworldKey, '사용 중', '키 없음 (기본 지도)'), ext('https:\/\/www.vworld.kr/dev/v4dv_apikey_s001.do', '키 관리')],
+      ['구글 캘린더', '일정 보내기·가져오기', '팀 시트 설정 (캘린더 ID)', ok(calOn()), ext('https:\/\/calendar.google.com', '캘린더')],
+      ['구글 드라이브', '매일 자동 백업 · 달별 정리 파일', '자동 작업을 켠 관리자 계정', ok(st.autoOn === 'Y' || !!st.archiveFolderId, '사용 중'), st.archiveFolderId ? ext(`https:\/\/drive.google.com/drive/folders/${st.archiveFolderId}`, '정리 폴더') : ''],
+      ['Gmail', '평일 아침 메일 (오늘 일정·재연락)', '자동 작업을 켠 관리자 계정', ok(st.mailOn === 'Y', '켜짐'), ''],
+      ['Firebase 호스팅', '앱 주소 ardim-jobs.web.app (휴대폰 설치 앱)', 'GitHub "live" 갈래에 올리면 자동 반영 (열쇠 파일 없이 연동)', web ? ok(true, '사용 중') : '', ext(`https:\/\/console.firebase.google.com/project/${gcp}/overview`, '콘솔')],
+      ['GitHub', '프로그램 코드 보관 · 자동 올리기', '저장소 (공개 · 개인정보 없음)', ok(true, '사용 중'), ext('https:\/\/github.com/ardim170-hub/-', '저장소')],
+      ['카카오맵 · 전화 · 문자', '현장 모드 길찾기, 바로 전화', '키 없음 (링크만 열어 줌)', ok(true, '사용 중'), ''],
+      ['기본 지도 (오픈스트리트맵·항공사진)', '브이월드 키가 없을 때 지도 배경', '키 없음', ok(true, '사용 중'), ''],
+    ];
+    return `<section data-dtab="connect" class="panel panel-pad conn-map">
+      <h2 class="section-title">🔌 연결 지도 <span class="sub">사이트가 바깥 서비스와 어디서 이어지는지 한눈에. 열쇠(키) 값은 여기 보이지 않고, 보관 위치만 적었어요</span></h2>
+      <div class="table-wrap"><table class="tbl conn-tbl"><thead><tr><th>연결</th><th>어디에 쓰나</th><th>열쇠·권한 보관</th><th>상태</th><th>관리</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td><b>${e(r[0])}</b></td><td>${e(r[1])}</td><td class="sub">${e(r[2])}</td><td>${r[3]}</td><td>${r[4]}</td></tr>`).join('')}</tbody></table></div>
+    </section>`;
+  }
+  /** 요금·결제: 돈이 나갈 수 있는 곳과 확인하는 곳 */
+  function costPanel() {
+    const gcp = 'ardim-jobs';
+    const rows = [
+      ['Claude AI (Anthropic)', '쓴 만큼 유료', 'warn', 'AI 버튼을 누를 때마다 조금씩 (명함 1장 · 요약 1번에 몇 원~수십 원 수준). <b>돈이 나갈 수 있는 곳은 사실상 여기 하나</b>예요. 콘솔 Billing에서 카드·잔액·월 한도를 관리해요.', 'https:\/\/console.anthropic.com/settings/billing', '결제·한도'],
+      ['Firebase (앱 주소)', '무료 (Spark 요금제)', 'success', '결제 카드가 연결돼 있지 않아요. 무료 한도(저장 10GB, 하루 전송 360MB)를 넘으면 청구되는 대신 잠시 멈춰요. 지금 앱 크기 약 1MB라 한도의 일부만 써요.', `https:\/\/console.firebase.google.com/project/${gcp}/usage`, '사용량'],
+      ['구글 클라우드 ardim-jobs', '무료', 'success', '로그인·Apps Script API·Sheets API만 켜져 있고 모두 무료 API예요. 결제 계정을 연결하지 않으면 청구될 일이 없어요.', `https:\/\/console.cloud.google.com/billing/linkedaccount?project=${gcp}`, '결제 계정 확인'],
+      ['구글 워크스페이스 (시트·Apps Script·캘린더·드라이브·Gmail)', '복지관 계정에 포함', 'success', '추가 요금 없음. 하루 실행 횟수 같은 사용 한도만 있어요.', '', ''],
+      ['브이월드', '무료', 'success', '국토교통부 공공 서비스. 하루 사용 한도만 있어요.', '', ''],
+      ['GitHub', '무료', 'success', '공개 저장소 · 자동 올리기(Actions)도 무료 범위.', '', ''],
+      ['카카오맵 · 오픈스트리트맵', '무료', 'success', '링크·지도 그림만 쓰고 키가 없어요.', '', ''],
+    ];
+    return `<section data-dtab="cost" class="panel panel-pad cost-panel">
+      <h2 class="section-title">💳 요금·결제 <span class="sub">어디서 돈이 나갈 수 있는지, 어디서 확인하는지</span></h2>
+      <div class="cost-sum"><b>요약</b> 이 사이트는 거의 무료로 돌아가요. 유료는 <b>Claude AI 하나</b>(쓴 만큼)이고, 나머지는 무료이거나 복지관 구글 계정에 포함돼 있어요.</div>
+      <div class="table-wrap"><table class="tbl cost-tbl"><thead><tr><th>서비스</th><th>요금</th><th>설명</th><th>확인</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td><b>${e(r[0])}</b></td><td><span class="badge ${r[2]}">${e(r[1])}</span></td><td class="sub">${r[3]}</td><td>${ext(r[4], r[5])}</td></tr>`).join('')}</tbody></table></div>
+      <p class="sub" style="margin:10px 0 0">💡 AI 요금이 걱정되면 Anthropic 콘솔에서 <b>월 사용 한도</b>를 정해 두세요. 한도에 닿으면 AI 버튼만 잠시 멈추고, 나머지 기능은 그대로 돼요.</p>
+    </section>`;
+  }
+  function dataTabs(admin) {
+    const has = { people: true, connect: true, cost: true, backup: true, check: true };
+    const list = DATA_TABS.filter(([k]) => has[k]);
+    if (!list.some(([k]) => k === ui.dataTab)) ui.dataTab = list[0][0];
+    return `<nav class="hub-tabs data-tabs" role="tablist" aria-label="데이터 관리 수납함">${list.map(([k, ic, l]) => `<button type="button" role="tab" class="hub-tab ${ui.dataTab === k ? 'on' : ''}" aria-selected="${ui.dataTab === k}" data-act="data-tab" data-tab="${k}"><i>${ic}</i><span>${l}</span></button>`).join('')}</nav>`;
+  }
   function dataPage() {
     const st = S.get();
     const admin = S.isAdmin();
@@ -5848,10 +5921,13 @@ window.V = (() => {
     return `
       <div class="page-head"><div><h1 class="page-title">데이터 관리 <span class="badge outline num" title="프로그램 버전">버전 ${e(window.APP_VERSION || '개발용')}</span></h1><div class="page-desc">${S.REMOTE ? '팀 공유 모드입니다. 모든 데이터는 구글 시트에 저장되고 팀원과 함께 봅니다.' : '데이터는 지금 쓰는 브라우저에만 저장됩니다. 정기적으로 엑셀로 백업하세요.'}</div></div></div>
       ${S.REMOTE && !admin ? `<div class="notice">설정(직원 목록, 바로가기, AI 키, 엑셀로 전체 교체 등)은 <b>관리자${acc.owner ? ` (${e(acc.owner)})` : ''}</b>만 바꿀 수 있습니다. 사업체·명함·실적·명령부 등록과 수정은 그대로 할 수 있어요.<br><span class="sub">내 계정: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · 관리자가 되어야 한다면 이 주소를 관리자에게 알려 주세요.</span></div>` : ''}
-      <div class="data-grid">
+      ${dataTabs(admin)}
+      <div class="data-grid" data-on="${ui.dataTab}">
+        ${connMap()}
+        ${costPanel()}
         ${calPanel()}
         ${linkPanel()}
-        ${S.REMOTE && admin ? `<section class="panel panel-pad staff-editor">
+        ${S.REMOTE && admin ? `<section data-dtab="people" class="panel panel-pad staff-editor">
           <h2 class="section-title">사용 권한 <span class="sub">바꾸면 바로 저장돼요</span></h2>
           <p>지금 로그인: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · <span class="badge success">관리자</span></p>
           <p class="sub" style="margin:0">관리자는 설정·직원 목록·AI 키·엑셀 전체 교체·사용 권한을 바꿀 수 있고, 사용자는 등록·수정만 해요.
@@ -5869,57 +5945,57 @@ window.V = (() => {
           <datalist id="accStaffList">${S.staff().map(x => `<option value="${e(x.name)}">`).join('')}</datalist>
           <div class="acc-add"><input class="input acc-name" id="accNewName" list="accStaffList" autocomplete="off" placeholder="이름 (예: 김정배)" aria-label="추가할 사람 이름"><input class="input" id="accNew" type="email" inputmode="email" autocomplete="off" placeholder="추가할 구글 계정 이메일 (예: ardim169@ardim.or.kr)" aria-label="추가할 이메일"><select class="select" id="accNewRole" aria-label="권한"><option value="user">사용자</option><option value="admin">관리자</option></select><button class="btn btn-primary" type="button" data-act="acc-add">+ 추가</button></div>
         </section>` : ''}
-        <section class="panel panel-pad">
+        <section data-dtab="backup" class="panel panel-pad">
           <h2 class="section-title">현재 데이터</h2>
           <div class="stat-line"><span>사업체 <b>${st.businesses.length}</b></span><span>네트워크 <b>${st.networks.length}</b></span><span>명함 <b>${st.cards.length}</b></span><span>활동 기록 <b>${st.activities.length}</b></span><span>일정 <b>${st.events.length}</b></span></div>
           ${st.isDemo ? '<p><span class="badge warn">예시 데이터 사용 중</span> 실제 업무 전에 비우거나 엑셀로 교체하세요.</p>' : ''}
         </section>
-        <section class="panel panel-pad arc-panel">
+        <section data-dtab="backup" class="panel panel-pad arc-panel">
           <h2 class="section-title">📁 구글 드라이브 달별 정리 <span class="sub">현장중심 기록을 분류 폴더 · 달별 파일로 알아서 정리해요</span></h2>
           <div class="arc-tree"><b>아르딤 취업지원 정리</b> › <b>현장중심</b> › <span>사업체 개발</span> · <span>연락이력</span> · <span>실적</span> · <span>일정·명함</span> › <span class="num">2026-10 연락이력</span> 같은 달별 파일</div>
           ${S.REMOTE ? `<p class="sub" style="margin:6px 0 10px">${st.settings.archiveAt ? `마지막 정리 ${(() => { const d = new Date(st.settings.archiveAt); return isNaN(d) ? '' : `${d.getFullYear()}.${U.pad(d.getMonth() + 1)}.${U.pad(d.getDate())} ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`; })()}${st.settings.archiveBy ? ` · ${U.esc(accName(st.settings.archiveBy) || st.settings.archiveBy)}` : ''}` : '아직 정리한 적 없어요. 아래 "지금까지 전부 정리"를 한 번 눌러 주세요.'} · 자동 정리 <b>${st.settings.archiveAuto === 'N' ? '꺼짐' : '켜짐'}</b> (관리자가 사이트를 열면 하루 한 번 이번 달·지난달 파일을 새로 고쳐요. 같은 파일을 고쳐 쓰니 링크가 그대로예요)</p>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="archive-now" data-all="1">지금까지 전부 정리</button><button class="btn" type="button" data-act="archive-now">이번 달·지난달만 지금 정리</button>${st.settings.archiveFolderId ? `<a class="btn" href="https:\/\/drive.google.com/drive/folders/${U.esc(st.settings.archiveFolderId)}" target="_blank" rel="noopener">📂 폴더 열기</a>` : ''}<button class="btn btn-ghost" type="button" data-act="archive-toggle">자동 정리 ${st.settings.archiveAuto === 'N' ? '켜기' : '끄기'}</button></div>`
           : '<p class="sub" style="margin:6px 0 0">팀 공유 사이트(구글 시트 연결)에서 쓸 수 있어요. 지금 버전에서는 아래 <b>달별 엑셀 정리</b>로 파일을 받아 보관하세요.</p>'}
         </section>
-        <section class="panel panel-pad">
+        <section data-dtab="backup" class="panel panel-pad">
           <h2 class="section-title">📊 달별 엑셀 정리 <span class="sub">연락이력·방문 사업체·실적·신규 사업체·일정·명함을 달마다 시트로 나눠 한 파일로</span></h2>
           <div class="inline mx-row"><label>시작 달 <input class="input" type="month" id="mxFrom" value="${U.today().slice(0, 7)}"></label><label>끝 달 <input class="input" type="month" id="mxTo" value="${U.today().slice(0, 7)}"></label>
             <button class="btn btn-primary" type="button" data-act="month-xlsx">시작 달 한 달 파일</button><button class="btn" type="button" data-act="month-xlsx" data-range="1">기간 전체 한 파일 (월별 요약 포함)</button></div>
           <p class="sub" style="margin:8px 0 0">지금 보는 범위(${e(S.scopeLabel())}) 기준이에요. 팀 공유 사이트는 매달 1일 새벽에 지난달 정리 파일이 구글 드라이브 '아르딤 취업지원 월별 정리' 폴더에 자동으로 만들어져요(자동 작업을 켠 경우).</p>
         </section>
-        <section class="panel panel-pad">
+        <section data-dtab="people" class="panel panel-pad">
           <h2 class="section-title">👥 담당자 정리 <span class="sub">그만둔 직원·다른 사업 직원의 이름과 담당 기록을 한 번에 지워요</span></h2>
           <div class="inline"><button class="btn" type="button" data-act="staff-clean">담당자 정리하기</button><span class="sub">지울 사람을 고르면 사업체·기관·활동·일정·실적·출장 기록 수를 먼저 보여줘요.</span></div>
         </section>
-        <section class="panel panel-pad">
+        <section data-dtab="check" class="panel panel-pad">
           <h2 class="section-title">🩺 저장 점검 <span class="sub">입력한 기록이 구글 시트에 제대로 쌓이는지 시트마다 확인해요</span></h2>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="self-test">지금 점검하기</button>${S.REMOTE && S.outboxSize() ? `<button class="btn" type="button" data-act="outbox-flush">못 보낸 기록 ${S.outboxSize()}건 다시 보내기</button>` : ''}<span class="sub">입력은 먼저 이 컴퓨터에 보관한 뒤 구글 시트로 보내요. 인터넷이 끊겨도 지워지지 않고, 연결되면 자동으로 다시 보내요.</span></div>
         </section>
-        <section class="panel panel-pad">
+        <section data-dtab="check" class="panel panel-pad">
           <h2 class="section-title">🧹 중복 정리 <span class="sub">이름·전화·사업자번호가 같은 것을 묶어서 하나만 남겨요</span></h2>
           <div class="dd-cards">${[['biz', '사업체'], ['net', '기관'], ['card', '명함']].map(([k, l]) => { const n = S.dupIndex(k).size; return `<div class="dd-card"><span>${l}</span><b class="num ${n ? 'warn' : ''}">${n ? `겹침 ${n}건` : '깔끔함'}</b><button class="btn btn-sm ${n ? 'btn-primary' : ''}" type="button" data-act="dedupe-open" data-kind="${k}" ${n ? '' : 'disabled'}>한 번에 정리</button></div>`; }).join('')}</div>
         </section>
-        <section class="panel panel-pad">
+        <section data-dtab="backup" class="panel panel-pad">
           <h2 class="section-title">엑셀로 내보내기</h2>
           <p>사업체·네트워크·명함·활동기록·일정을 시트별로 담은 엑셀 파일을 받습니다. 팀원과 공유하거나 백업할 때 사용하세요. (명함 사진은 제외)</p>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="xlsx-export">엑셀 내보내기</button><button class="btn" type="button" data-act="xlsx-template">빈 엑셀 양식 받기</button></div>
         </section>
         ${admin ? `
-        <section class="panel panel-pad">
+        <section data-dtab="backup" class="panel panel-pad">
           <h2 class="section-title">엑셀에서 가져오기</h2>
           <p>이 사이트에서 내보낸 엑셀(같은 시트·열 이름)을 올려요. <b>합치기</b>는 지금 데이터는 그대로 두고 파일에만 있는 기록을 더해요(같은 기록은 두 번 들어가지 않아요). <b>전체 교체</b>는 지금 데이터를 모두 지우고 파일 내용으로 바꿔요.</p>
           <input type="file" id="xlsxFile" accept=".xlsx,.xls" hidden>
           <div class="inline"><button class="btn btn-primary" type="button" data-act="xlsx-import" data-mode="merge">엑셀 합치기 (추천)</button><button class="btn" type="button" data-act="xlsx-import" data-mode="replace">엑셀로 전체 교체</button></div>
         </section>
         ` : ''}
-        <section class="panel panel-pad">
+        <section data-dtab="backup" class="panel panel-pad">
           <h2 class="section-title">전체 백업 (사진 포함)</h2>
           <p>명함 사진까지 모두 담긴 백업 파일(JSON)을 받거나, 백업 파일로 복원합니다.</p>
           <input type="file" id="jsonFile" accept=".json,application/json" hidden>
           <div class="inline"><button class="btn" type="button" data-act="json-export">백업 파일 받기</button>${admin ? '<button class="btn" type="button" data-act="json-import">백업에서 복원</button>' : ''}</div>
         </section>
         ${admin ? `
-        <section class="panel panel-pad staff-editor">
+        <section data-dtab="people" class="panel panel-pad staff-editor">
           <h2 class="section-title">담당 직원과 소속 사업</h2>
           <p>소속이 곧 화면 구역이에요. <b>현장중심</b> = 현장중심직업재활센터(한국장애인개발원), <b>고용공단</b> = 고용지원사업(한국장애인고용공단), <b>장애인일자리</b> = 장애인일자리사업. 직원마다 소속을 꼭 정해 주세요. 소속이 없으면 어느 구역에서도 담당자로 고를 수 없어요.</p>
           <div class="prog-mgr"><b>소속 사업</b>
@@ -5931,20 +6007,20 @@ window.V = (() => {
         </section>
         ` : ''}
         ${admin ? `
-        <section class="panel panel-pad">
+        <section data-dtab="people" class="panel panel-pad">
           <h2 class="section-title">소속별 실적 분류표</h2>
           <p>활동 기록을 어느 실적표(대분류·중분류·세부사업명)로 집계할지 정합니다.</p>
           ${D.PROGRAMS.map(pr => `<div class="inline" style="width:100%"><span style="min-width:96px;font-weight:600" title="${e(D.progFull(pr.key))}">${e(D.progLabel(pr.key))}</span><select class="select" data-perfmap="${e(pr.key)}" style="flex:1">${Object.keys(D.PERF_SETS).map(k => `<option ${st.settings.perfByProgram[pr.key] === k ? 'selected' : ''}>${e(k)}</option>`).join('')}<option value="" ${!st.settings.perfByProgram[pr.key] ? 'selected' : ''}>실적 집계 안 함</option></select></div>`).join('')}
           <button class="btn btn-sm" type="button" data-act="save-perfmap">저장</button>
         </section>
         ` : ''}
-        <section class="panel panel-pad">
+        <section data-dtab="people" class="panel panel-pad">
           <h2 class="section-title">이 PC를 쓰는 사람</h2>
           <p>활동 기록을 남길 때 기록한 사람으로 저장됩니다. PC마다 따로 기억합니다.</p>
           <div class="inline" style="width:100%"><select class="select" id="meSel" data-act-change="me-set">${st.settings.staff.map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${e(s.name)}</option>`).join('')}</select></div>
         </section>
         ${admin ? `
-        <section class="panel panel-pad staff-editor">
+        <section data-dtab="connect" class="panel panel-pad staff-editor">
           <h2 class="section-title">대시보드 바로가기</h2>
           <p>취업알선 사이트, 복지관 홈페이지 등 자주 여는 사이트를 대시보드 위쪽 버튼으로 둡니다.</p>
           <div class="staff-rows" id="linkRows">${(st.settings.links || []).map(l => linkRow(l)).join('')}</div>
@@ -5952,7 +6028,7 @@ window.V = (() => {
         </section>
         ` : ''}
         ${admin ? `
-        <section class="panel panel-pad">
+        <section data-dtab="connect" class="panel panel-pad">
           <h2 class="section-title">AI 도우미 (명함 읽기 · 기초 조사 · 요약)</h2>
           <p>Claude API 키를 넣으면 명함 사진 자동 입력, 사업체 인터넷 기초 조사, 3줄 요약을 쓸 수 있습니다. 키는 <a href="https:\/\/console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>에서 발급하고, 쓴 만큼 요금이 나옵니다.</p>
           <p>${S.REMOTE ? '키는 구글 서버(스크립트 속성)에만 저장되고 팀원 브라우저에는 전달되지 않습니다.' : '키는 이 PC 브라우저에만 저장됩니다. 공용 PC라면 쓰지 마세요.'} 명함 사진과 사업체 정보가 AI 서비스로 전송되니 기관 개인정보 지침을 확인하세요.</p>
@@ -5961,7 +6037,7 @@ window.V = (() => {
         </section>
         ` : ''}
         ${admin ? `
-        <section class="panel panel-pad">
+        <section data-dtab="connect" class="panel panel-pad">
           <h2 class="section-title">🗺 지도 배경: 브이월드 (한국 지도) ${S.get().settings.vworldKey ? '<span class="badge success">사용 중</span>' : '<span class="badge">키 없음</span>'}</h2>
           <p>국토교통부 브이월드 지도는 카카오·네이버처럼 <b>한글 도로명·건물·지명</b>이 자세히 나와요. 무료 키를 넣으면 <b>모든 지도 배경이 브이월드</b>로 바뀌어요(지도 오른쪽 위 버튼에서 항공사진·다른 지도로도 바꿀 수 있어요).</p>
           <ol class="steps-help"><li><a href="https:\/\/www.vworld.kr/dev/v4dv_apikey_s001.do" target="_blank" rel="noopener">브이월드 오픈API → 인증키 발급</a> (회원가입 후 무료, 바로 발급)</li><li>활용 API는 <b>WMTS/TMS(2D 지도)</b>와 <b>지오코더(주소 검색)</b>를 고르고, 서비스 URL에 <b>${S.REMOTE ? 'https:\/\/script.google.com' : '이 사이트 주소'}</b>를 넣어요</li><li>받은 인증키를 아래에 붙여넣고 저장 → 지도 화면을 다시 열면 브이월드로 나와요</li></ol>
@@ -5971,14 +6047,14 @@ window.V = (() => {
         </section>
         ` : ''}
         ${admin ? `
-        <section class="panel panel-pad">
+        <section data-dtab="connect" class="panel panel-pad">
           <h2 class="section-title">화성시 대시보드 주소</h2>
           <p>지도 화면의 '화성시 대시보드' 탭에 보여줄 화성시 통합 대시보드 공유 링크입니다.</p>
           <div class="inline" style="width:100%"><input class="input" id="cityMapInput" type="url" value="${e(st.settings.cityMapUrl || '')}" placeholder="https:\/\/total.hscity.go.kr/..."><button class="btn" type="button" data-act="save-citymap">저장</button></div>
         </section>
         ` : ''}
         ${admin ? `
-        <section class="panel panel-pad">
+        <section data-dtab="backup" class="panel panel-pad">
           <h2 class="section-title">처음부터 시작</h2>
           <p>예시 데이터를 지우고 빈 상태로 시작하거나, 예시 데이터를 다시 불러옵니다. 되돌릴 수 없으니 먼저 백업하세요.</p>
           <div class="inline"><button class="btn btn-danger" type="button" data-act="data-clear">모든 데이터 지우기</button><button class="btn" type="button" data-act="data-demo">예시 데이터 불러오기</button></div>
@@ -11914,6 +11990,7 @@ window.App = (() => {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), '실적(기타)');
       XLSX.writeFile(wb, `실적_${f.set}_${f.month}.xlsx`);
     },
+    'data-tab': el => { V.ui.dataTab = el.dataset.tab; render(); },
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),

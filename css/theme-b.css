@@ -137,3 +137,7 @@
   .side-nav a .sn-t small { display: none; }
   .side-nav a.active::before { left: -8px; }
 }
+
+/* 왼쪽 남색 메뉴가 긴 화면에서도 끝까지 이어지게 */
+@media (min-width: 1101px) { .app { background: linear-gradient(to right, var(--b-navy) 248px, transparent 248px); } }
+@media (max-width: 1100px) and (min-width: 861px) { .app { background: linear-gradient(to right, var(--b-navy) 92px, transparent 92px); } }

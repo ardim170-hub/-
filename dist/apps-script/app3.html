@@ -1,4 +1,4 @@
-<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.18 08:54";</script>
+<script>(window.__parts = window.__parts || []).push('app3'); (window.__ver = window.__ver || {})['app3'] = "2026.11.18 09:06";</script>
 <script>
 /* 현장 모드: 밖에서 휴대폰으로 쓰는 첫 화면.
  * ① 사업체·기관 찾기 → 그곳의 연락이력(최신순)·명함·전화·길찾기
@@ -2600,6 +2600,7 @@ window.App = (() => {
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), '실적(기타)');
       XLSX.writeFile(wb, `실적_${f.set}_${f.month}.xlsx`);
     },
+    'data-tab': el => { V.ui.dataTab = el.dataset.tab; render(); },
     'perf-tab': el => { V.ui.perf.tab = el.dataset.tab; render(); if (el.dataset.tab === 'sync' && S.REMOTE && org.key !== orgKey()) orgSyncRun(false); },
     'org-sync': () => { V.ui.perf.tab = 'sync'; render(); if (S.REMOTE) orgSyncRun(false); window.scrollTo(0, 0); },
     'org-sync-check': () => orgSyncRun(false),
