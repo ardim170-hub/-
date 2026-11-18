@@ -259,8 +259,8 @@ details.list .in{padding:0 12px 12px}
   const range=async r=>(await call("get_values",{spreadsheetId:SHEET,range:r})).values||[];
   function errText(e){
     const c=e&&e.code;
-    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
-    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. 앱 위쪽 '확인하기'로 다시 로그인해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "구글 시트에 연결하지 못했어요. 앱에 다시 로그인해 주세요.";
     if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. 새로고침하고 허용을 선택해 주세요.";
     if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
     if(c==="tool_error") return "시트가 요청을 거절했습니다."+(e.message?" ("+String(e.message).slice(0,140)+")":"");
@@ -611,7 +611,7 @@ details.list .in{padding:0 12px 12px}
     $("#devForm [data-k=d]").value=iso(now); $("#mngForm [data-k=d]").value=iso(now);
     downloads=await useCap("downloads");
     mcp=await useCap("mcp");
-    if(!mcp){st("#loadStatus",inClaude?"이 화면에서는 DB를 읽을 수 없습니다.":"Claude에서 열어야 DB를 읽을 수 있습니다.",true);return;}
+    if(!mcp){st("#loadStatus",inClaude?"이 화면에서는 DB를 읽을 수 없습니다.":"아르딤 앱 안에서 열어야 DB를 읽을 수 있어요.",true);return;}
     try{await loadDB();st("#loadStatus","");$("#loadStatus").hidden=true;
       const a=ymOf($("#planYM").value),b=ymOf($("#resYM").value);newPlan(a.y,a.m);newResult(b.y,b.m);drawBiz();}
     catch(e){st("#loadStatus",errText(e),true,true);}

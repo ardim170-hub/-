@@ -346,7 +346,7 @@ ${memo}
   $("#runBtn").onclick=async()=>{
     const memo=$("#memo").value.trim();
     if(!memo){status("메모를 먼저 입력해 주세요.",true);$("#memo").focus();return;}
-    if(!sample){status("자동 정리를 쓸 수 없는 화면입니다. 양식에 직접 입력해 주세요.",true);return;}
+    if(!sample){status("AI 도우미가 꺼져 있어요. 관리자가 데이터 관리 → 연결(API) → AI 도우미에 Claude API 키를 넣으면 쓸 수 있어요. 그 전에는 직접 입력해 주세요.",true);return;}
     const btn=$("#runBtn"); btn.disabled=true; status("정리하는 중입니다…");
     try{
       const r=await sample.json(buildPrompt(memo),{modelTier:"default"});
@@ -582,7 +582,7 @@ function buildDoc(docx, d, methodParts){
     });
   }
   let mcp=null;
-  useCap("mcp").then(m=>{mcp=m; if(!m){$("#dbBtn").disabled=true; dbStatus("이 화면에서는 DB 저장을 쓸 수 없습니다. Claude에서 페이지를 열어 주세요.",true);}});
+  useCap("mcp").then(m=>{mcp=m; if(!m){$("#dbBtn").disabled=true; dbStatus("이 화면에서는 DB 저장을 쓸 수 없습니다. 아르딤 앱 안에서 열어 주세요.",true);}});
   const pad=n=>String(n).padStart(2,"0");
   const toIso=s=>{const m=/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/.exec(s||"");return m?m[1]+"-"+pad(m[2])+"-"+pad(m[3]):"";};
   const digits=s=>String(s||"").replace(/\D/g,"");
@@ -591,8 +591,8 @@ function buildDoc(docx, d, methodParts){
   const call=async(tool,input)=>(await mcp.callTool(GS,tool,input)).payload||{};
   function dbErr(e){
     const c=e&&e.code;
-    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
-    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. 앱 위쪽 '확인하기'로 다시 로그인해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "구글 시트에 연결하지 못했어요. 앱에 다시 로그인해 주세요.";
     if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 페이지에서 구글 시트 사용이 허용되지 않았습니다. 다시 누르고 허용을 선택해 주세요.";
     if(c==="blocked_by_policy") return "기관 정책으로 이 페이지에서 구글 시트를 쓸 수 없습니다.";
     if(c==="tool_error") return "시트가 저장을 거절했습니다. 시트를 열어 확인해 주세요."+(e&&e.message?" (자세한 내용: "+String(e.message).slice(0,160)+")":"");
@@ -779,7 +779,7 @@ ${db?JSON.stringify({참여자:db.person,직업상담기록:db.seek},null,1):"(�
   $("#resumeBtn").onclick=async()=>{
     const form=data();
     if(!form.name){rs("성명을 먼저 채워 주세요.",true);return;}
-    if(!sample){rs("이 화면에서는 자동 초안을 쓸 수 없습니다.",true);return;}
+    if(!sample){rs("AI 도우미가 꺼져 있어요. 관리자가 데이터 관리 → 연결(API) → AI 도우미에 Claude API 키를 넣으면 쓸 수 있어요. 그 전에는 직접 입력해 주세요.",true);return;}
     const btn=$("#resumeBtn");btn.disabled=true;
     try{
       rs("참여자 관리 DB를 확인하는 중…");

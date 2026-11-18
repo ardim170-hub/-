@@ -292,8 +292,8 @@ table.form [contenteditable]:empty::before{content:attr(data-ph);color:var(--mut
   /* ---------- 불러오기 ---------- */
   function errText(e){
     const c=e&&e.code;
-    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. claude.ai 설정 → 커넥터에서 Google Sheets를 다시 연결해 주세요.";
-    if(c==="server_not_connected"||c==="selection_required") return "Google Sheets 커넥터가 없습니다. claude.ai 설정 → 커넥터에서 추가해 주세요.";
+    if(c==="needs_reauth") return "구글 시트 연결이 끊겼습니다. 앱 위쪽 '확인하기'로 다시 로그인해 주세요.";
+    if(c==="server_not_connected"||c==="selection_required") return "구글 시트에 연결하지 못했어요. 앱에 다시 로그인해 주세요.";
     if(c==="not_in_manifest"||c==="approval_required"||c==="not_granted") return "이 화면에서 구글 시트 사용이 허용되지 않았습니다. 페이지를 새로고침하고 허용을 선택해 주세요.";
     if(c==="blocked_by_policy") return "기관 정책으로 이 화면에서 구글 시트를 쓸 수 없습니다.";
     if(c==="tool_error") return "시트가 요청을 거절했습니다. 시트 편집 권한이 있는 계정인지 확인해 주세요.";
@@ -328,7 +328,7 @@ table.form [contenteditable]:empty::before{content:attr(data-ph);color:var(--mut
   $("#aiBtn").onclick=async()=>{
     const memo=s($("#memo").value);
     if(!memo){status("메모를 먼저 적어 주세요.",true);$("#memo").focus();return;}
-    if(!sample){status("이 화면에서는 정리하기를 쓸 수 없습니다. 양식에 직접 적어 주세요.",true);return;}
+    if(!sample){status("AI 도우미가 꺼져 있어요. 관리자가 데이터 관리 → 연결(API) → AI 도우미에 Claude API 키를 넣으면 쓸 수 있어요. 그 전에는 직접 입력해 주세요.",true);return;}
     const btn=$("#aiBtn"); btn.disabled=true; status("메모를 양식에 맞게 정리하는 중입니다…");
     const p=sel&&D.byId[sel]; const last=p?D.sessions.filter(x=>x.id===p.id).sort((a,b)=>(toDate(b.date)||0)-(toDate(a.date)||0))[0]:null;
     const prompt=`너는 장애인복지관 직업지원팀 사회복지사의 '과정상담기록지' 작성을 돕는다. 상담목적은 "${v.purpose||purpose}"이다.
@@ -442,11 +442,11 @@ ${memo}
 
   loadDraft(); renderMethods();
   const inClaude=!!(window.claude&&typeof window.claude.use==="function");
-  if(!inClaude){$("#banner").textContent="이 화면은 claude.ai에서 열었을 때만 구글 시트를 읽고 저장할 수 있습니다.";}
+  if(!inClaude){$("#banner").textContent="이 화면은 아르딤 앱(고용공단 → 고용지원 업무판) 안에서 열어야 구글 시트를 읽고 저장할 수 있어요.";}
   else{
     claude.use("sample").then(x=>{sample=x;if(!x)$("#aiBtn").disabled=true;}).catch(()=>{});
     claude.use("downloads").then(x=>{downloads=x;if(!x)$("#hwpBtn").hidden=true;}).catch(()=>{});
-    claude.use("mcp").then(m=>{mcp=m;if(!m){$("#banner").textContent="이 화면에서는 구글 시트를 쓸 수 없습니다. claude.ai에서 다시 열어 주세요.";$("#saveBtn").disabled=true;return;}load();}).catch(()=>{});
+    claude.use("mcp").then(m=>{mcp=m;if(!m){$("#banner").textContent="구글 시트에 쓰지 못했어요. 앱에 다시 로그인해 주세요.";$("#saveBtn").disabled=true;return;}load();}).catch(()=>{});
   }
 })();
 </script>
