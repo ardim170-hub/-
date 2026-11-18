@@ -2821,6 +2821,119 @@ details[open] > :not(summary) { animation: rise var(--t-mid) var(--ease) both; }
 .dp-kpi.click .dp-kpi-t { padding-right: 54px; }
 
 </style>
+<style>
+/* ================= 밝고 부드럽게: 글씨 색 한 단계 밝게, 어두운 막대 걷어내기 =================
+ * 글씨는 진한 검정 대신 짙은 회색 3단계(제목·본문·보조), 선은 아주 연하게.
+ * 왼쪽 메뉴·대시보드 머리는 흰 바탕으로 바꾸고, 파트 색은 고른 메뉴·핵심 버튼에만. */
+:root {
+  --text: #333D4B;      /* 본문 */
+  --navy: #191F28;      /* 제목 */
+  --text-2: #6B7684;    /* 보조 */
+  --muted: #8B95A1;     /* 흐린 글씨 */
+  --line: #E9ECEF;
+  --line-strong: #D5DAE0;
+  --surface-2: #F4F5F7;
+  --b-ink: #191F28;
+  --b-ink-2: #6B7684;
+  --b-line: #E9ECEF;
+  --b-bg: #F7F8FA;
+}
+body { color: var(--text); letter-spacing: 0; }
+.page-title, .section-title, h1, h2, h3, .dr-title, .dp-title { color: var(--navy); }
+.page-desc, .sub { color: var(--text-2); }
+.page-head { border-bottom: 1px solid var(--line) !important; padding-bottom: 16px; }
+
+/* ---------- 왼쪽 메뉴: 흰 바탕 (컴퓨터) ---------- */
+@media (min-width: 861px) {
+  body { background: var(--b-bg); }
+  .app { background: none !important; }
+  .sidebar { background: #fff; border-right: 1px solid var(--line); color: var(--text); }
+  .sec-title { border-left: 3px solid var(--sc); }
+  .sec-title b { color: var(--navy); }
+  .sec-title span { color: var(--muted); }
+  .side-nav a { color: #4E5968; }
+  .side-nav a svg { background: #F2F4F6; color: #6B7684; }
+  .side-nav a .sn-t b { font-weight: 600; }
+  .side-nav a .sn-t small { color: var(--muted); }
+  .side-nav a:hover { background: #F7F8FA; color: var(--navy); }
+  .side-nav a:hover svg { background: #ECEEF1; }
+  .side-nav a.active { background: var(--ss); color: var(--si); }
+  .side-nav a.active svg { background: var(--sc); color: #fff; }
+  .side-nav a.active .sn-t b { font-weight: 700; }
+  .side-nav a.active .sn-t small { color: color-mix(in srgb, var(--si) 65%, #fff); }
+  .side-nav a .count { color: var(--muted); }
+  .side-foot { border-top-color: var(--line); color: var(--muted); }
+  .side-foot a { color: var(--text-2); }
+  .sidebar .more-secs { border-top-color: var(--line); }
+  .sidebar .more-secs button { background: #fff; border-color: var(--line-strong); color: var(--text); }
+  .topbar { background: rgba(247, 248, 250, .9); }
+  .sec-btn { color: #4E5968; font-weight: 600; }
+  .sec-btn:hover { color: var(--navy); }
+}
+
+/* ---------- 대시보드 머리: 어두운 막대 → 흰 바탕 ---------- */
+.dp-top { background: #fff; color: var(--navy); border-bottom: 1px solid var(--line); }
+.dp-title { color: var(--navy); font-weight: 650; }
+.dp-ctl .seg { background: #F2F4F6; }
+.dp-ctl .seg button { color: #6B7684; font-weight: 600; }
+.dp-ctl .seg button.on { background: #fff; color: var(--navy); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+.dp-ctl .icon-btn { color: #4E5968; background: #F2F4F6; }
+.dp-period { color: var(--navy); }
+
+/* ---------- 켜고 끄기 스위치 ---------- */
+.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text); user-select: none; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch-ui { position: relative; width: 42px; height: 24px; border-radius: 12px; background: #D1D6DB; transition: background-color var(--t-mid, 200ms) var(--ease, ease); flex: none; }
+.switch-ui::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .18); transition: transform var(--t-mid, 200ms) var(--ease, ease); }
+.switch input:checked + .switch-ui { background: var(--sc, var(--accent)); }
+.switch input:checked + .switch-ui::after { transform: translateX(18px); }
+.switch input:focus-visible + .switch-ui { outline: 2px solid var(--sc, var(--accent)); outline-offset: 2px; }
+
+/* ---------- 들어오기 요청 (관리자) ---------- */
+.data-grid > .acc-req { grid-column: 1 / -1; }
+.acc-req-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.req-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.req { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: center; padding: 14px 16px; border-top: 1px solid var(--line); animation: rise var(--t-slow, 320ms) var(--ease, ease) both; }
+.req:first-child { border-top: 0; }
+.req-who { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.req-who b { font-size: 15.5px; color: var(--navy); }
+.req-note { font-size: 13.5px; color: var(--text); margin-top: 4px; }
+.req-acts { display: flex; gap: 6px; }
+.req-block { color: #D22030; }
+.req-empty { margin: 0; padding: 18px; text-align: center; color: var(--muted); background: #F9FAFB; border-radius: 12px; font-size: 14px; }
+.req-blocked { margin-top: 12px; }
+.req-blocked summary { cursor: pointer; color: var(--text-2); font-size: 14px; }
+.req-blocked ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.req-blocked li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+@media (max-width: 720px) { .req { grid-template-columns: 1fr; } .req-at { display: none; } .req-acts { flex-wrap: wrap; } }
+
+/* ---------- 권한 요청 화면 (권한 없는 사람) ---------- */
+body.gated .sidebar, body.gated .bottom-nav, body.gated .topbar, body.gated .sec-nav, body.gated .demo-banner, body.gated #demoBanner, body.gated .crumb { display: none !important; }
+body.gated .app { grid-template-columns: minmax(0, 1fr) !important; }
+.gate { min-height: calc(100vh - 140px); display: grid; place-items: center; padding: 24px 0; }
+.gate-card { width: min(440px, 100%); background: #fff; border: 1px solid var(--line); border-radius: 20px; padding: 32px 28px 24px; box-shadow: 0 8px 24px rgba(0, 0, 0, .05); animation: rise var(--t-slow, 320ms) var(--ease, ease) both; }
+.gate-mark { width: 48px; height: 48px; border-radius: 14px; background: var(--ss, #EEF3FD); color: var(--si, #2F5BD3); display: grid; place-items: center; margin-bottom: 18px; }
+.gate-mark svg { width: 24px !important; height: 24px !important; margin: 0 !important; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.gate-card h1 { font-size: 22px; font-weight: 700; margin: 0 0 8px; color: var(--navy); letter-spacing: -.01em; }
+.gate-card > p { margin: 0 0 18px; color: var(--text-2); font-size: 15px; line-height: 1.6; }
+.gate-state { display: inline-block; margin-bottom: 10px; padding: 3px 10px; border-radius: 6px; background: #FFF4E5; color: #B25E09; font-size: 12.5px; font-weight: 600; }
+.gate-form { display: flex; flex-direction: column; gap: 14px; }
+.gate-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; font-weight: 600; color: var(--text); }
+.gate-form label em { font-style: normal; font-weight: 400; color: var(--muted); margin-left: 4px; }
+.gate-form .input, .gate-form .textarea { min-height: 46px; font-size: 16px; border-radius: 10px; }
+.gate-err { margin: 0; min-height: 0; color: #D22030; font-size: 13.5px; }
+.gate-err:empty { display: none; }
+.gate-send { min-height: 50px !important; font-size: 16px; border-radius: 12px; }
+.gate-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.gate-acts .btn { flex: 1 1 auto; min-height: 46px; }
+.gate-sum { display: grid; grid-template-columns: 70px 1fr; gap: 6px 10px; margin: 0 0 18px; padding: 14px 16px; background: #F9FAFB; border-radius: 12px; font-size: 14px; }
+.gate-sum dt { color: var(--muted); } .gate-sum dd { margin: 0; color: var(--text); }
+.gate-me { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.gate-me b { color: var(--text-2); font-weight: 600; }
+.gate-foot { margin-top: 6px; }
+.gate-foot .btn-ghost { padding-left: 0; color: var(--text-2); }
+
+</style>
 </head>
 <body>
 <header class="site-head">
@@ -2906,7 +3019,7 @@ details[open] > :not(summary) { animation: rise var(--t-mid) var(--ease) both; }
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.18 12:00";</script>
+<script>window.APP_VERSION = "2026.11.18 12:10";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -3697,7 +3810,11 @@ window.S = (() => {
       if (before !== JSON.stringify(access)) lastSig = ''; // 내 권한이 바뀌면 화면을 다시 그린다
       if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
       setSync('saved');
-    } catch (err) { setSync('error', err); }
+    } catch (err) {
+      // 쓰던 중에 권한이 빠지거나 막히면: 저장해 둔 화면을 지우고 다시 열어 권한 요청 화면으로
+      if (/사이트를 쓸 권한이 없습니다/.test(String(err && err.message || err))) { await clearCache(); location.reload(); return; }
+      setSync('error', err);
+    }
   }
 
   /** 현재 접속자 알리기·받기 (공유 모드에서만) */
@@ -5949,6 +6066,26 @@ window.V = (() => {
     const admins = split(st.admins), members = split(st.members);
     return [...new Set([...admins, ...members])].map(email => ({ email, admin: admins.includes(email) }));
   }
+  /** 사람·권한 맨 위: 들어오기 요청 · 승인제 · 막은 계정 */
+  function accessRequests() {
+    const st = S.get().settings;
+    const js = v => { if (v && typeof v === 'object') return v; try { return JSON.parse(v || '{}') || {}; } catch { return {}; } };
+    const reqs = Object.entries(js(st.requests)).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+    const blocked = String(st.blocked || '').split(/[\s,;]+/).filter(x => x.includes('@'));
+    const on = st.approval === 'Y';
+    const when = t => { const d = new Date(t); return isNaN(d) ? '' : `${d.getMonth() + 1}.${d.getDate()} ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`; };
+    return `<section data-dtab="people" class="panel panel-pad acc-req">
+      <div class="acc-req-head"><h2 class="section-title">들어오기 요청 ${reqs.length ? `<span class="badge accent num">${reqs.length}</span>` : ''}</h2>
+        <label class="switch"><input type="checkbox" data-act="acc-approval" ${on ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span><span>허용한 사람만 들어오기</span></label></div>
+      <p class="sub" style="margin:0 0 12px">${on ? '지금은 <b>허용한 계정만</b> 들어올 수 있어요. 처음 온 사람은 앱·웹에서 이름을 적어 요청하고, 여기서 허용하면 바로 들어와요.' : '지금은 <b>복지관 계정 누구나</b> 들어올 수 있어요. 켜면 허용한 사람만 들어오고, 나머지는 요청을 보내게 돼요. (켤 때 지금 쓰는 사람과 이름이 있는 계정은 자동으로 허용돼요)'}</p>
+      ${reqs.length ? `<ul class="req-list">${reqs.map(([email, r]) => `<li class="req">
+          <div class="req-who"><b>${e(r.name || '')}</b><span class="sub">${e(email)}</span>${r.note ? `<span class="req-note">${e(r.note)}</span>` : ''}</div>
+          <span class="sub num req-at">${when(r.at)}</span>
+          <div class="req-acts"><button class="btn btn-sm btn-primary" type="button" data-act="acc-decide" data-do="allow" data-role="user" data-email="${e(email)}" data-name="${e(r.name || '')}">허용</button><button class="btn btn-sm" type="button" data-act="acc-decide" data-do="allow" data-role="admin" data-email="${e(email)}" data-name="${e(r.name || '')}">관리자로 허용</button><button class="btn btn-sm btn-ghost req-block" type="button" data-act="acc-decide" data-do="block" data-email="${e(email)}" data-name="${e(r.name || '')}">차단</button></div>
+        </li>`).join('')}</ul>` : '<p class="req-empty">기다리는 요청이 없어요.</p>'}
+      ${blocked.length ? `<details class="req-blocked"><summary>막은 계정 <span class="num">${blocked.length}</span></summary><ul>${blocked.map(x => `<li><span>${e(accName(x) ? accName(x) + ' · ' : '')}${e(x)}</span><button class="btn btn-sm btn-ghost" type="button" data-act="acc-decide" data-do="unblock" data-email="${e(x)}">막기 풀기</button></li>`).join('')}</ul></details>` : ''}
+    </section>`;
+  }
   /* ================= 데이터 관리 = 수납함: 사람·권한 / 연결(API) / 요금·결제 / 백업·정리 / 점검 ================= */
   const DATA_TABS = [['people', '', '사람·권한'], ['connect', '', '연결(API)'], ['cost', '', '요금·결제'], ['backup', '', '백업·정리'], ['check', '', '점검']];
   const cfg = () => window.APP_CONFIG || {};
@@ -6010,6 +6147,7 @@ window.V = (() => {
         ${costPanel()}
         ${calPanel()}
         ${linkPanel()}
+        ${S.REMOTE && admin ? accessRequests() : ''}
         ${S.REMOTE && admin ? `<section data-dtab="people" class="panel panel-pad staff-editor">
           <h2 class="section-title">사용 권한 <span class="sub">바꾸면 바로 저장돼요</span></h2>
           <p>지금 로그인: <b>${e(acc.me || '(구글이 계정을 알려 주지 않음)')}</b> · <span class="badge success">관리자</span></p>
@@ -10095,7 +10233,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `오늘 할 일 · 이번 주 일정 ${n}건` : '오늘 할 일·달력·일정'; }, field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => '사용 권한 · 직원과 소속', dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
+    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } return n ? `들어오기 요청 ${n}건` : '사용 권한 · 직원과 소속'; }, dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -10311,6 +10449,57 @@ window.App = (() => {
       const el = view.querySelector(`form[data-form="${focus.form}"] [name="${focus.name}"]`);
       if (el) { el.focus({ preventScroll: true }); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} }
     }
+  }
+  /* ================= 들어오기 권한 요청 (앱·웹 같은 화면) =================
+   * 권한이 없는 계정: 이름·남길 말을 적어 관리자에게 요청 → 관리자가 사람·권한에서 허용/차단 → 허용되면 30초 안에 저절로 열린다 */
+  async function accessGate() {
+    document.body.classList.add('gated');
+    let st = null;
+    try { st = await S.call('api_access'); } catch (e) { st = { error: e.message || String(e) }; }
+    if (st && st.allowed) { location.reload(); return; }
+    const me = (st && st.me) || '';
+    const out = window.AppAuth && AppAuth.logout ? `<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>` : '<span class="sub">다른 계정으로 들어오려면 구글에서 계정을 바꾼 뒤 다시 열어 주세요.</span>';
+    const card = inner => `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>${inner}<p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p><div class="gate-foot">${out}</div></div>`;
+    let html;
+    if (st.error) html = card(`<h1>권한을 확인하지 못했어요</h1><p>${U.esc(st.error)}</p><div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">다시 확인</button></div>`);
+    else if (st.blocked) html = card('<h1>사용이 막힌 계정이에요</h1><p>관리자가 이 계정의 사용을 막아 두었어요. 필요하면 관리자에게 직접 문의해 주세요.</p>');
+    else if (!st.domainOk) html = card('<h1>복지관 계정으로 들어와 주세요</h1><p>이 사이트는 화성시아르딤복지관 구글 계정(@ardim.or.kr)으로만 쓸 수 있어요.</p>');
+    else if (st.request) {
+      const d = new Date(st.request.at), when = isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`;
+      html = card(`<span class="gate-state">승인 기다리는 중</span><h1>권한 요청을 보냈어요</h1><p>관리자가 허용하면 이 화면이 저절로 열려요. ${when ? `<span class="sub">보낸 때 ${when}</span>` : ''}</p>
+        <dl class="gate-sum"><dt>이름</dt><dd>${U.esc(st.request.name || '')}</dd>${st.request.note ? `<dt>남긴 말</dt><dd>${U.esc(st.request.note)}</dd>` : ''}</dl>
+        <div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">지금 다시 확인</button><button class="btn" type="button" data-gate="edit">요청 고치기</button></div>`);
+      clearInterval(accessGate.t); accessGate.t = setInterval(async () => { try { const s2 = await S.call('api_access'); if (s2 && s2.allowed) location.reload(); } catch { /* 다음에 */ } }, 30000);
+    } else html = gateForm(st);
+    view.innerHTML = `<div class="gate">${html}</div>`;
+    view.onclick = async ev => {
+      const b = ev.target.closest('[data-gate]'); if (!b) return;
+      const k = b.dataset.gate;
+      if (k === 'retry') { b.disabled = true; accessGate(); }
+      if (k === 'logout') AppAuth.logout();
+      if (k === 'edit') { view.querySelector('.gate').innerHTML = gateForm(st, st.request); }
+    };
+    view.onsubmit = async ev => {
+      const f = ev.target.closest('form[data-gate-form]'); if (!f) return;
+      ev.preventDefault();
+      const btn = f.querySelector('button[type=submit]'), msg = f.querySelector('.gate-err');
+      btn.disabled = true; btn.textContent = '보내는 중…'; msg.textContent = '';
+      try { await S.call('api_requestAccess', { name: f.name.value, note: f.note.value }); accessGate(); }
+      catch (e) { msg.textContent = e.message || String(e); btn.disabled = false; btn.textContent = '권한 요청 보내기'; }
+    };
+  }
+  function gateForm(st, prev = {}) {
+    const me = (st && st.me) || '';
+    return `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>
+      <h1>사용 권한 요청</h1><p>아르딤 직업지원팀 사이트는 관리자가 허용한 계정만 쓸 수 있어요. 이름을 적어 보내면 관리자에게 알림이 가요.</p>
+      <form class="gate-form" data-gate-form="1" autocomplete="off">
+        <label><span>이름</span><input class="input" name="name" maxlength="20" required value="${U.esc(prev.name || '')}" placeholder="예: 김정배"></label>
+        <label><span>남길 말 <em>선택</em></span><textarea class="textarea" name="note" rows="2" maxlength="200" placeholder="소속·하는 일 (예: 고용공단 사업 담당)">${U.esc(prev.note || '')}</textarea></label>
+        <p class="gate-err" role="alert"></p>
+        <button class="btn btn-primary gate-send" type="submit">권한 요청 보내기</button>
+      </form>
+      <p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p>
+      <div class="gate-foot">${window.AppAuth && AppAuth.logout ? '<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>' : ''}</div></div>`;
   }
   /* 화면이 바뀔 때만 한 번: 살짝 떠오르며 들어오고, 큰 숫자는 0에서 올라간다 (같은 화면을 다시 그릴 때는 그대로) */
   let enteredRoute = '';
@@ -12625,6 +12814,25 @@ window.App = (() => {
       await saveAcc(rows);
       toast(`${V.accName(email) ? V.accName(email) + ' (' + email + ')' : email}을(를) 추가했습니다.`);
     },
+    'acc-decide': async el => {
+      const { email, do: what, role } = el.dataset;
+      const who = el.dataset.name || V.accName(email) || email;
+      if (what === 'block' && !(await confirmBox('이 계정을 막을까요?', `${who}은(는) 앱과 웹사이트 모두 들어올 수 없게 돼요. 나중에 '막은 계정'에서 풀 수 있어요.`, '차단'))) return;
+      el.disabled = true;
+      try {
+        const out = await S.call('api_decideAccess', { email, action: what, role });
+        Object.assign(S.get().settings, out);
+        toast({ allow: `${who}을(를) ${role === 'admin' ? '관리자로 ' : ''}허용했어요. 30초 안에 그 사람 화면이 열려요.`, block: `${who}을(를) 막았어요.`, unblock: `${who}의 막기를 풀었어요.`, dismiss: '요청을 지웠어요.' }[what]);
+        render();
+      } catch (e) { el.disabled = false; toast(e.message || String(e), 'error'); }
+    },
+    'acc-approval': async el => {
+      const on = el.checked;
+      if (on && !(await confirmBox('허용한 사람만 들어오게 할까요?', '켜면 명단에 없는 계정은 요청을 보내고 기다려야 해요. 지금 쓰고 있는 사람과 이름이 적힌 계정은 자동으로 허용해 둘게요.', '켜기'))) { el.checked = false; return; }
+      el.disabled = true;
+      try { Object.assign(S.get().settings, await S.call('api_setApproval', on)); toast(on ? '이제 허용한 사람만 들어올 수 있어요.' : '이제 복지관 계정 누구나 들어올 수 있어요.'); render(); }
+      catch (e) { el.checked = !on; el.disabled = false; toast(e.message || String(e), 'error'); }
+    },
     'acc-perm-open': el => { V.ui.accOpen = V.ui.accOpen === el.dataset.email ? '' : el.dataset.email; render(); },
     'acc-preset': async el => {
       const { email, preset } = el.dataset;
@@ -13033,6 +13241,7 @@ window.App = (() => {
       await S.init();
     } catch (err) {
       console.error(err);
+      if (S.REMOTE && /사이트를 쓸 권한이 없습니다/.test(String(err && err.message || err))) { accessGate(); return; }
       view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>${S.REMOTE ? '구글 시트에 연결하지 못했습니다. 시트를 공유받았는지 확인하고 새로고침해 보세요. (' + U.esc(err.message || err) + ')' : '브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.'}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
       return;
     }
@@ -13053,6 +13262,8 @@ window.App = (() => {
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);
+      // 관리자: 기다리는 들어오기 요청이 있으면 한 번 알린다
+      if (S.REMOTE && S.isAdmin()) { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } if (n) toast(`들어오기 요청 ${n}건이 기다리고 있어요.`, '', { action: { label: '보기', run: () => { location.hash = '#/dpeople'; } } }); }
       setTimeout(archiveAuto, 8000); // 관리자가 열면 하루 한 번 이번 달·지난달 정리 파일을 드라이브에 새로 고친다
       window.addEventListener('hashchange', () => setTimeout(pingPresence, 300));
       document.addEventListener('click', ev => { if (!ev.target.closest('#presence')) { const m = $('#presenceMenu'); if (m) m.hidden = true; } });

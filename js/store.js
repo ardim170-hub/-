@@ -281,7 +281,11 @@ window.S = (() => {
       if (before !== JSON.stringify(access)) lastSig = ''; // 내 권한이 바뀌면 화면을 다시 그린다
       if (sig !== lastSig) { lastSig = sig; state = next; notify(); }
       setSync('saved');
-    } catch (err) { setSync('error', err); }
+    } catch (err) {
+      // 쓰던 중에 권한이 빠지거나 막히면: 저장해 둔 화면을 지우고 다시 열어 권한 요청 화면으로
+      if (/사이트를 쓸 권한이 없습니다/.test(String(err && err.message || err))) { await clearCache(); location.reload(); return; }
+      setSync('error', err);
+    }
   }
 
   /** 현재 접속자 알리기·받기 (공유 모드에서만) */

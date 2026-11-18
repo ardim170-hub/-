@@ -34,7 +34,7 @@ window.App = (() => {
   const SEC_HINT = {
     dashboard: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `오늘 할 일 · 이번 주 일정 ${n}건` : '오늘 할 일·달력·일정'; }, field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
-    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => '사용 권한 · 직원과 소속', dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
+    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } return n ? `들어오기 요청 ${n}건` : '사용 권한 · 직원과 소속'; }, dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -250,6 +250,57 @@ window.App = (() => {
       const el = view.querySelector(`form[data-form="${focus.form}"] [name="${focus.name}"]`);
       if (el) { el.focus({ preventScroll: true }); try { if (focus.s != null) el.setSelectionRange(focus.s, focus.e); } catch {} }
     }
+  }
+  /* ================= 들어오기 권한 요청 (앱·웹 같은 화면) =================
+   * 권한이 없는 계정: 이름·남길 말을 적어 관리자에게 요청 → 관리자가 사람·권한에서 허용/차단 → 허용되면 30초 안에 저절로 열린다 */
+  async function accessGate() {
+    document.body.classList.add('gated');
+    let st = null;
+    try { st = await S.call('api_access'); } catch (e) { st = { error: e.message || String(e) }; }
+    if (st && st.allowed) { location.reload(); return; }
+    const me = (st && st.me) || '';
+    const out = window.AppAuth && AppAuth.logout ? `<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>` : '<span class="sub">다른 계정으로 들어오려면 구글에서 계정을 바꾼 뒤 다시 열어 주세요.</span>';
+    const card = inner => `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>${inner}<p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p><div class="gate-foot">${out}</div></div>`;
+    let html;
+    if (st.error) html = card(`<h1>권한을 확인하지 못했어요</h1><p>${U.esc(st.error)}</p><div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">다시 확인</button></div>`);
+    else if (st.blocked) html = card('<h1>사용이 막힌 계정이에요</h1><p>관리자가 이 계정의 사용을 막아 두었어요. 필요하면 관리자에게 직접 문의해 주세요.</p>');
+    else if (!st.domainOk) html = card('<h1>복지관 계정으로 들어와 주세요</h1><p>이 사이트는 화성시아르딤복지관 구글 계정(@ardim.or.kr)으로만 쓸 수 있어요.</p>');
+    else if (st.request) {
+      const d = new Date(st.request.at), when = isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`;
+      html = card(`<span class="gate-state">승인 기다리는 중</span><h1>권한 요청을 보냈어요</h1><p>관리자가 허용하면 이 화면이 저절로 열려요. ${when ? `<span class="sub">보낸 때 ${when}</span>` : ''}</p>
+        <dl class="gate-sum"><dt>이름</dt><dd>${U.esc(st.request.name || '')}</dd>${st.request.note ? `<dt>남긴 말</dt><dd>${U.esc(st.request.note)}</dd>` : ''}</dl>
+        <div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">지금 다시 확인</button><button class="btn" type="button" data-gate="edit">요청 고치기</button></div>`);
+      clearInterval(accessGate.t); accessGate.t = setInterval(async () => { try { const s2 = await S.call('api_access'); if (s2 && s2.allowed) location.reload(); } catch { /* 다음에 */ } }, 30000);
+    } else html = gateForm(st);
+    view.innerHTML = `<div class="gate">${html}</div>`;
+    view.onclick = async ev => {
+      const b = ev.target.closest('[data-gate]'); if (!b) return;
+      const k = b.dataset.gate;
+      if (k === 'retry') { b.disabled = true; accessGate(); }
+      if (k === 'logout') AppAuth.logout();
+      if (k === 'edit') { view.querySelector('.gate').innerHTML = gateForm(st, st.request); }
+    };
+    view.onsubmit = async ev => {
+      const f = ev.target.closest('form[data-gate-form]'); if (!f) return;
+      ev.preventDefault();
+      const btn = f.querySelector('button[type=submit]'), msg = f.querySelector('.gate-err');
+      btn.disabled = true; btn.textContent = '보내는 중…'; msg.textContent = '';
+      try { await S.call('api_requestAccess', { name: f.name.value, note: f.note.value }); accessGate(); }
+      catch (e) { msg.textContent = e.message || String(e); btn.disabled = false; btn.textContent = '권한 요청 보내기'; }
+    };
+  }
+  function gateForm(st, prev = {}) {
+    const me = (st && st.me) || '';
+    return `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>
+      <h1>사용 권한 요청</h1><p>아르딤 직업지원팀 사이트는 관리자가 허용한 계정만 쓸 수 있어요. 이름을 적어 보내면 관리자에게 알림이 가요.</p>
+      <form class="gate-form" data-gate-form="1" autocomplete="off">
+        <label><span>이름</span><input class="input" name="name" maxlength="20" required value="${U.esc(prev.name || '')}" placeholder="예: 김정배"></label>
+        <label><span>남길 말 <em>선택</em></span><textarea class="textarea" name="note" rows="2" maxlength="200" placeholder="소속·하는 일 (예: 고용공단 사업 담당)">${U.esc(prev.note || '')}</textarea></label>
+        <p class="gate-err" role="alert"></p>
+        <button class="btn btn-primary gate-send" type="submit">권한 요청 보내기</button>
+      </form>
+      <p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p>
+      <div class="gate-foot">${window.AppAuth && AppAuth.logout ? '<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>' : ''}</div></div>`;
   }
   /* 화면이 바뀔 때만 한 번: 살짝 떠오르며 들어오고, 큰 숫자는 0에서 올라간다 (같은 화면을 다시 그릴 때는 그대로) */
   let enteredRoute = '';
@@ -2564,6 +2615,25 @@ window.App = (() => {
       await saveAcc(rows);
       toast(`${V.accName(email) ? V.accName(email) + ' (' + email + ')' : email}을(를) 추가했습니다.`);
     },
+    'acc-decide': async el => {
+      const { email, do: what, role } = el.dataset;
+      const who = el.dataset.name || V.accName(email) || email;
+      if (what === 'block' && !(await confirmBox('이 계정을 막을까요?', `${who}은(는) 앱과 웹사이트 모두 들어올 수 없게 돼요. 나중에 '막은 계정'에서 풀 수 있어요.`, '차단'))) return;
+      el.disabled = true;
+      try {
+        const out = await S.call('api_decideAccess', { email, action: what, role });
+        Object.assign(S.get().settings, out);
+        toast({ allow: `${who}을(를) ${role === 'admin' ? '관리자로 ' : ''}허용했어요. 30초 안에 그 사람 화면이 열려요.`, block: `${who}을(를) 막았어요.`, unblock: `${who}의 막기를 풀었어요.`, dismiss: '요청을 지웠어요.' }[what]);
+        render();
+      } catch (e) { el.disabled = false; toast(e.message || String(e), 'error'); }
+    },
+    'acc-approval': async el => {
+      const on = el.checked;
+      if (on && !(await confirmBox('허용한 사람만 들어오게 할까요?', '켜면 명단에 없는 계정은 요청을 보내고 기다려야 해요. 지금 쓰고 있는 사람과 이름이 적힌 계정은 자동으로 허용해 둘게요.', '켜기'))) { el.checked = false; return; }
+      el.disabled = true;
+      try { Object.assign(S.get().settings, await S.call('api_setApproval', on)); toast(on ? '이제 허용한 사람만 들어올 수 있어요.' : '이제 복지관 계정 누구나 들어올 수 있어요.'); render(); }
+      catch (e) { el.checked = !on; el.disabled = false; toast(e.message || String(e), 'error'); }
+    },
     'acc-perm-open': el => { V.ui.accOpen = V.ui.accOpen === el.dataset.email ? '' : el.dataset.email; render(); },
     'acc-preset': async el => {
       const { email, preset } = el.dataset;
@@ -2972,6 +3042,7 @@ window.App = (() => {
       await S.init();
     } catch (err) {
       console.error(err);
+      if (S.REMOTE && /사이트를 쓸 권한이 없습니다/.test(String(err && err.message || err))) { accessGate(); return; }
       view.innerHTML = `<div class="panel"><div class="empty"><strong>데이터를 불러오지 못했습니다</strong>${S.REMOTE ? '구글 시트에 연결하지 못했습니다. 시트를 공유받았는지 확인하고 새로고침해 보세요. (' + U.esc(err.message || err) + ')' : '브라우저 저장소에 접근할 수 없습니다. 시크릿 창이라면 일반 창에서 열어 주세요.'}<div><button class="btn" type="button" onclick="location.reload()">다시 시도</button></div></div></div>`;
       return;
     }
@@ -2992,6 +3063,8 @@ window.App = (() => {
       render();
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);
+      // 관리자: 기다리는 들어오기 요청이 있으면 한 번 알린다
+      if (S.REMOTE && S.isAdmin()) { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } if (n) toast(`들어오기 요청 ${n}건이 기다리고 있어요.`, '', { action: { label: '보기', run: () => { location.hash = '#/dpeople'; } } }); }
       setTimeout(archiveAuto, 8000); // 관리자가 열면 하루 한 번 이번 달·지난달 정리 파일을 드라이브에 새로 고친다
       window.addEventListener('hashchange', () => setTimeout(pingPresence, 300));
       document.addEventListener('click', ev => { if (!ev.target.closest('#presence')) { const m = $('#presenceMenu'); if (m) m.hidden = true; } });

@@ -204,10 +204,111 @@ function access_() {
   var members = emails_(st.members);
   // 소유자도 관리자 명단도 알 수 없으면 잠기지 않도록 모두 관리자로 둔다
   var admin = admins.length ? (!!me && admins.indexOf(me) >= 0) : true;
-  var allowed = admin || !members.length || (!!me && members.indexOf(me) >= 0);
+  // 차단: 관리자가 막은 계정은 명단과 상관없이 못 들어온다 (관리자는 막을 수 없다)
+  var blocked = !admin && !!me && emails_(st.blocked).indexOf(me) >= 0;
+  // 승인제(approval=Y): 관리자가 허용한 사람(명단)만. 승인제가 아니고 명단도 비어 있으면 복지관 계정 누구나
+  var approval = st.approval === 'Y';
+  var listed = !!me && members.indexOf(me) >= 0;
+  var allowed = !blocked && (admin || listed || (!approval && !members.length));
   var perms = {};
   if (!admin && me) { try { perms = (JSON.parse(st.perms || '{}') || {})[me] || {}; } catch (e) { perms = {}; } }
-  return { me: me, owner: owner, admin: admin, allowed: allowed, perms: perms };
+  return { me: me, owner: owner, admin: admin, allowed: allowed, blocked: blocked, approval: approval, perms: perms };
+}
+
+/* ---------- 들어오기 요청 ----------
+ * 권한이 없는 사람은 앱·웹에서 '권한 요청'을 보낸다 → 설정 시트 'requests'(JSON)에 쌓이고 관리자에게 메일이 간다
+ * → 관리자가 사람·권한 화면에서 허용(사용자/관리자)하거나 차단한다. */
+function esc_(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function jsonOf_(v) { try { var o = JSON.parse(v || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+function sameDomain_(me) {
+  var o = owner_(), d = o.split('@')[1] || '';
+  return !d || /gmail\.com$/i.test(d) || (me.split('@')[1] || '').toLowerCase() === d.toLowerCase();
+}
+/** 내 상태 (권한이 없어도 부를 수 있다) */
+function api_access() {
+  var a = access_();
+  var req = a.me ? jsonOf_(readSettings_().requests)[a.me] || null : null;
+  return { me: a.me, allowed: a.allowed, admin: a.admin, blocked: a.blocked, approval: a.approval, request: req, domainOk: !a.me || sameDomain_(a.me) };
+}
+/** 권한 요청 보내기: { name, note } */
+function api_requestAccess(p) {
+  p = p || {};
+  var a = access_();
+  if (!a.me) throw new Error('구글 계정 메일을 알 수 없어요. 다시 로그인해 주세요.');
+  if (a.allowed) return api_access();
+  if (a.blocked) throw new Error('이 계정은 관리자가 막아 두었어요. 관리자에게 직접 문의해 주세요.');
+  if (!sameDomain_(a.me)) throw new Error('복지관 계정으로만 요청할 수 있어요.');
+  var name = String(p.name || '').trim().slice(0, 20), note = String(p.note || '').trim().slice(0, 200);
+  if (!name) throw new Error('이름을 적어 주세요.');
+  var first = false;
+  withLock_(function () {
+    var reqs = jsonOf_(readSettings_().requests);
+    first = !reqs[a.me];
+    if (first && Object.keys(reqs).length >= 100) throw new Error('지금 쌓인 요청이 너무 많아요. 관리자에게 직접 문의해 주세요.');
+    reqs[a.me] = { name: name, note: note, at: Date.now() };
+    writeSettings_({ requests: JSON.stringify(reqs) });
+  });
+  // 관리자에게 알림 메일 (처음 요청할 때만, 실패해도 요청은 남는다)
+  if (first) {
+    try {
+      var st = readSettings_(), to = emails_(st.admins);
+      if (a.owner) to.push(a.owner);
+      to = to.filter(function (x, i) { return to.indexOf(x) === i; });
+      if (to.length) MailApp.sendEmail({ to: to.join(','), subject: '[아르딤] 사이트 사용 권한 요청 - ' + name, name: '아르딤 취업지원',
+        htmlBody: '<p><b>' + esc_(name) + '</b> (' + esc_(a.me) + ') 님이 사이트 사용 권한을 요청했어요.</p>' + (note ? '<p>남긴 말: ' + esc_(note) + '</p>' : '') + '<p>사이트 → 데이터 관리 → 사람·권한에서 허용하거나 차단할 수 있어요.</p>' });
+    } catch (e) { /* 메일은 못 보내도 된다 */ }
+  }
+  return api_access();
+}
+/** 관리자: 요청 허용·차단. { email, action: 'allow'|'block'|'unblock'|'dismiss', role: 'user'|'admin', name } */
+function api_decideAccess(p) {
+  var acc = requireAdmin_();
+  p = p || {};
+  var email = String(p.email || '').trim().toLowerCase();
+  if (email.indexOf('@') < 1) throw new Error('메일 주소를 확인해 주세요.');
+  if (email === acc.me && p.action === 'block') throw new Error('자기 자신은 막을 수 없어요.');
+  if (email === acc.owner && p.action === 'block') throw new Error('시트 소유자는 막을 수 없어요.');
+  return withLock_(function () {
+    var st = readSettings_(), out = {};
+    var reqs = jsonOf_(st.requests), names = jsonOf_(st.accNames);
+    var members = emails_(st.members), admins = emails_(st.admins), blocked = emails_(st.blocked);
+    var drop = function (list) { return list.filter(function (x) { return x !== email; }); };
+    var name = String(p.name || (reqs[email] && reqs[email].name) || '').trim().slice(0, 20);
+    if (p.action === 'allow') {
+      if (members.indexOf(email) < 0) members.push(email);
+      if (p.role === 'admin' && admins.indexOf(email) < 0) admins.push(email);
+      blocked = drop(blocked); delete reqs[email];
+      if (name) names[email] = name;
+      // 명단에 처음 사람이 생기면 '명단에 있는 사람만'이 되므로, 허용하는 관리자 자신도 넣어 둔다
+      if (acc.me && members.indexOf(acc.me) < 0) members.push(acc.me);
+    } else if (p.action === 'block') {
+      if (blocked.indexOf(email) < 0) blocked.push(email);
+      members = drop(members); admins = drop(admins); delete reqs[email];
+    } else if (p.action === 'unblock') {
+      blocked = drop(blocked);
+    } else if (p.action === 'dismiss') {
+      delete reqs[email];
+    } else throw new Error('알 수 없는 처리: ' + p.action);
+    out = { members: members.join(','), admins: admins.join(','), blocked: blocked.join(','), requests: JSON.stringify(reqs), accNames: JSON.stringify(names) };
+    writeSettings_(out);
+    return out;
+  });
+}
+/** 관리자: 승인제 켜고 끄기. 켤 때 지금 들어와 있는 사람(최근 접속자)과 이름이 있는 계정은 명단에 넣어 잠기지 않게 한다 */
+function api_setApproval(on) {
+  var acc = requireAdmin_();
+  return withLock_(function () {
+    var st = readSettings_(), members = emails_(st.members);
+    if (on) {
+      var add = Object.keys(jsonOf_(st.accNames));
+      try { var pr = jsonOf_(CacheService.getScriptCache().get('presence')); Object.keys(pr).forEach(function (k) { if (pr[k].email) add.push(pr[k].email); }); } catch (e) { /* 없음 */ }
+      if (acc.me) add.push(acc.me);
+      add.forEach(function (x) { x = String(x).toLowerCase(); if (x.indexOf('@') > 0 && members.indexOf(x) < 0) members.push(x); });
+    }
+    var out = { approval: on ? 'Y' : 'N', members: members.join(',') };
+    writeSettings_(out);
+    return out;
+  });
 }
 
 /* ---------- 메뉴별 권한 ----------
@@ -227,7 +328,7 @@ function requirePerm_(acc, sheet, need) {
 }
 function requireMember_() {
   var a = access_();
-  if (!a.allowed) throw new Error('이 사이트를 쓸 권한이 없습니다. 관리자에게 ' + (a.me || '내 구글 계정') + ' 을(를) 사용자 명단에 넣어 달라고 요청하세요.');
+  if (!a.allowed) throw new Error(a.blocked ? '이 사이트를 쓸 권한이 없습니다. (관리자가 이 계정을 막아 두었어요)' : '이 사이트를 쓸 권한이 없습니다. 관리자에게 권한을 요청해 주세요. (' + (a.me || '내 구글 계정') + ')');
   return a;
 }
 function requireAdmin_() {
@@ -262,7 +363,7 @@ function api_load(schema) {
     });
     ensureSheet_(SETTINGS_SHEET, ['항목', '값']);
     var settings = readSettings_();
-    if (!acc.admin) { delete settings.admins; delete settings.members; delete settings.perms; }
+    if (!acc.admin) { delete settings.admins; delete settings.members; delete settings.perms; delete settings.requests; delete settings.blocked; }
     // 숨김 메뉴의 시트는 아예 보내지 않는다
     Object.keys(SHEET_MENU).forEach(function (name) { if (sheets[name] && name !== '활동기록' && !SHEET_MENU[name].some(function (m) { return level_(acc, m) >= 1; })) sheets[name] = []; });
     return { sheets: sheets, settings: settings, ai: !!aiKey_(), access: { me: acc.me, owner: acc.owner, admin: acc.admin, perms: acc.perms } };
@@ -485,6 +586,8 @@ function writeSettings_(settings) {
 function api_saveSettings(settings, staffRows) {
   var acc = requireAdmin_();
   settings = settings || {};
+  // 요청·차단·승인제는 전용 기능(api_decideAccess·api_setApproval)으로만 바꾼다 (오래된 화면 내용으로 덮어쓰지 않게)
+  delete settings.requests; delete settings.blocked; delete settings.approval;
   // 관리자 명단을 바꿀 때 저장하는 사람은 늘 관리자로 남긴다 (소유자를 못 읽는 경우에도 잠기지 않게)
   if (Object.prototype.hasOwnProperty.call(settings, 'admins') && acc.me && acc.me !== acc.owner) {
     var list = emails_(settings.admins);
