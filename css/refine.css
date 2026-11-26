@@ -108,3 +108,9 @@ body.gated .app { grid-template-columns: minmax(0, 1fr) !important; }
 .gate-me b { color: var(--text-2); font-weight: 600; }
 .gate-foot { margin-top: 6px; }
 .gate-foot .btn-ghost { padding-left: 0; color: var(--text-2); }
+
+/* ---------- 업무도구 구역 색: 청록 ---------- */
+.sec-tools { --c: #0E8C82; }
+body[data-sec="tools"] { --sc: #0E8C82; --ss: #E3F5F3; --si: #0A6B63; }
+body[data-sec="tools"][data-route] { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); --accent: var(--si); --accent-soft: var(--ss); }
+body[data-sec="tools"] #scopeSel, body[data-sec="tools"] .topbar [data-act="toggle-quick"] { display: none !important; } /* 업무도구에서는 보기 범위·새로 등록이 필요 없다 */

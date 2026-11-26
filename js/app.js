@@ -12,6 +12,16 @@ window.App = (() => {
     ['clients', '이용자', 'user', () => (S.view().clients || []).length || ''],
     ['perf', '실적', 'perf'],
     ['empboard', '고용지원 업무판', 'user'],
+    // 업무도구: 김주현 선생님이 만든 도구(emp/ 폴더 화면)를 하나씩 메뉴로
+    ['t-hub', '업무판 홈', 'dash'],
+    ['t-counsel', '직업상담기록지', 'edit'],
+    ['t-records', '상담기록·이력서', 'file'],
+    ['t-match', '취업 매칭', 'link'],
+    ['t-care', '과정상담·사후관리', 'log'],
+    ['t-place', '취업알선 결과', 'check'],
+    ['t-import', '서류 파일로 입력', 'folder'],
+    ['t-report', '월별 계획·결과보고', 'perf'],
+    ['t-eval', '직업평가 기록지', 'user'],
     ['outreach', '홍보·방문처', 'map', () => S.view().networks.filter(n => OR.isTarget(n)).length || ''],
     ['attend', '출석부', 'att', () => S.get().jobPeople.length],
     ['data', '데이터 관리', 'data'],
@@ -24,16 +34,18 @@ window.App = (() => {
   ];
   /* 상단 사업 구역: 고른 구역에 필요한 기능만 왼쪽에 보인다 */
   const SECS = [
+    { k: 'tools', label: '업무도구', prog: '', items: ['t-hub', 't-counsel', 't-records', 't-match', 't-care', 't-place', 't-import', 't-report', 't-eval'], desc: '고용지원 업무판 · 직업평가 기록지 같은 업무 도구 모음' },
     { k: 'field', label: '현장중심', prog: '장애인개발원', items: ['dashboard', 'clients', 'biz', 'contacts', 'perf'],
       hubs: { dashboard: ['dashboard', 'schedule'], biz: ['map', 'biz', 'network', 'outreach', 'cards'], contacts: ['field', 'contacts'] }, desc: '현장중심직업재활센터 (한국장애인개발원) · 사업체 개발·연락·이용자·실적·홍보' },
-    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'empboard', 'biz', 'contacts', 'perf'],
-      hubs: { dashboard: ['dashboard', 'schedule'], empboard: ['empboard', 'empeval'], biz: ['map', 'biz', 'network', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
+    { k: 'emp', label: '고용공단', prog: '고용공단', items: ['dashboard', 'biz', 'contacts', 'perf'],
+      hubs: { dashboard: ['dashboard', 'schedule'], biz: ['map', 'biz', 'network', 'cards'], contacts: ['field', 'contacts'] }, desc: '고용지원사업 (한국장애인고용공단) · 사업체·연락·실적' },
     { k: 'jobs', label: '장애인일자리', prog: '장애인일자리', items: ['attend', 'map', 'schedule'], desc: '장애인일자리사업 · 참여자 출석·근무처' },
     { k: 'data', label: '데이터 관리', prog: '', items: ['dpeople', 'dconnect', 'dcost', 'dbackup', 'dcheck'], desc: '사람·권한 · 연결(API) · 요금 · 백업 · 점검' },
   ];
   const SEC_HINT = {
     dashboard: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `오늘 할 일 · 이번 주 일정 ${n}건` : '오늘 할 일·달력·일정'; }, field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
+    't-hub': () => '참여자 단계·양식·이달 실적', 't-counsel': () => '메모 → 상담기록지 정리', 't-records': () => '기록 불러와 이력서 초안', 't-match': () => '구인처·참여자 맞추기', 't-care': () => '일지 정리', 't-place': () => '알선 결과 기록', 't-import': () => 'PDF·사진으로 채우기', 't-report': () => '월 보고서 만들기', 't-eval': () => '평가 기록·보고서',
     contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } return n ? `들어오기 요청 ${n}건` : '사용 권한 · 직원과 소속'; }, dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
@@ -161,7 +173,7 @@ window.App = (() => {
     $('#sideNav').innerHTML = sec.items.filter(k => canSee(k)).map(k => { const [, l, ic] = byKey[k]; const hint = SEC_HINT[k] ? SEC_HINT[k]() : ''; return `<a href="#/${hrefOf(k)}" data-nav="${k}" class="${n === k ? 'active' : ''}" ${n === k ? 'aria-current="page"' : ''}>${V.I[ic]}<span class="sn-t"><b>${l}</b>${hint ? `<small>${U.esc(hint)}</small>` : ''}</span></a>`; }).join('');
     const mItems = mobileItems(sec);
     const moreActive = !mItems.includes(n);
-    const SHORT = { empboard: '업무판', field: '현장', contacts: '현장', clients: '이용자', dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', perf: '실적', attend: '출석부', data: '데이터' };
+    const SHORT = { 't-hub': '업무판', 't-counsel': '상담', 't-records': '기록', 't-match': '매칭', empboard: '업무판', field: '현장', contacts: '현장', clients: '이용자', dashboard: '홈', biz: '사업체', map: '지도', schedule: '일정', perf: '실적', attend: '출석부', data: '데이터' };
     $('#bottomNav').innerHTML = mItems.map(k => `<a href="#/${hrefOf(k)}" class="${n === k ? 'active' : ''}">${V.I[byKey[k][2]]}${SHORT[k] || byKey[k][1]}</a>`).join('') +
       `<button type="button" class="${moreActive ? 'active' : ''}" data-act="more">${V.I.more}더보기</button>`;
     $('#sideFoot').innerHTML = `${U.esc(S.get().settings.orgName)}<br>${S.REMOTE ? '팀 공유 모드 · 구글 시트에 저장' : '이 브라우저에만 저장됩니다.'}<br><label class="me-quick">사용자 <select id="meQuick" aria-label="이 PC를 쓰는 사람">${S.staff().map(s => `<option ${s.name === S.me() ? 'selected' : ''}>${U.esc(s.name)}</option>`).join('')}</select></label><br><span class="num">버전 ${U.esc(window.APP_VERSION || '개발용')}</span>${appAccount()}`;
@@ -323,6 +335,7 @@ window.App = (() => {
   }
   function render() {
     const r = route();
+    if (r === 'empboard' || r === 'empeval') { location.replace('#/' + (r === 'empboard' ? 't-hub' : 't-eval')); return; }
     if (r === 'data') { location.replace('#/' + (location.hash.includes('t=') ? 'd' + location.hash.split('t=')[1] : 'dpeople')); return; } // 예전 주소는 첫 칸으로
     document.body.dataset.route = r; // 화면마다 제목 색을 다르게
     document.body.dataset.sec = curSec().k; // 구역 색
@@ -335,8 +348,15 @@ window.App = (() => {
     const pages = {
       dashboard: [V.dashboard],
       field: [FM.page, bindField],
-      empboard: [() => empPage('01_hub', '고용지원 업무판')],
-      empeval: [() => empPage('09_vocational-eval', '직업평가 기록지')],
+      't-hub': [() => empPage('01_hub', '업무판 홈')],
+      't-counsel': [() => empPage('02_job-counsel', '직업상담기록지')],
+      't-records': [() => empPage('03_records-resume', '상담기록·이력서')],
+      't-match': [() => empPage('04_matching', '취업 매칭')],
+      't-care': [() => empPage('05_process-aftercare', '과정상담·사후관리')],
+      't-place': [() => empPage('06_placement-result', '취업알선 결과')],
+      't-import': [() => empPage('07_file-import', '서류 파일로 입력')],
+      't-report': [() => empPage('08_monthly-report', '월별 계획·결과보고')],
+      't-eval': [() => empPage('09_vocational-eval', '직업평가 기록지')],
       biz: [V.bizPage, bindBiz], // 사업체·네트워크 메뉴의 세 탭
 
       map: [V.mapPage, bindMap],
@@ -413,7 +433,7 @@ window.App = (() => {
   /** 고용지원 업무판: 앱(Firebase)에서만. 화면 8개는 emp/ 폴더에 그대로 두고 안쪽 칸(iframe)으로 연다 */
   function empPage(dir, title) {
     if (window.APP_MODE !== 'app') return `<div class="page-head"><div><h1 class="page-title">${title}</h1></div></div>
-      <div class="panel"><div class="empty"><strong>${title}은(는) 아르딤 앱에서 열려요</strong>아래 주소(앱)에서 고용공단 → 고용지원 업무판으로 들어가 주세요.<div><a class="btn btn-primary" href="https://ardim-jobs.web.app/#/${route()}" target="_blank" rel="noopener">앱에서 열기</a></div></div></div>`;
+      <div class="panel"><div class="empty"><strong>${title}은(는) 아르딤 앱에서 열려요</strong>아래 주소(앱)에서 업무도구로 들어가 주세요.<div><a class="btn btn-primary" href="https://ardim-jobs.web.app/#/${route()}" target="_blank" rel="noopener">앱에서 열기</a></div></div></div>`;
     return `<div class="emp-wrap"><iframe id="empFrame" class="emp-frame" src="emp/${dir}/index.html" title="${title}"></iframe></div>`;
   }
   function bindField() {
@@ -792,7 +812,7 @@ window.App = (() => {
   /* ---------- 현재 접속자 ---------- */
   const TAB_ID = Math.random().toString(36).slice(2);
   let online = [];
-  const PAGE_NAME = { empboard: '고용지원 업무판', empeval: '직업평가 기록지', field: '현장 모드', clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
+  const PAGE_NAME = { 't-hub': '업무판 홈', 't-counsel': '직업상담기록지', 't-records': '상담기록·이력서', 't-match': '취업 매칭', 't-care': '과정상담·사후관리', 't-place': '취업알선 결과', 't-import': '서류 파일로 입력', 't-report': '월별 계획·결과보고', 't-eval': '직업평가 기록지', empboard: '고용지원 업무판', empeval: '직업평가 기록지', field: '현장 모드', clients: '이용자', dashboard: '대시보드', biz: '사업체 개발', map: '지도', cards: '명함', network: '네트워크', schedule: '일정', contacts: '연락이력', perf: '실적', attend: '출석부', data: '데이터 관리' };
   async function pingPresence() {
     if (!S.REMOTE) return;
     const r = await S.presence({ id: TAB_ID, name: S.me(), page: route() });

@@ -636,7 +636,7 @@ ${f.rec?"\n[매칭 메모]\n"+JSON.stringify({맞는점:f.rec.good,걸리는점:
   renderTabs();
 
   const inClaude=!!(window.claude&&typeof window.claude.use==="function");
-  if(!inClaude){$("#banner").textContent="이 화면은 아르딤 앱(고용공단 → 고용지원 업무판) 안에서 열어야 구글 시트를 읽을 수 있어요.";$("#reloadBtn").disabled=true;}
+  if(!inClaude){$("#banner").textContent="이 화면은 아르딤 앱(업무도구) 안에서 열어야 구글 시트를 읽을 수 있어요.";$("#reloadBtn").disabled=true;}
   else{
     claude.use("sample").then(x=>{sample=x;}).catch(()=>{});
     claude.use("downloads").then(x=>{downloads=x;if(!x)$("#fHwpx").hidden=true;}).catch(()=>{});

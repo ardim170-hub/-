@@ -4,7 +4,7 @@
  *   - mcp(Google Sheets)  → 앱에 로그인한 구글 계정의 출입증으로 Google Sheets API(v4) 직접 호출
  *   - sample(AI 초안)     → 앱의 AI 도우미(Apps Script 서버가 AI 키로 대신 호출, 키는 브라우저에 없음)
  *   - downloads(내려받기) → 브라우저 다운로드 (.hwpx.zip 이름은 .hwpx로 바꿔 바로 한글에서 열리게)
- * 앱 화면(고용공단 → 고용지원 업무판) 안에서 열린다. 따로 연 창에서도 로그인 정보가 있으면 시트는 쓸 수 있다(AI는 앱 안에서만). */
+ * 앱 화면(업무도구) 안에서 열린다. 따로 연 창에서도 로그인 정보가 있으면 시트는 쓸 수 있다(AI는 앱 안에서만). */
 (function () {
   'use strict';
   var app = (function () { try { return window.top !== window && window.top.S && window.top.AppAuth ? window.top : null; } catch (e) { return null; } })();

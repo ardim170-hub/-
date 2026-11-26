@@ -223,7 +223,7 @@ input.txt{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px
   }
 
   const inClaude=!!(window.claude&&typeof window.claude.use==="function");
-  if(!inClaude){$("#banner").textContent="이 화면은 아르딤 앱(고용공단 → 고용지원 업무판) 안에서 열어야 구글 시트를 읽고 저장할 수 있어요.";}
+  if(!inClaude){$("#banner").textContent="이 화면은 아르딤 앱(업무도구) 안에서 열어야 구글 시트를 읽고 저장할 수 있어요.";}
   else claude.use("mcp").then(m=>{mcp=m;if(!m){$("#banner").textContent="구글 시트에 쓰지 못했어요. 앱에 다시 로그인해 주세요.";return;}load();}).catch(()=>{});
 })();
 </script>
