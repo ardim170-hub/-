@@ -26,7 +26,9 @@
     set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
     del: function (k) { try { sessionStorage.removeItem(k); } catch (e) {} },
   };
-  var configured = !!(C.clientId && (C.scriptId || C.deployId));
+  // 새 방식(B): config.js 에 webApp(서버 웹 앱 주소)이 있으면 구글·카카오 로그인 + 서버 출입증으로 동작한다
+  var WEBAPP = C.webApp || '', SESSION = !!WEBAPP;
+  var configured = SESSION ? !!C.clientId : !!(C.clientId && (C.scriptId || C.deployId));
   var KEEP_KEY = 'ardim.app.keep';
   window.APP_MODE = 'app';
   /** 로그인 상태 유지: 켜 두면 출입증을 이 기기에 두고(앱을 닫아도 유지), 1시간마다 자동으로 새로 받는다.
@@ -36,7 +38,7 @@
 
   /* ---------- 1) 구글 로그인에서 돌아왔으면 출입증을 꺼내 저장 ---------- */
   var h = location.hash || '';
-  if (/access_token=|error=/.test(h)) {
+  if (!SESSION && /access_token=|error=/.test(h)) {
     var q = {};
     h.slice(1).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); });
     var okState = q.state && q.state === ss.get(STATE_KEY);
@@ -87,6 +89,8 @@
     Promise.resolve(window.S && S.clearCache ? S.clearCache() : null).then(function () { location.replace(location.pathname); });
   }
   window.AppAuth = { login: login, logout: logout, token: token, keep: keep, email: function () { return ls.get(HINT_KEY) || ''; }, needLogin: function () { needLogin(); } };
+  if (SESSION) window.AppAuth = { mode: 'session', login: function () { sessGate(); }, logout: sessLogout, token: function () { return ''; }, keep: keep,
+    email: function () { var o = sess(); return o ? o.id : ''; }, name: function () { var o = sess(); return o ? o.name : ''; }, needLogin: function () { sessGate('다시 로그인해 주세요.'); } };
 
   /* ---------- 2) 로그인 화면 (앱 첫 화면) ---------- */
   var gateShown = false;
@@ -124,6 +128,101 @@
     });
   }
 
+  /* ================= 새 방식(B): 구글·카카오 로그인 → 서버가 확인하고 출입증(30일) → 서버가 대신 시트를 읽고 쓴다 ================= */
+  var SESS_KEY = 'ardim.app.sess', NONCE_KEY = 'ardim.app.nonce';
+  var LAST_KEY = 'ardim.app.last'; // 마지막에 쓴 로그인 (google/kakao) — 다음에 그 버튼을 위에
+  var authWait = null;
+  function sess() { try { var o = JSON.parse(ls.get(SESS_KEY) || ss.get(SESS_KEY) || 'null'); return o && o.t && o.x > Date.now() ? o : null; } catch (e) { return null; } }
+  function setSess(r) { ls.del(SESS_KEY); ss.del(SESS_KEY); box().set(SESS_KEY, JSON.stringify({ t: r.session, x: Date.now() + 29 * 864e5, id: r.user.id, name: r.user.name || '', kind: r.user.kind })); ls.set(HINT_KEY, r.user.id); ls.set(LAST_KEY, r.user.kind); }
+  function rand() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  var home = function () { return location.origin + '/'; };
+  function googleLogin(choose) {
+    var st = rand(), nonce = rand();
+    ss.set(STATE_KEY, st); ss.set(NONCE_KEY, nonce); ss.set(RET_KEY, location.hash || '#/');
+    var p = { client_id: C.clientId, redirect_uri: home(), response_type: 'id_token', scope: 'openid email profile', state: st, nonce: nonce, prompt: 'select_account' };
+    if (!choose && ls.get(LAST_KEY) === 'google' && ls.get(HINT_KEY) && ls.get(HINT_KEY).indexOf('@') > 0) { p.login_hint = ls.get(HINT_KEY); delete p.prompt; }
+    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + Object.keys(p).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
+  }
+  function kakaoLogin() {
+    var st = rand();
+    ss.set(STATE_KEY, 'k:' + st); ss.set(RET_KEY, location.hash || '#/');
+    location.href = 'https://kauth.kakao.com/oauth/authorize?client_id=' + encodeURIComponent(C.kakaoKey) + '&redirect_uri=' + encodeURIComponent(home()) + '&response_type=code&state=' + encodeURIComponent('k:' + st);
+  }
+  function sessLogout() {
+    ls.del(SESS_KEY); ss.del(SESS_KEY);
+    Promise.resolve(window.S && S.clearCache ? S.clearCache() : null).then(function () { location.replace(location.pathname); });
+  }
+  function serverPost(body) {
+    return fetch(WEBAPP, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
+      .then(function (r) { if (!r.ok) throw new Error('서버 연결 오류 (' + r.status + ')'); return r.json(); })
+      .catch(function (e) { if (e instanceof TypeError) throw new Error('인터넷에 연결되지 않았거나 서버에 닿지 못했어요.'); throw e; });
+  }
+  function sexec(fn, args) {
+    if (authWait) { var w = authWait; return w.then(function () { return new Promise(function () {}); }, function () { return sexec(fn, args); }); }
+    var o = sess();
+    if (!o) { sessGate(); return new Promise(function () {}); } // 로그인 화면이 떠 있으니 기다린다
+    while (args.length && args[args.length - 1] === undefined) args.pop();
+    args = args.map(function (a) { return a === undefined ? null : a; });
+    return serverPost({ fn: fn, args: args, s: o.t }).then(function (j) {
+      if (j && j.ok) return j.result;
+      if (j && j.code === 'auth') { ls.del(SESS_KEY); ss.del(SESS_KEY); sessGate('로그인이 끝났어요. 다시 로그인해 주세요.'); return new Promise(function () {}); }
+      throw new Error((j && j.error) || '서버 오류');
+    });
+  }
+  var K_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#191600" d="M12 3.5c-5 0-9 3.2-9 7.1 0 2.5 1.6 4.7 4.1 5.9l-1 3.7c-.1.3.3.6.6.4l4.4-2.9c.3 0 .6.1.9.1 5 0 9-3.2 9-7.2S17 3.5 12 3.5z"/></svg>';
+  function sessGate(err) {
+    if (gateShown && document.getElementById('appLoginG')) return;
+    var last = ls.get(LAST_KEY), hint = ls.get(HINT_KEY);
+    var gBtn = '<button type="button" class="app-gate-google" id="appLoginG">' + G_ICON + '<span>' + (last === 'google' && hint && hint.indexOf('@') > 0 ? esc(hint) + '(으)로 계속' : 'Google로 계속하기') + '</span></button>';
+    var kBtn = C.kakaoKey ? '<button type="button" class="app-gate-kakao" id="appLoginK">' + K_ICON + '<span>카카오로 계속하기</span></button>' : '';
+    gate('<img class="app-gate-logo" src="icons/icon-192.png" alt="" width="88" height="88">' +
+      '<h1>아르딤 직업지원팀</h1><p class="app-gate-sub">화성시 아르딤복지관 직업지원팀 업무 앱</p>' +
+      (err || window.__loginError ? '<p class="app-gate-err">' + esc(err || window.__loginError) + '</p>' : '') +
+      (last === 'kakao' ? kBtn + gBtn : gBtn + kBtn) +
+      '<label class="app-gate-keep"><input type="checkbox" id="appKeep" ' + (keep() ? 'checked' : '') + '> 로그인 상태 유지</label>' +
+      (last === 'google' && hint ? '<button type="button" class="app-gate-link" id="appOtherAcc">다른 구글 계정으로</button>' : '') +
+      '<p class="app-gate-note"><b>처음이신가요?</b> 로그인한 뒤 가입 신청서를 보내면 관리자가 확인하고 받아 줘요.<br>비밀번호는 구글·카카오 화면에서만 넣고, 이 앱에는 저장되지 않아요.</p>');
+    if (sessGate.bound) return;
+    sessGate.bound = true;
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest && e.target.closest('#appLoginG, #appLoginK, #appOtherAcc');
+      if (!t) return;
+      var k = document.getElementById('appKeep');
+      ls.set(KEEP_KEY, k && !k.checked ? '0' : '1');
+      if (t.id === 'appLoginK') kakaoLogin(); else googleLogin(t.id === 'appOtherAcc');
+    });
+  }
+  /** 구글·카카오에서 돌아왔으면 서버에 확인받아 출입증을 받는다 */
+  function sessionStart() {
+    if (!configured) { gate('<h1>앱 설정이 아직 안 됐어요</h1><p>web/config.js 에 구글 OAuth 클라이언트 ID가 있어야 해요.</p>'); return; }
+    var q = {}, hs = (location.hash || '').slice(1), qs = (location.search || '').slice(1);
+    (hs + '&' + qs).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); });
+    var back = function () { var r = ss.get(RET_KEY) || '#/'; ss.del(RET_KEY); return location.pathname + (r === '#/' ? '' : r); };
+    var want = ss.get(STATE_KEY);
+    if (q.id_token || q.code || q.error) {
+      ss.del(STATE_KEY);
+      var body = null;
+      if (q.state && q.state === want) {
+        if (q.id_token) body = { auth: 'google', idToken: q.id_token, nonce: ss.get(NONCE_KEY) };
+        else if (q.code) body = { auth: 'kakao', code: q.code, redirectUri: home() };
+      }
+      ss.del(NONCE_KEY);
+      history.replaceState(null, '', location.pathname); // 주소에서 로그인 값 지우기
+      if (!body) { sessGate(q.error === 'access_denied' ? '로그인을 취소했어요.' : q.error ? '로그인 오류: ' + q.error : '로그인 확인 값이 맞지 않아요. 다시 눌러 주세요.'); return; }
+      splash('로그인 확인 중…');
+      // 확인이 끝날 때까지 다른 요청은 기다리게 하고, 끝나면 화면을 새로 연다 (기다리던 요청은 새 화면에서 다시 간다)
+      authWait = serverPost(body).then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.error) || '로그인을 확인하지 못했어요.');
+        setSess(j.result);
+        history.replaceState(null, '', back()); location.reload(); // 같은 주소(#만 다름)여도 새로 연다
+        return new Promise(function () {}); // 새로 여는 동안 기다리던 요청은 그대로 멈춰 둔다
+      });
+      authWait.catch(function (e) { authWait = null; gateShown = false; sessGate(e.message); });
+      return;
+    }
+    if (!sess()) sessGate();
+  }
+
   var expiredShown = false;
   function needLogin() {
     // 쓰는 도중 출입증이 끝났는데 입력 중이면: 고치던 내용은 그대로 두고, 위에 '다시 확인' 띠를 띄운다
@@ -143,14 +242,15 @@
   }
   /** 로그인 유지: 출입증이 곧 끝나면 입력 중이 아닐 때 조용히 새로 받는다 (구글이 1시간짜리만 주기 때문) */
   function refreshCheck() {
-    if (!configured || gateShown || document.visibilityState !== 'visible') return;
+    if (SESSION || !configured || gateShown || document.visibilityState !== 'visible') return;
     var o = tokenInfo(), left = o ? o.exp - Date.now() : -1;
     if (left > 5 * 60000) return;
     if (!keep() || !ls.get(HINT_KEY)) { if (left <= 0) needLogin(); return; }
     if (!busy()) login(false, true); else if (left <= 0) needLogin();
   }
 
-  if (!configured) {
+  if (SESSION) sessionStart();
+  else if (!configured) {
     gate('<h1>앱 설정이 아직 안 됐어요</h1><p>web/config.js 에 구글 클라우드 OAuth 클라이언트 ID와 Apps Script 스크립트 ID를 넣어야 해요.</p><p class="sub">설치 안내: docs/앱_설치_안내.md</p>');
   } else if (!token()) {
     // 로그인 유지를 켜 둔 기기면 버튼 없이 바로 확인 (이미 허용했으면 잠깐 로고가 보였다가 열려요)
@@ -168,7 +268,8 @@
       body: JSON.stringify({ 'function': fn, parameters: args, devMode: false }),
     });
   }
-  function exec(fn, args) {
+  function exec(fn, args) { return SESSION ? sexec(fn, args) : gexec(fn, args); }
+  function gexec(fn, args) {
     var t = token();
     if (!configured) return Promise.reject(new Error('앱 설정(web/config.js)이 비어 있어요.'));
     if (!t) { needLogin(); return Promise.reject(new Error('로그인이 필요해요.')); }

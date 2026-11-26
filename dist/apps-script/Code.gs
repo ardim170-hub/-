@@ -40,6 +40,114 @@ function doGet(e) {
     .setFaviconUrl('https://raw.githubusercontent.com/ardim170-hub/-/183ba21486d494520e3107fe6c996c1eb6ba4c14/assets/favicon.png');
 }
 
+/* ================= 앱 서버 문 (새 방식): 구글·카카오 로그인 + 서버가 시트 주인 권한으로 대신 읽고 쓴다 =================
+ * 앱(ardim-jobs.web.app)은 이 웹 앱 주소(/exec)로 POST 한다. 사람마다 시트를 공유할 필요가 없고, 시트 원본은 서버만 연다.
+ * 1) 로그인: { auth: 'google', idToken, nonce } 또는 { auth: 'kakao', code, redirectUri }
+ *    → 서버가 구글·카카오에 직접 확인한 뒤 '출입증(세션)'을 서명해 돌려준다 (30일)
+ * 2) 기능: { fn: 'api_…', args: [...], s: 출입증 } → 출입증을 확인하고 그 사람으로 api_ 함수를 실행 (권한 확인은 각 함수 안에서)
+ * 열쇠·비밀값은 스크립트 속성에만 둔다: KAKAO_REST_KEY(카카오 로그인용 REST 키), KAKAO_SECRET(선택), SESSION_SECRET(처음에 자동 생성) */
+var APP_CLIENT_ID = '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com';
+var APP_ORIGINS = ['https://ardim-jobs.web.app', 'https://ardim-jobs.firebaseapp.com'];
+var SESSION_DAYS = 30;
+
+function doPost(e) {
+  var out;
+  try {
+    var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.auth) out = { ok: true, result: authLogin_(body) };
+    else {
+      var fn = String(body.fn || '');
+      if (!/^api_[A-Za-z0-9]+$/.test(fn) || typeof globalThis[fn] !== 'function') throw new Error('없는 기능이에요: ' + fn);
+      var who = readSession_(body.s);
+      CURRENT_ = who || { id: '' }; // 출입증이 없거나 틀리면 '아무도 아님' → 각 함수가 막는다
+      if (!who && fn !== 'api_access') out = { ok: false, code: 'auth', error: '로그인이 끝났어요. 다시 로그인해 주세요.' };
+      else out = { ok: true, result: globalThis[fn].apply(null, Array.isArray(body.args) ? body.args : []) };
+    }
+  } catch (err) {
+    out = { ok: false, error: String(err && err.message || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out === undefined ? { ok: true } : out)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function sessSecret_() {
+  var props = PropertiesService.getScriptProperties(), k = props.getProperty('SESSION_SECRET');
+  if (!k) { k = Utilities.getUuid() + Utilities.getUuid(); props.setProperty('SESSION_SECRET', k); }
+  return k;
+}
+function b64u_(v) { return Utilities.base64EncodeWebSafe(v).replace(/=+$/, ''); }
+function unb64u_(v) { v = String(v); while (v.length % 4) v += '='; return Utilities.newBlob(Utilities.base64DecodeWebSafe(v)).getDataAsString('UTF-8'); }
+function signSess_(body) { return b64u_(Utilities.computeHmacSha256Signature(body, sessSecret_())); }
+function makeSession_(u) {
+  var body = b64u_(Utilities.newBlob(JSON.stringify({ i: u.id, n: u.name || '', k: u.kind, x: Date.now() + SESSION_DAYS * 864e5 })).getBytes());
+  return body + '.' + signSess_(body);
+}
+function readSession_(t) {
+  t = String(t || '');
+  var i = t.indexOf('.');
+  if (i < 1) return null;
+  var body = t.slice(0, i), sig = t.slice(i + 1), good = signSess_(body);
+  if (sig.length !== good.length) return null;
+  var diff = 0; for (var k = 0; k < sig.length; k++) diff |= sig.charCodeAt(k) ^ good.charCodeAt(k);
+  if (diff) return null;
+  try { var o = JSON.parse(unb64u_(body)); return o && o.i && o.x > Date.now() ? { id: String(o.i).toLowerCase(), name: o.n || '', kind: o.k || '' } : null; } catch (e) { return null; }
+}
+function fetchJson_(url, opt) {
+  var r = UrlFetchApp.fetch(url, Object.assign({ muteHttpExceptions: true }, opt || {}));
+  var j = {}; try { j = JSON.parse(r.getContentText() || '{}'); } catch (e) { j = {}; }
+  return { code: r.getResponseCode(), json: j };
+}
+function authLogin_(b) {
+  var u;
+  if (b.auth === 'google') {
+    var g = fetchJson_('https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(String(b.idToken || '')));
+    var j = g.json;
+    if (g.code !== 200 || j.aud !== APP_CLIENT_ID || !/accounts\.google\.com$/.test(String(j.iss || '')) || String(j.email_verified) !== 'true' || +j.exp * 1000 < Date.now()) throw new Error('구글 로그인을 확인하지 못했어요. 다시 시도해 주세요.');
+    if (b.nonce && j.nonce !== b.nonce) throw new Error('구글 로그인을 확인하지 못했어요 (확인 값 불일치). 다시 시도해 주세요.');
+    u = { id: String(j.email).toLowerCase(), name: j.name || '', kind: 'google' };
+  } else if (b.auth === 'kakao') {
+    var props = PropertiesService.getScriptProperties(), key = props.getProperty('KAKAO_REST_KEY');
+    if (!key) throw new Error('카카오 로그인이 아직 설정되지 않았어요. 관리자에게 알려 주세요.');
+    var ru = String(b.redirectUri || '');
+    if (!APP_ORIGINS.some(function (o) { return ru === o + '/' || ru.indexOf(o + '/') === 0; })) throw new Error('허용되지 않은 주소에서 온 로그인이에요.');
+    var form = { grant_type: 'authorization_code', client_id: key, redirect_uri: ru, code: String(b.code || '') };
+    var sec = props.getProperty('KAKAO_SECRET'); if (sec) form.client_secret = sec;
+    var t = fetchJson_('https://kauth.kakao.com/oauth/token', { method: 'post', payload: form });
+    if (t.code !== 200 || !t.json.access_token) throw new Error('카카오 로그인을 확인하지 못했어요. 다시 시도해 주세요.');
+    var me = fetchJson_('https://kapi.kakao.com/v2/user/me', { headers: { Authorization: 'Bearer ' + t.json.access_token } });
+    if (me.code !== 200 || !me.json.id) throw new Error('카카오 계정 정보를 받지 못했어요.');
+    var prof = (me.json.kakao_account && me.json.kakao_account.profile) || {};
+    u = { id: 'kakao:' + me.json.id, name: prof.nickname || (me.json.properties && me.json.properties.nickname) || '', kind: 'kakao' };
+  } else throw new Error('지원하지 않는 로그인이에요.');
+  CURRENT_ = u;
+  var a = access_();
+  return { session: makeSession_(u), user: u, allowed: a.allowed, admin: a.admin };
+}
+
+/* ---------- 업무도구(업무판·직업평가)가 쓰는 구글 시트를 서버가 대신 읽고 쓴다 ----------
+ * 업무판 DB 시트는 통째로, 팀 시트는 '직업평가' 탭만 (다른 탭은 메뉴 권한을 거치는 api_load로만 본다) */
+var EMP_SHEET_DEFAULT = '1kFmBphgeNpEEyRizAqTBGyC1Xovdl_2fgdI8W12C6V4';
+function api_sheet(p) {
+  requireMember_();
+  p = p || {};
+  var id = String(p.spreadsheetId || ''), team = book_().getId();
+  var emp = String(readSettings_().empSheet || EMP_SHEET_DEFAULT);
+  var tabOf = function (rg) { var m = String(rg || '').match(/^'?(.*?)'?!/); return m ? m[1] : String(rg || ''); };
+  if (id === team) {
+    var okTab = function (rg) { return tabOf(rg) === '직업평가'; };
+    if (p.op === 'addSheet' ? p.title !== '직업평가' : p.op !== 'meta' && !okTab(p.range)) throw new Error('팀 시트에서는 직업평가 탭만 쓸 수 있어요.');
+  } else if (id !== emp) throw new Error('업무도구가 쓰는 시트가 아니에요.');
+  var V = Sheets.Spreadsheets.Values;
+  switch (p.op) {
+    case 'get': return V.get(id, p.range);
+    case 'update': return V.update({ range: p.range, majorDimension: 'ROWS', values: p.values }, id, p.range, { valueInputOption: p.raw ? 'RAW' : 'USER_ENTERED' });
+    case 'append': return V.append({ values: p.values }, id, p.range, { valueInputOption: 'RAW', insertDataOption: 'INSERT_ROWS' });
+    case 'clear': return V.clear({}, id, p.range);
+    case 'meta': return Sheets.Spreadsheets.get(id, { fields: 'sheets.properties.title' });
+    case 'addSheet': return Sheets.Spreadsheets.batchUpdate({ requests: [{ addSheet: { properties: { title: p.title, gridProperties: { rowCount: 500, columnCount: 11 } } } }] }, id);
+    default: throw new Error('지원하지 않는 시트 작업: ' + p.op);
+  }
+}
+
 /** index.html 안의 <?!= include('style'); ?> 자리에 그 파일 내용을 그대로 넣는다 */
 function include(name) {
   if (remoteFiles_ && remoteFiles_[name]) return wrapRemote_(remoteFiles_[name]);
@@ -180,8 +288,23 @@ function withLock_(fn) {
  */
 var DATA_LOCKED = [SETTINGS_SHEET, '직원', PHOTO_SHEET]; // api_apply로 직접 쓸 수 없는 시트
 
+/** 지금 부른 사람.
+ *  - 앱(새 방식, doPost): 서버가 확인한 로그인(구글 메일 또는 kakao:번호). 로그인이 없으면 빈 값 = 아무 권한 없음
+ *  - 예전 방식(google.script.run · Apps Script API): 구글이 알려 주는 접속자 메일 */
+var CURRENT_ = null;
 function me_() {
+  if (CURRENT_) return String(CURRENT_.id || '').toLowerCase();
   try { return String(Session.getActiveUser().getEmail() || '').toLowerCase(); } catch (e) { return ''; }
+}
+/** 명단 칸 읽기: 구글 메일과 카카오 계정(kakao:번호) */
+function ids_(s) {
+  return String(s || '').toLowerCase().split(/[\s,;]+/).filter(function (x) { return x.indexOf('@') > 0 || /^kakao:\d+$/.test(x); });
+}
+function isId_(x) { return ids_(x).length === 1 && ids_(x)[0] === String(x).toLowerCase(); }
+/** 복지관 구글 계정인가 (시트 소유자와 같은 도메인, gmail 제외) */
+function orgGoogle_(me) {
+  var d = (owner_().split('@')[1] || '').toLowerCase();
+  return !!d && !/gmail\.com$/.test(d) && me.indexOf('@') > 0 && me.split('@')[1] === d;
 }
 function owner_() {
   var cache = CacheService.getScriptCache();
@@ -198,18 +321,19 @@ function emails_(s) {
 function access_() {
   var st = readSettings_();
   var me = me_();
-  var admins = emails_(st.admins);
+  var admins = ids_(st.admins);
   var owner = owner_();
   if (owner) admins.push(owner);
-  var members = emails_(st.members);
+  var members = ids_(st.members);
   // 소유자도 관리자 명단도 알 수 없으면 잠기지 않도록 모두 관리자로 둔다
-  var admin = admins.length ? (!!me && admins.indexOf(me) >= 0) : true;
+  var admin = !!me && (admins.length ? admins.indexOf(me) >= 0 : !CURRENT_);
   // 차단: 관리자가 막은 계정은 명단과 상관없이 못 들어온다 (관리자는 막을 수 없다)
-  var blocked = !admin && !!me && emails_(st.blocked).indexOf(me) >= 0;
-  // 승인제(approval=Y): 관리자가 허용한 사람(명단)만. 승인제가 아니고 명단도 비어 있으면 복지관 계정 누구나
-  var approval = st.approval === 'Y';
+  var blocked = !admin && !!me && ids_(st.blocked).indexOf(me) >= 0;
+  // 승인제: 켜면(approval=Y) 받아 준 사람(명단)만. 끄면(N) 복지관 구글 계정은 바로, 그 밖(다른 구글·카카오)은 늘 신청.
+  // 예전 설정(값 없음)은 명단이 있으면 켜진 것으로 본다
+  var approval = st.approval === 'Y' || (st.approval !== 'N' && members.length > 0);
   var listed = !!me && members.indexOf(me) >= 0;
-  var allowed = !blocked && (admin || listed || (!approval && !members.length));
+  var allowed = !!me && !blocked && (admin || listed || (!approval && orgGoogle_(me)));
   var perms = {};
   if (!admin && me) { try { perms = (JSON.parse(st.perms || '{}') || {})[me] || {}; } catch (e) { perms = {}; } }
   return { me: me, owner: owner, admin: admin, allowed: allowed, blocked: blocked, approval: approval, perms: perms };
@@ -220,24 +344,19 @@ function access_() {
  * → 관리자가 사람·권한 화면에서 허용(사용자/관리자)하거나 차단한다. */
 function esc_(v) { return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function jsonOf_(v) { try { var o = JSON.parse(v || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
-function sameDomain_(me) {
-  var o = owner_(), d = o.split('@')[1] || '';
-  return !d || /gmail\.com$/i.test(d) || (me.split('@')[1] || '').toLowerCase() === d.toLowerCase();
-}
 /** 내 상태 (권한이 없어도 부를 수 있다) */
 function api_access() {
   var a = access_();
   var req = a.me ? jsonOf_(readSettings_().requests)[a.me] || null : null;
-  return { me: a.me, allowed: a.allowed, admin: a.admin, blocked: a.blocked, approval: a.approval, request: req, domainOk: !a.me || sameDomain_(a.me) };
+  return { me: a.me, name: CURRENT_ ? CURRENT_.name || '' : '', kind: CURRENT_ ? CURRENT_.kind || '' : 'google', allowed: a.allowed, admin: a.admin, blocked: a.blocked, approval: a.approval, request: req, domainOk: true };
 }
 /** 가입 신청 보내기: { name, org, phone, reason, agree } (개인정보 수집·이용 동의 필수) */
 function api_requestAccess(p) {
   p = p || {};
   var a = access_();
-  if (!a.me) throw new Error('구글 계정 메일을 알 수 없어요. 다시 로그인해 주세요.');
+  if (!a.me) throw new Error('로그인 정보를 알 수 없어요. 다시 로그인해 주세요.');
   if (a.allowed) return api_access();
   if (a.blocked) throw new Error('이 계정은 관리자가 막아 두었어요. 관리자에게 직접 문의해 주세요.');
-  if (!sameDomain_(a.me)) throw new Error('복지관 계정으로만 신청할 수 있어요.');
   var name = String(p.name || '').trim().slice(0, 20), org = String(p.org || '').trim().slice(0, 40);
   var phone = String(p.phone || '').replace(/[^0-9-]/g, '').slice(0, 15), reason = String(p.reason || p.note || '').trim().slice(0, 300);
   if (!name) throw new Error('이름을 적어 주세요.');
@@ -257,10 +376,11 @@ function api_requestAccess(p) {
   if (first) {
     try {
       var st = readSettings_(), to = emails_(st.admins);
+      var acct = a.me.indexOf('kakao:') === 0 ? '카카오 계정' : a.me;
       if (a.owner) to.push(a.owner);
       to = to.filter(function (x, i) { return to.indexOf(x) === i; });
       if (to.length) MailApp.sendEmail({ to: to.join(','), subject: '[아르딤] 가입 신청 - ' + name + ' (' + org + ')', name: '아르딤 취업지원',
-        htmlBody: '<p><b>' + esc_(name) + '</b> (' + esc_(org) + ', ' + esc_(a.me) + ') 님이 가입을 신청했어요.</p><p>신청 이유: ' + esc_(reason) + '</p><p>사이트 → 데이터 관리 → 사람·권한에서 받아 주거나 거절할 수 있어요. (전화번호는 사이트에서만 볼 수 있어요)</p>' });
+        htmlBody: '<p><b>' + esc_(name) + '</b> (' + esc_(org) + ', ' + esc_(acct) + ') 님이 가입을 신청했어요.</p><p>신청 이유: ' + esc_(reason) + '</p><p>사이트 → 데이터 관리 → 사람·권한에서 받아 주거나 거절할 수 있어요. (전화번호는 사이트에서만 볼 수 있어요)</p>' });
     } catch (e) { /* 메일은 못 보내도 된다 */ }
   }
   return api_access();
@@ -270,13 +390,15 @@ function api_decideAccess(p) {
   var acc = requireAdmin_();
   p = p || {};
   var email = String(p.email || '').trim().toLowerCase();
-  if (email.indexOf('@') < 1) throw new Error('메일 주소를 확인해 주세요.');
+  if (!isId_(email)) throw new Error('계정(메일 또는 카카오)을 확인해 주세요.');
   if (email === acc.me && p.action === 'block') throw new Error('자기 자신은 막을 수 없어요.');
   if (email === acc.owner && p.action === 'block') throw new Error('시트 소유자는 막을 수 없어요.');
   return withLock_(function () {
     var st = readSettings_(), out = {};
     var reqs = jsonOf_(st.requests), names = jsonOf_(st.accNames);
-    var members = emails_(st.members), admins = emails_(st.admins), blocked = emails_(st.blocked);
+    var members = ids_(st.members), admins = ids_(st.admins), blocked = ids_(st.blocked);
+    // 승인제를 한 번도 정한 적 없으면 지금 상태를 그대로 적어 둔다 (한 사람 받아 줬다고 복지관 직원들이 갑자기 막히지 않게)
+    var fixApproval = st.approval === 'Y' || st.approval === 'N' ? null : (members.length ? 'Y' : 'N');
     var drop = function (list) { return list.filter(function (x) { return x !== email; }); };
     var name = String(p.name || (reqs[email] && reqs[email].name) || '').trim().slice(0, 20);
     var info = jsonOf_(st.accInfo);
@@ -301,6 +423,7 @@ function api_decideAccess(p) {
     } else if (p.action !== 'remove') throw new Error('알 수 없는 처리: ' + p.action);
     if (p.action === 'remove') { members = drop(members); admins = drop(admins); delete info[email]; }
     out = { members: members.join(','), admins: admins.join(','), blocked: blocked.join(','), requests: JSON.stringify(reqs), accNames: JSON.stringify(names), accInfo: JSON.stringify(info) };
+    if (fixApproval) out.approval = fixApproval;
     writeSettings_(out);
     return out;
   });
@@ -309,12 +432,12 @@ function api_decideAccess(p) {
 function api_setApproval(on) {
   var acc = requireAdmin_();
   return withLock_(function () {
-    var st = readSettings_(), members = emails_(st.members);
+    var st = readSettings_(), members = ids_(st.members);
     if (on) {
       var add = Object.keys(jsonOf_(st.accNames));
       try { var pr = jsonOf_(CacheService.getScriptCache().get('presence')); Object.keys(pr).forEach(function (k) { if (pr[k].email) add.push(pr[k].email); }); } catch (e) { /* 없음 */ }
       if (acc.me) add.push(acc.me);
-      add.forEach(function (x) { x = String(x).toLowerCase(); if (x.indexOf('@') > 0 && members.indexOf(x) < 0) members.push(x); });
+      add.forEach(function (x) { x = String(x).toLowerCase(); if (isId_(x) && members.indexOf(x) < 0) members.push(x); });
     }
     var out = { approval: on ? 'Y' : 'N', members: members.join(',') };
     writeSettings_(out);
@@ -601,9 +724,9 @@ function api_saveSettings(settings, staffRows) {
   delete settings.requests; delete settings.blocked; delete settings.approval; delete settings.accInfo;
   // 관리자 명단을 바꿀 때 저장하는 사람은 늘 관리자로 남긴다 (소유자를 못 읽는 경우에도 잠기지 않게)
   if (Object.prototype.hasOwnProperty.call(settings, 'admins') && acc.me && acc.me !== acc.owner) {
-    var list = emails_(settings.admins);
+    var list = ids_(settings.admins);
     if (list.indexOf(acc.me) < 0) { list.push(acc.me); settings.admins = list.join(','); }
-    var mem = emails_(settings.members);
+    var mem = ids_(settings.members);
     if (mem.length && mem.indexOf(acc.me) < 0) { mem.push(acc.me); settings.members = mem.join(','); }
   }
   return withLock_(function () {
@@ -926,9 +1049,11 @@ function archiveRoot_() {
  * 이미 같은 줄(일반: 이름·날짜·세부사업, 기타: 날짜·세부사업·비고)이 그 달에 있으면 건너뛰어서 여러 번 보내도 두 번 들어가지 않는다. */
 var ORG_PERF_DEFAULT = '1kp0eFtA_clfOTDsyCAbdFujQe-S-TN4SbGVizMj2wKQ';
 function orgPerfId_(v) {
-  var s = String(v || readSettings_().orgPerfSheet || ORG_PERF_DEFAULT).trim();
-  var m = s.match(/\/d\/([\w-]{20,})/);
-  return m ? m[1] : s;
+  var pick = function (x) { x = String(x || '').trim(); var m = x.match(/\/d\/([\w-]{20,})/); return m ? m[1] : x; };
+  var set = pick(readSettings_().orgPerfSheet), want = pick(v) || set || ORG_PERF_DEFAULT;
+  // 서버가 시트 주인 권한으로 열기 때문에, 데이터 관리에 정해 둔 시트(또는 기본 시트)만 연다
+  if (want !== ORG_PERF_DEFAULT && want !== set) throw new Error('정해 둔 복지관 실적 시트만 열 수 있어요. 데이터 관리에서 시트 주소를 먼저 저장해 주세요.');
+  return want;
 }
 /** 복지관 시트에 쓰는 동안만 잠근다 (두 사람이 동시에 보내 줄이 겹치지 않게). 읽기만 할 때는 잠그지 않는다 */
 function orgLock_(write, fn) {

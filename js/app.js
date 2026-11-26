@@ -272,7 +272,8 @@ window.App = (() => {
     if (st && st.allowed) { location.reload(); return; }
     const me = (st && st.me) || '';
     const out = window.AppAuth && AppAuth.logout ? `<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>` : '<span class="sub">다른 계정으로 들어오려면 구글에서 계정을 바꾼 뒤 다시 열어 주세요.</span>';
-    const card = inner => `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>${inner}<p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p><div class="gate-foot">${out}</div></div>`;
+    const meLabel = st && st.kind === 'kakao' ? `카카오 계정${st.name ? ' (' + st.name + ')' : ''}` : me;
+    const card = inner => `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>${inner}<p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(meLabel)}</b>` : ''}</p><div class="gate-foot">${out}</div></div>`;
     let html;
     if (st.error) html = card(`<h1>권한을 확인하지 못했어요</h1><p>${U.esc(st.error)}</p><div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">다시 확인</button></div>`);
     else if (st.blocked) html = card('<h1>사용이 막힌 계정이에요</h1><p>관리자가 이 계정의 사용을 막아 두었어요. 필요하면 관리자에게 직접 문의해 주세요.</p>');
@@ -305,7 +306,8 @@ window.App = (() => {
     };
   }
   function gateForm(st, prev = {}) {
-    const me = (st && st.me) || '';
+    const me = st && st.kind === 'kakao' ? `카카오 계정${st.name ? ' (' + st.name + ')' : ''}` : (st && st.me) || '';
+    if (!prev.name && st && st.name) prev = { ...prev, name: st.name };
     return `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>
       <h1>가입 신청</h1><p>아르딤 직업지원팀 사이트는 관리자가 받아 준 계정만 쓸 수 있어요. 아래를 적어 보내면 관리자가 확인하고 알려 드려요.</p>
       <form class="gate-form" data-gate-form="1" autocomplete="off" novalidate>
@@ -2650,7 +2652,7 @@ window.App = (() => {
     },
     'acc-decide': async el => {
       const { email, do: what, role } = el.dataset;
-      const who = el.dataset.name || V.accName(email) || email;
+      const who = el.dataset.name || V.accName(email) || V.idLabel(email);
       let why = '';
       if (what === 'reject') { why = window.prompt(`${who}의 가입 신청을 거절할까요? 신청한 사람에게 보일 메모를 적을 수 있어요 (비워도 돼요).`, ''); if (why === null) return; }
       if (what === 'block' && !(await confirmBox('이 계정을 막을까요?', `${who}은(는) 앱과 웹사이트 모두 들어올 수 없게 돼요. 나중에 '막은 계정'에서 풀 수 있어요.`, '차단'))) return;

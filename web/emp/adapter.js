@@ -16,7 +16,15 @@
     try { var o = JSON.parse(localStorage.getItem('ardim.app.token') || sessionStorage.getItem('ardim.app.token') || 'null'); return o && o.exp > Date.now() ? o.t : ''; } catch (e) { return ''; }
   }
   var SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets/';
+  // 새 방식(구글·카카오 로그인): 사람마다 시트 권한이 없으므로 서버(api_sheet)가 대신 읽고 쓴다
+  var viaServer = !!(app && app.AppAuth.mode === 'session');
+  function proxy(p) { return app.S.call('api_sheet', p).catch(function (e) { throw fail('tool_error', (e && e.message) || '구글 시트 오류'); }); }
   async function sheets(tool, input) {
+    if (viaServer) {
+      if (tool === 'get_values') return { payload: await proxy({ spreadsheetId: input.spreadsheetId, op: 'get', range: input.range }) };
+      if (tool === 'update_values') return { payload: await proxy({ spreadsheetId: input.spreadsheetId, op: 'update', range: input.range, values: input.values }) };
+      throw fail('tool_error', '지원하지 않는 기능: ' + tool);
+    }
     var t = token();
     if (!t) { if (app && app.AppAuth.needLogin) app.AppAuth.needLogin(); throw fail('needs_reauth', '로그인을 다시 확인해야 해요. 위쪽 "확인하기"를 눌러 주세요.'); }
     var id = encodeURIComponent(input.spreadsheetId), rg = encodeURIComponent(input.range), res;
@@ -81,6 +89,19 @@
   var TAB = '직업평가', CHUNK = 45000, NCOL = 8; // D~K: 최대 약 36만 자
   var colL = function (i) { return String.fromCharCode(65 + i); };
   async function api(path, opt) {
+    if (viaServer) {
+      // 직업평가 저장에 쓰는 몇 가지 시트 요청을 서버 작업으로 바꿔 보낸다
+      opt = opt || {}; var m = (opt.method || 'GET').toUpperCase(), body = opt.body ? JSON.parse(opt.body) : {};
+      var base = { spreadsheetId: DB_SHEET };
+      if (/^\?fields=/.test(path)) return proxy(Object.assign(base, { op: 'meta' }));
+      if (path === ':batchUpdate') return proxy(Object.assign(base, { op: 'addSheet', title: body.requests[0].addSheet.properties.title }));
+      var mm = path.match(/^\/values\/([^?:]+)(:append|:clear)?/); if (!mm) throw fail('tool_error', '지원하지 않는 시트 요청');
+      var rg = decodeURIComponent(mm[1]);
+      if (mm[2] === ':append') return proxy(Object.assign(base, { op: 'append', range: rg, values: body.values }));
+      if (mm[2] === ':clear') return proxy(Object.assign(base, { op: 'clear', range: rg }));
+      if (m === 'PUT') return proxy(Object.assign(base, { op: 'update', range: rg, values: body.values, raw: /RAW/.test(path) }));
+      return proxy(Object.assign(base, { op: 'get', range: rg }));
+    }
     var t = token(); if (!t) throw fail('needs_reauth', '로그인을 다시 확인해야 해요.');
     opt = opt || {}; opt.headers = Object.assign({ Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, opt.headers || {});
     var r = await fetch(SHEETS + encodeURIComponent(DB_SHEET) + path, opt);

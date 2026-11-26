@@ -34,19 +34,26 @@
 @media (display-mode: standalone) { .app-install { display: none; } }
 
 .app-upd { position: fixed; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 64px); z-index: 10001; border: 0; border-radius: 999px; padding: 10px 18px; background: #0F0F0F; color: #fff; font: inherit; font-size: 14px; font-weight: 700; box-shadow: 0 6px 20px rgba(0,0,0,.2); cursor: pointer; }
+.app-gate-kakao { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 56px; padding: 0 18px; border: 0; border-radius: 14px; background: #FEE500; color: #191600; font: inherit; font-size: 16.5px; font-weight: 700; cursor: pointer; }
+.app-gate-kakao:active { filter: brightness(.96); }
+.app-gate-box > .app-gate-google + .app-gate-kakao, .app-gate-box > .app-gate-kakao + .app-gate-google { margin-top: -4px; }
 
 </style>
 <script>
 /* 앱(Firebase) 버전 설정. 비밀번호가 아니라 공개해도 되는 값이에요.
  * clientId : 구글 클라우드 > API 및 서비스 > 사용자 인증 정보 > OAuth 클라이언트 ID (웹 애플리케이션)
  * scriptId : Apps Script 편집기 > 프로젝트 설정(톱니바퀴) > 스크립트 ID
- * deployId : Apps Script > 배포 > 배포 관리 > 'API 실행 파일' 배포의 배포 ID (없으면 비워 둬도 돼요) */
+ * deployId : Apps Script > 배포 > 배포 관리 > 'API 실행 파일' 배포의 배포 ID (없으면 비워 둬도 돼요)
+ * webApp   : (새 방식) Apps Script '웹 앱' 배포 주소(…/exec). 넣으면 구글·카카오 로그인 + 서버가 대신 시트를 읽고 쓰는 방식으로 바뀐다
+ * kakaoKey : (새 방식) 카카오 개발자 '로그인 전용 앱'의 REST API 키. 비우면 카카오 버튼이 안 보인다 */
 window.APP_CONFIG = {
   clientId: '601957312516-dtr7d9kc8fl2r0tl73mjrdr2uc7snkjq.apps.googleusercontent.com',
   scriptId: '1KN8xh1taVVE1NUeTforXo1T7XavuuN4c8p-lgvZ6lCFWjaGsGfVh6-PR',
   dbSheet: '1CexXBKdoj0LhpcOELSH4-oNXkclk4emEC1ANAsh_TV4', // 팀 구글 시트 (직업평가 기록 저장에 씀)
   domain: 'ardim.or.kr', // 로그인 화면에서 복지관 계정만 고르게
   deployId: 'AKfycbxtlw5kV_OSMBuZUn5ucpdrggA3ZAby81J-ir-4biPCqF2scl6xNmJGuu-ubNy8yWRe',
+  webApp: '',
+  kakaoKey: '',
 };
 
 </script>
@@ -79,7 +86,9 @@ window.APP_CONFIG = {
     set: function (k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
     del: function (k) { try { sessionStorage.removeItem(k); } catch (e) {} },
   };
-  var configured = !!(C.clientId && (C.scriptId || C.deployId));
+  // 새 방식(B): config.js 에 webApp(서버 웹 앱 주소)이 있으면 구글·카카오 로그인 + 서버 출입증으로 동작한다
+  var WEBAPP = C.webApp || '', SESSION = !!WEBAPP;
+  var configured = SESSION ? !!C.clientId : !!(C.clientId && (C.scriptId || C.deployId));
   var KEEP_KEY = 'ardim.app.keep';
   window.APP_MODE = 'app';
   /** 로그인 상태 유지: 켜 두면 출입증을 이 기기에 두고(앱을 닫아도 유지), 1시간마다 자동으로 새로 받는다.
@@ -89,7 +98,7 @@ window.APP_CONFIG = {
 
   /* ---------- 1) 구글 로그인에서 돌아왔으면 출입증을 꺼내 저장 ---------- */
   var h = location.hash || '';
-  if (/access_token=|error=/.test(h)) {
+  if (!SESSION && /access_token=|error=/.test(h)) {
     var q = {};
     h.slice(1).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); });
     var okState = q.state && q.state === ss.get(STATE_KEY);
@@ -140,6 +149,8 @@ window.APP_CONFIG = {
     Promise.resolve(window.S && S.clearCache ? S.clearCache() : null).then(function () { location.replace(location.pathname); });
   }
   window.AppAuth = { login: login, logout: logout, token: token, keep: keep, email: function () { return ls.get(HINT_KEY) || ''; }, needLogin: function () { needLogin(); } };
+  if (SESSION) window.AppAuth = { mode: 'session', login: function () { sessGate(); }, logout: sessLogout, token: function () { return ''; }, keep: keep,
+    email: function () { var o = sess(); return o ? o.id : ''; }, name: function () { var o = sess(); return o ? o.name : ''; }, needLogin: function () { sessGate('다시 로그인해 주세요.'); } };
 
   /* ---------- 2) 로그인 화면 (앱 첫 화면) ---------- */
   var gateShown = false;
@@ -177,6 +188,101 @@ window.APP_CONFIG = {
     });
   }
 
+  /* ================= 새 방식(B): 구글·카카오 로그인 → 서버가 확인하고 출입증(30일) → 서버가 대신 시트를 읽고 쓴다 ================= */
+  var SESS_KEY = 'ardim.app.sess', NONCE_KEY = 'ardim.app.nonce';
+  var LAST_KEY = 'ardim.app.last'; // 마지막에 쓴 로그인 (google/kakao) — 다음에 그 버튼을 위에
+  var authWait = null;
+  function sess() { try { var o = JSON.parse(ls.get(SESS_KEY) || ss.get(SESS_KEY) || 'null'); return o && o.t && o.x > Date.now() ? o : null; } catch (e) { return null; } }
+  function setSess(r) { ls.del(SESS_KEY); ss.del(SESS_KEY); box().set(SESS_KEY, JSON.stringify({ t: r.session, x: Date.now() + 29 * 864e5, id: r.user.id, name: r.user.name || '', kind: r.user.kind })); ls.set(HINT_KEY, r.user.id); ls.set(LAST_KEY, r.user.kind); }
+  function rand() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  var home = function () { return location.origin + '/'; };
+  function googleLogin(choose) {
+    var st = rand(), nonce = rand();
+    ss.set(STATE_KEY, st); ss.set(NONCE_KEY, nonce); ss.set(RET_KEY, location.hash || '#/');
+    var p = { client_id: C.clientId, redirect_uri: home(), response_type: 'id_token', scope: 'openid email profile', state: st, nonce: nonce, prompt: 'select_account' };
+    if (!choose && ls.get(LAST_KEY) === 'google' && ls.get(HINT_KEY) && ls.get(HINT_KEY).indexOf('@') > 0) { p.login_hint = ls.get(HINT_KEY); delete p.prompt; }
+    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + Object.keys(p).map(function (k) { return k + '=' + encodeURIComponent(p[k]); }).join('&');
+  }
+  function kakaoLogin() {
+    var st = rand();
+    ss.set(STATE_KEY, 'k:' + st); ss.set(RET_KEY, location.hash || '#/');
+    location.href = 'https://kauth.kakao.com/oauth/authorize?client_id=' + encodeURIComponent(C.kakaoKey) + '&redirect_uri=' + encodeURIComponent(home()) + '&response_type=code&state=' + encodeURIComponent('k:' + st);
+  }
+  function sessLogout() {
+    ls.del(SESS_KEY); ss.del(SESS_KEY);
+    Promise.resolve(window.S && S.clearCache ? S.clearCache() : null).then(function () { location.replace(location.pathname); });
+  }
+  function serverPost(body) {
+    return fetch(WEBAPP, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
+      .then(function (r) { if (!r.ok) throw new Error('서버 연결 오류 (' + r.status + ')'); return r.json(); })
+      .catch(function (e) { if (e instanceof TypeError) throw new Error('인터넷에 연결되지 않았거나 서버에 닿지 못했어요.'); throw e; });
+  }
+  function sexec(fn, args) {
+    if (authWait) { var w = authWait; return w.then(function () { return new Promise(function () {}); }, function () { return sexec(fn, args); }); }
+    var o = sess();
+    if (!o) { sessGate(); return new Promise(function () {}); } // 로그인 화면이 떠 있으니 기다린다
+    while (args.length && args[args.length - 1] === undefined) args.pop();
+    args = args.map(function (a) { return a === undefined ? null : a; });
+    return serverPost({ fn: fn, args: args, s: o.t }).then(function (j) {
+      if (j && j.ok) return j.result;
+      if (j && j.code === 'auth') { ls.del(SESS_KEY); ss.del(SESS_KEY); sessGate('로그인이 끝났어요. 다시 로그인해 주세요.'); return new Promise(function () {}); }
+      throw new Error((j && j.error) || '서버 오류');
+    });
+  }
+  var K_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="#191600" d="M12 3.5c-5 0-9 3.2-9 7.1 0 2.5 1.6 4.7 4.1 5.9l-1 3.7c-.1.3.3.6.6.4l4.4-2.9c.3 0 .6.1.9.1 5 0 9-3.2 9-7.2S17 3.5 12 3.5z"/></svg>';
+  function sessGate(err) {
+    if (gateShown && document.getElementById('appLoginG')) return;
+    var last = ls.get(LAST_KEY), hint = ls.get(HINT_KEY);
+    var gBtn = '<button type="button" class="app-gate-google" id="appLoginG">' + G_ICON + '<span>' + (last === 'google' && hint && hint.indexOf('@') > 0 ? esc(hint) + '(으)로 계속' : 'Google로 계속하기') + '</span></button>';
+    var kBtn = C.kakaoKey ? '<button type="button" class="app-gate-kakao" id="appLoginK">' + K_ICON + '<span>카카오로 계속하기</span></button>' : '';
+    gate('<img class="app-gate-logo" src="icons/icon-192.png" alt="" width="88" height="88">' +
+      '<h1>아르딤 직업지원팀</h1><p class="app-gate-sub">화성시 아르딤복지관 직업지원팀 업무 앱</p>' +
+      (err || window.__loginError ? '<p class="app-gate-err">' + esc(err || window.__loginError) + '</p>' : '') +
+      (last === 'kakao' ? kBtn + gBtn : gBtn + kBtn) +
+      '<label class="app-gate-keep"><input type="checkbox" id="appKeep" ' + (keep() ? 'checked' : '') + '> 로그인 상태 유지</label>' +
+      (last === 'google' && hint ? '<button type="button" class="app-gate-link" id="appOtherAcc">다른 구글 계정으로</button>' : '') +
+      '<p class="app-gate-note"><b>처음이신가요?</b> 로그인한 뒤 가입 신청서를 보내면 관리자가 확인하고 받아 줘요.<br>비밀번호는 구글·카카오 화면에서만 넣고, 이 앱에는 저장되지 않아요.</p>');
+    if (sessGate.bound) return;
+    sessGate.bound = true;
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest && e.target.closest('#appLoginG, #appLoginK, #appOtherAcc');
+      if (!t) return;
+      var k = document.getElementById('appKeep');
+      ls.set(KEEP_KEY, k && !k.checked ? '0' : '1');
+      if (t.id === 'appLoginK') kakaoLogin(); else googleLogin(t.id === 'appOtherAcc');
+    });
+  }
+  /** 구글·카카오에서 돌아왔으면 서버에 확인받아 출입증을 받는다 */
+  function sessionStart() {
+    if (!configured) { gate('<h1>앱 설정이 아직 안 됐어요</h1><p>web/config.js 에 구글 OAuth 클라이언트 ID가 있어야 해요.</p>'); return; }
+    var q = {}, hs = (location.hash || '').slice(1), qs = (location.search || '').slice(1);
+    (hs + '&' + qs).split('&').forEach(function (kv) { var i = kv.indexOf('='); if (i > 0) q[decodeURIComponent(kv.slice(0, i))] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, ' ')); });
+    var back = function () { var r = ss.get(RET_KEY) || '#/'; ss.del(RET_KEY); return location.pathname + (r === '#/' ? '' : r); };
+    var want = ss.get(STATE_KEY);
+    if (q.id_token || q.code || q.error) {
+      ss.del(STATE_KEY);
+      var body = null;
+      if (q.state && q.state === want) {
+        if (q.id_token) body = { auth: 'google', idToken: q.id_token, nonce: ss.get(NONCE_KEY) };
+        else if (q.code) body = { auth: 'kakao', code: q.code, redirectUri: home() };
+      }
+      ss.del(NONCE_KEY);
+      history.replaceState(null, '', location.pathname); // 주소에서 로그인 값 지우기
+      if (!body) { sessGate(q.error === 'access_denied' ? '로그인을 취소했어요.' : q.error ? '로그인 오류: ' + q.error : '로그인 확인 값이 맞지 않아요. 다시 눌러 주세요.'); return; }
+      splash('로그인 확인 중…');
+      // 확인이 끝날 때까지 다른 요청은 기다리게 하고, 끝나면 화면을 새로 연다 (기다리던 요청은 새 화면에서 다시 간다)
+      authWait = serverPost(body).then(function (j) {
+        if (!j || !j.ok) throw new Error((j && j.error) || '로그인을 확인하지 못했어요.');
+        setSess(j.result);
+        history.replaceState(null, '', back()); location.reload(); // 같은 주소(#만 다름)여도 새로 연다
+        return new Promise(function () {}); // 새로 여는 동안 기다리던 요청은 그대로 멈춰 둔다
+      });
+      authWait.catch(function (e) { authWait = null; gateShown = false; sessGate(e.message); });
+      return;
+    }
+    if (!sess()) sessGate();
+  }
+
   var expiredShown = false;
   function needLogin() {
     // 쓰는 도중 출입증이 끝났는데 입력 중이면: 고치던 내용은 그대로 두고, 위에 '다시 확인' 띠를 띄운다
@@ -196,14 +302,15 @@ window.APP_CONFIG = {
   }
   /** 로그인 유지: 출입증이 곧 끝나면 입력 중이 아닐 때 조용히 새로 받는다 (구글이 1시간짜리만 주기 때문) */
   function refreshCheck() {
-    if (!configured || gateShown || document.visibilityState !== 'visible') return;
+    if (SESSION || !configured || gateShown || document.visibilityState !== 'visible') return;
     var o = tokenInfo(), left = o ? o.exp - Date.now() : -1;
     if (left > 5 * 60000) return;
     if (!keep() || !ls.get(HINT_KEY)) { if (left <= 0) needLogin(); return; }
     if (!busy()) login(false, true); else if (left <= 0) needLogin();
   }
 
-  if (!configured) {
+  if (SESSION) sessionStart();
+  else if (!configured) {
     gate('<h1>앱 설정이 아직 안 됐어요</h1><p>web/config.js 에 구글 클라우드 OAuth 클라이언트 ID와 Apps Script 스크립트 ID를 넣어야 해요.</p><p class="sub">설치 안내: docs/앱_설치_안내.md</p>');
   } else if (!token()) {
     // 로그인 유지를 켜 둔 기기면 버튼 없이 바로 확인 (이미 허용했으면 잠깐 로고가 보였다가 열려요)
@@ -221,7 +328,8 @@ window.APP_CONFIG = {
       body: JSON.stringify({ 'function': fn, parameters: args, devMode: false }),
     });
   }
-  function exec(fn, args) {
+  function exec(fn, args) { return SESSION ? sexec(fn, args) : gexec(fn, args); }
+  function gexec(fn, args) {
     var t = token();
     if (!configured) return Promise.reject(new Error('앱 설정(web/config.js)이 비어 있어요.'));
     if (!t) { needLogin(); return Promise.reject(new Error('로그인이 필요해요.')); }
@@ -3040,7 +3148,7 @@ body[data-sec="tools"] #scopeSel, body[data-sec="tools"] .topbar [data-act="togg
 <input type="file" id="globalCardPhoto" accept="image/*" capture="environment" hidden>
 <input type="file" id="globalBizFile" accept=".xlsx,.xls,.csv,image/*,.pdf,application/pdf" multiple hidden>
 
-<script>window.APP_VERSION = "2026.11.26 15:31";</script>
+<script>window.APP_VERSION = "2026.11.26 15:55";</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
@@ -6080,10 +6188,12 @@ window.V = (() => {
   /** 계정 이메일 → 이름 (설정 '계정 이름') */
   function accNames() { const v = S.get().settings.accNames; if (v && typeof v === 'object') return v; try { return JSON.parse(v || '{}') || {}; } catch { return {}; } }
   const accName = email => accNames()[String(email || '').toLowerCase()] || '';
+  /** 계정 보여 주기: 구글은 메일, 카카오는 '카카오 계정' */
+  const idLabel = x => (/^kakao:/.test(String(x || '')) ? '카카오 계정' : String(x || ''));
   const nameIn = email => `<input class="input sm acc-name" list="accStaffList" value="${e(accName(email))}" placeholder="이름" data-chg="acc-name" data-email="${e(email)}" aria-label="${e(email)} 이름">`;
   function accRows() {
     const st = S.get().settings;
-    const split = v => String(v || '').toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@'));
+    const split = v => String(v || '').toLowerCase().split(/[\s,;]+/).filter(x => x.includes('@') || /^kakao:\d+$/.test(x));
     const admins = split(st.admins), members = split(st.members);
     return [...new Set([...admins, ...members])].map(email => ({ email, admin: admins.includes(email) }));
   }
@@ -6102,12 +6212,12 @@ window.V = (() => {
         <label class="switch"><input type="checkbox" data-act="acc-approval" ${on ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span><span>받아 준 사람만 들어오기</span></label></div>
       <p class="sub" style="margin:0 0 12px">${on ? '지금은 <b>받아 준 계정만</b> 들어올 수 있어요. 처음 온 사람은 로그인한 뒤 가입 신청서를 보내고, 여기서 받아 주면 바로 들어와요.' : '지금은 <b>복지관 계정 누구나</b> 들어올 수 있어요. 켜면 받아 준 사람만 들어오고, 나머지는 가입 신청서를 보내게 돼요. (켤 때 지금 쓰는 사람과 이름이 있는 계정은 자동으로 받아 둬요)'}</p>
       ${reqs.length ? `<ul class="req-list">${reqs.map(([email, r]) => `<li class="req">
-          <div class="req-who"><b>${e(r.name || '')}${r.org ? ` <span class="req-org">${e(r.org)}</span>` : ''}</b><span class="sub">${e(email)}${r.phone ? ` · <a href="tel:${e(r.phone)}">${e(r.phone)}</a>` : ''}</span>${r.reason || r.note ? `<span class="req-note">${e(r.reason || r.note)}</span>` : ''}</div>
+          <div class="req-who"><b>${e(r.name || '')}${r.org ? ` <span class="req-org">${e(r.org)}</span>` : ''}</b><span class="sub">${e(idLabel(email))}${r.phone ? ` · <a href="tel:${e(r.phone)}">${e(r.phone)}</a>` : ''}</span>${r.reason || r.note ? `<span class="req-note">${e(r.reason || r.note)}</span>` : ''}</div>
           <span class="sub num req-at">${when(r.at)}</span>
           <div class="req-acts">${btn(email, r, 'allow', '받아 주기', 'btn-primary', 'user')}${btn(email, r, 'allow', '관리자로', '', 'admin')}${btn(email, r, 'reject', '거절', 'btn-ghost')}${btn(email, r, 'block', '차단', 'btn-ghost req-block')}</div>
         </li>`).join('')}</ul>` : '<p class="req-empty">기다리는 가입 신청이 없어요.</p>'}
-      ${rejected.length ? `<details class="req-blocked"><summary>거절한 신청 <span class="num">${rejected.length}</span></summary><ul>${rejected.map(([x, r]) => `<li><span>${e(r.name || '')}${r.org ? ` · ${e(r.org)}` : ''} · ${e(x)}${r.why ? ` <span class="sub">(${e(r.why)})</span>` : ''}</span>${btn(x, r, 'dismiss', '목록에서 지우기', 'btn-ghost')}</li>`).join('')}</ul></details>` : ''}
-      ${blocked.length ? `<details class="req-blocked"><summary>막은 계정 <span class="num">${blocked.length}</span></summary><ul>${blocked.map(x => `<li><span>${e(accName(x) ? accName(x) + ' · ' : '')}${e(x)}</span><button class="btn btn-sm btn-ghost" type="button" data-act="acc-decide" data-do="unblock" data-email="${e(x)}">막기 풀기</button></li>`).join('')}</ul></details>` : ''}
+      ${rejected.length ? `<details class="req-blocked"><summary>거절한 신청 <span class="num">${rejected.length}</span></summary><ul>${rejected.map(([x, r]) => `<li><span>${e(r.name || '')}${r.org ? ` · ${e(r.org)}` : ''} · ${e(idLabel(x))}${r.why ? ` <span class="sub">(${e(r.why)})</span>` : ''}</span>${btn(x, r, 'dismiss', '목록에서 지우기', 'btn-ghost')}</li>`).join('')}</ul></details>` : ''}
+      ${blocked.length ? `<details class="req-blocked"><summary>막은 계정 <span class="num">${blocked.length}</span></summary><ul>${blocked.map(x => `<li><span>${e(accName(x) ? accName(x) + ' · ' : '')}${e(idLabel(x))}</span><button class="btn btn-sm btn-ghost" type="button" data-act="acc-decide" data-do="unblock" data-email="${e(x)}">막기 풀기</button></li>`).join('')}</ul></details>` : ''}
     </section>`;
   }
   /* ================= 데이터 관리 = 수납함: 사람·권한 / 연결(API) / 요금·결제 / 백업·정리 / 점검 ================= */
@@ -6179,7 +6289,7 @@ window.V = (() => {
             <b>목록에 한 명이라도 있으면 목록에 있는 사람만</b> 들어올 수 있어요. 비어 있으면 복지관 계정 누구나 들어와요.</p>
           <ul class="acc-list">
             ${acc.owner ? `<li class="acc-owner">${nameIn(acc.owner)}<span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
-            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li>${nameIn(r.email)}<span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}${(() => { let i = {}; try { i = JSON.parse(st.settings.accInfo || '{}')[r.email] || {}; } catch { i = {}; } return i.org || i.phone ? `<span class="sub acc-info">${e([i.org, i.phone].filter(Boolean).join(' · '))}</span>` : ''; })()}</span>
+            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li>${nameIn(r.email)}<span class="acc-mail">${e(idLabel(r.email))}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}${(() => { let i = {}; try { i = JSON.parse(st.settings.accInfo || '{}')[r.email] || {}; } catch { i = {}; } return i.org || i.phone ? `<span class="sub acc-info">${e([i.org, i.phone].filter(Boolean).join(' · '))}</span>` : ''; })()}</span>
               <select class="select sm" data-chg="acc-role" data-email="${e(r.email)}" aria-label="${e(r.email)} 권한"><option value="admin" ${r.admin ? 'selected' : ''}>관리자</option><option value="user" ${r.admin ? '' : 'selected'}>사용자</option></select>
               ${r.admin ? '' : `<button class="btn btn-sm perm-btn ${ui.accOpen === r.email ? 'on' : ''}" type="button" data-act="acc-perm-open" data-email="${e(r.email)}">메뉴 권한 ▾</button>`}
               <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button>
@@ -6485,7 +6595,7 @@ window.V = (() => {
     });
   }
 
-  return { staffColor, staffDot, accName, accNames, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, mapFolder, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
+  return { staffColor, staffDot, accName, accNames, idLabel, I, ui, HUB, hubTabsInner, perfPage, perfResults, perfTsv, dashCal, monthLabel, linkRow, triagePanel, triageButtons, SEARCH_SITES, bizLine, inPeriod, inArea, areaOptions, progBadge, staffRow, dashboard, bizPage, bizResults, netPage, netResults, cardsPage, cardResults, mapPage, mapItems, mapList, mapFolder, routePanel, routeEnd, soloBar, accRows, schedPage, evList, calendar, dataPage, detailBiz, detailNet, detailCard, drHead, stageBadge, opts };
 })();
 
 </script>
@@ -10495,7 +10605,8 @@ window.App = (() => {
     if (st && st.allowed) { location.reload(); return; }
     const me = (st && st.me) || '';
     const out = window.AppAuth && AppAuth.logout ? `<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>` : '<span class="sub">다른 계정으로 들어오려면 구글에서 계정을 바꾼 뒤 다시 열어 주세요.</span>';
-    const card = inner => `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>${inner}<p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p><div class="gate-foot">${out}</div></div>`;
+    const meLabel = st && st.kind === 'kakao' ? `카카오 계정${st.name ? ' (' + st.name + ')' : ''}` : me;
+    const card = inner => `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>${inner}<p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(meLabel)}</b>` : ''}</p><div class="gate-foot">${out}</div></div>`;
     let html;
     if (st.error) html = card(`<h1>권한을 확인하지 못했어요</h1><p>${U.esc(st.error)}</p><div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">다시 확인</button></div>`);
     else if (st.blocked) html = card('<h1>사용이 막힌 계정이에요</h1><p>관리자가 이 계정의 사용을 막아 두었어요. 필요하면 관리자에게 직접 문의해 주세요.</p>');
@@ -10528,7 +10639,8 @@ window.App = (() => {
     };
   }
   function gateForm(st, prev = {}) {
-    const me = (st && st.me) || '';
+    const me = st && st.kind === 'kakao' ? `카카오 계정${st.name ? ' (' + st.name + ')' : ''}` : (st && st.me) || '';
+    if (!prev.name && st && st.name) prev = { ...prev, name: st.name };
     return `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>
       <h1>가입 신청</h1><p>아르딤 직업지원팀 사이트는 관리자가 받아 준 계정만 쓸 수 있어요. 아래를 적어 보내면 관리자가 확인하고 알려 드려요.</p>
       <form class="gate-form" data-gate-form="1" autocomplete="off" novalidate>
@@ -12873,7 +12985,7 @@ window.App = (() => {
     },
     'acc-decide': async el => {
       const { email, do: what, role } = el.dataset;
-      const who = el.dataset.name || V.accName(email) || email;
+      const who = el.dataset.name || V.accName(email) || V.idLabel(email);
       let why = '';
       if (what === 'reject') { why = window.prompt(`${who}의 가입 신청을 거절할까요? 신청한 사람에게 보일 메모를 적을 수 있어요 (비워도 돼요).`, ''); if (why === null) return; }
       if (what === 'block' && !(await confirmBox('이 계정을 막을까요?', `${who}은(는) 앱과 웹사이트 모두 들어올 수 없게 돼요. 나중에 '막은 계정'에서 풀 수 있어요.`, '차단'))) return;
