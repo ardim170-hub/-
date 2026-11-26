@@ -46,7 +46,7 @@ window.App = (() => {
     dashboard: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `오늘 할 일 · 이번 주 일정 ${n}건` : '오늘 할 일·달력·일정'; }, field: () => '휴대폰용 · 연락이력·전화·명함', biz: () => `사업체 ${S.view().businesses.length} · 기관 ${S.view().networks.length} · 명함 ${S.view().cards.length}`, map: () => '사업체·기관 위치',
     schedule: () => { const n = S.view().events.filter(x => !x.done && U.diffDays(U.today(), x.date) <= 7 && x.date >= U.today()).length; return n ? `이번 주 ${n}건` : '업무 일정'; },
     't-hub': () => '참여자 단계·양식·이달 실적', 't-counsel': () => '메모 → 상담기록지 정리', 't-records': () => '기록 불러와 이력서 초안', 't-match': () => '구인처·참여자 맞추기', 't-care': () => '일지 정리', 't-place': () => '알선 결과 기록', 't-import': () => 'PDF·사진으로 채우기', 't-report': () => '월 보고서 만들기', 't-eval': () => '평가 기록·보고서',
-    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } return n ? `들어오기 요청 ${n}건` : '사용 권한 · 직원과 소속'; }, dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
+    contacts: () => '현장 모드 · 연락·방문 기록', empboard: () => '업무판 · 직업평가 기록지', clients: () => { const c = S.view().clients || []; return c.length ? `${c.length}명 · 과정 관리` : '이용자 과정도'; }, outreach: () => { const n = S.view().networks.filter(x => OR.isTarget(x)).length; return n ? `${n}곳 · 방문 기록` : '행정복지센터·학교·아파트'; }, perf: () => '월 목표·실적표', attend: () => `참여자 ${S.get().jobPeople.length}명`, data: () => '백업·가져오기·권한', dpeople: () => { let n = 0; try { n = Object.values(JSON.parse(S.get().settings.requests || '{}')).filter(r => r.status !== 'rejected').length; } catch { n = 0; } return n ? `가입 신청 ${n}건` : '사용 권한 · 직원과 소속'; }, dconnect: () => '어디에 무엇이 연결됐나', dcost: () => '돈이 나가는 곳 · 확인 링크', dbackup: () => '드라이브 정리 · 엑셀 · 복원', dcheck: () => '저장 점검 · 중복 정리',
   };
   const lsGetSec = () => { try { return localStorage.getItem('ardim.sec') || ''; } catch { return ''; } };
   const lsSetSec = v => { try { localStorage.setItem('ardim.sec', v); } catch { /* 저장 못 해도 동작 */ } };
@@ -276,12 +276,15 @@ window.App = (() => {
     let html;
     if (st.error) html = card(`<h1>권한을 확인하지 못했어요</h1><p>${U.esc(st.error)}</p><div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">다시 확인</button></div>`);
     else if (st.blocked) html = card('<h1>사용이 막힌 계정이에요</h1><p>관리자가 이 계정의 사용을 막아 두었어요. 필요하면 관리자에게 직접 문의해 주세요.</p>');
-    else if (!st.domainOk) html = card('<h1>복지관 계정으로 들어와 주세요</h1><p>이 사이트는 화성시아르딤복지관 구글 계정(@ardim.or.kr)으로만 쓸 수 있어요.</p>');
-    else if (st.request) {
+    else if (!st.domainOk) html = card('<h1>복지관 계정으로 들어와 주세요</h1><p>지금은 화성시아르딤복지관 구글 계정(@ardim.or.kr)으로만 가입 신청을 받고 있어요.</p>');
+    else if (st.request && st.request.status === 'rejected') {
+      html = card(`<span class="gate-state no">거절됨</span><h1>가입 신청이 거절됐어요</h1><p>${st.request.why ? `관리자 메모: ${U.esc(st.request.why)}` : '내용을 고쳐 다시 신청할 수 있어요.'}</p>
+        <div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="edit">다시 신청하기</button></div>`);
+    } else if (st.request) {
       const d = new Date(st.request.at), when = isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`;
-      html = card(`<span class="gate-state">승인 기다리는 중</span><h1>권한 요청을 보냈어요</h1><p>관리자가 허용하면 이 화면이 저절로 열려요. ${when ? `<span class="sub">보낸 때 ${when}</span>` : ''}</p>
-        <dl class="gate-sum"><dt>이름</dt><dd>${U.esc(st.request.name || '')}</dd>${st.request.note ? `<dt>남긴 말</dt><dd>${U.esc(st.request.note)}</dd>` : ''}</dl>
-        <div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">지금 다시 확인</button><button class="btn" type="button" data-gate="edit">요청 고치기</button></div>`);
+      html = card(`<span class="gate-state">확인 기다리는 중</span><h1>가입 신청을 보냈어요</h1><p>관리자가 받아 주면 이 화면이 저절로 열려요. ${when ? `<span class="sub">보낸 때 ${when}</span>` : ''}</p>
+        <dl class="gate-sum"><dt>이름</dt><dd>${U.esc(st.request.name || '')}</dd>${st.request.org ? `<dt>소속</dt><dd>${U.esc(st.request.org)}</dd>` : ''}${st.request.phone ? `<dt>전화번호</dt><dd>${U.esc(st.request.phone)}</dd>` : ''}${st.request.reason || st.request.note ? `<dt>신청 이유</dt><dd>${U.esc(st.request.reason || st.request.note)}</dd>` : ''}</dl>
+        <div class="gate-acts"><button class="btn btn-primary" type="button" data-gate="retry">지금 다시 확인</button><button class="btn" type="button" data-gate="edit">신청서 고치기</button></div>`);
       clearInterval(accessGate.t); accessGate.t = setInterval(async () => { try { const s2 = await S.call('api_access'); if (s2 && s2.allowed) location.reload(); } catch { /* 다음에 */ } }, 30000);
     } else html = gateForm(st);
     view.innerHTML = `<div class="gate">${html}</div>`;
@@ -290,30 +293,40 @@ window.App = (() => {
       const k = b.dataset.gate;
       if (k === 'retry') { b.disabled = true; accessGate(); }
       if (k === 'logout') AppAuth.logout();
-      if (k === 'edit') { view.querySelector('.gate').innerHTML = gateForm(st, st.request); }
+      if (k === 'edit') { view.querySelector('.gate').innerHTML = gateForm(st, st.request && st.request.status !== 'rejected' ? st.request : { name: st.request && st.request.name, org: st.request && st.request.org }); }
     };
     view.onsubmit = async ev => {
       const f = ev.target.closest('form[data-gate-form]'); if (!f) return;
       ev.preventDefault();
       const btn = f.querySelector('button[type=submit]'), msg = f.querySelector('.gate-err');
       btn.disabled = true; btn.textContent = '보내는 중…'; msg.textContent = '';
-      try { await S.call('api_requestAccess', { name: f.name.value, note: f.note.value }); accessGate(); }
-      catch (e) { msg.textContent = e.message || String(e); btn.disabled = false; btn.textContent = '권한 요청 보내기'; }
+      try { await S.call('api_requestAccess', { name: f.elements.name.value, org: f.elements.org.value, phone: f.elements.phone.value, reason: f.elements.reason.value, agree: f.elements.agree.checked }); accessGate(); }
+      catch (e) { msg.textContent = e.message || String(e); btn.disabled = false; btn.textContent = '가입 신청 보내기'; }
     };
   }
   function gateForm(st, prev = {}) {
     const me = (st && st.me) || '';
     return `<div class="gate-card"><div class="gate-mark" aria-hidden="true">${V.I.user}</div>
-      <h1>사용 권한 요청</h1><p>아르딤 직업지원팀 사이트는 관리자가 허용한 계정만 쓸 수 있어요. 이름을 적어 보내면 관리자에게 알림이 가요.</p>
-      <form class="gate-form" data-gate-form="1" autocomplete="off">
-        <label><span>이름</span><input class="input" name="name" maxlength="20" required value="${U.esc(prev.name || '')}" placeholder="예: 김정배"></label>
-        <label><span>남길 말 <em>선택</em></span><textarea class="textarea" name="note" rows="2" maxlength="200" placeholder="소속·하는 일 (예: 고용공단 사업 담당)">${U.esc(prev.note || '')}</textarea></label>
+      <h1>가입 신청</h1><p>아르딤 직업지원팀 사이트는 관리자가 받아 준 계정만 쓸 수 있어요. 아래를 적어 보내면 관리자가 확인하고 알려 드려요.</p>
+      <form class="gate-form" data-gate-form="1" autocomplete="off" novalidate>
+        <div class="gate-row"><label><span>이름</span><input class="input" name="name" maxlength="20" required value="${U.esc(prev.name || '')}" placeholder="홍길동" autocomplete="name"></label>
+        <label><span>소속</span><input class="input" name="org" maxlength="40" required value="${U.esc(prev.org || '')}" placeholder="예: 직업지원팀, ○○기관"></label></div>
+        <label><span>전화번호</span><input class="input" name="phone" type="tel" inputmode="tel" maxlength="15" required value="${U.esc(prev.phone || '')}" placeholder="010-1234-5678" autocomplete="tel"></label>
+        <label><span>가입 신청 이유</span><textarea class="textarea" name="reason" rows="3" maxlength="300" required placeholder="예: 고용공단 사업 담당으로 업무도구를 쓰려고 해요">${U.esc(prev.reason || prev.note || '')}</textarea></label>
+        <details class="gate-terms"><summary>개인정보 수집·이용 안내</summary>
+          <dl><dt>모으는 것</dt><dd>이름, 소속, 전화번호, 가입 신청 이유, 구글 계정 메일</dd>
+          <dt>쓰는 곳</dt><dd>가입 확인과 사용자 관리, 업무 연락</dd>
+          <dt>보관 기간</dt><dd>사이트 사용을 마칠 때까지 (거절되면 전화번호는 바로 지워요)</dd>
+          <dt>볼 수 있는 사람</dt><dd>이 사이트 관리자만</dd></dl>
+          <p class="sub">동의하지 않을 수 있지만, 그러면 가입 신청을 할 수 없어요.</p></details>
+        <label class="gate-agree"><input type="checkbox" name="agree"> <span>개인정보 수집·이용에 동의해요 <em>(필수)</em></span></label>
         <p class="gate-err" role="alert"></p>
-        <button class="btn btn-primary gate-send" type="submit">권한 요청 보내기</button>
+        <button class="btn btn-primary gate-send" type="submit">가입 신청 보내기</button>
       </form>
       <p class="gate-me">${me ? `로그인한 계정 <b>${U.esc(me)}</b>` : ''}</p>
       <div class="gate-foot">${window.AppAuth && AppAuth.logout ? '<button class="btn btn-ghost" type="button" data-gate="logout">다른 계정으로 로그인</button>' : ''}</div></div>`;
   }
+
   /* 화면이 바뀔 때만 한 번: 살짝 떠오르며 들어오고, 큰 숫자는 0에서 올라간다 (같은 화면을 다시 그릴 때는 그대로) */
   let enteredRoute = '';
   const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -2638,12 +2651,14 @@ window.App = (() => {
     'acc-decide': async el => {
       const { email, do: what, role } = el.dataset;
       const who = el.dataset.name || V.accName(email) || email;
+      let why = '';
+      if (what === 'reject') { why = window.prompt(`${who}의 가입 신청을 거절할까요? 신청한 사람에게 보일 메모를 적을 수 있어요 (비워도 돼요).`, ''); if (why === null) return; }
       if (what === 'block' && !(await confirmBox('이 계정을 막을까요?', `${who}은(는) 앱과 웹사이트 모두 들어올 수 없게 돼요. 나중에 '막은 계정'에서 풀 수 있어요.`, '차단'))) return;
       el.disabled = true;
       try {
-        const out = await S.call('api_decideAccess', { email, action: what, role });
+        const out = await S.call('api_decideAccess', { email, action: what, role, why });
         Object.assign(S.get().settings, out);
-        toast({ allow: `${who}을(를) ${role === 'admin' ? '관리자로 ' : ''}허용했어요. 30초 안에 그 사람 화면이 열려요.`, block: `${who}을(를) 막았어요.`, unblock: `${who}의 막기를 풀었어요.`, dismiss: '요청을 지웠어요.' }[what]);
+        toast({ allow: `${who}을(를) ${role === 'admin' ? '관리자로 ' : ''}받아 줬어요. 30초 안에 그 사람 화면이 열려요.`, block: `${who}을(를) 막았어요.`, reject: `${who}의 신청을 거절했어요. 다시 신청할 수 있어요.`, unblock: `${who}의 막기를 풀었어요.`, dismiss: '요청을 지웠어요.' }[what]);
         render();
       } catch (e) { el.disabled = false; toast(e.message || String(e), 'error'); }
     },
@@ -2667,6 +2682,7 @@ window.App = (() => {
       if (!(await confirmBox('목록에서 뺄까요?', `${V.accName(email) ? V.accName(email) + ' (' + email + ')' : email}은(는) 이제 이 사이트에 들어올 수 없게 됩니다${V.accRows().length <= 1 ? ' (목록이 비면 복지관 계정 누구나 들어올 수 있어요)' : ''}.`, '빼기'))) return;
       await saveAcc(V.accRows().filter(r => r.email !== email));
       await savePerms(email, {});
+      if (S.REMOTE) S.call('api_decideAccess', { email, action: 'remove' }).catch(() => {}); // 가입 때 받은 전화번호 등도 지운다
       toast(`${email}을(를) 뺐습니다.`);
     },
     'save-vworld': async () => {
@@ -3084,7 +3100,7 @@ window.App = (() => {
       // 현재 접속자: 바로 한 번, 그 뒤 1분마다·페이지를 옮길 때마다 알린다
       pingPresence(); setInterval(pingPresence, 60000);
       // 관리자: 기다리는 들어오기 요청이 있으면 한 번 알린다
-      if (S.REMOTE && S.isAdmin()) { let n = 0; try { n = Object.keys(JSON.parse(S.get().settings.requests || '{}')).length; } catch { n = 0; } if (n) toast(`들어오기 요청 ${n}건이 기다리고 있어요.`, '', { action: { label: '보기', run: () => { location.hash = '#/dpeople'; } } }); }
+      if (S.REMOTE && S.isAdmin()) { let n = 0; try { n = Object.values(JSON.parse(S.get().settings.requests || '{}')).filter(r => r.status !== 'rejected').length; } catch { n = 0; } if (n) toast(`가입 신청 ${n}건이 기다리고 있어요.`, '', { action: { label: '보기', run: () => { location.hash = '#/dpeople'; } } }); }
       setTimeout(archiveAuto, 8000); // 관리자가 열면 하루 한 번 이번 달·지난달 정리 파일을 드라이브에 새로 고친다
       window.addEventListener('hashchange', () => setTimeout(pingPresence, 300));
       document.addEventListener('click', ev => { if (!ev.target.closest('#presence')) { const m = $('#presenceMenu'); if (m) m.hidden = true; } });

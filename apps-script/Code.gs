@@ -230,32 +230,37 @@ function api_access() {
   var req = a.me ? jsonOf_(readSettings_().requests)[a.me] || null : null;
   return { me: a.me, allowed: a.allowed, admin: a.admin, blocked: a.blocked, approval: a.approval, request: req, domainOk: !a.me || sameDomain_(a.me) };
 }
-/** 권한 요청 보내기: { name, note } */
+/** 가입 신청 보내기: { name, org, phone, reason, agree } (개인정보 수집·이용 동의 필수) */
 function api_requestAccess(p) {
   p = p || {};
   var a = access_();
   if (!a.me) throw new Error('구글 계정 메일을 알 수 없어요. 다시 로그인해 주세요.');
   if (a.allowed) return api_access();
   if (a.blocked) throw new Error('이 계정은 관리자가 막아 두었어요. 관리자에게 직접 문의해 주세요.');
-  if (!sameDomain_(a.me)) throw new Error('복지관 계정으로만 요청할 수 있어요.');
-  var name = String(p.name || '').trim().slice(0, 20), note = String(p.note || '').trim().slice(0, 200);
+  if (!sameDomain_(a.me)) throw new Error('복지관 계정으로만 신청할 수 있어요.');
+  var name = String(p.name || '').trim().slice(0, 20), org = String(p.org || '').trim().slice(0, 40);
+  var phone = String(p.phone || '').replace(/[^0-9-]/g, '').slice(0, 15), reason = String(p.reason || p.note || '').trim().slice(0, 300);
   if (!name) throw new Error('이름을 적어 주세요.');
+  if (!org) throw new Error('소속을 적어 주세요.');
+  if (phone.replace(/-/g, '').length < 9) throw new Error('전화번호를 확인해 주세요. (예: 010-1234-5678)');
+  if (!reason) throw new Error('가입 신청 이유를 적어 주세요.');
+  if (p.agree !== true) throw new Error('개인정보 수집·이용에 동의해야 신청할 수 있어요.');
   var first = false;
   withLock_(function () {
     var reqs = jsonOf_(readSettings_().requests);
-    first = !reqs[a.me];
-    if (first && Object.keys(reqs).length >= 100) throw new Error('지금 쌓인 요청이 너무 많아요. 관리자에게 직접 문의해 주세요.');
-    reqs[a.me] = { name: name, note: note, at: Date.now() };
+    first = !reqs[a.me] || reqs[a.me].status === 'rejected';
+    if (!reqs[a.me] && Object.keys(reqs).length >= 100) throw new Error('지금 쌓인 신청이 너무 많아요. 관리자에게 직접 문의해 주세요.');
+    reqs[a.me] = { name: name, org: org, phone: phone, reason: reason, agreeAt: Date.now(), at: Date.now() };
     writeSettings_({ requests: JSON.stringify(reqs) });
   });
-  // 관리자에게 알림 메일 (처음 요청할 때만, 실패해도 요청은 남는다)
+  // 관리자에게 알림 메일 (처음 신청할 때만, 실패해도 신청은 남는다)
   if (first) {
     try {
       var st = readSettings_(), to = emails_(st.admins);
       if (a.owner) to.push(a.owner);
       to = to.filter(function (x, i) { return to.indexOf(x) === i; });
-      if (to.length) MailApp.sendEmail({ to: to.join(','), subject: '[아르딤] 사이트 사용 권한 요청 - ' + name, name: '아르딤 취업지원',
-        htmlBody: '<p><b>' + esc_(name) + '</b> (' + esc_(a.me) + ') 님이 사이트 사용 권한을 요청했어요.</p>' + (note ? '<p>남긴 말: ' + esc_(note) + '</p>' : '') + '<p>사이트 → 데이터 관리 → 사람·권한에서 허용하거나 차단할 수 있어요.</p>' });
+      if (to.length) MailApp.sendEmail({ to: to.join(','), subject: '[아르딤] 가입 신청 - ' + name + ' (' + org + ')', name: '아르딤 취업지원',
+        htmlBody: '<p><b>' + esc_(name) + '</b> (' + esc_(org) + ', ' + esc_(a.me) + ') 님이 가입을 신청했어요.</p><p>신청 이유: ' + esc_(reason) + '</p><p>사이트 → 데이터 관리 → 사람·권한에서 받아 주거나 거절할 수 있어요. (전화번호는 사이트에서만 볼 수 있어요)</p>' });
     } catch (e) { /* 메일은 못 보내도 된다 */ }
   }
   return api_access();
@@ -274,7 +279,9 @@ function api_decideAccess(p) {
     var members = emails_(st.members), admins = emails_(st.admins), blocked = emails_(st.blocked);
     var drop = function (list) { return list.filter(function (x) { return x !== email; }); };
     var name = String(p.name || (reqs[email] && reqs[email].name) || '').trim().slice(0, 20);
+    var info = jsonOf_(st.accInfo);
     if (p.action === 'allow') {
+      if (reqs[email]) { var q = reqs[email]; info[email] = { org: q.org || '', phone: q.phone || '', reason: q.reason || q.note || '', at: q.at || '', okAt: Date.now(), by: acc.me }; }
       if (members.indexOf(email) < 0) members.push(email);
       if (p.role === 'admin' && admins.indexOf(email) < 0) admins.push(email);
       blocked = drop(blocked); delete reqs[email];
@@ -283,13 +290,17 @@ function api_decideAccess(p) {
       if (acc.me && members.indexOf(acc.me) < 0) members.push(acc.me);
     } else if (p.action === 'block') {
       if (blocked.indexOf(email) < 0) blocked.push(email);
-      members = drop(members); admins = drop(admins); delete reqs[email];
+      members = drop(members); admins = drop(admins); delete reqs[email]; delete info[email];
     } else if (p.action === 'unblock') {
       blocked = drop(blocked);
+    } else if (p.action === 'reject') {
+      // 거절: 신청한 사람 화면에 '거절됨'과 이유가 보이고, 고쳐서 다시 신청할 수 있다. 전화번호 등은 지운다
+      if (reqs[email]) reqs[email] = { name: reqs[email].name || '', org: reqs[email].org || '', status: 'rejected', why: String(p.why || '').trim().slice(0, 200), at: Date.now() };
     } else if (p.action === 'dismiss') {
       delete reqs[email];
-    } else throw new Error('알 수 없는 처리: ' + p.action);
-    out = { members: members.join(','), admins: admins.join(','), blocked: blocked.join(','), requests: JSON.stringify(reqs), accNames: JSON.stringify(names) };
+    } else if (p.action !== 'remove') throw new Error('알 수 없는 처리: ' + p.action);
+    if (p.action === 'remove') { members = drop(members); admins = drop(admins); delete info[email]; }
+    out = { members: members.join(','), admins: admins.join(','), blocked: blocked.join(','), requests: JSON.stringify(reqs), accNames: JSON.stringify(names), accInfo: JSON.stringify(info) };
     writeSettings_(out);
     return out;
   });
@@ -363,7 +374,7 @@ function api_load(schema) {
     });
     ensureSheet_(SETTINGS_SHEET, ['항목', '값']);
     var settings = readSettings_();
-    if (!acc.admin) { delete settings.admins; delete settings.members; delete settings.perms; delete settings.requests; delete settings.blocked; }
+    if (!acc.admin) { delete settings.admins; delete settings.members; delete settings.perms; delete settings.requests; delete settings.blocked; delete settings.accInfo; }
     // 숨김 메뉴의 시트는 아예 보내지 않는다
     Object.keys(SHEET_MENU).forEach(function (name) { if (sheets[name] && name !== '활동기록' && !SHEET_MENU[name].some(function (m) { return level_(acc, m) >= 1; })) sheets[name] = []; });
     return { sheets: sheets, settings: settings, ai: !!aiKey_(), access: { me: acc.me, owner: acc.owner, admin: acc.admin, perms: acc.perms } };
@@ -587,7 +598,7 @@ function api_saveSettings(settings, staffRows) {
   var acc = requireAdmin_();
   settings = settings || {};
   // 요청·차단·승인제는 전용 기능(api_decideAccess·api_setApproval)으로만 바꾼다 (오래된 화면 내용으로 덮어쓰지 않게)
-  delete settings.requests; delete settings.blocked; delete settings.approval;
+  delete settings.requests; delete settings.blocked; delete settings.approval; delete settings.accInfo;
   // 관리자 명단을 바꿀 때 저장하는 사람은 늘 관리자로 남긴다 (소유자를 못 읽는 경우에도 잠기지 않게)
   if (Object.prototype.hasOwnProperty.call(settings, 'admins') && acc.me && acc.me !== acc.owner) {
     var list = emails_(settings.admins);

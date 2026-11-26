@@ -114,3 +114,18 @@ body.gated .app { grid-template-columns: minmax(0, 1fr) !important; }
 body[data-sec="tools"] { --sc: #0E8C82; --ss: #E3F5F3; --si: #0A6B63; }
 body[data-sec="tools"][data-route] { --pc: var(--sc); --ps: var(--ss); --pi: var(--si); --accent: var(--si); --accent-soft: var(--ss); }
 body[data-sec="tools"] #scopeSel, body[data-sec="tools"] .topbar [data-act="toggle-quick"] { display: none !important; } /* 업무도구에서는 보기 범위·새로 등록이 필요 없다 */
+
+/* ---------- 가입 신청서 ---------- */
+.gate-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gate-terms { border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: 13.5px; background: #FAFBFC; }
+.gate-terms summary { cursor: pointer; font-weight: 600; color: var(--text); }
+.gate-terms dl { display: grid; grid-template-columns: 84px 1fr; gap: 4px 10px; margin: 10px 0 6px; }
+.gate-terms dt { color: var(--muted); } .gate-terms dd { margin: 0; color: var(--text); }
+.gate-terms p { margin: 0; }
+.gate-agree { flex-direction: row !important; align-items: center; gap: 10px !important; font-weight: 500 !important; cursor: pointer; }
+.gate-agree input { width: 20px; height: 20px; accent-color: var(--sc, var(--accent)); flex: none; }
+.gate-agree em { font-style: normal; color: #D22030; font-size: 12.5px; }
+.gate-state.no { background: #FDECEC; color: #C2262E; }
+.req-org { font-weight: 500; color: var(--text-2); font-size: 13.5px; margin-left: 4px; }
+.acc-info { display: block; font-size: 12.5px; }
+@media (max-width: 480px) { .gate-row { grid-template-columns: 1fr; } }

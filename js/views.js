@@ -1085,19 +1085,22 @@ window.V = (() => {
   function accessRequests() {
     const st = S.get().settings;
     const js = v => { if (v && typeof v === 'object') return v; try { return JSON.parse(v || '{}') || {}; } catch { return {}; } };
-    const reqs = Object.entries(js(st.requests)).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+    const all = Object.entries(js(st.requests)).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+    const reqs = all.filter(([, r]) => r.status !== 'rejected'), rejected = all.filter(([, r]) => r.status === 'rejected');
     const blocked = String(st.blocked || '').split(/[\s,;]+/).filter(x => x.includes('@'));
     const on = st.approval === 'Y';
     const when = t => { const d = new Date(t); return isNaN(d) ? '' : `${d.getMonth() + 1}.${d.getDate()} ${U.pad(d.getHours())}:${U.pad(d.getMinutes())}`; };
+    const btn = (email, r, what, label, cls = '', role = '') => `<button class="btn btn-sm ${cls}" type="button" data-act="acc-decide" data-do="${what}" ${role ? `data-role="${role}"` : ''} data-email="${e(email)}" data-name="${e(r.name || '')}">${label}</button>`;
     return `<section data-dtab="people" class="panel panel-pad acc-req">
-      <div class="acc-req-head"><h2 class="section-title">들어오기 요청 ${reqs.length ? `<span class="badge accent num">${reqs.length}</span>` : ''}</h2>
-        <label class="switch"><input type="checkbox" data-act="acc-approval" ${on ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span><span>허용한 사람만 들어오기</span></label></div>
-      <p class="sub" style="margin:0 0 12px">${on ? '지금은 <b>허용한 계정만</b> 들어올 수 있어요. 처음 온 사람은 앱·웹에서 이름을 적어 요청하고, 여기서 허용하면 바로 들어와요.' : '지금은 <b>복지관 계정 누구나</b> 들어올 수 있어요. 켜면 허용한 사람만 들어오고, 나머지는 요청을 보내게 돼요. (켤 때 지금 쓰는 사람과 이름이 있는 계정은 자동으로 허용돼요)'}</p>
+      <div class="acc-req-head"><h2 class="section-title">가입 신청 ${reqs.length ? `<span class="badge accent num">${reqs.length}</span>` : ''}</h2>
+        <label class="switch"><input type="checkbox" data-act="acc-approval" ${on ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span><span>받아 준 사람만 들어오기</span></label></div>
+      <p class="sub" style="margin:0 0 12px">${on ? '지금은 <b>받아 준 계정만</b> 들어올 수 있어요. 처음 온 사람은 로그인한 뒤 가입 신청서를 보내고, 여기서 받아 주면 바로 들어와요.' : '지금은 <b>복지관 계정 누구나</b> 들어올 수 있어요. 켜면 받아 준 사람만 들어오고, 나머지는 가입 신청서를 보내게 돼요. (켤 때 지금 쓰는 사람과 이름이 있는 계정은 자동으로 받아 둬요)'}</p>
       ${reqs.length ? `<ul class="req-list">${reqs.map(([email, r]) => `<li class="req">
-          <div class="req-who"><b>${e(r.name || '')}</b><span class="sub">${e(email)}</span>${r.note ? `<span class="req-note">${e(r.note)}</span>` : ''}</div>
+          <div class="req-who"><b>${e(r.name || '')}${r.org ? ` <span class="req-org">${e(r.org)}</span>` : ''}</b><span class="sub">${e(email)}${r.phone ? ` · <a href="tel:${e(r.phone)}">${e(r.phone)}</a>` : ''}</span>${r.reason || r.note ? `<span class="req-note">${e(r.reason || r.note)}</span>` : ''}</div>
           <span class="sub num req-at">${when(r.at)}</span>
-          <div class="req-acts"><button class="btn btn-sm btn-primary" type="button" data-act="acc-decide" data-do="allow" data-role="user" data-email="${e(email)}" data-name="${e(r.name || '')}">허용</button><button class="btn btn-sm" type="button" data-act="acc-decide" data-do="allow" data-role="admin" data-email="${e(email)}" data-name="${e(r.name || '')}">관리자로 허용</button><button class="btn btn-sm btn-ghost req-block" type="button" data-act="acc-decide" data-do="block" data-email="${e(email)}" data-name="${e(r.name || '')}">차단</button></div>
-        </li>`).join('')}</ul>` : '<p class="req-empty">기다리는 요청이 없어요.</p>'}
+          <div class="req-acts">${btn(email, r, 'allow', '받아 주기', 'btn-primary', 'user')}${btn(email, r, 'allow', '관리자로', '', 'admin')}${btn(email, r, 'reject', '거절', 'btn-ghost')}${btn(email, r, 'block', '차단', 'btn-ghost req-block')}</div>
+        </li>`).join('')}</ul>` : '<p class="req-empty">기다리는 가입 신청이 없어요.</p>'}
+      ${rejected.length ? `<details class="req-blocked"><summary>거절한 신청 <span class="num">${rejected.length}</span></summary><ul>${rejected.map(([x, r]) => `<li><span>${e(r.name || '')}${r.org ? ` · ${e(r.org)}` : ''} · ${e(x)}${r.why ? ` <span class="sub">(${e(r.why)})</span>` : ''}</span>${btn(x, r, 'dismiss', '목록에서 지우기', 'btn-ghost')}</li>`).join('')}</ul></details>` : ''}
       ${blocked.length ? `<details class="req-blocked"><summary>막은 계정 <span class="num">${blocked.length}</span></summary><ul>${blocked.map(x => `<li><span>${e(accName(x) ? accName(x) + ' · ' : '')}${e(x)}</span><button class="btn btn-sm btn-ghost" type="button" data-act="acc-decide" data-do="unblock" data-email="${e(x)}">막기 풀기</button></li>`).join('')}</ul></details>` : ''}
     </section>`;
   }
@@ -1170,7 +1173,7 @@ window.V = (() => {
             <b>목록에 한 명이라도 있으면 목록에 있는 사람만</b> 들어올 수 있어요. 비어 있으면 복지관 계정 누구나 들어와요.</p>
           <ul class="acc-list">
             ${acc.owner ? `<li class="acc-owner">${nameIn(acc.owner)}<span class="acc-mail">${e(acc.owner)}</span><span class="badge admin">관리자</span><span class="sub">시트 소유자 · 항상 관리자</span></li>` : ''}
-            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li>${nameIn(r.email)}<span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}</span>
+            ${accRows().filter(r => r.email !== acc.owner).map(r => `<li>${nameIn(r.email)}<span class="acc-mail">${e(r.email)}${r.email === acc.me ? ' <span class="sub">(나)</span>' : ''}${(() => { let i = {}; try { i = JSON.parse(st.settings.accInfo || '{}')[r.email] || {}; } catch { i = {}; } return i.org || i.phone ? `<span class="sub acc-info">${e([i.org, i.phone].filter(Boolean).join(' · '))}</span>` : ''; })()}</span>
               <select class="select sm" data-chg="acc-role" data-email="${e(r.email)}" aria-label="${e(r.email)} 권한"><option value="admin" ${r.admin ? 'selected' : ''}>관리자</option><option value="user" ${r.admin ? '' : 'selected'}>사용자</option></select>
               ${r.admin ? '' : `<button class="btn btn-sm perm-btn ${ui.accOpen === r.email ? 'on' : ''}" type="button" data-act="acc-perm-open" data-email="${e(r.email)}">메뉴 권한 ▾</button>`}
               <button class="icon-btn" type="button" data-act="acc-del" data-email="${e(r.email)}" aria-label="${e(r.email)} 빼기" title="목록에서 빼기">${I.close}</button>

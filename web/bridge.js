@@ -113,7 +113,7 @@
       '<button type="button" class="app-gate-google" id="appLoginBtn">' + G_ICON + '<span>' + (hint ? esc(hint) + '(으)로 계속' : 'Google 계정으로 로그인') + '</span></button>' +
       '<label class="app-gate-keep"><input type="checkbox" id="appKeep" ' + (keep() ? 'checked' : '') + '> 로그인 상태 유지</label>' +
       (hint ? '<button type="button" class="app-gate-link" id="appOtherAcc">다른 계정으로 로그인</button>' : '') +
-      '<p class="app-gate-note">복지관 구글 계정' + (C.domain ? '(@' + esc(C.domain) + ')' : '') + '으로 로그인해요.<br>비밀번호는 구글 화면에서만 넣고, 이 앱에는 저장되지 않아요.<br>로그인 상태 유지를 켜 두면 다음부터는 바로 열려요.</p>');
+      '<p class="app-gate-note"><b>처음이신가요?</b> 로그인한 뒤 가입 신청서를 보내면 관리자가 확인해요.<br>복지관 구글 계정' + (C.domain ? '(@' + esc(C.domain) + ')' : '') + '으로 로그인해요.<br>비밀번호는 구글 화면에서만 넣고, 이 앱에는 저장되지 않아요.<br>로그인 상태 유지를 켜 두면 다음부터는 바로 열려요.</p>');
     document.addEventListener('click', function (e) {
       var id = e.target && e.target.closest && (e.target.closest('#appLoginBtn') ? 'go' : e.target.closest('#appOtherAcc') ? 'other' : '');
       if (!id) return;
